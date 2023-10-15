@@ -1,0 +1,510 @@
+<!doctype html>
+<html lang="en">
+   <head>
+      <style>
+         body {
+         background-color: #1e1e1e;
+         display: grid;
+         grid-template-columns: 1fr 1fr;
+         color: #e0e0e0;
+         font-family: Arial, sans-serif;
+         }
+         input[type="text"], input[type="submit"] {
+         background-color: #222222;
+         color: #e0e0e0;
+         border: 1px solid #555;
+         padding: 8px 12px;
+         margin: 5px;
+         }
+         input[type="submit"]:hover {
+         background-color: #333333;
+         }
+         .rating-buttons {
+         text-align: center;
+         }
+         .rating-button {
+         background-color: #222222;
+         color: #e0e0e0;
+         border: 1px solid #555;
+         padding: 8px 12px;
+         margin: 5px;
+         cursor: pointer;
+         transition: background-color 0.3s;
+         }
+         .rating-button:hover {
+         background-color: #333333;
+         color: #ffffff;
+         }
+         .pokemon-buttons {
+         text-align: left;
+         }
+         .pokemon-button {
+         background-color: #222222;
+         color: #e0e0e0;
+         border: 0px solid #555;
+         padding: 8px 0px;
+         width: 100%;
+         cursor: pointer;
+         transition: background-color 0.3s;
+         justify-content: space-between;
+         align-items: center; 
+         display: flex;
+         }
+         .pokemon-button:hover {
+         background-color: #333333;
+         color: #ffffff;
+         }
+         .pokemon-list {
+         height: 200px;
+         overflow-y: scroll;
+         overflow-x: hidden;
+         margin-bottom: 20px;
+         width: 300px;
+         box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+         justify-self: center; /* Horizontally center the item within its cell */
+         align-self: center;   /* Vertically center the item within its cell */
+         max-height: 200px;
+         margin-right: 10px;
+         }
+         .pokemon-list ul {
+         list-style-type: none;
+         padding: 0;
+         margin: 0;
+         }
+         .pokemon-listli {
+         padding: 0px;
+         }
+         .pokemon-list li:hover {
+         background-color: #333333;
+         }
+         /* The scrollbar track for .pokemon-list */
+         .pokemon-list::-webkit-scrollbar {
+         width: 12px;  /* width of the entire scrollbar */
+         }
+         /* The background of the scrollbar track for .pokemon-list */
+         .pokemon-list::-webkit-scrollbar-track {
+         background: #222222;
+         }
+         /* The scrollbar handle (thumb) for .pokemon-list */
+         .pokemon-list::-webkit-scrollbar-thumb {
+         background: #333333;
+         }
+         /* Handle on hover for .pokemon-list */
+         .pokemon-list::-webkit-scrollbar-thumb:hover {
+         background: #111111;
+         }
+         .meta-buttons {
+         text-align: left;
+         }
+         .meta-button {
+         background-color: #222222;
+         color: #e0e0e0;
+         border: 0px solid #555;
+         padding: 8px 0px;
+         width: 300px;
+         cursor: pointer;
+         transition: background-color 0.3s;
+         }
+         .meta-button:hover {
+         background-color: #333333;
+         color: #ffffff;
+         }
+         .meta-list {
+         height: 300px;
+         overflow-y: scroll;
+         overflow-x: hidden;
+         margin-bottom: 20px;
+         width: 300px;
+         box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+         justify-self: center; /* Horizontally center the item within its cell */
+         align-self: center;   /* Vertically center the item within its cell */
+         max-height: 200px;
+         margin-right: 10px;
+         }
+         .meta-list ul {
+         list-style-type: none;
+         padding: 0;
+         margin: 0;
+         }
+         .meta-listli {
+         padding: 0px;
+         }
+         .meta-list li:hover {
+         background-color: #333333;
+         }
+         /* The scrollbar track for .pokemon-list */
+         .meta-list::-webkit-scrollbar {
+         width: 12px;  /* width of the entire scrollbar */
+         }
+         /* The background of the scrollbar track for .pokemon-list */
+         .meta-list::-webkit-scrollbar-track {
+         background: #222222;
+         }
+         /* The scrollbar handle (thumb) for .pokemon-list */
+         .meta-list::-webkit-scrollbar-thumb {
+         background: #333333;
+         }
+         /* Handle on hover for .pokemon-list */
+         .meta-list::-webkit-scrollbar-thumb:hover {
+         background: #111111;
+         }
+         .left-text, .right-text {
+         white-space: nowrap;  /* This ensures the text doesn't wrap to the next line */
+         }
+         .left-text {
+         margin-right: 10px;
+         padding-left: 10px;
+         }
+         .right-text {
+         margin-left: 10px;
+         padding-right: 10px;
+         }
+         .left {
+         display: grid;
+         grid-template-columns: 1fr 1fr; /* Two columns of equal width */
+         grid-template-rows: auto 1fr 1fr; /* One row for the title (sized to content) and two equal-height rows for the grid */
+         text-align: center;
+         }
+         .right {
+         display: grid;
+         grid-template-columns: 1fr 1fr; /* Two columns of equal width */
+         grid-template-rows: auto 1fr 1fr; /* One row for the title (sized to content) and two equal-height rows for the grid */
+         text-align: center;
+         }
+         .Data {
+         height: 200px;
+         overflow-y: scroll;
+         overflow-x: hidden;
+         margin-bottom: 20px;
+         width: 300px;
+         box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+         justify-self: center; /* Horizontally center the item within its cell */
+         align-self: center;   /* Vertically center the item within its cell */
+         max-height: 200px;
+         margin-right: 10px;
+         }
+         .Data ul {
+         list-style-type: none;
+         padding: 0;
+         margin: 0;
+         }
+         .Data li {
+         padding: 0px;
+         }
+         .Data li:hover {
+         background-color: #333333;
+         }
+         /* The scrollbar track for .pokemon-list */
+         .Data::-webkit-scrollbar {
+         width: 12px;  /* width of the entire scrollbar */
+         }
+         /* The background of the scrollbar track for .pokemon-list */
+         .Data::-webkit-scrollbar-track {
+         background: #222222;
+         }
+         /* The scrollbar handle (thumb) for .pokemon-list */
+         .Data::-webkit-scrollbar-thumb {
+         background: #333333;
+         }
+         /* Handle on hover for .pokemon-list */
+         .Data::-webkit-scrollbar-thumb:hover {
+         background: #111111;
+         }
+         .bar-container {
+            width: 200px; /* Example width, adjust as needed */
+            height: 20px;
+            background-color: #1e1e1e; /* Gray color for the unfilled portion */
+            margin-top: 0px;
+            display: flex; /* Use Flexbox */
+            align-items: left; /* Vertically center the items */
+            justify-content: space-between;
+        }
+        .Stats {
+            width: 300px; /* Width of the main container */
+            margin: 0 auto; /* Center the container */
+            text-align: center; /* Center the title text */
+        }
+        .left-container {
+            display: flex;
+            align-items: center; /* Vertically center the items */
+            height: 20px;
+            width: 200px;
+        }
+
+
+        /* Filled portion */
+        .bar-fill {
+            height: 95%; /* Fill the entire height of the container */
+        }
+        .hp-fill {
+            background-color: red;
+        }
+        .atk-fill {
+            background-color: orange;
+        }
+        .def-fill {
+            background-color: yellow;
+        }
+        .spa-fill {
+            background-color: turquoise;
+        }
+        .spd-fill {
+            background-color: green;
+        }
+        .spe-fill {
+            background-color: magenta;
+        }
+        .bar-text-left, .bar-text-right {
+            padding: 0 10px; /* Some spacing from the bar */
+        }
+      </style>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>Munchlytics</title>
+   </head>
+   <body>
+      <form class="left" method="post">
+         <div style="grid-column: 1 / 3;">
+            <h3> Selected Meta: {{ selected_meta }}</h3>
+            <h3> Current Selected Rating Threshold: {{ selected_rating }}</h3>
+            <h2> Current Pokemon: {{current_pokemon}}</h2>
+         </div>
+         <div class="meta-list">
+            <input type="hidden" name="meta_value" id="selectedMeta" value="{{ selected_meta }}">
+            <ul>
+               {% for meta in meta_games %}
+               <li>
+                  <button type="submit" name="meta_value" value="{{ meta }}" onclick="selectMeta('{{meta}}')" class="meta-button">{{ meta }}</button>
+               </li>
+               {% endfor %}
+            </ul>
+         </div>
+         <div class="pokemon-list">
+            <input type="hidden" name="pokemon_value" id="selectedPokemon" value="{{ selected_pokemon }}">
+            <ul>
+               {% for pokemon in pokemon_names %}
+               <li>
+                  <button type="submit" name="pokemon_value" value="{{ pokemon[0] }}" onclick="selectPokemon('{{pokemon[0]}}')" class="pokemon-button">
+                  <span class="left-text">{{ pokemon[0] }}</span>
+                  <span class="right-text">{{ pokemon[1] }}%</span>
+                  </button>
+               </li>
+               {% endfor %}
+            </ul>
+         </div>
+         <div class="rating-buttons">
+            <input type="hidden" name="rating_value" id="selectedRating" value="{{ selected_rating }}">
+            {% for rate in valid_ratings %}
+            <button type="submit" name="rating_value" onclick="selectRating('{{rate}}')" value="{{rate}}" class="rating-button">{{rate}}+</button>
+
+            {% endfor %}
+         </div>
+         <div>
+            <input type="text" name="pokemon_search" id="pokemonSearchInput" placeholder="Search for a Pokémon">
+            <input type="submit" onclick="selectPokemonSearch()" value="Search">
+         </div>
+      </form>
+      <div class = "right">
+         <div class="Stats">
+            {% if pokemon_base_stats|length > 0 %}
+            <h2>Base Stats</h2>
+            <div class="bar-container">
+                <div class="left-container">
+                    <span class="bar-text-left" style="width: 30px;">HP</span>
+                    <div class="bar-fill hp-fill" style="width: {{ pokemon_base_stats[0]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                </div>
+                <span class="bar-text-right">{{ pokemon_base_stats[0] }}</span>
+            </div>
+
+            <div class="bar-container">
+                <div class="left-container">
+                    <span class="bar-text-left" style="width: 30px;">Atk</span>
+                    <div class="bar-fill atk-fill" style="width: {{ pokemon_base_stats[1]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                </div>
+                <span class="bar-text-right">{{ pokemon_base_stats[1] }}</span>
+            </div>
+
+            <div class="bar-container">
+                <div class="left-container">
+                    <span class="bar-text-left" style="width: 30px;">Def</span>
+                    <div class="bar-fill def-fill" style="width: {{ pokemon_base_stats[2]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                </div>
+                <span class="bar-text-right">{{ pokemon_base_stats[2] }}</span>
+            </div>
+
+            <div class="bar-container">
+                <div class="left-container">
+                    <span class="bar-text-left" style="width: 30px;">SpA</span>
+                    <div class="bar-fill spa-fill" style="width: {{ pokemon_base_stats[3]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                </div>
+                <span class="bar-text-right">{{ pokemon_base_stats[3] }}</span>
+            </div>
+
+            <div class="bar-container">
+                <div class="left-container">
+                    <span class="bar-text-left" style="width: 30px;">SpD</span>
+                    <div class="bar-fill spd-fill" style="width: {{ pokemon_base_stats[4]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                </div>
+                <span class="bar-text-right">{{ pokemon_base_stats[4] }}</span>
+            </div>
+
+            <div class="bar-container">
+                <div class="left-container">
+                    <span class="bar-text-left" style="width: 30px;">Spe</span>
+                    <div class="bar-fill spe-fill" style="width: {{ pokemon_base_stats[5]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                </div>
+                <span class="bar-text-right">{{ pokemon_base_stats[5] }}</span>
+            </div>
+
+            
+            {% endif %}
+         </div>
+         <div>
+            <h2>Moves</h2>
+            <div class="Data">
+               {% if pokemon_moves|length > 0 %}
+               <ul>
+                  {% for move in pokemon_moves %}
+                  <li>
+                     <button type="button"class="pokemon-button">
+                     <span class="left-text">{{ move[0] }}</span>
+                     <span class="right-text">{{ move[1] }}%</span>
+                     </button>
+                  </li>
+                  {% endfor %}
+               </ul>
+               {% endif %}
+            </div>
+         </div>
+        <div>
+         <h2>Teammates</h2>
+         <div class="Data">
+            {% if pokemon_teammates|length > 0 %}
+            <ul>
+               {% for team in pokemon_teammates %}
+               <li>
+                  <button type="button"class="pokemon-button">
+                  <span class="left-text">{{ team[0] }}</span>
+                  <span class="right-text">{{ team[1] }}%</span>
+                  </button>
+               </li>
+               {% endfor %}
+            </ul>
+            {% endif %}
+         </div>
+        </div>
+        <div>
+         <h2>Items</h2>
+         <div class="Data">
+            {% if pokemon_items|length > 0 %}
+            <ul>
+               {% for item in pokemon_items %}
+               <li>
+                  <button type="button"class="pokemon-button">
+                  <span class="left-text">{{ item[0] }}</span>
+                  <span class="right-text">{{ item[1] }}%</span>
+                  </button>
+               </li>
+               {% endfor %}
+            </ul>
+            {% endif %}
+         </div>
+        </div>
+        <div>
+         <h2>Abilities</h2>
+         <div class="Data">
+            {% if pokemon_abilities|length > 0 %}
+            <ul>
+               {% for ability in pokemon_abilities %}
+               <li>
+                  <button type="button"class="pokemon-button">
+                  <span class="left-text">{{ ability[0] }}</span>
+                  <span class="right-text">{{ ability[1] }}%</span>
+                  </button>
+               </li>
+               {% endfor %}
+            </ul>
+            {% endif %}
+         </div>
+        </div>
+        <div>
+         <h2>Spreads</h2>
+         <div class="Data">
+            {% if pokemon_spreads|length > 0 %}
+            <ul>
+               {% for spread in pokemon_spreads %}
+               <li>
+                  <button type="button"class="pokemon-button">
+                  <span class="left-text">{{ spread[0] }}</span>
+                  <span class="right-text">{{ spread[1] }}%</span>
+                  </button>
+               </li>
+               {% endfor %}
+            </ul>
+            {% endif %}
+         </div>
+        </div>
+        <div>
+        <h2>Natures</h2>
+         <div class="Data">
+            {% if pokemon_natures|length > 0 %}
+            <ul>
+               {% for nature in pokemon_natures %}
+               <li>
+                  <button type="button"class="pokemon-button">
+                  <span class="left-text">{{ nature[0] }}</span>
+                  <span class="right-text">{{ nature[1] }}%</span>
+                  </button>
+               </li>
+               {% endfor %}
+            </ul>
+            {% endif %}
+         </div>
+        </div>
+        <div>
+         {% if pokemon_counters|length > 0 %}
+         <h2>Checks and Counters</h2>
+         <div class="Data">
+            <ul>
+               {% for counter in pokemon_counters %}
+               <li>
+                  <button type="button"class="pokemon-button">
+                  <span class="left-text">{{ counter[0] }}</span>
+                  <span class="right-text">{{ counter[1] }}%</span>
+                  </button>
+               </li>
+               {% endfor %}
+            </ul>
+         </div>
+         {% endif %}
+        </div>
+      </div>
+      <script>
+         // JavaScript function to set the value of the hidden input when a Pokémon is selected
+         function selectPokemon(pokemonName) {
+             document.getElementById('selectedPokemon').value = pokemonName;
+         }
+         function selectPokemonSearch(pokemonName) {
+             var pokemonSearched = document.getElementById('pokemonSearchInput').value;
+             document.getElementById('selectedPokemon').value = pokemonSearched;
+             document.querySelector('.left').submit(); 
+         }
+         function selectMeta(metaType) {
+             document.getElementById('selectedMeta').value = metaType;
+             var susVal = document.getElementById('selectedMeta').value
+             console.log(susVal)
+         }
+         function selectRating(ratingType) {
+             document.getElementById('selectedRating').value = ratingType;
+         }
+         
+         document.getElementById('pokemonSearchInput').addEventListener('keydown', function(event) {
+         if (event.key === "Enter" || event.keyCode === 13) {
+             event.preventDefault();
+             selectPokemonSearch();
+         }
+         });
+         
+      </script>
+   </body>
+</html>
