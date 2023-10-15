@@ -195,5 +195,3 @@ def index():
                            current_pokemon = pokeSearch,
                            valid_ratings = valid_ratings)
 
-if __name__ == '__main__':
-    app.run()
