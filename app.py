@@ -41,6 +41,7 @@ def get_valid_ratings(meta):
     valid_rates = ["stats/"+f for f in os.listdir("stats/") if meta in f.split("-")]
     valid_rates = [f.split("-")[-1] for f in valid_rates]
     valid_rates = [f.split(".")[0] for f in valid_rates]
+    valid_rates.sort(key=int)
     return valid_rates
     
 
