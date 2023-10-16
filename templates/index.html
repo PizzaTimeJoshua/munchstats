@@ -161,13 +161,13 @@
          }
          .left {
          display: grid;
-         grid-template-columns: 1fr 1fr; /* Two columns of equal width */
-         grid-template-rows: auto 1fr 1fr; /* One row for the title (sized to content) and two equal-height rows for the grid */
+         grid-template-columns: 1fr; 
+         grid-template-rows: auto 1fr 1fr 1fr; /* One row for the title (sized to content) and two equal-height rows for the grid */
          text-align: center;
          }
          .right {
          display: grid;
-         grid-template-columns: 1fr 1fr; /* Two columns of equal width */
+         grid-template-columns: 1fr 1fr 1fr; /* Two columns of equal width */
          grid-template-rows: auto 1fr 1fr; /* One row for the title (sized to content) and two equal-height rows for the grid */
          text-align: center;
          }
@@ -264,7 +264,7 @@
    </head>
    <body>
       <form class="left" method="post">
-         <div style="grid-column: 1 / 3;">
+         <div>
             <h3> Selected Meta: {{ selected_meta }}</h3>
             <h3> Current Selected Rating Threshold: {{ selected_rating }}</h3>
             <h2> Current Pokemon: {{current_pokemon}}</h2>
