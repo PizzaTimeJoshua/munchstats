@@ -170,8 +170,11 @@ def index():
     pokemon_top_usage = list(sorted(pokemonData.keys(), key=lambda x: pokemonData[x]["usage"], reverse=True))
     pokemon_top_usage = [[poke,round(pokemonData[poke]["usage"]*100,2)] for poke in pokemon_top_usage]
     
-    pokeSearch = pokemon_top_usage[0][0]
-
+    try:
+        pokeSearch = pokemon_top_usage[0][0]
+    except IndexError:
+        pokeSearch = ""
+        
     if selected_pokemon:
         word = selected_pokemon.lower()
         possibilities = pokemonData.keys()
