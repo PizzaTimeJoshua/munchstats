@@ -4,6 +4,7 @@ import os
 import pyjson5
 from datetime import datetime
 import difflib
+import re
 
 app = Flask(__name__)
 
@@ -36,6 +37,17 @@ def getPokemonData(meta,rating):
         pokemonData = statsRaw["data"]
 
     return pokemonData
+def extract_gen(s):
+    """Extract the generation number from the string."""
+    val = s.split("-")[2].split("gen")[1].split("1v1")[0].split("2v2")[0].split("350")[0]
+    val = int(re.findall(r'\d+', val)[0]) if re.findall(r'\d+', val) else None
+    return val
+
+def sort_files_by_gen_and_size(files):
+    """Sort the list of files by generation and size."""
+    files_info = [(f, extract_gen(f), os.path.getsize(f)) for f in files]
+    sorted_files = sorted(files_info, key=lambda x: (-x[1], -x[2]))
+    return [f[0] for f in sorted_files]
 
 def get_valid_ratings(meta):
     valid_rates = ["stats/"+f for f in os.listdir("stats/") if meta in f.split("-")]
@@ -48,7 +60,7 @@ def get_valid_ratings(meta):
 def safe_load_files():
     global itemData, movesData, abilitiesData, pokedexData, meta_games_list
     meta_games_list = ["stats/"+f for f in os.listdir("stats/") if f.split("-")[-1] == "0.json"]
-    meta_games_list.sort(reverse=True,key=os.path.getsize)
+    meta_games_list = sort_files_by_gen_and_size(meta_games_list)
     meta_games_list = [f.split("-")[-2] for f in meta_games_list]
     # Load Items
     if os.path.exists("stats/items.json"):
