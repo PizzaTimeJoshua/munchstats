@@ -150,15 +150,15 @@ def index():
     valid_ratings = ["0","1500","1630","1760"]
 
     selected_meta = request.form.get('meta_value',meta)
-    selected_pokemon = request.form.get('pokemon_value',selected_pokemon)
-    selected_rating = request.form.get('rating_value',rating)
+    selected_pokemon = request.form.get('pokemon_value',"No Pokemon")
+    selected_rating = request.form.get('rating_value',"No Rating")
     valid_ratings = request.form.get('valid_ratings',valid_ratings)
 
     print(selected_meta,selected_rating,selected_pokemon)
     if (selected_meta in meta_games_list):
         meta = selected_meta
     valid_ratings = get_valid_ratings(meta)
-    
+
     if (selected_rating in valid_ratings):
         rating = selected_rating 
     else:
@@ -167,7 +167,11 @@ def index():
     
     pokemonData = getPokemonData(meta,rating)
 
-    pokeSearch = ""
+    pokemon_top_usage = list(sorted(pokemonData.keys(), key=lambda x: pokemonData[x]["usage"], reverse=True))
+    pokemon_top_usage = [[poke,round(pokemonData[poke]["usage"]*100,2)] for poke in pokemon_top_usage]
+    
+    pokeSearch = pokemon_top_usage[0][0]
+
     if selected_pokemon:
         word = selected_pokemon.lower()
         possibilities = pokemonData.keys()
@@ -177,8 +181,6 @@ def index():
         if len(normalized_result)>0:
             close = normalized_result[0]
             pokeSearch = close
-        else:
-            pokeSearch = ""
 
     pokemon_base_stats = top_data_list(pokemonData,pokeSearch,"Stats")
     pokemon_moves = top_data_list(pokemonData,pokeSearch,"Moves")
@@ -189,8 +191,6 @@ def index():
     pokemon_natures = top_data_list(pokemonData,pokeSearch,"Natures")
     pokemon_counters = top_data_list(pokemonData,pokeSearch,"Checks and Counters")
 
-    pokemon_top_usage = list(sorted(pokemonData.keys(), key=lambda x: pokemonData[x]["usage"], reverse=True))
-    pokemon_top_usage = [[poke,round(pokemonData[poke]["usage"]*100,2)] for poke in pokemon_top_usage]
     return render_template('index.html', 
                            pokemon_names=pokemon_top_usage,
                            meta_games=meta_games_list,
