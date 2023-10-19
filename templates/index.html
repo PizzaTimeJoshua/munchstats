@@ -275,6 +275,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>MunchStats</title>
+      <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
    </head>
    <body>
       <div class="grid-container">
@@ -302,12 +303,11 @@
                {% endfor %}
             </div>
             <div>
-               <input type="text" name="pokemon_search" id="pokemonSearchInput" placeholder="Search for a Pokémon">
-               <input type="submit" onclick="selectPokemonSearch()" value="Search">
+               <input type="text" id="pokemonSearchInput" placeholder="Search for a Pokémon">
             </div>
             <div class="pokemon-list">
                <input type="hidden" name="pokemon_value" id="selectedPokemon" value="{{ selected_pokemon }}">
-               <ul>
+               <ul id="pokemon-list">
                   {% for pokemon in pokemon_names %}
                   <li>
                      <button type="submit" name="pokemon_value" value="{{ pokemon[0] }}" onclick="selectPokemon('{{pokemon[0]}}')" class="pokemon-button">
@@ -496,7 +496,23 @@
          </div>
       </div>
       <script>
-         // JavaScript function to set the value of the hidden input when a Pokémon is selected
+         $("#pokemonSearchInput").on("input", function() {
+            let query = $(this).val();
+            $.ajax({
+               url: "/search",
+               method: "POST",
+               contentType: "application/json",
+               data: JSON.stringify({query: query, names: {{pokemon_names|tojson|safe}} } ),
+               dataType: "json",
+               success: function(data) {
+                  $("#pokemon-list").empty();
+                  data.forEach(pokemon => {
+                     $("#pokemon-list").append(
+                        '<button type="submit" name="pokemon_value" value="'+pokemon[0]+'" onclick="selectPokemon(\''+pokemon[0]+'\')" class="pokemon-button"> <span class="left-text">'+pokemon[0]+'</span> <span class="right-text">'+pokemon[1]+'%</span> </button>');});
+               }
+            });
+         });
+
          function selectPokemon(pokemonName) {
              document.getElementById('selectedPokemon').value = pokemonName;
          }
@@ -507,8 +523,6 @@
          }
          function selectMeta(metaType) {
              document.getElementById('selectedMeta').value = metaType;
-             var susVal = document.getElementById('selectedMeta').value
-             console.log(susVal)
          }
          function selectRating(ratingType) {
              document.getElementById('selectedRating').value = ratingType;
@@ -517,10 +531,8 @@
          document.getElementById('pokemonSearchInput').addEventListener('keydown', function(event) {
          if (event.key === "Enter" || event.keyCode === 13) {
              event.preventDefault();
-             selectPokemonSearch();
          }
          });
-         
       </script>
    </body>
 </html>
