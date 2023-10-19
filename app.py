@@ -1,5 +1,5 @@
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import os
 import pyjson5
 from datetime import datetime
@@ -141,6 +141,16 @@ def top_data_list(data,pokemon,cat):
 
 
 safe_load_files()
+
+@app.route('/search', methods=['POST'])
+def search():
+    query = request.json.get('query', '')
+    names = request.json.get('names', '')
+    print(query)
+    if query=='':
+        return jsonify(names)
+    results = [name for name in names if query.lower() in name[0].lower()]
+    return jsonify(results)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
