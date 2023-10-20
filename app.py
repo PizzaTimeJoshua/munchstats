@@ -58,13 +58,19 @@ def get_valid_ratings(meta):
     
 
 def safe_load_files():
-    global itemData, movesData, abilitiesData, pokedexData, meta_games_list
+    global itemData, movesData, abilitiesData, pokedexData, meta_games_list, indexData
     meta_games_list = ["stats/"+f for f in os.listdir("stats/") if f.split("-")[-1] == "0.json"]
     meta_games_list = sort_files_by_gen_and_size(meta_games_list)
     meta_games_list = [f.split("-")[-2] for f in meta_games_list]
+    # Load Sprite Index
+    if os.path.exists("stats/forms_index.json"):
+        with open('stats/forms_index.json', 'r', encoding="utf8") as file:
+            indexRaw = file.read()
+        indexData = pyjson5.loads(indexRaw)
+
     # Load Items
     if os.path.exists("stats/items.json"):
-        with open('stats/items.json', 'r') as file:
+        with open('stats/items.json', 'r', encoding="utf8") as file:
             itemRaw = file.read()
         itemData = pyjson5.loads(itemRaw)
 
@@ -119,38 +125,42 @@ def top_data_list(data,pokemon,cat):
 
     if cat=="Checks and Counters":
         filtered_counters = {key: value for key, value in dataPokemon.items() if (value[2] < 0.01 and value[1] > 0.5)}
-        catSorted = sorted(filtered_counters.keys(), key=lambda x: filtered_counters[x][1], reverse=True)
-        catSorted = [[poke,round(dataPokemon[poke][1]*100,3)] for poke in catSorted ][:10]
+        catSorted = sorted(filtered_counters.keys(), key=lambda x: filtered_counters[x][1], reverse=True)[:10]
+        catSorted = [[poke,round(dataPokemon[poke][1]*100,3)] for poke in catSorted ]
         return catSorted
     if cat=="Moves":
-        catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)
-        catSorted = [[movesData.get(poke,{"name": "Nothing"})["name"],round(dataPokemon[poke]/totalCount*100,3)] for poke in catSorted ][:10]
+        catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
+        catSorted = [[movesData.get(poke,{"name": "Nothing"})["name"],round(dataPokemon[poke]/totalCount*100,3),movesData.get(poke, {"desc" : "No info."})["desc"]] for poke in catSorted ]
         return catSorted
     if cat=="Items":
-        catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)
-        catSorted = [[itemData.get(poke,{"name": "Nothing"})["name"],round(dataPokemon[poke]/totalCount*100,3)] for poke in catSorted ][:10]
+        catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
+        catSorted = [[itemData.get(poke,{"name": "Nothing"})["name"],round(dataPokemon[poke]/totalCount*100,3), itemData.get(poke, {"desc" : "No info."})["desc"],(divmod(itemData.get(poke, {"spritenum" : 0})["spritenum"],16))] for poke in catSorted ]
         return catSorted
     if cat=="Abilities":
-        catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)
-        catSorted = [[abilitiesData.get(poke,{"name": "Unknown"})["name"],round(dataPokemon[poke]/totalCount*100,3)] for poke in catSorted ][:10]
+        catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
+        catSorted = [[abilitiesData.get(poke,{"name": "Unknown"})["name"],round(dataPokemon[poke]/totalCount*100,3),abilitiesData.get(poke, {"desc" : "No info."})["desc"]] for poke in catSorted ]
         return catSorted
-    
-    catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)
-    catSorted = [[poke,round(dataPokemon[poke]/totalCount*100,3)] for poke in catSorted ][:10]
+    if cat=="Teammates":
+        catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
+        catSorted = [[poke,round(dataPokemon[poke]/totalCount*100,3), get_sprite_pokemon(poke)] for poke in catSorted ]
+        return catSorted
+    catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
+    catSorted = [[poke,round(dataPokemon[poke]/totalCount*100,3)] for poke in catSorted ]
     return catSorted
 
-
+def get_sprite_pokemon(poke):
+    word = poke.lower()
+    word = re.sub(r'[^a-z0-9]+', '', word)
+    if word in indexData.keys():
+        sprite_num = indexData[word]
+    elif word in pokedexData.keys():
+        sprite_num = pokedexData[word].get("num",0)
+    else:
+        return (0,0)
+    return divmod(sprite_num,12)
+    
 safe_load_files()
 
-@app.route('/search', methods=['POST'])
-def search():
-    query = request.json.get('query', '')
-    names = request.json.get('names', '')
-    print(query)
-    if query=='':
-        return jsonify(names)
-    results = [name for name in names if query.lower() in name[0].lower()]
-    return jsonify(results)
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -178,7 +188,7 @@ def index():
     pokemonData = getPokemonData(meta,rating)
 
     pokemon_top_usage = list(sorted(pokemonData.keys(), key=lambda x: pokemonData[x]["usage"], reverse=True))
-    pokemon_top_usage = [[poke,round(pokemonData[poke]["usage"]*100,2)] for poke in pokemon_top_usage]
+    pokemon_top_usage = [[poke,round(pokemonData[poke]["usage"]*100,2),get_sprite_pokemon(poke)] for poke in pokemon_top_usage]
     
     try:
         pokeSearch = pokemon_top_usage[0][0]

@@ -1,6 +1,12 @@
 <!doctype html>
 <html lang="en">
    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1">
+      <title>MunchStats</title>
+      <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+      <meta name="description" content="Latest Pokemon Showdown Usage Statistics.">
+      <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
       <style>
          body {
          background-color: #1e1e1e;
@@ -45,7 +51,7 @@
          background-color: #222222;
          color: #e0e0e0;
          border: 0px solid #555;
-         padding: 8px 0px;
+         padding: 8px 8px;
          width: 100%;
          cursor: pointer;
          transition: background-color 0.3s;
@@ -197,7 +203,7 @@
          margin: 0;
          }
          .Data li {
-         padding: 0px;
+            padding: 0px;
          }
          .Data li:hover {
          background-color: #333333;
@@ -271,11 +277,42 @@
             grid-template-columns: 1fr 1fr;  /* Two columns of equal width */
             grid-gap: 30px;  /* Space between grid items */
          }
+
+         .image-item {
+            /* Set the width and height of the container to the desired size of the cropped area */
+            width: 24px; 
+            height: 24px;
+            justify-items: center;
+            line-height: 24px;
+            /* Use the image as a background */
+            background-image: url({{ url_for('static', filename='itemicons-sheet.png') }});
+            
+            
+            /* Adjust the position using the passed variables */
+            background-position: -24px -24px;
+            
+            /* Ensure the background image doesn't repeat */
+            background-repeat: no-repeat;
+        }
+
+        .image-pokemon {
+            /* Set the width and height of the container to the desired size of the cropped area */
+            width: 40px; 
+            height: 30px;
+            justify-items: center;
+            line-height: 30px;
+            /* Use the image as a background */
+            background-image: url({{ url_for('static', filename='pokemonicons-sheet.png') }});
+            
+            
+            /* Adjust the position using the passed variables */
+            background-position: 0px 0px;
+            
+            /* Ensure the background image doesn't repeat */
+            background-repeat: no-repeat;
+        }
+
       </style>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      <title>MunchStats</title>
-      <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
    </head>
    <body>
       <div class="grid-container">
@@ -310,8 +347,10 @@
                <ul id="pokemon-list">
                   {% for pokemon in pokemon_names %}
                   <li>
-                     <button type="submit" name="pokemon_value" value="{{ pokemon[0] }}" onclick="selectPokemon('{{pokemon[0]}}')" class="pokemon-button">
-                     <span class="left-text">{{ pokemon[0] }}</span>
+                     <button type="submit" name="pokemon_value" value="{{ pokemon[0] }}" onclick="selectPokemon('{{pokemon[0]}}')" class="pokemon-button" style="padding: 2px 8px;">
+                     <div class="image-pokemon" style="background-position: {{pokemon[2][1] * -40}}px {{pokemon[2][0] * -30}}px;">
+                        <span class="left-text" style="padding-left: 48px;">{{ pokemon[0] }}</span>
+                     </div>
                      <span class="right-text">{{ pokemon[1] }}%</span>
                      </button>
                   </li>
@@ -319,71 +358,91 @@
                </ul>
             </div>
          </form>
-         <div class = "right">
-            <div class="Stats">
-               <h2>Base Stats</h2>
-               {% if pokemon_base_stats|length > 0 %}
-               <div class="bar-container">
-                  <div class="left-container">
-                     <span class="bar-text-left" style="width: 30px;">HP</span>
-                     <div class="bar-fill hp-fill" style="width: {{ pokemon_base_stats[0]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+         <form method="post">
+            <div class = "right">
+               <div class="Stats">
+                  <h2>Base Stats</h2>
+                  {% if pokemon_base_stats|length > 0 %}
+                  <div class="bar-container">
+                     <div class="left-container">
+                        <span class="bar-text-left" style="width: 30px;">HP</span>
+                        <div class="bar-fill hp-fill" style="width: {{ pokemon_base_stats[0]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                     </div>
+                     <span class="bar-text-right">{{ pokemon_base_stats[0] }}</span>
                   </div>
-                  <span class="bar-text-right">{{ pokemon_base_stats[0] }}</span>
-               </div>
 
-               <div class="bar-container">
-                  <div class="left-container">
-                     <span class="bar-text-left" style="width: 30px;">Atk</span>
-                     <div class="bar-fill atk-fill" style="width: {{ pokemon_base_stats[1]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                  <div class="bar-container">
+                     <div class="left-container">
+                        <span class="bar-text-left" style="width: 30px;">Atk</span>
+                        <div class="bar-fill atk-fill" style="width: {{ pokemon_base_stats[1]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                     </div>
+                     <span class="bar-text-right">{{ pokemon_base_stats[1] }}</span>
                   </div>
-                  <span class="bar-text-right">{{ pokemon_base_stats[1] }}</span>
-               </div>
 
-               <div class="bar-container">
-                  <div class="left-container">
-                     <span class="bar-text-left" style="width: 30px;">Def</span>
-                     <div class="bar-fill def-fill" style="width: {{ pokemon_base_stats[2]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                  <div class="bar-container">
+                     <div class="left-container">
+                        <span class="bar-text-left" style="width: 30px;">Def</span>
+                        <div class="bar-fill def-fill" style="width: {{ pokemon_base_stats[2]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                     </div>
+                     <span class="bar-text-right">{{ pokemon_base_stats[2] }}</span>
                   </div>
-                  <span class="bar-text-right">{{ pokemon_base_stats[2] }}</span>
-               </div>
 
-               <div class="bar-container">
-                  <div class="left-container">
-                     <span class="bar-text-left" style="width: 30px;">SpA</span>
-                     <div class="bar-fill spa-fill" style="width: {{ pokemon_base_stats[3]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                  <div class="bar-container">
+                     <div class="left-container">
+                        <span class="bar-text-left" style="width: 30px;">SpA</span>
+                        <div class="bar-fill spa-fill" style="width: {{ pokemon_base_stats[3]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                     </div>
+                     <span class="bar-text-right">{{ pokemon_base_stats[3] }}</span>
                   </div>
-                  <span class="bar-text-right">{{ pokemon_base_stats[3] }}</span>
-               </div>
 
-               <div class="bar-container">
-                  <div class="left-container">
-                     <span class="bar-text-left" style="width: 30px;">SpD</span>
-                     <div class="bar-fill spd-fill" style="width: {{ pokemon_base_stats[4]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                  <div class="bar-container">
+                     <div class="left-container">
+                        <span class="bar-text-left" style="width: 30px;">SpD</span>
+                        <div class="bar-fill spd-fill" style="width: {{ pokemon_base_stats[4]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                     </div>
+                     <span class="bar-text-right">{{ pokemon_base_stats[4] }}</span>
                   </div>
-                  <span class="bar-text-right">{{ pokemon_base_stats[4] }}</span>
-               </div>
 
-               <div class="bar-container">
-                  <div class="left-container">
-                     <span class="bar-text-left" style="width: 30px;">Spe</span>
-                     <div class="bar-fill spe-fill" style="width: {{ pokemon_base_stats[5]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                  <div class="bar-container">
+                     <div class="left-container">
+                        <span class="bar-text-left" style="width: 30px;">Spe</span>
+                        <div class="bar-fill spe-fill" style="width: {{ pokemon_base_stats[5]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
+                     </div>
+                     <span class="bar-text-right">{{ pokemon_base_stats[5] }}</span>
                   </div>
-                  <span class="bar-text-right">{{ pokemon_base_stats[5] }}</span>
-               </div>
 
-               
-               {% endif %}
-            </div>
+                  
+                  {% endif %}
+               </div>
+               <div>
+                  <h2>Moves</h2>
+                  <div class="Data">
+                     {% if pokemon_moves|length > 0 %}
+                     <ul>
+                        {% for move in pokemon_moves %}
+                        <li>
+                           <button type="button"class="pokemon-button" title='{{ move[2] }}'>
+                           <span class="left-text">{{ move[0] }}</span>
+                           <span class="right-text">{{ move[1] }}%</span>
+                           </button>
+                        </li>
+                        {% endfor %}
+                     </ul>
+                     {% endif %}
+                  </div>
+               </div>
             <div>
-               <h2>Moves</h2>
+               <h2>Teammates</h2>
                <div class="Data">
-                  {% if pokemon_moves|length > 0 %}
+                  {% if pokemon_teammates|length > 0 %}
                   <ul>
-                     {% for move in pokemon_moves %}
+                     {% for team in pokemon_teammates %}
                      <li>
-                        <button type="button"class="pokemon-button">
-                        <span class="left-text">{{ move[0] }}</span>
-                        <span class="right-text">{{ move[1] }}%</span>
+                        <button type="submit" name="pokemon_value" value="{{ team[0] }}" onclick="selectPokemon('{{team[0]}}')" class="pokemon-button" style="padding: 2px 8px;">
+                        <div class="image-pokemon" style="background-position: {{team[2][1] * -40}}px {{team[2][0] * -30}}px;">
+                           <span class="left-text" style="padding-left: 48px;">{{ team[0] }}</span>
+                        </div>
+                        <span class="right-text">{{ team[1] }}%</span>
                         </button>
                      </li>
                      {% endfor %}
@@ -391,126 +450,106 @@
                   {% endif %}
                </div>
             </div>
-         <div>
-            <h2>Teammates</h2>
-            <div class="Data">
-               {% if pokemon_teammates|length > 0 %}
-               <ul>
-                  {% for team in pokemon_teammates %}
-                  <li>
-                     <button type="button"class="pokemon-button">
-                     <span class="left-text">{{ team[0] }}</span>
-                     <span class="right-text">{{ team[1] }}%</span>
-                     </button>
-                  </li>
-                  {% endfor %}
-               </ul>
+            <div>
+               <h2>Items</h2>
+               <div class="Data">
+                  {% if pokemon_items|length > 0 %}
+                  <ul>
+                     {% for item in pokemon_items %}
+                     <li>
+                        <button type="button"class="pokemon-button" title='{{ item[2] }}'>
+                        <div class="image-item" style="background-position: {{item[3][1] * -24}}px {{item[3][0] * -24}}px;">
+                           <span class="left-text" style="padding-left: 32px;">{{ item[0] }}</span>
+                        </div>
+                        <span class="right-text">{{ item[1] }}%</span>
+                        </button>
+                     </li>
+                     {% endfor %}
+                  </ul>
+                  {% endif %}
+               </div>
+            </div>
+            <div>
+               <h2>Abilities</h2>
+               <div class="Data">
+                  {% if pokemon_abilities|length > 0 %}
+                  <ul>
+                     {% for ability in pokemon_abilities %}
+                     <li>
+                        <button type="button"class="pokemon-button" title='{{ ability[2] }}'>
+                        <span class="left-text">{{ ability[0] }}</span>
+                        <span class="right-text">{{ ability[1] }}%</span>
+                        </button>
+                     </li>
+                     {% endfor %}
+                  </ul>
+                  {% endif %}
+               </div>
+            </div>
+            <div>
+               <h2>Spreads</h2>
+               <div class="Data">
+                  {% if pokemon_spreads|length > 0 %}
+                  <ul>
+                     {% for spread in pokemon_spreads %}
+                     <li>
+                        <button type="button"class="pokemon-button">
+                        <span class="left-text">{{ spread[0] }}</span>
+                        <span class="right-text">{{ spread[1] }}%</span>
+                        </button>
+                     </li>
+                     {% endfor %}
+                  </ul>
+                  {% endif %}
+               </div>
+            </div>
+            <div>
+            <h2>Natures</h2>
+               <div class="Data">
+                  {% if pokemon_natures|length > 0 %}
+                  <ul>
+                     {% for nature in pokemon_natures %}
+                     <li>
+                        <button type="button"class="pokemon-button">
+                        <span class="left-text">{{ nature[0] }}</span>
+                        <span class="right-text">{{ nature[1] }}%</span>
+                        </button>
+                     </li>
+                     {% endfor %}
+                  </ul>
+                  {% endif %}
+               </div>
+            </div>
+            <div>
+               {% if pokemon_counters|length > 0 %}
+               <h2>Checks and Counters</h2>
+               <div class="Data">
+                  <ul>
+                     {% for counter in pokemon_counters %}
+                     <li>
+                        <button type="button"class="pokemon-button">
+                        <span class="left-text">{{ counter[0] }}</span>
+                        <span class="right-text">{{ counter[1] }}%</span>
+                        </button>
+                     </li>
+                     {% endfor %}
+                  </ul>
+               </div>
                {% endif %}
             </div>
-         </div>
-         <div>
-            <h2>Items</h2>
-            <div class="Data">
-               {% if pokemon_items|length > 0 %}
-               <ul>
-                  {% for item in pokemon_items %}
-                  <li>
-                     <button type="button"class="pokemon-button">
-                     <span class="left-text">{{ item[0] }}</span>
-                     <span class="right-text">{{ item[1] }}%</span>
-                     </button>
-                  </li>
-                  {% endfor %}
-               </ul>
-               {% endif %}
             </div>
-         </div>
-         <div>
-            <h2>Abilities</h2>
-            <div class="Data">
-               {% if pokemon_abilities|length > 0 %}
-               <ul>
-                  {% for ability in pokemon_abilities %}
-                  <li>
-                     <button type="button"class="pokemon-button">
-                     <span class="left-text">{{ ability[0] }}</span>
-                     <span class="right-text">{{ ability[1] }}%</span>
-                     </button>
-                  </li>
-                  {% endfor %}
-               </ul>
-               {% endif %}
-            </div>
-         </div>
-         <div>
-            <h2>Spreads</h2>
-            <div class="Data">
-               {% if pokemon_spreads|length > 0 %}
-               <ul>
-                  {% for spread in pokemon_spreads %}
-                  <li>
-                     <button type="button"class="pokemon-button">
-                     <span class="left-text">{{ spread[0] }}</span>
-                     <span class="right-text">{{ spread[1] }}%</span>
-                     </button>
-                  </li>
-                  {% endfor %}
-               </ul>
-               {% endif %}
-            </div>
-         </div>
-         <div>
-         <h2>Natures</h2>
-            <div class="Data">
-               {% if pokemon_natures|length > 0 %}
-               <ul>
-                  {% for nature in pokemon_natures %}
-                  <li>
-                     <button type="button"class="pokemon-button">
-                     <span class="left-text">{{ nature[0] }}</span>
-                     <span class="right-text">{{ nature[1] }}%</span>
-                     </button>
-                  </li>
-                  {% endfor %}
-               </ul>
-               {% endif %}
-            </div>
-         </div>
-         <div>
-            {% if pokemon_counters|length > 0 %}
-            <h2>Checks and Counters</h2>
-            <div class="Data">
-               <ul>
-                  {% for counter in pokemon_counters %}
-                  <li>
-                     <button type="button"class="pokemon-button">
-                     <span class="left-text">{{ counter[0] }}</span>
-                     <span class="right-text">{{ counter[1] }}%</span>
-                     </button>
-                  </li>
-                  {% endfor %}
-               </ul>
-            </div>
-            {% endif %}
-         </div>
-         </div>
+         </form>
       </div>
       <script>
+         let initialItems = $("#pokemon-list li").get();
          $("#pokemonSearchInput").on("input", function() {
-            let query = $(this).val();
-            $.ajax({
-               url: "/search",
-               method: "POST",
-               contentType: "application/json",
-               data: JSON.stringify({query: query, names: {{pokemon_names|tojson|safe}} } ),
-               dataType: "json",
-               success: function(data) {
-                  $("#pokemon-list").empty();
-                  data.forEach(pokemon => {
-                     $("#pokemon-list").append(
-                        '<button type="submit" name="pokemon_value" value="'+pokemon[0]+'" onclick="selectPokemon(\''+pokemon[0]+'\')" class="pokemon-button"> <span class="left-text">'+pokemon[0]+'</span> <span class="right-text">'+pokemon[1]+'%</span> </button>');});
-               }
+            let query = $(this).val().toLowerCase();
+
+            let filteredItems = initialItems.filter(function(item) {
+               return $(item).text().toLowerCase().includes(query);
             });
+
+            $("#pokemon-list").empty().append(filteredItems);
          });
 
          function selectPokemon(pokemonName) {
