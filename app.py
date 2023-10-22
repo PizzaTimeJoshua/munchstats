@@ -188,14 +188,12 @@ def index():
     pokemonData = getPokemonData(meta,rating)
 
     pokemon_top_usage = list(sorted(pokemonData.keys(), key=lambda x: pokemonData[x]["usage"], reverse=True))
-    pokemon_top_usage = [[poke,round(pokemonData[poke]["usage"]*100,2),get_sprite_pokemon(poke)] for poke in pokemon_top_usage]
-    
     try:
-        pokeSearch = pokemon_top_usage[0][0]
+        pokeSearch = pokemon_top_usage[0]
     except IndexError:
         pokeSearch = ""
         
-    if selected_pokemon:
+    if selected_pokemon != "No Pokemon":
         word = selected_pokemon.lower()
         possibilities = pokemonData.keys()
         normalized_possibilities = {p.lower(): p for p in possibilities}
@@ -204,6 +202,22 @@ def index():
         if len(normalized_result)>0:
             close = normalized_result[0]
             pokeSearch = close
+
+    try:
+        rank = pokemon_top_usage.index(pokeSearch) + 1
+    except ValueError:
+        rank = "N/A"
+
+    try:
+        use = round(pokemonData[pokeSearch]["usage"]*100)
+    except ValueError:
+        use = "N/A"
+
+    pokemon_top_usage = [[poke,round(pokemonData[poke]["usage"]*100,2),get_sprite_pokemon(poke)] for poke in pokemon_top_usage]
+    
+
+
+    current_pokemon = [pokeSearch,use,rank,get_sprite_pokemon(pokeSearch)]
 
     pokemon_base_stats = top_data_list(pokemonData,pokeSearch,"Stats")
     pokemon_moves = top_data_list(pokemonData,pokeSearch,"Moves")
@@ -228,6 +242,6 @@ def index():
                            pokemon_spreads=pokemon_spreads,
                            pokemon_natures=pokemon_natures,
                            pokemon_counters=pokemon_counters,
-                           current_pokemon = pokeSearch,
+                           current_pokemon = current_pokemon,
                            valid_ratings = valid_ratings)
 
