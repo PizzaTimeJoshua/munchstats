@@ -12,7 +12,8 @@
          body {
          background-color: #1e1e1e;
          display: grid;
-         grid-template-columns: 1fr 1fr;
+         grid-template-columns: 1fr;
+         grid-template-rows: 1fr auto;
          color: #e0e0e0;
          font-family: Arial, sans-serif;
          
@@ -172,16 +173,16 @@
          .left {
          display: grid;
          grid-template-columns: 1fr; 
-         grid-template-rows: 1fr 1fr; /* One row for the title (sized to content) and two equal-height rows for the grid */
+         grid-template-rows: auto auto auto auto auto; /* One row for the title (sized to content) and two equal-height rows for the grid */
          text-align: center;
-         align-content: start;
-         align-items: start;
+         align-content:center;
+         align-items: center;
          height: fit-content;
          }
          .right {
          display: grid;
          grid-template-columns: 1fr 1fr 1fr; /* Two columns of equal width */
-         grid-template-rows: auto 1fr 1fr auto auto; /* One row for the title (sized to content) and two equal-height rows for the grid */
+         grid-template-rows: auto 1fr 1fr auto auto; 
          text-align: center;
          justify-self: left;
          height: min-content;
@@ -275,7 +276,7 @@
 
         .grid-container {
             display: grid;
-            grid-template-columns: 1fr 1fr;  /* Two columns of equal width */
+            grid-template-columns: min-content min-content;
             grid-gap: 30px;  /* Space between grid items */
          }
 
@@ -317,9 +318,15 @@
       <div class="grid-container">
          <form class="left" method="post" style="width: 300px;">
             <div>
-               <h3> Selected Meta: <span style="color: yellow;">{{ selected_meta }}</span></h3>
+               <h3> Selected Meta:<br><span style="color: yellow;">{{ selected_meta }}</span></h3>
                <h3> Current Selected Rating Threshold: <span style="color: yellow;">{{ selected_rating }}</span></h3>
-               <h2> Current Pokemon: <span style="color: yellow;">{{current_pokemon}}</span></h2>
+               <h3> Current Pokemon:<br>
+                  <div style="color: yellow; background-position: {{current_pokemon[3][1] * -40}}px {{current_pokemon[3][0] * -30}}px;">
+                     <span>{{current_pokemon[0]}}</span>
+                  </div>
+               </h3>
+               <h3> Usage: <span style="color: yellow;">{{current_pokemon[1]}}%</span></h3>
+               <h3> Monthly Rank: <span style="color: yellow;">{{current_pokemon[2]}}</span></h3>
             </div>
             <div class="meta-list">
                <input type="hidden" name="meta_value" id="selectedMeta" value="{{ selected_meta }}">
@@ -338,7 +345,7 @@
 
                {% endfor %}
             </div>
-            <div>
+            <div style="height: 60px;">
                <input type="text" id="pokemonSearchInput" placeholder="Search for a Pokémon">
             </div>
             <div class="pokemon-list">
@@ -538,6 +545,9 @@
             </div>
             </div>
          </form>
+      </div>
+      <div style="text-align: center;">
+         <h6>Pokémon and All Respective Names are Trademark & © of Nintendo 1996-2023</h6>   
       </div>
       <script>
          let initialItems = $("#pokemon-list li").get();
