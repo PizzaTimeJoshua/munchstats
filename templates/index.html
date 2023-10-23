@@ -6,7 +6,7 @@
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>MunchStats</title>
       <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-      <meta name="description" content="Find out Latest Pokemon Showdown Usage Statistics. All Pokemon Showdown formats supported!">
+      <meta name="description" content="Find out Latest Pokemon Showdown Usage Statistics. Most Pokemon Showdown formats supported!">
       <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
       <style>
          body {
@@ -591,9 +591,21 @@
          let showdownSpread = temp[1];
          let showdownNature = temp[0];
          let showdownMoves = ["{{ pokemon_moves[0][0] }}","{{ pokemon_moves[1][0] }}","{{ pokemon_moves[2][0] }}","{{ pokemon_moves[3][0] }}"];
+         let showdownLevel = ""
+         if ("{{selected_meta}}".includes("vgc")) {
+            showdownLevel = "\nLevel: 50"
+         }
+         if ("{{selected_meta}}".includes("battlestadium")) {
+            showdownLevel = "\nLevel: 50"
+         }
+         
+         if ("{{selected_meta}}".includes("lc")) {
+            showdownLevel = "\nLevel: 5"
+         }
 
          var showdownSet = showdownPokemon+" @ "+showdownItem;
          showdownSet +="\nAbility: "+ showdownAbility;
+         showdownSet += showdownLevel
          showdownSet += "\nEVs: "+ showdownSpread;
          showdownSet += "\n"+ showdownNature + " Nature";
          showdownSet += "\n- "+ showdownMoves[0];
@@ -687,6 +699,7 @@
                }
                var showdownSet = showdownPokemon+" @ "+showdownItem;
                showdownSet +="\nAbility: "+ showdownAbility;
+               showdownSet += showdownLevel
                showdownSet += "\nEVs: "+ showdownSpread;
                showdownSet += "\n"+ showdownNature + " Nature";
                showdownSet += "\n- "+ showdownMoves[0];
