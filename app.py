@@ -126,7 +126,7 @@ def top_data_list(data,pokemon,cat):
     if cat=="Checks and Counters":
         filtered_counters = {key: value for key, value in dataPokemon.items() if (value[2] < 0.01 and value[1] > 0.5)}
         catSorted = sorted(filtered_counters.keys(), key=lambda x: filtered_counters[x][1], reverse=True)[:10]
-        catSorted = [[poke,round(dataPokemon[poke][1]*100,3)] for poke in catSorted ]
+        catSorted = [[poke,round(dataPokemon[poke][1]*100,3), get_sprite_pokemon(poke)] for poke in catSorted ]
         return catSorted
     if cat=="Moves":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
@@ -217,7 +217,7 @@ def index():
     
 
 
-    current_pokemon = [pokeSearch,use,rank,get_sprite_pokemon(pokeSearch)]
+    current_pokemon = [pokeSearch,use,rank]
 
     pokemon_base_stats = top_data_list(pokemonData,pokeSearch,"Stats")
     pokemon_moves = top_data_list(pokemonData,pokeSearch,"Moves")

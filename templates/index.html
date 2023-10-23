@@ -49,7 +49,7 @@
          .pokemon-buttons {
          text-align: left;
          }
-         .pokemon-button {
+         .pokemon-button, .export-button, .copy-button{
          background-color: #222222;
          color: #e0e0e0;
          border: 0px solid #555;
@@ -61,9 +61,12 @@
          align-items: center; 
          display: flex;
          }
-         .pokemon-button:hover {
+         .pokemon-button:hover, .export-button:hover, .copy-button:hover{
          background-color: #333333;
          color: #ffffff;
+         }
+         .copy-button{
+            justify-content: center;
          }
          .pokemon-list {
          height: 200px;
@@ -187,7 +190,7 @@
          justify-self: left;
          height: min-content;
          }
-         .Data {
+         .Data,.Export {
          height: 200px;
          overflow-y: scroll;
          overflow-x: hidden;
@@ -198,6 +201,12 @@
          align-self: center;   /* Vertically center the item within its cell */
          max-height: 200px;
          margin-right: 10px;
+         }
+         .Export {
+            overflow-y: hidden;
+            overflow-x: auto;
+            height: 150px;
+            margin-bottom: 5px;
          }
          .Data ul {
          list-style-type: none;
@@ -211,19 +220,22 @@
          background-color: #333333;
          }
          /* The scrollbar track for .pokemon-list */
-         .Data::-webkit-scrollbar {
+         .Data::-webkit-scrollbar{
          width: 12px;  /* width of the entire scrollbar */
          }
+         .Export::-webkit-scrollbar {
+            height: 12px;
+         }
          /* The background of the scrollbar track for .pokemon-list */
-         .Data::-webkit-scrollbar-track {
+         .Data::-webkit-scrollbar-track,.Export::-webkit-scrollbar-track {
          background: #222222;
          }
          /* The scrollbar handle (thumb) for .pokemon-list */
-         .Data::-webkit-scrollbar-thumb {
+         .Data::-webkit-scrollbar-thumb,.Export::-webkit-scrollbar-thumb {
          background: #333333;
          }
          /* Handle on hover for .pokemon-list */
-         .Data::-webkit-scrollbar-thumb:hover {
+         .Data::-webkit-scrollbar-thumb:hover,.Export::-webkit-scrollbar-thumb:hover {
          background: #111111;
          }
          .bar-container {
@@ -308,20 +320,32 @@
             
             background-position: 0px 0px;
             
-            /* Ensure the background image doesn't repeat */
             background-repeat: no-repeat;
         }
-
+        textarea {
+         width: 300px;
+         height: 150px;
+         font-size: 14px;
+         resize: none; 
+         background-color: #1e1e1e; 
+         color: #ffffff;
+         overflow-y: scroll;
+         overflow-x: scroll;
+         white-space: nowrap;
+         box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+         border: 0px;
+         text-align: left;
+      }
       </style>
    </head>
    <body>
-      <div class="grid-container">
-         <form class="left" method="post" style="width: 300px;">
+      <form class="grid-container" method="post">
+         <div class="left" style="width: 300px;">
             <div>
                <h3> Selected Meta:<br><span style="color: yellow;">{{ selected_meta }}</span></h3>
                <h3> Current Selected Rating Threshold: <span style="color: yellow;">{{ selected_rating }}</span></h3>
                <h3> Current Pokemon:<br>
-                  <div style="color: yellow; background-position: {{current_pokemon[3][1] * -40}}px {{current_pokemon[3][0] * -30}}px;">
+                  <div style="color: yellow;">
                      <span>{{current_pokemon[0]}}</span>
                   </div>
                </h3>
@@ -363,189 +387,195 @@
                   {% endfor %}
                </ul>
             </div>
-         </form>
-         <form method="post">
-            <div class = "right">
-               <div class="Stats">
-                  <h2>Base Stats</h2>
-                  {% if pokemon_base_stats|length > 0 %}
-                  <div class="bar-container">
-                     <div class="left-container">
-                        <span class="bar-text-left" style="width: 30px;">HP</span>
-                        <div class="bar-fill hp-fill" style="width: {{ pokemon_base_stats[0]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
-                     </div>
-                     <span class="bar-text-right">{{ pokemon_base_stats[0] }}</span>
+         </div>
+         <div class = "right">
+            <div class="Stats">
+               <h2>Base Stats</h2>
+               {% if pokemon_base_stats|length > 0 %}
+               <div class="bar-container">
+                  <div class="left-container">
+                     <span class="bar-text-left" style="width: 30px;">HP</span>
+                     <div class="bar-fill hp-fill" style="width: {{ pokemon_base_stats[0]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
                   </div>
+                  <span class="bar-text-right">{{ pokemon_base_stats[0] }}</span>
+               </div>
 
-                  <div class="bar-container">
-                     <div class="left-container">
-                        <span class="bar-text-left" style="width: 30px;">Atk</span>
-                        <div class="bar-fill atk-fill" style="width: {{ pokemon_base_stats[1]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
-                     </div>
-                     <span class="bar-text-right">{{ pokemon_base_stats[1] }}</span>
+               <div class="bar-container">
+                  <div class="left-container">
+                     <span class="bar-text-left" style="width: 30px;">Atk</span>
+                     <div class="bar-fill atk-fill" style="width: {{ pokemon_base_stats[1]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
                   </div>
+                  <span class="bar-text-right">{{ pokemon_base_stats[1] }}</span>
+               </div>
 
-                  <div class="bar-container">
-                     <div class="left-container">
-                        <span class="bar-text-left" style="width: 30px;">Def</span>
-                        <div class="bar-fill def-fill" style="width: {{ pokemon_base_stats[2]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
-                     </div>
-                     <span class="bar-text-right">{{ pokemon_base_stats[2] }}</span>
+               <div class="bar-container">
+                  <div class="left-container">
+                     <span class="bar-text-left" style="width: 30px;">Def</span>
+                     <div class="bar-fill def-fill" style="width: {{ pokemon_base_stats[2]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
                   </div>
+                  <span class="bar-text-right">{{ pokemon_base_stats[2] }}</span>
+               </div>
 
-                  <div class="bar-container">
-                     <div class="left-container">
-                        <span class="bar-text-left" style="width: 30px;">SpA</span>
-                        <div class="bar-fill spa-fill" style="width: {{ pokemon_base_stats[3]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
-                     </div>
-                     <span class="bar-text-right">{{ pokemon_base_stats[3] }}</span>
+               <div class="bar-container">
+                  <div class="left-container">
+                     <span class="bar-text-left" style="width: 30px;">SpA</span>
+                     <div class="bar-fill spa-fill" style="width: {{ pokemon_base_stats[3]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
                   </div>
+                  <span class="bar-text-right">{{ pokemon_base_stats[3] }}</span>
+               </div>
 
-                  <div class="bar-container">
-                     <div class="left-container">
-                        <span class="bar-text-left" style="width: 30px;">SpD</span>
-                        <div class="bar-fill spd-fill" style="width: {{ pokemon_base_stats[4]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
-                     </div>
-                     <span class="bar-text-right">{{ pokemon_base_stats[4] }}</span>
+               <div class="bar-container">
+                  <div class="left-container">
+                     <span class="bar-text-left" style="width: 30px;">SpD</span>
+                     <div class="bar-fill spd-fill" style="width: {{ pokemon_base_stats[4]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
                   </div>
+                  <span class="bar-text-right">{{ pokemon_base_stats[4] }}</span>
+               </div>
 
-                  <div class="bar-container">
-                     <div class="left-container">
-                        <span class="bar-text-left" style="width: 30px;">Spe</span>
-                        <div class="bar-fill spe-fill" style="width: {{ pokemon_base_stats[5]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
-                     </div>
-                     <span class="bar-text-right">{{ pokemon_base_stats[5] }}</span>
+               <div class="bar-container">
+                  <div class="left-container">
+                     <span class="bar-text-left" style="width: 30px;">Spe</span>
+                     <div class="bar-fill spe-fill" style="width: {{ pokemon_base_stats[5]/255*100 }}%;"></div> <!-- Adjust the width for the filled portion -->
                   </div>
+                  <span class="bar-text-right">{{ pokemon_base_stats[5] }}</span>
+               </div>
 
-                  
-                  {% endif %}
-               </div>
-               <div>
-                  <h2>Moves</h2>
-                  <div class="Data">
-                     {% if pokemon_moves|length > 0 %}
-                     <ul>
-                        {% for move in pokemon_moves %}
-                        <li>
-                           <button type="button"class="pokemon-button" title='{{ move[2] }}'>
-                           <span class="left-text">{{ move[0] }}</span>
-                           <span class="right-text">{{ move[1] }}%</span>
-                           </button>
-                        </li>
-                        {% endfor %}
-                     </ul>
-                     {% endif %}
-                  </div>
-               </div>
-            <div>
-               <h2>Teammates</h2>
-               <div class="Data">
-                  {% if pokemon_teammates|length > 0 %}
-                  <ul>
-                     {% for team in pokemon_teammates %}
-                     <li>
-                        <button type="submit" name="pokemon_value" value="{{ team[0] }}" onclick="selectPokemon('{{team[0]}}')" class="pokemon-button" style="padding: 2px 8px;">
-                        <div class="image-pokemon" style="background-position: {{team[2][1] * -40}}px {{team[2][0] * -30}}px;">
-                           <span class="left-text" style="padding-left: 48px;">{{ team[0] }}</span>
-                        </div>
-                        <span class="right-text">{{ team[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                  </ul>
-                  {% endif %}
-               </div>
-            </div>
-            <div>
-               <h2>Items</h2>
-               <div class="Data">
-                  {% if pokemon_items|length > 0 %}
-                  <ul>
-                     {% for item in pokemon_items %}
-                     <li>
-                        <button type="button"class="pokemon-button" title='{{ item[2] }}'>
-                        <div class="image-item" style="background-position: {{item[3][1] * -24}}px {{item[3][0] * -24}}px;">
-                           <span class="left-text" style="padding-left: 32px;">{{ item[0] }}</span>
-                        </div>
-                        <span class="right-text">{{ item[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                  </ul>
-                  {% endif %}
-               </div>
-            </div>
-            <div>
-               <h2>Abilities</h2>
-               <div class="Data">
-                  {% if pokemon_abilities|length > 0 %}
-                  <ul>
-                     {% for ability in pokemon_abilities %}
-                     <li>
-                        <button type="button"class="pokemon-button" title='{{ ability[2] }}'>
-                        <span class="left-text">{{ ability[0] }}</span>
-                        <span class="right-text">{{ ability[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                  </ul>
-                  {% endif %}
-               </div>
-            </div>
-            <div>
-               <h2>Spreads</h2>
-               <div class="Data">
-                  {% if pokemon_spreads|length > 0 %}
-                  <ul>
-                     {% for spread in pokemon_spreads %}
-                     <li>
-                        <button type="button"class="pokemon-button">
-                        <span class="left-text">{{ spread[0] }}</span>
-                        <span class="right-text">{{ spread[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                  </ul>
-                  {% endif %}
-               </div>
-            </div>
-            <div>
-            <h2>Natures</h2>
-               <div class="Data">
-                  {% if pokemon_natures|length > 0 %}
-                  <ul>
-                     {% for nature in pokemon_natures %}
-                     <li>
-                        <button type="button"class="pokemon-button">
-                        <span class="left-text">{{ nature[0] }}</span>
-                        <span class="right-text">{{ nature[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                  </ul>
-                  {% endif %}
-               </div>
-            </div>
-            <div>
-               {% if pokemon_counters|length > 0 %}
-               <h2>Checks and Counters</h2>
-               <div class="Data">
-                  <ul>
-                     {% for counter in pokemon_counters %}
-                     <li>
-                        <button type="button"class="pokemon-button">
-                        <span class="left-text">{{ counter[0] }}</span>
-                        <span class="right-text">{{ counter[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                  </ul>
-               </div>
+               
                {% endif %}
             </div>
+            <div>
+               <h2>Moves</h2>
+               <div class="Data">
+                  {% if pokemon_moves|length > 0 %}
+                  <ul>
+                     {% for move in pokemon_moves %}
+                     <li>
+                        <button type="button"class="export-button" export-data='{"move" : "{{move[0]}}" }'title='{{ move[2] }}'>
+                        <span class="left-text">{{ move[0] }}</span>
+                        <span class="right-text">{{ move[1] }}%</span>
+                        </button>
+                     </li>
+                     {% endfor %}
+                  </ul>
+                  {% endif %}
+               </div>
             </div>
-         </form>
-      </div>
+         <div>
+            <h2>Teammates</h2>
+            <div class="Data">
+               {% if pokemon_teammates|length > 0 %}
+               <ul>
+                  {% for team in pokemon_teammates %}
+                  <li>
+                     <button type="submit" name="pokemon_value" value="{{ team[0] }}" onclick="selectPokemon('{{team[0]}}')" class="pokemon-button" style="padding: 2px 8px;">
+                     <div class="image-pokemon" style="background-position: {{team[2][1] * -40}}px {{team[2][0] * -30}}px;">
+                        <span class="left-text" style="padding-left: 48px;">{{ team[0] }}</span>
+                     </div>
+                     <span class="right-text">{{ team[1] }}%</span>
+                     </button>
+                  </li>
+                  {% endfor %}
+               </ul>
+               {% endif %}
+            </div>
+         </div>
+         <div>
+            <h2>Items</h2>
+            <div class="Data">
+               {% if pokemon_items|length > 0 %}
+               <ul>
+                  {% for item in pokemon_items %}
+                  <li>
+                     <button type="button"class="export-button" export-data='{"item" : "{{item[0]}}" }' title='{{ item[2] }}'>
+                     <div class="image-item" style="background-position: {{item[3][1] * -24}}px {{item[3][0] * -24}}px;">
+                        <span class="left-text" style="padding-left: 32px;">{{ item[0] }}</span>
+                     </div>
+                     <span class="right-text">{{ item[1] }}%</span>
+                     </button>
+                  </li>
+                  {% endfor %}
+               </ul>
+               {% endif %}
+            </div>
+         </div>
+         <div>
+            <h2>Abilities</h2>
+            <div class="Data">
+               {% if pokemon_abilities|length > 0 %}
+               <ul>
+                  {% for ability in pokemon_abilities %}
+                  <li>
+                     <button type="button"class="export-button" export-data='{"ability" : "{{ ability[0] }}" }' title='{{ ability[2] }}'>
+                     <span class="left-text">{{ ability[0] }}</span>
+                     <span class="right-text">{{ ability[1] }}%</span>
+                     </button>
+                  </li>
+                  {% endfor %}
+               </ul>
+               {% endif %}
+            </div>
+         </div>
+         <div>
+            <h2>Spreads</h2>
+            <div class="Data">
+               {% if pokemon_spreads|length > 0 %}
+               <ul>
+                  {% for spread in pokemon_spreads %}
+                  <li>
+                     <button type="button" export-data='{"spread" : "{{ spread[0] }}" }' class="export-button">
+                     <span class="left-text">{{ spread[0] }}</span>
+                     <span class="right-text">{{ spread[1] }}%</span>
+                     </button>
+                  </li>
+                  {% endfor %}
+               </ul>
+               {% endif %}
+            </div>
+         </div>
+         <div>
+         <h2>Natures</h2>
+            <div class="Data">
+               {% if pokemon_natures|length > 0 %}
+               <ul>
+                  {% for nature in pokemon_natures %}
+                  <li>
+                     <button type="button"class="export-button" export-data='{"nature" : "{{ nature[0] }}" }'>
+                     <span class="left-text">{{ nature[0] }}</span>
+                     <span class="right-text">{{ nature[1] }}%</span>
+                     </button>
+                  </li>
+                  {% endfor %}
+               </ul>
+               {% endif %}
+            </div>
+         </div>
+         {% if pokemon_counters|length > 0 %}
+         <div>
+            <h2>Checks and Counters</h2>
+            <div class="Data">
+               <ul>
+                  {% for counter in pokemon_counters %}
+                  <li>
+                     <button type="submit" name="pokemon_value" value="{{ counter[0] }}" onclick="selectPokemon('{{counter[0]}}')" class="pokemon-button" style="padding: 2px 8px;">
+                        <div class="image-pokemon" style="background-position: {{counter[2][1] * -40}}px {{counter[2][0] * -30}}px;">
+                           <span class="left-text" style="padding-left: 48px;">{{ counter[0] }}</span>
+                        </div>
+                     <span class="right-text">{{ counter[1] }}%</span>
+                     </button>
+                  </li>
+                  {% endfor %}
+               </ul>
+            </div>   
+         </div>
+         {% endif %}
+
+         <div>
+            <h2>Export Pokemon</h2>
+            <textarea class="Export" id="showdown-set" ></textarea>
+            <button type="button" class="copy-button" id="copy-button" style="text-align: center;">Copy Pokemon to Clipboard</button>
+         </div>
+         </div>
+      </form>
       <div style="text-align: center; height: 32px;">
          <h6>Usage stats data from the month of September 2023</h6>   
       </div>
@@ -554,6 +584,24 @@
       </div>
       <script>
          let initialItems = $("#pokemon-list li").get();
+         let showdownPokemon = "{{current_pokemon[0]}}";
+         let showdownItem = "{{ pokemon_items[0][0] }}";
+         let showdownAbility = "{{ pokemon_abilities[0][0] }}";
+         var temp = toShowdownSpread("{{ pokemon_spreads[0][0] }}");
+         let showdownSpread = temp[1];
+         let showdownNature = temp[0];
+         let showdownMoves = ["{{ pokemon_moves[0][0] }}","{{ pokemon_moves[1][0] }}","{{ pokemon_moves[2][0] }}","{{ pokemon_moves[3][0] }}"];
+
+         var showdownSet = showdownPokemon+" @ "+showdownItem;
+         showdownSet +="\nAbility: "+ showdownAbility;
+         showdownSet += "\nEVs: "+ showdownSpread;
+         showdownSet += "\n"+ showdownNature + " Nature";
+         showdownSet += "\n- "+ showdownMoves[0];
+         showdownSet += "\n- "+ showdownMoves[1];
+         showdownSet += "\n- "+ showdownMoves[2];
+         showdownSet += "\n- "+ showdownMoves[3];
+         $("#showdown-set").val(showdownSet);
+         
          $("#pokemonSearchInput").on("input", function() {
             let query = $(this).val().toLowerCase();
 
@@ -563,7 +611,31 @@
 
             $("#pokemon-list").empty().append(filteredItems);
          });
-
+         function toShowdownSpread(statsSpread) {
+            var nature = statsSpread.split(":")[0]
+            var evs = statsSpread.split(":")[1]
+            evs = evs.split("/")
+            var evSpread = []
+            if (evs[0] !== "0") {
+               evSpread.push(evs[0]+" HP") 
+            }
+            if (evs[1] !== "0") {
+               evSpread.push(evs[1]+" Atk") 
+            }
+            if (evs[2] !== "0") {
+               evSpread.push(evs[2]+" Def") 
+            }
+            if (evs[3] !== "0") {
+               evSpread.push(evs[3]+" SpA") 
+            }
+            if (evs[4] !== "0") {
+               evSpread.push(evs[4]+" SpD") 
+            }
+            if (evs[5] !== "0") {
+               evSpread.push(evs[5]+" Spe") 
+            }
+            return [nature,evSpread.join(" / ")]
+         }
          function selectPokemon(pokemonName) {
              document.getElementById('selectedPokemon').value = pokemonName;
          }
@@ -583,6 +655,59 @@
          if (event.key === "Enter" || event.keyCode === 13) {
              event.preventDefault();
          }
+         });
+
+         $(document).ready(function() {
+            $(".export-button").click(function() {
+               var text = $(this).attr("export-data"); 
+               var data = JSON.parse(text); 
+               if (typeof data.item == 'string') {
+                  showdownItem = data.item;
+               }
+               if (typeof data.ability == 'string') {
+                  showdownAbility = data.ability;
+               }
+               if (typeof data.nature == 'string') {
+                  showdownNature = data.nature;
+               }
+               if (typeof data.move == 'string') {
+                  if (!showdownMoves.includes(data.move)) {
+                     showdownMoves.pop();
+                     showdownMoves.unshift(data.move);
+                  } else {
+                     var pos = showdownMoves.indexOf(data.move);
+                     showdownMoves.splice(pos,1);
+                     showdownMoves.unshift(data.move);
+                  }
+               }
+               if (typeof data.spread == 'string') {
+                  var temp = toShowdownSpread(data.spread);
+                  showdownNature = temp[0];
+                  showdownSpread = temp[1];
+               }
+               var showdownSet = showdownPokemon+" @ "+showdownItem;
+               showdownSet +="\nAbility: "+ showdownAbility;
+               showdownSet += "\nEVs: "+ showdownSpread;
+               showdownSet += "\n"+ showdownNature + " Nature";
+               showdownSet += "\n- "+ showdownMoves[0];
+               showdownSet += "\n- "+ showdownMoves[1];
+               showdownSet += "\n- "+ showdownMoves[2];
+               showdownSet += "\n- "+ showdownMoves[3];
+               $("#showdown-set").val(showdownSet);
+            });
+         });
+
+         document.getElementById("copy-button").addEventListener("click", function() {
+            var textToCopy = document.getElementById("showdown-set").value;
+
+            navigator.clipboard.writeText(textToCopy).then(function() {
+               document.getElementById("copy-button").textContent = "Copied!";
+            })
+
+            setTimeout(function() {
+               document.getElementById("copy-button").textContent = "Copy Pokemon to Clipboard";
+            }, 2000);
+
          });
       </script>
    </body>
