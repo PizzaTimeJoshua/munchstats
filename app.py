@@ -126,26 +126,26 @@ def top_data_list(data,pokemon,cat):
     if cat=="Checks and Counters":
         filtered_counters = {key: value for key, value in dataPokemon.items() if (value[2] < 0.01 and value[1] > 0.5)}
         catSorted = sorted(filtered_counters.keys(), key=lambda x: filtered_counters[x][1], reverse=True)[:10]
-        catSorted = [[poke,round(dataPokemon[poke][1]*100,3), get_sprite_pokemon(poke)] for poke in catSorted ]
+        catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke][1]*100,3)), get_sprite_pokemon(poke)] for poke in catSorted ]
         return catSorted
     if cat=="Moves":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
-        catSorted = [[movesData.get(poke,{"name": "Nothing"})["name"],round(dataPokemon[poke]/totalCount*100,3),movesData.get(poke, {"desc" : "No info."})["desc"]] for poke in catSorted ]
+        catSorted = [[movesData.get(poke,{"name": "Nothing"})["name"],"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)),movesData.get(poke, {"desc" : "No info."})["desc"]] for poke in catSorted ]
         return catSorted
     if cat=="Items":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
-        catSorted = [[itemData.get(poke,{"name": "Nothing"})["name"],round(dataPokemon[poke]/totalCount*100,3), itemData.get(poke, {"desc" : "No info."})["desc"],(divmod(itemData.get(poke, {"spritenum" : 0})["spritenum"],16))] for poke in catSorted ]
+        catSorted = [[itemData.get(poke,{"name": "Nothing"})["name"],"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)), itemData.get(poke, {"desc" : "No info."})["desc"],(divmod(itemData.get(poke, {"spritenum" : 0})["spritenum"],16))] for poke in catSorted ]
         return catSorted
     if cat=="Abilities":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
-        catSorted = [[abilitiesData.get(poke,{"name": "Unknown"})["name"],round(dataPokemon[poke]/totalCount*100,3),abilitiesData.get(poke, {"desc" : "No info."})["desc"]] for poke in catSorted ]
+        catSorted = [[abilitiesData.get(poke,{"name": "Unknown"})["name"],"{:.1f}".format(round(dataPokemon[poke]/totalCount*100,1)),abilitiesData.get(poke, {"desc" : "No info."})["desc"]] for poke in catSorted ]
         return catSorted
     if cat=="Teammates":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
-        catSorted = [[poke,round(dataPokemon[poke]/totalCount*100,3), get_sprite_pokemon(poke)] for poke in catSorted ]
+        catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)), get_sprite_pokemon(poke)] for poke in catSorted ]
         return catSorted
     catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
-    catSorted = [[poke,round(dataPokemon[poke]/totalCount*100,3)] for poke in catSorted ]
+    catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3))] for poke in catSorted ]
     return catSorted
 
 def get_sprite_pokemon(poke):
@@ -213,7 +213,7 @@ def index():
     except ValueError:
         use = "N/A"
 
-    pokemon_top_usage = [[poke,round(pokemonData[poke]["usage"]*100,2),get_sprite_pokemon(poke)] for poke in pokemon_top_usage]
+    pokemon_top_usage = [[poke,"{:.2f}".format(round(pokemonData[poke]["usage"]*100,2)),get_sprite_pokemon(poke)] for poke in pokemon_top_usage]
     
 
 
