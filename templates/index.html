@@ -612,7 +612,12 @@
          showdownSet += "\n- "+ showdownMoves[1];
          showdownSet += "\n- "+ showdownMoves[2];
          showdownSet += "\n- "+ showdownMoves[3];
-         $("#showdown-set").val(showdownSet);
+
+         var textArea = document.createElement('textarea');
+         textArea.innerHTML = showdownSet;
+         var decodedText = textArea.value;
+
+         $("#showdown-set").val(decodedText);
          
          $("#pokemonSearchInput").on("input", function() {
             let query = $(this).val().toLowerCase();
@@ -706,7 +711,12 @@
                showdownSet += "\n- "+ showdownMoves[1];
                showdownSet += "\n- "+ showdownMoves[2];
                showdownSet += "\n- "+ showdownMoves[3];
-               $("#showdown-set").val(showdownSet);
+
+               var textArea = document.createElement('textarea');
+               textArea.innerHTML = showdownSet;
+               var decodedText = textArea.value;
+
+               $("#showdown-set").val(decodedText);
             });
          });
 
