@@ -108,16 +108,17 @@
          background: #111111;
          }
          .meta-buttons {
-         text-align: left;
+         padding-left: 10px;
          }
          .meta-button {
          background-color: #222222;
          color: #e0e0e0;
          border: 0px solid #555;
-         padding: 8px 0px;
+         padding: 8px 16px;
          width: 300px;
          cursor: pointer;
          transition: background-color 0.3s;
+         text-align: left;
          }
          .meta-button:hover {
          background-color: #333333;
@@ -342,8 +343,8 @@
       <form class="grid-container" method="post">
          <div class="left" style="width: 300px;">
             <div>
-               <h3> Selected Meta:<br><span style="color: yellow;">{{ selected_meta }}</span></h3>
-               <h3> Current Selected Rating Threshold: <span style="color: yellow;">{{ selected_rating }}</span></h3>
+               <h3> Current Format:<br><span style="color: yellow;">{{ selected_meta[1] }}</span></h3>
+               <h3> Current ELO Rating Threshold: <span style="color: yellow;">{{ selected_rating }}</span></h3>
                <h3> Current Pokemon:<br>
                   <div style="color: yellow;">
                      <span>{{current_pokemon[0]}}</span>
@@ -357,7 +358,7 @@
                <ul>
                   {% for meta in meta_games %}
                   <li>
-                     <button type="submit" name="meta_value" value="{{ meta }}" onclick="selectMeta('{{meta}}')" class="meta-button">{{ meta }}</button>
+                     <button type="submit" name="meta_value" value="{{ meta }}" onclick='selectMeta("{{ meta }}")' class="meta-button">{{ meta[1] }}</button>
                   </li>
                   {% endfor %}
                </ul>
@@ -366,7 +367,6 @@
                <input type="hidden" name="rating_value" id="selectedRating" value="{{ selected_rating }}">
                {% for rate in valid_ratings %}
                <button type="submit" name="rating_value" onclick="selectRating('{{rate}}')" value="{{rate}}" class="rating-button">{{rate}}+</button>
-
                {% endfor %}
             </div>
             <div style="height: 60px;">
@@ -592,14 +592,14 @@
          let showdownNature = temp[0];
          let showdownMoves = ["{{ pokemon_moves[0][0] }}","{{ pokemon_moves[1][0] }}","{{ pokemon_moves[2][0] }}","{{ pokemon_moves[3][0] }}"];
          let showdownLevel = ""
-         if ("{{selected_meta}}".includes("vgc")) {
+         if ("{{selected_meta[0]}}".includes("vgc")) {
             showdownLevel = "\nLevel: 50"
          }
-         if ("{{selected_meta}}".includes("battlestadium")) {
+         if ("{{selected_meta[0]}}".includes("battlestadium")) {
             showdownLevel = "\nLevel: 50"
          }
          
-         if ("{{selected_meta}}".includes("lc")) {
+         if ("{{selected_meta[0]}}".includes("lc")) {
             showdownLevel = "\nLevel: 5"
          }
 

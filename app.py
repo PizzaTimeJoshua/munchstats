@@ -58,10 +58,17 @@ def get_valid_ratings(meta):
     
 
 def safe_load_files():
-    global itemData, movesData, abilitiesData, pokedexData, meta_games_list, indexData
+    global itemData, movesData, abilitiesData, pokedexData, meta_games_list, indexData, meta_names
+    # Load Meta Names
+    if os.path.exists("stats/meta_names.json"):
+        with open('stats/meta_names.json', 'r') as file:
+            meta_names = pyjson5.load(file)
     meta_games_list = ["stats/"+f for f in os.listdir("stats/") if f.split("-")[-1] == "0.json"]
     meta_games_list = sort_files_by_gen_and_size(meta_games_list)
     meta_games_list = [f.split("-")[-2] for f in meta_games_list]
+    meta_games_list = [[meta,meta_names[meta]] for meta in meta_games_list if meta_names.get(meta,False)]
+   
+
     # Load Sprite Index
     if os.path.exists("stats/forms_index.json"):
         with open('stats/forms_index.json', 'r', encoding="utf8") as file:
@@ -169,14 +176,16 @@ def index():
     selected_pokemon = ""
     valid_ratings = ["0","1500","1630","1760"]
 
-    selected_meta = request.form.get('meta_value',meta)
+    selected_meta = request.form.get('meta_value',f"{[meta,meta_names.get(meta,meta)]}")
     selected_pokemon = request.form.get('pokemon_value',"No Pokemon")
     selected_rating = request.form.get('rating_value',"No Rating")
     valid_ratings = request.form.get('valid_ratings',valid_ratings)
 
-    print(selected_meta,selected_rating,selected_pokemon)
-    if (selected_meta in meta_games_list):
-        meta = selected_meta
+   
+    selected_meta = pyjson5.loads(selected_meta)
+    print((selected_meta[1]),selected_rating,selected_pokemon)
+    if (selected_meta[0] in meta_names.keys()):
+        meta = selected_meta[0]
     valid_ratings = get_valid_ratings(meta)
 
     if (selected_rating in valid_ratings):
