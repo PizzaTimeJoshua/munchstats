@@ -590,7 +590,33 @@
          var temp = toShowdownSpread("{{ pokemon_spreads[0][0] }}");
          let showdownSpread = temp[1];
          let showdownNature = temp[0];
-         let showdownMoves = ["{{ pokemon_moves[0][0] }}","{{ pokemon_moves[1][0] }}","{{ pokemon_moves[2][0] }}","{{ pokemon_moves[3][0] }}"];
+         let showdownMoves = [];
+
+         {% if pokemon_moves|length>=1 %}
+            if ("{{ pokemon_moves[0][0] }}" != "Nothing") {
+               showdownMoves.push("{{ pokemon_moves[0][0] }}")
+            }
+         {% endif %}
+
+         {% if pokemon_moves|length>=2 %}
+            if ("{{ pokemon_moves[1][0] }}" != "Nothing") {
+               showdownMoves.push("{{ pokemon_moves[1][0] }}")
+            }
+         {% endif %}
+
+         {% if pokemon_moves|length>=3 %}
+            if ("{{ pokemon_moves[2][0] }}" != "Nothing") {
+               showdownMoves.push("{{ pokemon_moves[2][0] }}")
+            }
+         {% endif %}
+
+         {% if pokemon_moves|length>=4 %}
+            if ("{{ pokemon_moves[3][0] }}" != "Nothing") {
+               showdownMoves.push("{{ pokemon_moves[3][0] }}")
+            }
+         {% endif %}
+
+         
          let showdownLevel = ""
          if ("{{selected_meta[0]}}".includes("vgc")) {
             showdownLevel = "\nLevel: 50"
@@ -608,10 +634,9 @@
          showdownSet += showdownLevel
          showdownSet += "\nEVs: "+ showdownSpread;
          showdownSet += "\n"+ showdownNature + " Nature";
-         showdownSet += "\n- "+ showdownMoves[0];
-         showdownSet += "\n- "+ showdownMoves[1];
-         showdownSet += "\n- "+ showdownMoves[2];
-         showdownSet += "\n- "+ showdownMoves[3];
+         for (let i = 0; i < showdownMoves.length; i++) {
+            showdownSet += "\n- "+ showdownMoves[i];
+         }
 
          var textArea = document.createElement('textarea');
          textArea.innerHTML = showdownSet;
@@ -687,10 +712,12 @@
                if (typeof data.nature == 'string') {
                   showdownNature = data.nature;
                }
-               if (typeof data.move == 'string') {
+               if (typeof data.move == 'string' && data.move!="Nothing") {
                   if (!showdownMoves.includes(data.move)) {
-                     showdownMoves.pop();
                      showdownMoves.unshift(data.move);
+                     if (showdownMoves.length>4) {
+                        showdownMoves.pop();
+                     }
                   } else {
                      var pos = showdownMoves.indexOf(data.move);
                      showdownMoves.splice(pos,1);
@@ -707,10 +734,9 @@
                showdownSet += showdownLevel
                showdownSet += "\nEVs: "+ showdownSpread;
                showdownSet += "\n"+ showdownNature + " Nature";
-               showdownSet += "\n- "+ showdownMoves[0];
-               showdownSet += "\n- "+ showdownMoves[1];
-               showdownSet += "\n- "+ showdownMoves[2];
-               showdownSet += "\n- "+ showdownMoves[3];
+               for (let i = 0; i < showdownMoves.length; i++) {
+                  showdownSet += "\n- "+ showdownMoves[i];
+               }
 
                var textArea = document.createElement('textarea');
                textArea.innerHTML = showdownSet;

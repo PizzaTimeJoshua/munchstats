@@ -137,15 +137,15 @@ def top_data_list(data,pokemon,cat):
         return catSorted
     if cat=="Moves":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
-        catSorted = [[movesData.get(poke,{"name": "Nothing"})["name"],"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)),movesData.get(poke, {"desc" : "No info."})["desc"]] for poke in catSorted ]
+        catSorted = [[movesData.get(poke,{"name": "Nothing"})["name"],"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)),movesData.get(poke, {"desc" : "No info."}).get("desc","No info.")] for poke in catSorted ]
         return catSorted
     if cat=="Items":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
-        catSorted = [[itemData.get(poke,{"name": "Nothing"})["name"],"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)), itemData.get(poke, {"desc" : "No info."})["desc"],(divmod(itemData.get(poke, {"spritenum" : 0})["spritenum"],16))] for poke in catSorted ]
+        catSorted = [[itemData.get(poke,{"name": "Nothing"})["name"],"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)), itemData.get(poke, {"desc" : "No info."}).get("desc","No info."),(divmod(itemData.get(poke, {"spritenum" : 0})["spritenum"],16))] for poke in catSorted ]
         return catSorted
     if cat=="Abilities":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
-        catSorted = [[abilitiesData.get(poke,{"name": "Unknown"})["name"],"{:.1f}".format(round(dataPokemon[poke]/totalCount*100,1)),abilitiesData.get(poke, {"desc" : "No info."})["desc"]] for poke in catSorted ]
+        catSorted = [[abilitiesData.get(poke,{"name": "Unknown"})["name"],"{:.1f}".format(round(dataPokemon[poke]/totalCount*100,1)),abilitiesData.get(poke, {"desc" : "No info."}).get("desc","No info.")] for poke in catSorted ]
         return catSorted
     if cat=="Teammates":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
