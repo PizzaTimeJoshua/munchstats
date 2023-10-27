@@ -181,8 +181,10 @@ def index():
     selected_rating = request.form.get('rating_value',"No Rating")
     valid_ratings = request.form.get('valid_ratings',valid_ratings)
 
-   
-    selected_meta = pyjson5.loads(selected_meta)
+    try:
+        selected_meta = pyjson5.loads(selected_meta)
+    except pyjson5.Json5IllegalCharacter:
+        selected_meta = f"{[meta,meta_names.get(meta,meta)]}"
     print((selected_meta[1]),selected_rating,selected_pokemon)
     if (selected_meta[0] in meta_names.keys()):
         meta = selected_meta[0]
