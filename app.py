@@ -220,7 +220,7 @@ def index():
         rank = "N/A"
 
     try:
-        use = round(pokemonData[pokeSearch]["usage"]*100)
+        use = round(pokemonData[pokeSearch]["usage"]*100,2)
     except ValueError:
         use = "N/A"
 
