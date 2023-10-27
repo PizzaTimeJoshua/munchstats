@@ -629,7 +629,10 @@
             showdownLevel = "\nLevel: 5"
          }
 
-         var showdownSet = showdownPokemon+" @ "+showdownItem;
+         var showdownSet = showdownPokemon
+         if (showdownItem != "Nothing") {
+            showdownSet+=" @ "+showdownItem;
+         }
          showdownSet +="\nAbility: "+ showdownAbility;
          showdownSet += showdownLevel
          showdownSet += "\nEVs: "+ showdownSpread;
