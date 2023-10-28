@@ -1,5 +1,5 @@
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, redirect, url_for
 import os
 import pyjson5
 from datetime import datetime
@@ -198,7 +198,140 @@ def get_sprite_pokemon(poke):
 safe_load_files()
 
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/<meta_name>/<meta_rating>/<pokemon_name>')
+def show_page_pokemon(meta_name,meta_rating,pokemon_name):
+    rating = "0"
+    meta = "gen9vgc2023regulatione"
+
+    selected_rating = meta_rating
+    selected_meta = f"{[meta_name,meta_names.get(meta_name,meta_name)]}"
+    selected_pokemon = pokemon_name
+
+    try:
+        selected_meta = pyjson5.loads(selected_meta)
+    except pyjson5.Json5IllegalCharacter:
+        selected_meta = [meta,meta_names.get(meta,meta)]
+
+    
+    if (selected_meta[0] in meta_names.keys()):
+        meta = selected_meta[0]
+    valid_ratings = get_valid_ratings(meta)
+
+    if (selected_rating in valid_ratings):
+        rating = selected_rating 
+    else:
+        rating = valid_ratings[-1]
+        selected_rating = valid_ratings[-1]
+
+
+    pokemonData = getPokemonData(meta,rating)
+
+    pokemon_top_usage = list(sorted(pokemonData.keys(), key=lambda x: pokemonData[x]["usage"], reverse=True))
+    try:
+        pokeSearch = pokemon_top_usage[0]
+    except IndexError:
+        pokeSearch = ""
+        
+    if selected_pokemon != "No Pokemon":
+        word = selected_pokemon.lower()
+        possibilities = pokemonData.keys()
+        normalized_possibilities = {p.lower(): p for p in possibilities}
+        result = difflib.get_close_matches(word, normalized_possibilities.keys(),10)
+        normalized_result = [normalized_possibilities[r] for r in result]
+        if len(normalized_result)>0:
+            close = normalized_result[0]
+            pokeSearch = close
+    print((selected_meta),selected_rating,selected_pokemon)
+    if (meta != meta_name):
+        print("Incorrect Meta")
+        return redirect(url_for('show_page_pokemon',
+                            meta_name=meta,
+                            meta_rating=rating,
+                            pokemon_name=pokeSearch))
+
+    if (rating != meta_rating):
+        print("Incorrect Rating")
+        return redirect(url_for('show_page_pokemon',
+                            meta_name=meta,
+                            meta_rating=rating,
+                            pokemon_name=pokeSearch))
+
+    if (pokeSearch != selected_pokemon):
+        print("Incorrect Pokemon")
+        return redirect(url_for('show_page_pokemon',
+                            meta_name=meta,
+                            meta_rating=rating,
+                            pokemon_name=pokeSearch))
+
+    try:
+        rank = pokemon_top_usage.index(pokeSearch) + 1
+    except ValueError:
+        rank = "N/A"
+
+    try:
+        use = round(pokemonData[pokeSearch]["usage"]*100,2)
+    except ValueError:
+        use = "N/A"
+
+    pokemon_top_usage = [[poke,"{:.2f}".format(round(pokemonData[poke]["usage"]*100,2)),get_sprite_pokemon(poke)] for poke in pokemon_top_usage]
+    
+
+
+    current_pokemon = [pokeSearch,use,rank]
+
+    pokemon_base_stats = top_data_list(pokemonData,pokeSearch,"Stats")
+    pokemon_moves = top_data_list(pokemonData,pokeSearch,"Moves")
+    pokemon_teammates = top_data_list(pokemonData,pokeSearch,"Teammates")
+    pokemon_items = top_data_list(pokemonData,pokeSearch,"Items")
+    pokemon_abilities = top_data_list(pokemonData,pokeSearch,"Abilities")
+    pokemon_spreads = top_data_list(pokemonData,pokeSearch,"Spreads")
+    pokemon_natures = top_data_list(pokemonData,pokeSearch,"Natures")
+    pokemon_counters = top_data_list(pokemonData,pokeSearch,"Checks and Counters")
+
+    return render_template('index.html', 
+                           pokemon_names=pokemon_top_usage,
+                           meta_games=meta_games_list,
+                           selected_meta=selected_meta,
+                           selected_pokemon=selected_pokemon,
+                           selected_rating=selected_rating,
+                           pokemon_base_stats=pokemon_base_stats,
+                           pokemon_moves=pokemon_moves,
+                           pokemon_teammates=pokemon_teammates,
+                           pokemon_items=pokemon_items,
+                           pokemon_abilities=pokemon_abilities,
+                           pokemon_spreads=pokemon_spreads,
+                           pokemon_natures=pokemon_natures,
+                           pokemon_counters=pokemon_counters,
+                           current_pokemon = current_pokemon,
+                           valid_ratings = valid_ratings)
+
+@app.route('/search_pokemon', methods=['POST'])
+def search_pokemon():
+    meta = "gen9vgc2023regulatione"
+    selected_meta = request.form.get('meta_value',f"{[meta,meta_names.get(meta,meta)]}")
+    selected_pokemon = request.form.get('pokemon_value',"No Pokemon")
+    selected_rating = request.form.get('rating_value',"No Rating")
+
+    try:
+        selected_meta = pyjson5.loads(selected_meta)
+    except pyjson5.Json5IllegalCharacter:
+        selected_meta = [meta,meta_names.get(meta,meta)]
+    
+    return redirect(url_for('show_page_pokemon',
+                            meta_name=selected_meta[0],
+                            meta_rating=selected_rating,
+                            pokemon_name=selected_pokemon))
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('500.html'), 500
+
+
+@app.route('/', methods=['GET'])
 def index():
     rating = "0"
     meta = "gen9vgc2023regulatione"
@@ -213,7 +346,8 @@ def index():
     try:
         selected_meta = pyjson5.loads(selected_meta)
     except pyjson5.Json5IllegalCharacter:
-        selected_meta = f"{[meta,meta_names.get(meta,meta)]}"
+        selected_meta = [meta,meta_names.get(meta,meta)]
+
     print((selected_meta[1]),selected_rating,selected_pokemon)
     if (selected_meta[0] in meta_names.keys()):
         meta = selected_meta[0]
