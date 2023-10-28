@@ -516,16 +516,22 @@
             </div>
          </div>
          <div>
-            <h2>Spreads</h2>
+            <h2>EV Spreads</h2>
             <div class="Data">
                {% if pokemon_spreads|length > 0 %}
                <ul>
                   {% for spread in pokemon_spreads %}
                   <li>
+                     {% if spread[1] == 'Average' %}
+                     <button type="button" export-data='{"spread" : "{{ spread[0] }}" }' class="export-button">
+                     <span class="left-text"  style="text-decoration:underline;">{{ spread[0] }}</span>
+                     <span class="right-text"></span>
+                     {% else %}
                      <button type="button" export-data='{"spread" : "{{ spread[0] }}" }' class="export-button">
                      <span class="left-text">{{ spread[0] }}</span>
                      <span class="right-text">{{ spread[1] }}%</span>
                      </button>
+                     {% endif %}
                   </li>
                   {% endfor %}
                </ul>
@@ -587,7 +593,7 @@
          let showdownPokemon = "{{current_pokemon[0]}}";
          let showdownItem = "{{ pokemon_items[0][0] }}";
          let showdownAbility = "{{ pokemon_abilities[0][0] }}";
-         var temp = toShowdownSpread("{{ pokemon_spreads[0][0] }}");
+         var temp = toShowdownSpread("{{ pokemon_spreads[1][0] }}");
          let showdownSpread = temp[1];
          let showdownNature = temp[0];
          let showdownMoves = [];
@@ -659,7 +665,7 @@
          function toShowdownSpread(statsSpread) {
             var nature = statsSpread.split(":")[0]
             var evs = statsSpread.split(":")[1]
-            evs = evs.split("/")
+            evs = evs.replace(/\s/g, '').split("/")
             var evSpread = []
             if (evs[0] !== "0") {
                evSpread.push(evs[0]+" HP") 
@@ -729,7 +735,9 @@
                }
                if (typeof data.spread == 'string') {
                   var temp = toShowdownSpread(data.spread);
-                  showdownNature = temp[0];
+                  if (temp[0]!='Average') {
+                     showdownNature = temp[0];
+                  }
                   showdownSpread = temp[1];
                }
                var showdownSet = showdownPokemon+" @ "+showdownItem;

@@ -137,7 +137,11 @@ def top_data_list(data,pokemon,cat):
         return catSorted
     if cat=="Moves":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
-        catSorted = [[movesData.get(poke,{"name": "Nothing"})["name"],"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)),movesData.get(poke, {"desc" : "No info."}).get("desc","No info.")] for poke in catSorted ]
+        catSorted = [[movesData.get(poke,{"name": "Nothing"})["name"],"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)),
+                      movesData.get(poke, {"type" : ""}).get("type","")+" ("+movesData.get(poke, {"category" : ""}).get("category","")+")"+
+                      '\nBase Power: '+f'{"N/A" if movesData.get(poke, {"basePower" : "N/A"}).get("basePower","N/A")==0 else movesData.get(poke, {"basePower" : "N/A"}).get("basePower","N/A")}'+" Accuracy: "+f"{"N/A" if movesData.get(poke, {"accuracy" : "N/A"}).get("accuracy","N/A")==True else movesData.get(poke, {"accuracy" : "N/A"}).get("accuracy","N/A")}"+
+                      '\nPriority: '+f'{movesData.get(poke, {"priority" : 0}).get("priority",0)}'+
+                      '\n'+movesData.get(poke, {"desc" : "No info."}).get("desc","No info.")] for poke in catSorted ]
         return catSorted
     if cat=="Items":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
@@ -151,6 +155,30 @@ def top_data_list(data,pokemon,cat):
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
         catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)), get_sprite_pokemon(poke)] for poke in catSorted ]
         return catSorted
+    if cat=="Spreads":
+        average = [0,0,0,0,0,0]
+        catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)
+        for spread in catSorted:
+            evs = spread.split(':')[1].split('/')
+            for ev in range(6):
+                average[ev] = average[ev] + int(evs[ev])*(dataPokemon[spread]/totalCount)
+
+        normalize = 508/sum(average)
+        average = [round(stat*normalize) for stat in average]
+        normalize = sum(average) - 508
+
+        sortedAverage = sorted(average)
+        small = sortedAverage[1]  if sortedAverage[0]==0 else sortedAverage[1]
+        big = sortedAverage[-2]  if sortedAverage[-1]==252 else sortedAverage[-1]
+        if normalize>0:
+            average = [stat-normalize if stat==small else stat for stat in average]
+        if normalize<0:
+            average = [stat-normalize if stat==big else stat for stat in average]
+        catSorted = catSorted[:10]
+        catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3))] for poke in catSorted]
+        catSorted.insert(0,['Average: '+' / '.join(str(stat) for stat in average),'Average'])
+        return catSorted
+    
     catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
     catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3))] for poke in catSorted ]
     return catSorted
