@@ -139,7 +139,8 @@ def top_data_list(data,pokemon,cat):
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
         catSorted = [[movesData.get(poke,{"name": "Nothing"})["name"],"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)),
                       movesData.get(poke, {"type" : ""}).get("type","")+" ("+movesData.get(poke, {"category" : ""}).get("category","")+")"+
-                      '\nBase Power: '+f'{"N/A" if movesData.get(poke, {"basePower" : "N/A"}).get("basePower","N/A")==0 else movesData.get(poke, {"basePower" : "N/A"}).get("basePower","N/A")}'+" Accuracy: "+f"{"N/A" if movesData.get(poke, {"accuracy" : "N/A"}).get("accuracy","N/A")==True else movesData.get(poke, {"accuracy" : "N/A"}).get("accuracy","N/A")}"+
+                      '\nBase Power: '+f'{"N/A" if movesData.get(poke, {"basePower" : "N/A"}).get("basePower","N/A")==0 else movesData.get(poke, {"basePower" : "N/A"}).get("basePower","N/A")}'+
+                      " Accuracy: "+f"{"N/A" if movesData.get(poke, {"accuracy" : "N/A"}).get("accuracy","N/A")==True else movesData.get(poke, {"accuracy" : "N/A"}).get("accuracy","N/A")}"+
                       '\nPriority: '+f'{movesData.get(poke, {"priority" : 0}).get("priority",0)}'+
                       '\n'+movesData.get(poke, {"desc" : "No info."}).get("desc","No info.")] for poke in catSorted ]
         return catSorted
