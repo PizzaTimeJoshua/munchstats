@@ -311,16 +311,55 @@ def search_pokemon():
     selected_meta = request.form.get('meta_value',f"{[meta,meta_names.get(meta,meta)]}")
     selected_pokemon = request.form.get('pokemon_value',"No Pokemon")
     selected_rating = request.form.get('rating_value',"No Rating")
-
+#
     try:
         selected_meta = pyjson5.loads(selected_meta)
     except pyjson5.Json5IllegalCharacter:
         selected_meta = [meta,meta_names.get(meta,meta)]
+
+    
+    if (selected_meta[0] in meta_names.keys()):
+        meta = selected_meta[0]
+    valid_ratings = get_valid_ratings(meta)
+
+    if (selected_rating in valid_ratings):
+        rating = selected_rating 
+    else:
+        rating = valid_ratings[-1]
+        selected_rating = valid_ratings[-1]
+
+
+    pokemonData = getPokemonData(meta,rating)
+
+    pokemon_top_usage = list(sorted(pokemonData.keys(), key=lambda x: pokemonData[x]["usage"], reverse=True))
+    try:
+        pokeSearch = pokemon_top_usage[0]
+    except IndexError:
+        pokeSearch = ""
+        
+    if selected_pokemon != "No Pokemon":
+        word = selected_pokemon.lower()
+        possibilities = pokemonData.keys()
+        normalized_possibilities = {p.lower(): p for p in possibilities}
+        result = difflib.get_close_matches(word, normalized_possibilities.keys(),10)
+        normalized_result = [normalized_possibilities[r] for r in result]
+        if len(normalized_result)>0:
+            close = normalized_result[0]
+            pokeSearch = close
+    if (meta != selected_meta[0]):
+        print("Incorrect Meta")
+
+    if (rating != selected_rating):
+        print("Incorrect Rating")
+
+    if (pokeSearch != selected_pokemon):
+        print("Incorrect Pokemon")
+#
     
     return redirect(url_for('show_page_pokemon',
-                            meta_name=selected_meta[0],
-                            meta_rating=selected_rating,
-                            pokemon_name=selected_pokemon))
+                            meta_name=meta,
+                            meta_rating=rating,
+                            pokemon_name=pokeSearch))
 
 @app.errorhandler(404)
 def page_not_found(e):
