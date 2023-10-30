@@ -164,17 +164,7 @@ def top_data_list(data,pokemon,cat):
             for ev in range(6):
                 average[ev] = average[ev] + int(evs[ev])*(dataPokemon[spread]/totalCount)
 
-        normalize = 508/sum(average)
-        average = [round(stat*normalize) for stat in average]
-        normalize = sum(average) - 508
-
-        sortedAverage = sorted(average)
-        small = sortedAverage[1]  if sortedAverage[0]==0 else sortedAverage[1]
-        big = sortedAverage[-2]  if sortedAverage[-1]==252 else sortedAverage[-1]
-        if normalize>0:
-            average = [stat-normalize if stat==small else stat for stat in average]
-        if normalize<0:
-            average = [stat-normalize if stat==big else stat for stat in average]
+        average = [round(stat) for stat in average]
         catSorted = catSorted[:10]
         catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3))] for poke in catSorted]
         catSorted.insert(0,['Average: '+' / '.join(str(stat) for stat in average),'Average'])
