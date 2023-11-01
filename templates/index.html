@@ -522,16 +522,10 @@
                <ul>
                   {% for spread in pokemon_spreads %}
                   <li>
-                     {% if spread[1] == 'Average' %}
-                     <button type="button" export-data='{"spread" : "{{ spread[0] }}" }' class="export-button">
-                     <span class="left-text"  style="text-decoration:underline;">{{ spread[0] }}</span>
-                     <span class="right-text"></span>
-                     {% else %}
                      <button type="button" export-data='{"spread" : "{{ spread[0] }}" }' class="export-button">
                      <span class="left-text">{{ spread[0] }}</span>
                      <span class="right-text">{{ spread[1] }}%</span>
                      </button>
-                     {% endif %}
                   </li>
                   {% endfor %}
                </ul>
