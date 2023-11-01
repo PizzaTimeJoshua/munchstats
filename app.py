@@ -157,17 +157,9 @@ def top_data_list(data,pokemon,cat):
         catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)), get_sprite_pokemon(poke)] for poke in catSorted ]
         return catSorted
     if cat=="Spreads":
-        average = [0,0,0,0,0,0]
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)
-        for spread in catSorted:
-            evs = spread.split(':')[1].split('/')
-            for ev in range(6):
-                average[ev] = average[ev] + int(evs[ev])*(dataPokemon[spread]/totalCount)
-
-        average = [round(stat) for stat in average]
         catSorted = catSorted[:10]
         catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3))] for poke in catSorted]
-        catSorted.insert(0,['Average: '+' / '.join(str(stat) for stat in average),'Average'])
         return catSorted
     
     catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]

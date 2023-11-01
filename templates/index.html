@@ -597,7 +597,7 @@
          let showdownPokemon = "{{current_pokemon[0]}}";
          let showdownItem = "{{ pokemon_items[0][0] }}";
          let showdownAbility = "{{ pokemon_abilities[0][0] }}";
-         var temp = toShowdownSpread("{{ pokemon_spreads[1][0] }}");
+         var temp = toShowdownSpread("{{ pokemon_spreads[0][0] }}");
          let showdownSpread = temp[1];
          let showdownNature = temp[0];
          let showdownMoves = [];
@@ -738,9 +738,6 @@
                }
                if (typeof data.spread == 'string') {
                   var temp = toShowdownSpread(data.spread);
-                  if (temp[0]!='Average') {
-                     showdownNature = temp[0];
-                  }
                   showdownSpread = temp[1];
                }
                var showdownSet = showdownPokemon+" @ "+showdownItem;
