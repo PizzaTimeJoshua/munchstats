@@ -29,6 +29,7 @@ def updateMetagames():
             for link in links:
                 href = link['href']
                 if (".json" in href):
+                    print(f"Downloading {href}...")
                     response = requests.get(url+href)
                     with open(f'stats/{year}-{month}-{href}', 'w', encoding="utf-8") as file:
                         file.write(response.text)
@@ -59,7 +60,7 @@ def extract_battle_icon_indexes_from_url(mjs_url, output_json_path):
     icon_indexes_dict = eval(f"{{{content_string}}}")
 
     # 5. Serialize the dictionary to a JSON file
-    with open(output_json_path, 'w') as json_file:
+    with open(output_json_path, 'wb') as json_file:
         pyjson5.dump(icon_indexes_dict, json_file, indent=4)
 
 
