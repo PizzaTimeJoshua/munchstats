@@ -189,7 +189,9 @@ safe_load_files()
 
 
 @app.route('/<meta_name>/<meta_rating>/<pokemon_name>')
-def show_page_pokemon(meta_name,meta_rating,pokemon_name):
+@app.route('/<meta_name>/<meta_rating>/')
+@app.route('/<meta_name>/')
+def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
     rating = "0"
     meta = "gen9vgc2023regulatione"
 
