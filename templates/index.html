@@ -12,7 +12,7 @@
          background-color: #1e1e1e;
          display: grid;
          grid-template-columns: 1fr;
-         grid-template-rows: 1fr auto;
+         grid-template-rows: auto 1fr auto;
          color: #e0e0e0;
          font-family: Arial, sans-serif;
          
@@ -291,6 +291,7 @@
             display: grid;
             grid-template-columns: min-content min-content;
             grid-gap: 30px;  /* Space between grid items */
+            padding-top: 20px;
          }
 
          .image-item {
@@ -336,10 +337,21 @@
          box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
          border: 0px;
          text-align: left;
-      }
+        }
+        .twitter-follow-div {
+         position: absolute;
+         padding-top: 5px;
+         padding-right: 5px;
+         top: 5px;
+         right: 5px;
+        }
       </style>
    </head>
    <body>
+      <div class="twitter-follow-div">
+         <a href='https://ko-fi.com/V7V2QR4P2' target='_blank'><img height='29' style='border:0px;height:29px;' src='https://storage.ko-fi.com/cdn/kofi4.png?v=3' border='0' alt='Buy Me a Coffee at ko-fi.com' /></a>
+         <a href="https://twitter.com/MunchStats?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large" data-show-screen-name="false" data-show-count="false">Follow @MunchStats</a><script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+      </div>
       <form class="grid-container" action="/search_pokemon" method="post">
          <div class="left" style="width: 300px;">
             <div>
