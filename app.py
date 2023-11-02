@@ -442,3 +442,5 @@ def index():
                            current_pokemon = current_pokemon,
                            valid_ratings = valid_ratings)
 
+if __name__ == "__main__":
+    app.run(debug=True)

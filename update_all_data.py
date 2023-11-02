@@ -164,14 +164,19 @@ def generateFormatList():
         if len(normalized_result)>0:
             close = normalized_result[0]
             pokeSearch = close
+
+            if re.sub(r'[^a-z0-9]+', '', pokeSearch.lower()) != meta:
+                print(f"Possible incorrect name with {meta} as {pokeSearch}")
+
             meta_names[meta]=pokeSearch
         else:
-            print(f"Oop something when wrong with {meta}")
+            print(f"Unable to find format name for {meta}")
     with open('stats/meta_names.json', 'wb') as file:
         pyjson5.dump(meta_names,file)
-
-updateData()
-updateImage()
-updateMetagames()
-generateFormatList()
-print("Update done.")
+        
+if __name__ == "__main__":
+    updateData()
+    updateImage()
+    updateMetagames()
+    generateFormatList()
+    print("Update done.")
