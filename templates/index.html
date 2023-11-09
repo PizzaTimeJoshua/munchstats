@@ -291,7 +291,7 @@
             display: grid;
             grid-template-columns: min-content min-content;
             grid-gap: 30px;  /* Space between grid items */
-            padding-top: 20px;
+            padding-top: 0px;
          }
 
          .image-item {
@@ -343,6 +343,10 @@
          padding-right: 5px;
          justify-self: right;
         }
+        h3 {
+         margin-top: 5px;
+         margin-bottom: 7px;
+        }
       </style>
    </head>
    <body>
@@ -358,14 +362,18 @@
                <h3> Current Pokemon:<br>
                   <div style="color: yellow;">
                      <span>{{current_pokemon[0]}}</span>
+                     <div class="image-pokemon" style="background-position: {{current_pokemon[3][1] * -40}}px {{current_pokemon[3][0] * -30}}px; position: relative;left: 135px;"></div>
                   </div>
                </h3>
                <h3> Usage: <span style="color: yellow;">{{current_pokemon[1]}}%</span></h3>
                <h3> Monthly Rank: <span style="color: yellow;">{{current_pokemon[2]}}</span></h3>
             </div>
+            <div style="height: 50px;">
+               <input type="text" id="metaSearchInput" placeholder="Search for a Format">
+            </div>
             <div class="meta-list">
                <input type="hidden" name="meta_value" id="selectedMeta" value="{{ selected_meta }}">
-               <ul>
+               <ul id = "meta-list">
                   {% for meta in meta_games %}
                   <li>
                      <button type="submit" name="meta_value" value="{{ meta }}" onclick='selectMeta("{{ meta }}")' class="meta-button">{{ meta[1] }}</button>
@@ -379,7 +387,7 @@
                <button type="submit" name="rating_value" onclick="selectRating('{{rate}}')" value="{{rate}}" class="rating-button">{{rate}}+</button>
                {% endfor %}
             </div>
-            <div style="height: 60px;">
+            <div style="height: 50px;">
                <input type="text" id="pokemonSearchInput" placeholder="Search for a Pokémon">
             </div>
             <div class="pokemon-list">
@@ -598,6 +606,8 @@
       </div>
       <script>
          let initialItems = $("#pokemon-list li").get();
+         let initialItemsMeta = $("#meta-list li").get();
+
          let showdownPokemon = "{{current_pokemon[0]}}";
          let showdownItem = "{{ pokemon_items[0][0] }}";
          let showdownAbility = "{{ pokemon_abilities[0][0] }}";
@@ -670,6 +680,16 @@
 
             $("#pokemon-list").empty().append(filteredItems);
          });
+
+         $("#metaSearchInput").on("input", function() {
+            let query = $(this).val().toLowerCase();
+
+            let filteredItems = initialItemsMeta.filter(function(item) {
+               return $(item).text().toLowerCase().includes(query);
+            });
+
+            $("#meta-list").empty().append(filteredItems);
+         });
          function toShowdownSpread(statsSpread) {
             var nature = statsSpread.split(":")[0]
             var evs = statsSpread.split(":")[1]
@@ -710,6 +730,12 @@
          }
          
          document.getElementById('pokemonSearchInput').addEventListener('keydown', function(event) {
+         if (event.key === "Enter" || event.keyCode === 13) {
+             event.preventDefault();
+         }
+         });
+
+         document.getElementById('metaSearchInput').addEventListener('keydown', function(event) {
          if (event.key === "Enter" || event.keyCode === 13) {
              event.preventDefault();
          }

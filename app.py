@@ -261,7 +261,7 @@ def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
     
 
 
-    current_pokemon = [pokeSearch,use,rank]
+    current_pokemon = [pokeSearch,use,rank,get_sprite_pokemon(pokeSearch)]
 
     pokemon_base_stats = top_data_list(pokemonData,pokeSearch,"Stats")
     pokemon_moves = top_data_list(pokemonData,pokeSearch,"Moves")
@@ -414,7 +414,7 @@ def index():
     
 
 
-    current_pokemon = [pokeSearch,use,rank]
+    current_pokemon = [pokeSearch,use,rank,get_sprite_pokemon(pokeSearch)]
 
     pokemon_base_stats = top_data_list(pokemonData,pokeSearch,"Stats")
     pokemon_moves = top_data_list(pokemonData,pokeSearch,"Moves")
