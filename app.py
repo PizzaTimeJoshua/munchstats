@@ -37,6 +37,14 @@ def getPokemonData(meta,rating):
         pokemonData = statsRaw["data"]
 
     return pokemonData
+def getTeraData(meta,poke):
+    if os.path.exists(f"stats/tera-data-{meta}.json"):
+        with open(f"stats/tera-data-{meta}.json",'rb') as file:
+            teraData = pyjson5.load(file)
+    else:
+        teraData = {}
+    return teraData.get(poke,{})
+
 def extract_gen(s):
     """Extract the generation number from the string."""
     val = s.split("-")[2].split("gen")[1].split("1v1")[0].split("2v2")[0].split("350")[0]
@@ -272,6 +280,13 @@ def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
     pokemon_natures = top_data_list(pokemonData,pokeSearch,"Natures")
     pokemon_counters = top_data_list(pokemonData,pokeSearch,"Checks and Counters")
 
+    dictTera = getTeraData(meta,pokeSearch)
+    total_tera = sum(list(dictTera.values()))
+    listTera = [(tera,round(dictTera[tera]/total_tera*100,2)) for tera in dictTera.keys()]
+    listTera.sort(key=lambda x: x[1],reverse=True)
+    listTera = [(tera[0],"{:.2f}".format(tera[1])) for tera in listTera]
+
+
     return render_template('index.html', 
                            pokemon_names=pokemon_top_usage,
                            meta_games=meta_games_list,
@@ -287,7 +302,8 @@ def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
                            pokemon_natures=pokemon_natures,
                            pokemon_counters=pokemon_counters,
                            current_pokemon = current_pokemon,
-                           valid_ratings = valid_ratings)
+                           valid_ratings = valid_ratings,
+                           tera_data = listTera)
 
 @app.route('/search_pokemon', methods=['POST'])
 def search_pokemon():
@@ -425,6 +441,12 @@ def index():
     pokemon_natures = top_data_list(pokemonData,pokeSearch,"Natures")
     pokemon_counters = top_data_list(pokemonData,pokeSearch,"Checks and Counters")
 
+    dictTera = getTeraData(meta,pokeSearch)
+    total_tera = sum(list(dictTera.values()))
+    listTera = [(tera,round(dictTera[tera]/total_tera*100,2)) for tera in dictTera.keys()]
+    listTera.sort(key=lambda x: x[1],reverse=True)
+    listTera = [(tera[0],"{:.2f}".format(tera[1])) for tera in listTera]
+
     return render_template('index.html', 
                            pokemon_names=pokemon_top_usage,
                            meta_games=meta_games_list,
@@ -440,7 +462,8 @@ def index():
                            pokemon_natures=pokemon_natures,
                            pokemon_counters=pokemon_counters,
                            current_pokemon = current_pokemon,
-                           valid_ratings = valid_ratings)
+                           valid_ratings = valid_ratings,
+                           tera_data = listTera)
 
 if __name__ == "__main__":
     app.run(debug=True)

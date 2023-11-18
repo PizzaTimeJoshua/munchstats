@@ -69,7 +69,7 @@
             height: 24px;
          }
          .pokemon-list {
-         height: 200px;
+         height: 210px;
          overflow-y: scroll;
          overflow-x: hidden;
          margin-bottom: 20px;
@@ -77,7 +77,7 @@
          box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
          justify-self: center; /* Horizontally center the item within its cell */
          align-self: center;   /* Vertically center the item within its cell */
-         max-height: 200px;
+         max-height: 210px;
          margin-right: 10px;
          }
          .pokemon-list ul {
@@ -133,7 +133,7 @@
          box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
          justify-self: center; /* Horizontally center the item within its cell */
          align-self: center;   /* Vertically center the item within its cell */
-         max-height: 200px;
+         max-height: 210px;
          margin-right: 10px;
          }
          .meta-list ul {
@@ -184,15 +184,23 @@
          height: fit-content;
          }
          .right {
-         display: grid;
-         grid-template-columns: 1fr 1fr 1fr; /* Two columns of equal width */
-         grid-template-rows: auto 1fr 1fr auto auto; 
-         text-align: center;
-         justify-self: left;
-         height: min-content;
+            display: grid;
+            /* Adjust the minmax function as needed to set the minimum and maximum width of each column */
+            grid-template-columns: repeat(auto-fill,320px); 
+            grid-template-rows: auto 1fr auto auto auto; 
+            text-align: center;
+            justify-self: left;
+            justify-items: center;
+            height: min-content;
+            width: 100%;
          }
+
+
+
+
+
          .Data,.Export {
-         height: 200px;
+         height: 210px;
          overflow-y: scroll;
          overflow-x: hidden;
          margin-bottom: 20px;
@@ -200,13 +208,13 @@
          box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
          justify-self: center; /* Horizontally center the item within its cell */
          align-self: center;   /* Vertically center the item within its cell */
-         max-height: 200px;
+         max-height: 210px;
          margin-right: 10px;
          }
          .Export {
             overflow-y: hidden;
             overflow-x: auto;
-            height: 164px;
+            height: 174px;
             margin-bottom: 5px;
          }
          .Data ul {
@@ -289,7 +297,7 @@
 
         .grid-container {
             display: grid;
-            grid-template-columns: min-content min-content;
+            grid-template-columns: min-content 1fr;
             grid-gap: 30px;  /* Space between grid items */
             padding-top: 0px;
          }
@@ -326,7 +334,7 @@
         }
         textarea {
          width: 300px;
-         height: 164px;
+         height: 174px;
          font-size: 14px;
          resize: none; 
          background-color: #1e1e1e; 
@@ -568,6 +576,26 @@
             </div>
          </div>
 
+         {% if tera_data|length > 0 %}
+         <div>
+            <h2>Tera Type (Beta)</h2>
+               <div class="Data">
+                  <ul>
+                     {% for tera in tera_data %}
+                     <li>
+                        <button type="button"class="export-button"export-data='{"tera" : "{{ tera[0] }}" }'>
+                        <span class="left-text">{{ tera[0] }}</span>
+                        <span class="right-text">{{ tera[1] }}%</span>
+                        </button>
+                     </li>
+                     {% endfor %}
+                  </ul>
+               </div>
+            </div>
+         {% endif %}
+         
+
+
          <div>
             <h2>Export Pokemon</h2>
             <textarea class="Export" id="showdown-set" ></textarea>
@@ -595,7 +623,6 @@
          {% endif %}
 
          
-
          </div>
       </form>
       <div style="text-align: center; height: 32px;">
@@ -615,6 +642,10 @@
          let showdownSpread = temp[1];
          let showdownNature = temp[0];
          let showdownMoves = [];
+         let showdownTera = ""
+         {% if tera_data|length > 0 %}
+            showdownTera = "\nTera Type: {{tera_data[0][0]}}"
+         {% endif %}
 
          {% if pokemon_moves|length>=1 %}
             if ("{{ pokemon_moves[0][0] }}" != "Nothing") {
@@ -659,6 +690,7 @@
          }
          showdownSet +="\nAbility: "+ showdownAbility;
          showdownSet += showdownLevel
+         showdownSet += showdownTera
          showdownSet += "\nEVs: "+ showdownSpread;
          showdownSet += "\n"+ showdownNature + " Nature";
          for (let i = 0; i < showdownMoves.length; i++) {
@@ -754,6 +786,9 @@
                if (typeof data.nature == 'string') {
                   showdownNature = data.nature;
                }
+               if (typeof data.tera == 'string') {
+                  showdownTera = "\nTera Type: "+data.tera;
+               }
                if (typeof data.move == 'string' && data.move!="Nothing") {
                   if (!showdownMoves.includes(data.move)) {
                      showdownMoves.unshift(data.move);
@@ -774,6 +809,7 @@
                var showdownSet = showdownPokemon+" @ "+showdownItem;
                showdownSet +="\nAbility: "+ showdownAbility;
                showdownSet += showdownLevel
+               showdownSet += showdownTera
                showdownSet += "\nEVs: "+ showdownSpread;
                showdownSet += "\n"+ showdownNature + " Nature";
                for (let i = 0; i < showdownMoves.length; i++) {
