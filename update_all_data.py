@@ -65,29 +65,29 @@ def extract_battle_icon_indexes_from_url(mjs_url, output_json_path):
 
 
 def updateData():
-    print("Getting data.")
+    print("Getting item data.")
     url = 'https://play.pokemonshowdown.com/data/items.js'
     itemJS = requests.get(url).text
     itemRaw = "{"+itemJS.split("{",1)[1][:-1]
     with open('stats/items.json', 'w', encoding="utf-8") as file:
         file.write(itemRaw)
-
+    print("Getting ability data.")
     url = 'https://play.pokemonshowdown.com/data/abilities.js'
     abilitiesJS = requests.get(url).text
     abilitiesRaw = "{"+abilitiesJS.split("{",1)[1][:-1]
     with open('stats/abilities.json', 'w', encoding="utf-8") as file:
         file.write(abilitiesRaw)
-
+    print("Getting move data.")
     url = 'https://play.pokemonshowdown.com/data/moves.json'
     movesRaw = requests.get(url).text
     with open('stats/moves.json', 'w', encoding="utf-8") as file:
         file.write(movesRaw)
-
+    print("Getting pokedex data.")
     url = 'https://play.pokemonshowdown.com/data/pokedex.json'
     pokedexRaw = requests.get(url).text
     with open('stats/pokedex.json', 'w', encoding="utf-8") as file:
         file.write(pokedexRaw)
-    
+    print("Getting form data.")
     url = 'https://raw.githubusercontent.com/smogon/sprites/master/ps-pokemon.sheet.mjs'
     extract_battle_icon_indexes_from_url(url,'stats/forms_index.json')
 

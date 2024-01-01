@@ -131,12 +131,13 @@ def top_data_list(data,pokemon,cat):
     totalCount = sum(list(data[pokemon]["Abilities"].values()))
     if cat=="Natures":
         dataPokemon = {}
-        for spread in data[pokemon]["Spreads"]:
+        datSpread = data[pokemon].get("Spreads",[])
+        for spread in datSpread:
             nature = spread.split(':')[0]
             weight = data[pokemon]["Spreads"][spread]
             dataPokemon[nature] = dataPokemon.get(nature,0) + weight
     else:
-        dataPokemon = data[pokemon][cat]
+        dataPokemon = data[pokemon].get(cat,{})
 
     if cat=="Checks and Counters":
         filtered_counters = {key: value for key, value in dataPokemon.items() if (value[2] < 0.01 and value[1] > 0.5)}
@@ -193,7 +194,7 @@ safe_load_files()
 @app.route('/<meta_name>/')
 def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
     rating = "0"
-    meta = "gen9vgc2023regulatione"
+    meta = "gen9vgc2024regf"
 
     selected_rating = meta_rating
     selected_meta = f"{[meta_name,meta_names.get(meta_name,meta_name)]}"
@@ -307,7 +308,7 @@ def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
 
 @app.route('/search_pokemon', methods=['POST'])
 def search_pokemon():
-    meta = "gen9vgc2023regulatione"
+    meta = "gen9vgc2024regf"
     selected_meta = request.form.get('meta_value',f"{[meta,meta_names.get(meta,meta)]}")
     selected_pokemon = request.form.get('pokemon_value',"No Pokemon")
     selected_rating = request.form.get('rating_value',"No Rating")
@@ -373,7 +374,7 @@ def internal_server_error(e):
 @app.route('/', methods=['GET'])
 def index():
     rating = "0"
-    meta = "gen9vgc2023regulatione"
+    meta = "gen9vgc2024regf"
     selected_pokemon = ""
     valid_ratings = ["0","1500","1630","1760"]
 
