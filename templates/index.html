@@ -587,10 +587,10 @@
          <div>
          <h2 style="margin-bottom: 5px;">Top EVs By Category</h2>
             <input type="hidden" name="rating_value" id="selectedEVs" value="hp">
-            <button type="button" id="hp_evs" onclick="selectEVs('hp')" value="hp" class="ev-button underline">ATK</button>
-            <button type="button" id="atk_evs" onclick="selectEVs('atk')" value="atk" class="ev-button">SPA</button>
-            <button type="button" id="def_evs" onclick="selectEVs('def')" value="def" class="ev-button">SPE</button>
-            <button type="button" id="spa_evs" onclick="selectEVs('spa')" value="spa" class="ev-button">HP+DEF</button>
+            <button type="button" id="atk_evs" onclick="selectEVs('atk')" value="atk" class="ev-button underline">ATK</button>
+            <button type="button" id="spa_evs" onclick="selectEVs('spa')" value="spa" class="ev-button">SPA</button>
+            <button type="button" id="spe_evs" onclick="selectEVs('spe')" value="spe" class="ev-button">SPE</button>
+            <button type="button" id="def_evs" onclick="selectEVs('def')" value="def" class="ev-button">HP+DEF</button>
             <button type="button" id="spd_evs" onclick="selectEVs('spd')" value="spd" class="ev-button">HP+SPD</button>
             
             <div class="Data" style="height: 188px;">
@@ -600,7 +600,7 @@
 
                   
                   {% for evs in pokemon_evs[0] %}
-                  <li class="evs_hp">
+                  <li class="evs_atk">
                      <button type="button"class="export-button" export-data='{"ev" : "{{ evs[0] }}" }'>
                      <span class="left-text">{{ evs[0] }}</span>
                      <span class="right-text">{{ evs[1] }}%</span>
@@ -609,7 +609,7 @@
                   {% endfor %}
                   
                   {% for evs in pokemon_evs[1] %}
-                  <li class="evs_atk" hidden>
+                  <li class="evs_spa" hidden>
                      <button type="button"class="export-button" export-data='{"ev" : "{{ evs[0] }}" }'>
                      <span class="left-text">{{ evs[0] }}</span>
                      <span class="right-text">{{ evs[1] }}%</span>
@@ -618,8 +618,8 @@
                   {% endfor %}
                   
                   {% for evs in pokemon_evs[2] %}
-                  <li class="evs_def" hidden>
-                     <button type="button"class="export-button" export-data='{"ev"  "{{ evs[0] }}" }'>
+                  <li class="evs_spe" hidden>
+                     <button type="button"class="export-button" export-data='{"ev" : "{{ evs[0] }}" }'>
                      <span class="left-text">{{ evs[0] }}</span>
                      <span class="right-text">{{ evs[1] }}%</span>
                      </button>
@@ -627,7 +627,7 @@
                   {% endfor %}
                   
                   {% for evs in pokemon_evs[3] %}
-                  <li class="evs_spa" hidden>
+                  <li class="evs_def" hidden>
                      <button type="button"class="export-button" export-data='{"ev" : "{{ evs[0] }}" }'>
                      <span class="left-text">{{ evs[0] }}</span>
                      <span class="right-text">{{ evs[1] }}%</span>
@@ -643,18 +643,6 @@
                      </button>
                   </li>
                   {% endfor %}
-                  
-                  {% for evs in pokemon_evs[5] %}
-                  <li class="evs_spe" hidden>
-                     <button type="button"class="export-button" export-data='{"ev" : "{{ evs[0] }}" }'>
-                     <span class="left-text">{{ evs[0] }}</span>
-                     <span class="right-text">{{ evs[1] }}%</span>
-                     </button>
-                  </li>
-                  {% endfor %}
-
-                     
-
 
 
                </ul>
@@ -902,7 +890,7 @@
             for (let i = 0; i < evs.length; i++) {
                evs[i].hidden = false;
             }
-            document.getElementById("hp_evs").classList.remove("underline");
+            document.getElementById("spe_evs").classList.remove("underline");
             document.getElementById("atk_evs").classList.remove("underline");
             document.getElementById("def_evs").classList.remove("underline");
             document.getElementById("spa_evs").classList.remove("underline");
@@ -1049,22 +1037,22 @@
             }
 
             if (diff == " "){
-               if (stat == "Atk" && !attack_natures.includes(stat) && !attack_natures_m.includes(stat)) {
-                  return nature
+               if ((stat == "Atk") && (attack_natures.includes(nature) || attack_natures_m.includes(nature))) {
+                  return "Hardy"
                }
-               if (stat == "Def" && !defense_natures.includes(stat) && !defense_natures_m.includes(stat)) {
-                  return nature
+               if ((stat == "Def") && (defense_natures.includes(nature) || defense_natures_m.includes(nature))) {
+                  return "Hardy"
                }
-               if (stat == "SpA" && !sattack_natures.includes(stat) && !sattack_natures_m.includes(stat)) {
-                  return nature
+               if ((stat == "SpA") && (sattack_natures.includes(nature) || sattack_natures_m.includes(nature))) {
+                  return "Hardy"
                }
-               if (stat == "SpD" && !sdefense_natures.includes(stat) && !sdefense_natures_m.includes(stat)) {
-                  return nature
+               if ((stat == "SpD") && (sdefense_natures.includes(nature) || sdefense_natures_m.includes(nature))) {
+                  return "Hardy"
                }
-               if (stat == "Spe" && !speed_natures.includes(stat) && !speed_natures_m.includes(stat)) {
-                  return nature
+               if ((stat == "Spe") && (speed_natures.includes(nature) || speed_natures_m.includes(nature))) {
+                  return "Hardy"
                }
-               return "Hardy"
+               return nature
             }
 
          }
