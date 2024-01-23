@@ -139,6 +139,65 @@ def top_data_list(data,pokemon,cat):
     else:
         dataPokemon = data[pokemon].get(cat,{})
 
+    if cat=="EVs":
+        dataPokemon = {"atk" : {},"spa" : {},"spe" : {},"hp_def" : {},"hp_spd" : {}}
+        datSpread = data[pokemon].get("Spreads",[])
+        attack_natures = ["Naughty","Adamant","Lonely","Brave"]
+        defense_natures = ["Bold","Relaxed","Impish","Lax"]
+        sattack_natures = ["Modest","Mild","Quiet","Rash"]
+        sdefense_natures = ["Calm","Gentle","Sassy","Careful"]
+        speed_natures = ["Timid","Hasty","Jolly","Naive"]
+
+        attack_natures_m = ["Bold","Timid","Modest","Calm"]
+        defense_natures_m = ["Lonely","Hasty","Mild","Gentle"]
+        sattack_natures_m = ["Adamant","Impish","Jolly","Careful"]
+        sdefense_natures_m = ["Naughty","Lax","Naive","Rash"]
+        speed_natures_m = ["Brave","Relaxed","Quiet","Sassy"]
+
+        for spread in datSpread:
+            nature = spread.split(':')[0]
+            EVs = spread.split(':')[1].split('/')
+            weight = data[pokemon]["Spreads"][spread]
+            pa  = "+" if nature in attack_natures else ""
+            pd  = "+" if nature in defense_natures else ""
+            psa  = "+" if nature in sattack_natures else ""
+            psd = "+" if nature in sdefense_natures else ""
+            pse = "+" if nature in speed_natures else ""
+
+            pa  = "-" if nature in attack_natures_m else pa
+            pd  = "-" if nature in defense_natures_m else pd
+            psa  = "-" if nature in sattack_natures_m else psa
+            psd = "-" if nature in sdefense_natures_m else psd
+            pse = "-" if nature in speed_natures_m else pse
+
+
+            dataPokemon["atk"][EVs[1]+pa+" Atk"] = dataPokemon["atk"].get(EVs[1]+pa+" Atk",0) + weight
+            dataPokemon["spa"][EVs[3]+psa+" SpA"] = dataPokemon["spa"].get(EVs[3]+psa+" SpA",0) + weight
+            dataPokemon["spe"][EVs[5]+pse+" Spe"] = dataPokemon["spe"].get(EVs[5]+pse+" Spe",0) + weight
+            dataPokemon["hp_def"][EVs[0]+" HP / "+EVs[2]+pd+" Def"] = dataPokemon["hp_def"].get(EVs[0]+" HP / "+EVs[2]+pd+" Def",0) + weight
+            dataPokemon["hp_spd"][EVs[0]+" HP / "+EVs[4]+psd+" SpD"] = dataPokemon["hp_spd"].get(EVs[0]+" HP / "+EVs[4]+psd+" SpD",0) + weight
+
+
+        catSorted = [[],[],[],[],[],[]]
+
+        catSorted[0] = sorted(dataPokemon["atk"].keys(), key=lambda x: dataPokemon["atk"][x], reverse=True)[:10]
+        catSorted[0] = [[stat,"{:.3f}".format(round(dataPokemon["atk"][stat]/totalCount*100,3))] for stat in catSorted[0] ]
+
+        catSorted[1] = sorted(dataPokemon["spa"].keys(), key=lambda x: dataPokemon["spa"][x], reverse=True)[:10]
+        catSorted[1] = [[stat,"{:.3f}".format(round(dataPokemon["spa"][stat]/totalCount*100,3))] for stat in catSorted[1] ]
+
+        catSorted[2] = sorted(dataPokemon["spe"].keys(), key=lambda x: dataPokemon["spe"][x], reverse=True)[:10]
+        catSorted[2] = [[stat,"{:.3f}".format(round(dataPokemon["spe"][stat]/totalCount*100,3))] for stat in catSorted[2] ]
+
+        catSorted[3] = sorted(dataPokemon["hp_def"].keys(), key=lambda x: dataPokemon["hp_def"][x], reverse=True)[:10]
+        catSorted[3] = [[stat,"{:.3f}".format(round(dataPokemon["hp_def"][stat]/totalCount*100,3))] for stat in catSorted[3] ]
+
+        catSorted[4] = sorted(dataPokemon["hp_spd"].keys(), key=lambda x: dataPokemon["hp_spd"][x], reverse=True)[:10]
+        catSorted[4] = [[stat,"{:.3f}".format(round(dataPokemon["hp_spd"][stat]/totalCount*100,3))] for stat in catSorted[4] ]
+        
+        return catSorted
+
+        
     if cat=="Checks and Counters":
         filtered_counters = {key: value for key, value in dataPokemon.items() if (value[2] < 0.01 and value[1] > 0.5)}
         catSorted = sorted(filtered_counters.keys(), key=lambda x: filtered_counters[x][1], reverse=True)[:10]
@@ -279,6 +338,7 @@ def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
     pokemon_abilities = top_data_list(pokemonData,pokeSearch,"Abilities")
     pokemon_spreads = top_data_list(pokemonData,pokeSearch,"Spreads")
     pokemon_natures = top_data_list(pokemonData,pokeSearch,"Natures")
+    pokemon_evs = top_data_list(pokemonData,pokeSearch,"EVs")
     pokemon_counters = top_data_list(pokemonData,pokeSearch,"Checks and Counters")
 
     dictTera = getTeraData(meta,pokeSearch)
@@ -301,6 +361,7 @@ def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
                            pokemon_abilities=pokemon_abilities,
                            pokemon_spreads=pokemon_spreads,
                            pokemon_natures=pokemon_natures,
+                           pokemon_evs=pokemon_evs,
                            pokemon_counters=pokemon_counters,
                            current_pokemon = current_pokemon,
                            valid_ratings = valid_ratings,
@@ -376,7 +437,7 @@ def index():
     rating = "0"
     meta = "gen9vgc2024regf"
     selected_pokemon = ""
-    valid_ratings = ["0","1500","1630","1760"]
+    valid_ratings = ["0","1500","1760"]
 
     selected_meta = request.form.get('meta_value',f"{[meta,meta_names.get(meta,meta)]}")
     selected_pokemon = request.form.get('pokemon_value',"No Pokemon")
@@ -440,6 +501,7 @@ def index():
     pokemon_abilities = top_data_list(pokemonData,pokeSearch,"Abilities")
     pokemon_spreads = top_data_list(pokemonData,pokeSearch,"Spreads")
     pokemon_natures = top_data_list(pokemonData,pokeSearch,"Natures")
+    pokemon_evs = top_data_list(pokemonData,pokeSearch,"EVs")
     pokemon_counters = top_data_list(pokemonData,pokeSearch,"Checks and Counters")
 
     dictTera = getTeraData(meta,pokeSearch)
@@ -461,6 +523,7 @@ def index():
                            pokemon_abilities=pokemon_abilities,
                            pokemon_spreads=pokemon_spreads,
                            pokemon_natures=pokemon_natures,
+                           pokemon_evs=pokemon_evs,
                            pokemon_counters=pokemon_counters,
                            current_pokemon = current_pokemon,
                            valid_ratings = valid_ratings,
