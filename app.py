@@ -180,19 +180,19 @@ def top_data_list(data,pokemon,cat):
 
         catSorted = [[],[],[],[],[],[]]
 
-        catSorted[0] = sorted(dataPokemon["atk"].keys(), key=lambda x: dataPokemon["atk"][x], reverse=True)[:10]
+        catSorted[0] = sorted(dataPokemon["atk"].keys(), key=lambda x: dataPokemon["atk"][x], reverse=True)[:15]
         catSorted[0] = [[stat,"{:.3f}".format(round(dataPokemon["atk"][stat]/totalCount*100,3))] for stat in catSorted[0] ]
 
-        catSorted[1] = sorted(dataPokemon["spa"].keys(), key=lambda x: dataPokemon["spa"][x], reverse=True)[:10]
+        catSorted[1] = sorted(dataPokemon["spa"].keys(), key=lambda x: dataPokemon["spa"][x], reverse=True)[:15]
         catSorted[1] = [[stat,"{:.3f}".format(round(dataPokemon["spa"][stat]/totalCount*100,3))] for stat in catSorted[1] ]
 
-        catSorted[2] = sorted(dataPokemon["spe"].keys(), key=lambda x: dataPokemon["spe"][x], reverse=True)[:10]
+        catSorted[2] = sorted(dataPokemon["spe"].keys(), key=lambda x: dataPokemon["spe"][x], reverse=True)[:15]
         catSorted[2] = [[stat,"{:.3f}".format(round(dataPokemon["spe"][stat]/totalCount*100,3))] for stat in catSorted[2] ]
 
-        catSorted[3] = sorted(dataPokemon["hp_def"].keys(), key=lambda x: dataPokemon["hp_def"][x], reverse=True)[:10]
+        catSorted[3] = sorted(dataPokemon["hp_def"].keys(), key=lambda x: dataPokemon["hp_def"][x], reverse=True)[:15]
         catSorted[3] = [[stat,"{:.3f}".format(round(dataPokemon["hp_def"][stat]/totalCount*100,3))] for stat in catSorted[3] ]
 
-        catSorted[4] = sorted(dataPokemon["hp_spd"].keys(), key=lambda x: dataPokemon["hp_spd"][x], reverse=True)[:10]
+        catSorted[4] = sorted(dataPokemon["hp_spd"].keys(), key=lambda x: dataPokemon["hp_spd"][x], reverse=True)[:15]
         catSorted[4] = [[stat,"{:.3f}".format(round(dataPokemon["hp_spd"][stat]/totalCount*100,3))] for stat in catSorted[4] ]
         
         return catSorted
@@ -226,7 +226,7 @@ def top_data_list(data,pokemon,cat):
         return catSorted
     if cat=="Spreads":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)
-        catSorted = catSorted[:10]
+        catSorted = catSorted[:15]
         catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3))] for poke in catSorted]
         return catSorted
     
