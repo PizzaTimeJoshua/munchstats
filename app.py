@@ -35,6 +35,7 @@ def getPokemonData(meta,rating):
         with open(f'stats/{oldYear}-{oldMonth}-{meta}-{rating}.json', 'r', encoding="utf8") as file:
             statsRaw = pyjson5.loads(file.read())
         pokemonData = statsRaw["data"]
+        print("Warning, Usage Stats outdated.")
 
     return pokemonData
 def getTeraData(meta,poke):
