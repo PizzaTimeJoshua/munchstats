@@ -432,6 +432,9 @@ def page_not_found(e):
 def internal_server_error(e):
     return render_template('500.html'), 500
 
+@app.route('/about')
+def about():
+    return render_template('about.html')
 
 @app.route('/', methods=['GET'])
 def index():
