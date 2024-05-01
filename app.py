@@ -254,7 +254,7 @@ safe_load_files()
 @app.route('/<meta_name>/')
 def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
     rating = "0"
-    meta = "gen9vgc2024regf"
+    meta = "gen9vgc2024regg"
 
     selected_rating = meta_rating
     selected_meta = f"{[meta_name,meta_names.get(meta_name,meta_name)]}"
@@ -370,7 +370,7 @@ def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
 
 @app.route('/search_pokemon', methods=['POST'])
 def search_pokemon():
-    meta = "gen9vgc2024regf"
+    meta = "gen9vgc2024regg"
     selected_meta = request.form.get('meta_value',f"{[meta,meta_names.get(meta,meta)]}")
     selected_pokemon = request.form.get('pokemon_value',"No Pokemon")
     selected_rating = request.form.get('rating_value',"No Rating")
@@ -439,7 +439,7 @@ def about():
 @app.route('/', methods=['GET'])
 def index():
     rating = "0"
-    meta = "gen9vgc2024regf"
+    meta = "gen9vgc2024regg"
     selected_pokemon = ""
     valid_ratings = ["0","1500","1760"]
 

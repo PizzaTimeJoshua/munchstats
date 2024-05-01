@@ -121,35 +121,9 @@ def extract_gen(s):
 def generateFormatList():
     # 1. Fetch the content from the URL
     response = requests.get('https://raw.githubusercontent.com/smogon/pokemon-showdown/master/config/formats.ts')
-    mjs_content = response.text.splitlines()
+    mjs_content = response.text
 
-    # 2. Extract the content of BattlePokemonIconIndexes
-    start_index = mjs_content.index('export const Formats: FormatList = [')
-    start_index = mjs_content.index('export const Formats: FormatList = [',start_index+1)
-    
-    end_index = start_index
-    while mjs_content[end_index] != '];':
-        end_index += 1
-    formats_content = mjs_content[start_index + 1:end_index]
-
-    # 3. Clean and process the content
-    cleaned_content = [line.replace('\t','').replace('{trunc: Math.trunc}',"'Unknown'") for line in formats_content if not line.replace('\t','').strip().startswith('//')]
-    content_string = ''.join(cleaned_content).replace(',}','}').replace(',]',']').replace(" * ","")
-    content_string = re.sub(r'/\*.*?\*/', '', content_string, flags=re.DOTALL)[:-1]  # Remove multi-line comments
-    content_string = re.sub(r'`.*?`', "''", content_string, flags=re.DOTALL)
-    content_string = re.sub(r"' *\+ *'", '', content_string, flags=re.DOTALL)
-    content_string = re.sub(r'\(s.*?},{', ' : "Unknown" },{', content_string, flags=re.DOTALL)
-    content_string = re.sub(r'\(t.*?},{', ' : "Unknown" },{', content_string, flags=re.DOTALL)
-    content_string = re.sub(r'\(p.*?},{', ' : "Unknown" },{', content_string, flags=re.DOTALL)
-    content_string = re.sub(r'\(\).*?},{', ' : "Unknown" },{', content_string, flags=re.DOTALL)
-
-
-    # 4. Convert the content string to a Python dictionary
-    formats_dict = pyjson5.loads(f"[{content_string}]")
-    format_names = []
-    for format in formats_dict:
-        if format.get("name",False):
-            format_names.append(format.get('name'))
+    format_names = re.findall(r"name:\s*['\"]([^'\"]+)['\"]", mjs_content)
 
 
     meta_games_list = ["stats/"+f for f in os.listdir("stats/") if f.split("-")[-1] == "0.json"]
