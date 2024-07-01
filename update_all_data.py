@@ -28,7 +28,7 @@ def updateMetagames():
             links = soup.find_all('a', href=True)
             for link in links:
                 href = link['href']
-                if (".json" in href):
+                if (".json" in href and ".gz" not in href):
                     print(f"Downloading {href}...")
                     response = requests.get(url+href)
                     with open(f'stats/{year}-{month}-{href}', 'w', encoding="utf-8") as file:
