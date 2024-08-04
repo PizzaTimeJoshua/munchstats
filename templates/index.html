@@ -535,10 +535,10 @@
                {% endif %}
             </div>
          </div>
+         {% if pokemon_items|length > 0 %}
          <div>
             <h2>Items</h2>
             <div class="Data">
-               {% if pokemon_items|length > 0 %}
                <ul>
                   {% for item in pokemon_items %}
                   <li>
@@ -551,13 +551,14 @@
                   </li>
                   {% endfor %}
                </ul>
-               {% endif %}
+               
             </div>
          </div>
+         {% endif %}
+         {% if pokemon_abilities[0][0] != 'Unknown' %}
          <div>
             <h2>Abilities</h2>
             <div class="Data">
-               {% if pokemon_abilities|length > 0 %}
                <ul>
                   {% for ability in pokemon_abilities %}
                   <li>
@@ -568,13 +569,13 @@
                   </li>
                   {% endfor %}
                </ul>
-               {% endif %}
             </div>
          </div>
+         {% endif %}
+         {% if pokemon_spreads|length > 0 %}
          <div>
             <h2>EV Spreads</h2>
             <div class="Data">
-               {% if pokemon_spreads|length > 0 %}
                <ul>
                   {% for spread in pokemon_spreads %}
                   <li>
@@ -585,11 +586,12 @@
                   </li>
                   {% endfor %}
                </ul>
-               {% endif %}
             </div>
          </div>
+         {% endif %}
+         {% if pokemon_natures|length > 0 %}
          <div>
-
+         
          <h2>Natures</h2>
             <div class="Data">
                {% if pokemon_natures|length > 0 %}
@@ -606,7 +608,8 @@
                {% endif %}
             </div>
          </div>
-
+         {% endif %}
+         {% if pokemon_evs[0]|length > 0 %}
          <div>
          <h2 style="margin-bottom: 5px;">Top EVs By Category</h2>
             <input type="hidden" name="rating_value" id="selectedEVs" value="hp">
@@ -615,6 +618,7 @@
             <button type="button" id="spe_evs" onclick="selectEVs('spe')" value="spe" class="ev-button">SPE</button>
             <button type="button" id="def_evs" onclick="selectEVs('def')" value="def" class="ev-button">HP+DEF</button>
             <button type="button" id="spd_evs" onclick="selectEVs('spd')" value="spd" class="ev-button">HP+SPD</button>
+            
             
             <div class="Data" style="height: 188px;">
 
@@ -672,8 +676,9 @@
                {% endif %}
 
             </div>
+            
          </div>
-
+         {% endif %}
          {% if tera_data|length > 0 %}
          <div>
             <h2>Tera Type (Beta)</h2>
@@ -693,12 +698,13 @@
          {% endif %}
          
 
-
+         {% if pokemon_evs[0]|length > 0 %}
          <div>
             <h2>Export Pokemon</h2>
             <textarea class="Export" id="showdown-set" spellcheck="false"></textarea>
             <button type="button" class="copy-button" id="copy-button" style="text-align: center;">Copy Pokemon to Clipboard</button>
          </div>
+         {% endif %}
          
          {% if pokemon_counters|length > 0 %}
          <div>
