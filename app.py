@@ -129,7 +129,7 @@ def top_data_list(data,pokemon,cat):
                statData["spa"],
                statData["spd"],
                statData["spe"]]
-    totalCount = sum(list(data[pokemon]["Abilities"].values()))
+    totalCount = sum(list(data[pokemon].get("Abilities",{"Unknown":1}).values()))
     if cat=="Natures":
         dataPokemon = {}
         datSpread = data[pokemon].get("Spreads",[])
