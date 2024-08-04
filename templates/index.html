@@ -555,6 +555,7 @@
             </div>
          </div>
          {% endif %}
+         {% if pokemon_abilities|length > 0 %}
          {% if pokemon_abilities[0][0] != 'Unknown' %}
          <div>
             <h2>Abilities</h2>
@@ -571,6 +572,7 @@
                </ul>
             </div>
          </div>
+         {% endif %}
          {% endif %}
          {% if pokemon_spreads|length > 0 %}
          <div>
@@ -750,7 +752,7 @@
          {% if pokemon_abilities|length > 0 %}
             let showdownAbility = "{{ pokemon_abilities[0][0] }}";
          {% else %}
-            let showdownAbility = "{{ pokemon_abilities[0][0] }}";
+            let showdownAbility = "";
          {% endif %}
 
          {% if pokemon_spreads|length > 0 %}
