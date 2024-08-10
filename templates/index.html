@@ -536,6 +536,7 @@
             </div>
          </div>
          {% if pokemon_items|length > 0 %}
+         {% if (pokemon_abilities[0][0] != 'Unknown') %}
          <div>
             <h2>Items</h2>
             <div class="Data">
@@ -555,8 +556,9 @@
             </div>
          </div>
          {% endif %}
+         {% endif %}
          {% if pokemon_abilities|length > 0 %}
-         {% if pokemon_abilities[0][0] != 'Unknown' %}
+         {% if (pokemon_abilities[0][0] != 'Unknown') %}
          <div>
             <h2>Abilities</h2>
             <div class="Data">

@@ -130,6 +130,7 @@ def top_data_list(data,pokemon,cat):
                statData["spd"],
                statData["spe"]]
     totalCount = sum(list(data[pokemon].get("Abilities",{"Unknown":1}).values()))
+    totalCount2 = sum(list(data[pokemon].get("Items",{"Unknown":1}).values()))
     if cat=="Natures":
         dataPokemon = {}
         datSpread = data[pokemon].get("Spreads",[])
@@ -215,7 +216,7 @@ def top_data_list(data,pokemon,cat):
         return catSorted
     if cat=="Items":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
-        catSorted = [[itemData.get(poke,{"name": "Nothing"})["name"],"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)), itemData.get(poke, {"desc" : "No info."}).get("desc","No info."),(divmod(itemData.get(poke, {"spritenum" : 0})["spritenum"],16))] for poke in catSorted ]
+        catSorted = [[itemData.get(poke,{"name": "Unknown"})["name"],"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)), itemData.get(poke, {"desc" : "No info."}).get("desc","No info."),(divmod(itemData.get(poke, {"spritenum" : 0})["spritenum"],16))] for poke in catSorted ]
         return catSorted
     if cat=="Abilities":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
@@ -223,7 +224,7 @@ def top_data_list(data,pokemon,cat):
         return catSorted
     if cat=="Teammates":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
-        catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)), get_sprite_pokemon(poke)] for poke in catSorted ]
+        catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount2*100,3)), get_sprite_pokemon(poke)] for poke in catSorted ]
         return catSorted
     if cat=="Spreads":
         catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)
