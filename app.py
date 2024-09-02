@@ -231,6 +231,11 @@ def top_data_list(data,pokemon,cat):
         catSorted = catSorted[:15]
         catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3))] for poke in catSorted]
         return catSorted
+    if cat=="Tera Types":
+        catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)
+        catSorted = catSorted[:15]
+        catSorted = [[poke.capitalize(),"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3))] for poke in catSorted]
+        return catSorted
     
     catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
     catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3))] for poke in catSorted ]
@@ -343,12 +348,12 @@ def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
     pokemon_evs = top_data_list(pokemonData,pokeSearch,"EVs")
     pokemon_counters = top_data_list(pokemonData,pokeSearch,"Checks and Counters")
 
-    dictTera = getTeraData(meta,pokeSearch)
-    total_tera = sum(list(dictTera.values()))
-    listTera = [(tera,round(dictTera[tera]/total_tera*100,2)) for tera in dictTera.keys()]
-    listTera.sort(key=lambda x: x[1],reverse=True)
-    listTera = [(tera[0],"{:.2f}".format(tera[1])) for tera in listTera]
-
+    #dictTera = getTeraData(meta,pokeSearch)
+    #total_tera = sum(list(dictTera.values()))
+    #listTera = [(tera,round(dictTera[tera]/total_tera*100,2)) for tera in dictTera.keys()]
+    #listTera.sort(key=lambda x: x[1],reverse=True)
+    #listTera = [(tera[0],"{:.2f}".format(tera[1])) for tera in listTera]
+    listTera = top_data_list(pokemonData,pokeSearch,"Tera Types")
 
     return render_template('index.html', 
                            pokemon_names=pokemon_top_usage,
@@ -509,11 +514,12 @@ def index():
     pokemon_evs = top_data_list(pokemonData,pokeSearch,"EVs")
     pokemon_counters = top_data_list(pokemonData,pokeSearch,"Checks and Counters")
 
-    dictTera = getTeraData(meta,pokeSearch)
-    total_tera = sum(list(dictTera.values()))
-    listTera = [(tera,round(dictTera[tera]/total_tera*100,2)) for tera in dictTera.keys()]
-    listTera.sort(key=lambda x: x[1],reverse=True)
-    listTera = [(tera[0],"{:.2f}".format(tera[1])) for tera in listTera]
+    #dictTera = getTeraData(meta,pokeSearch)
+    #total_tera = sum(list(dictTera.values()))
+    #listTera = [(tera,round(dictTera[tera]/total_tera*100,2)) for tera in dictTera.keys()]
+    #listTera.sort(key=lambda x: x[1],reverse=True)
+    #listTera = [(tera[0],"{:.2f}".format(tera[1])) for tera in listTera]
+    listTera = top_data_list(pokemonData,pokeSearch,"Tera Types")
 
     return render_template('index.html', 
                            pokemon_names=pokemon_top_usage,
