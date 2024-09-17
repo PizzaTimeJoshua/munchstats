@@ -7,6 +7,7 @@
       <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
       <meta name="description" content="Find out Latest Pokemon Showdown Usage Statistics. Most Pokemon Showdown formats supported!">
       <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
       <style>
          body {
          background-color: #1e1e1e;
@@ -375,6 +376,82 @@
             font-size: 12px;
             vertical-align: top;
          }
+         .type-Normal, .type-Fire, .type-Fighting,.type-Water,
+         .type-Flying, .type-Grass, .type-Poison, .type-Electric,
+         .type-Ground, .type-Psychic, .type-Rock, .type-Ice,
+         .type-Bug, .type-Dragon, .type-Ghost, .type-Dark,
+         .type-Steel, .type-Fairy, .type-Stellar {
+
+            font-size: 12px;
+            box-shadow: 0 0 0 1px #000;
+            border-radius: 10px;
+            color: #ffffff;
+            letter-spacing: 0;
+            text-align: center;
+            display: inline;
+            padding: 1px 5px 1px 7px;
+            background:#9FA19F;
+            text-transform:uppercase;
+            font-weight: bold;
+         }
+         .type-Normal{
+            background-color: #9FA19F;
+         }
+         .type-Fire{
+            background-color: #e62829;
+         }
+         .type-Fighting{
+            background-color: #ff8000;
+         }
+         .type-Water{
+            background-color: #2980ef;
+         }
+         .type-Flying{
+            background-color: #81b9ef;
+         }
+         .type-Grass{
+            background-color: #3fa129;
+         }
+         .type-Poison{
+            background-color: #9141cb;
+         }
+         .type-Electric{
+            background-color: #fac000;
+         }
+         .type-Steel{
+            background-color: #60a1b8;
+         }
+         .type-Ground{
+            background-color: #915121;
+         }
+         .type-Psychic{
+            background-color: #ef4179;
+         }
+         .type-Rock{
+            background-color: #afa981;
+         }
+         .type-Ice{
+            background-color: #3dcef3;
+         }
+         .type-Bug{
+            background-color: #91a119;
+         }
+         .type-Dragon{
+            background-color: #5060e1;
+         }
+         .type-Ghost{
+            background-color: #704170;
+         }
+         .type-Dark{
+            background-color: #624d4e;
+         }
+         .type-Fairy{
+            background-color: #ef70ef;
+         }
+         .type-Stellar{
+            background-color: #40b5a5;
+         }
+         
       </style>
    </head>
    <!-- Google tag (gtag.js) -->
@@ -401,7 +478,10 @@
                   <div style="color: yellow;">
                      <span>{{current_pokemon[0]}}</span>
                      <div class="image-pokemon" style="background-position: {{current_pokemon[3][1] * -40}}px {{current_pokemon[3][0] * -30}}px; position: relative;left: 135px;"></div>
-                  </div>
+                     </div>
+                     {% for type in pokemon_types %}
+                        <div class="type-{{ type }}" >{{ type }}</div>
+                     {% endfor %}
                </h3>
                <h3> Usage: <span style="color: yellow;">{{current_pokemon[1]}}%</span></h3>
                <h3> Monthly Rank: <span style="color: yellow;">{{current_pokemon[2]}}</span></h3>
@@ -691,7 +771,7 @@
                      {% for tera in tera_data %}
                      <li>
                         <button type="button"class="export-button"export-data='{"tera" : "{{ tera[0] }}" }'>
-                        <span class="left-text">{{ tera[0] }}</span>
+                        <span class="type-{{tera[0]}}">{{ tera[0] }}</span>
                         <span class="right-text">{{ tera[1] }}%</span>
                         </button>
                      </li>
@@ -704,7 +784,7 @@
 
          {% if pokemon_evs[0]|length > 0 %}
          <div>
-            <h2>Export Pokemon</h2>
+            <h2 title="Click on Moves, Items, EV Spreads and Abilities to change the Export!">Export Pokemon <span class="fa" style="font-size: 14px; vertical-align: text-top; cursor: help;">&#xf059;</span></h2>
             <textarea class="Export" id="showdown-set" spellcheck="false"></textarea>
             <button type="button" class="copy-button" id="copy-button" style="text-align: center;">Copy Pokemon to Clipboard</button>
          </div>

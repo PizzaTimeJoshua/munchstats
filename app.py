@@ -129,6 +129,21 @@ def top_data_list(data,pokemon,cat):
                statData["spa"],
                statData["spd"],
                statData["spe"]]
+    
+    if cat=="Types":
+        word = pokemon.lower()
+        possibilities = pokedexData.keys()
+        normalized_possibilities = {p.lower(): p for p in possibilities}
+        result = difflib.get_close_matches(word, normalized_possibilities.keys(),10)
+        normalized_result = [normalized_possibilities[r] for r in result]
+        if len(normalized_result)>0:
+            close = normalized_result[0]
+            pokeSearch = close
+        else:
+            return []
+        statData = pokedexData[pokeSearch]["types"]
+        return statData
+    
     totalCount = sum(list(data[pokemon].get("Abilities",{"Unknown":1}).values()))
     totalCount2 = sum(list(data[pokemon].get("Items",{"Unknown":1}).values()))
     if cat=="Natures":
@@ -339,6 +354,7 @@ def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
     current_pokemon = [pokeSearch,use,rank,get_sprite_pokemon(pokeSearch)]
 
     pokemon_base_stats = top_data_list(pokemonData,pokeSearch,"Stats")
+    pokemon_types = top_data_list(pokemonData,pokeSearch,"Types")
     pokemon_moves = top_data_list(pokemonData,pokeSearch,"Moves")
     pokemon_teammates = top_data_list(pokemonData,pokeSearch,"Teammates")
     pokemon_items = top_data_list(pokemonData,pokeSearch,"Items")
@@ -362,6 +378,7 @@ def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
                            selected_pokemon=selected_pokemon,
                            selected_rating=selected_rating,
                            pokemon_base_stats=pokemon_base_stats,
+                           pokemon_types=pokemon_types,
                            pokemon_moves=pokemon_moves,
                            pokemon_teammates=pokemon_teammates,
                            pokemon_items=pokemon_items,
@@ -505,6 +522,7 @@ def index():
     current_pokemon = [pokeSearch,use,rank,get_sprite_pokemon(pokeSearch)]
 
     pokemon_base_stats = top_data_list(pokemonData,pokeSearch,"Stats")
+    pokemon_types = top_data_list(pokemonData,pokeSearch,"Types")
     pokemon_moves = top_data_list(pokemonData,pokeSearch,"Moves")
     pokemon_teammates = top_data_list(pokemonData,pokeSearch,"Teammates")
     pokemon_items = top_data_list(pokemonData,pokeSearch,"Items")
@@ -528,6 +546,7 @@ def index():
                            selected_pokemon=selected_pokemon,
                            selected_rating=selected_rating,
                            pokemon_base_stats=pokemon_base_stats,
+                           pokemon_types=pokemon_types,
                            pokemon_moves=pokemon_moves,
                            pokemon_teammates=pokemon_teammates,
                            pokemon_items=pokemon_items,
