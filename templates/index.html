@@ -1235,7 +1235,11 @@
                   showdownNature = temp[0]
                   showdownSpread = temp[1];
                }
-               var showdownSet = showdownPokemon+" @ "+showdownItem;
+               
+               var showdownSet = showdownPokemon;
+               if (showdownItem != "Nothing") {
+                  showdownSet+=" @ "+showdownItem;
+               }
                showdownSet +="\nAbility: "+ showdownAbility;
                showdownSet += showdownLevel
                showdownSet += showdownTera
