@@ -27,6 +27,7 @@
   "gen9anythinggoes": "[Gen 9] Anything Goes",
   "gen9balancedhackmons": "[Gen 9] Balanced Hackmons",
   "gen9bssregh": "[Gen 9] BSS Reg H",
+  "gen9bssregg": "[Gen 9] BSS Reg G",
   "gen9cap": "[Gen 9] CAP",
   "gen9convergence": "[Gen 9] Convergence",
   "gen9doublesou": "[Gen 9] Doubles OU",
@@ -64,5 +65,7 @@
   "gen9uu": "[Gen 9] UU",
   "gen9vgc2024regh": "[Gen 9] VGC 2024 Reg H",
   "gen9vgc2024reghbo3": "[Gen 9] VGC 2024 Reg H (Bo3)",
+  "gen9vgc2024regg": "[Gen 9] VGC 2024 Reg G",
+  "gen9vgc2024reggbo3": "[Gen 9] VGC 2024 Reg G (Bo3)",
   "gen9zu": "[Gen 9] ZU"
 }
