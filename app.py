@@ -144,8 +144,8 @@ def top_data_list(data,pokemon,cat):
         statData = pokedexData[pokeSearch]["types"]
         return statData
     
-    totalCount = sum(list(data[pokemon].get("Abilities",{"Unknown":1}).values()))
-    totalCount2 = sum(list(data[pokemon].get("Items",{"Unknown":1}).values()))
+    totalCount = max(sum(list(data[pokemon].get("Abilities",{"Unknown":1}).values())),1)
+    totalCount2 = max(sum(list(data[pokemon].get("Items",{"Unknown":1}).values())),1)
     if cat=="Natures":
         dataPokemon = {}
         datSpread = data[pokemon].get("Spreads",[])
