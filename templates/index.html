@@ -5,10 +5,18 @@
       <meta name="viewport" content="width=device-width, initial-scale=1">
       <title>MunchStats</title>
       <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
       <meta name="description" content="Find out Latest Pokemon Showdown Usage Statistics. Most Pokemon Showdown formats supported!">
       <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
       <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
       <style>
+
+         /* Container for the chart so we can control height */
+         #chart-container {
+            width: 100%;
+            height: 185px;
+            position: relative;
+         }
          body {
          background-color: #1e1e1e;
          display: grid;
@@ -33,7 +41,7 @@
          max-height: 50px;
          padding-bottom: 10px;
          }
-         .rating-button, .ev-button {
+         .rating-button, .ev-button, .stat-button {
          background-color: #222222;
          color: #e0e0e0;
          border: 1px solid #555;
@@ -42,7 +50,7 @@
          cursor: pointer;
          transition: background-color 0.3s;
          }
-         .ev-button {
+         .ev-button, .stat-button{
             margin: 4px 0px;
             padding: 6px 8px;
          }
@@ -763,6 +771,28 @@
             
          </div>
          {% endif %}
+         <div>
+            <h2 style="margin-bottom: 5px;">Stats Graph (Beta)</h2>
+               <div class="Data" style="
+               max-height: 225px;
+               height: 225px;
+               margin-bottom: 0px;
+           ">
+                  <div>
+                     <button type="button" class="stat-button" onclick="updateChart(event, 0)">HP</button>
+                     <button type="button" class="stat-button" onclick="updateChart(event, 1)">ATK</button>
+                     <button type="button" class="stat-button" onclick="updateChart(event, 2)">DEF</button>
+                     <button type="button" class="stat-button" onclick="updateChart(event, 3)">SPA</button>
+                     <button type="button" class="stat-button" onclick="updateChart(event, 4)">SPD</button>
+                     <button type="button" class="stat-button" onclick="updateChart(event, 5)">SPE</button>
+                   </div>
+                  <!-- Chart container with fixed height -->
+                  <div id="chart-container">
+                     <canvas id="evChart"></canvas>
+                  </div>
+               </div>
+         </div>
+
          {% if tera_data|length > 0 %}
          <div>
             <h2>Tera Types</h2>
@@ -821,6 +851,117 @@
          <h6>Pokémon and All Respective Names are Trademark & © of Nintendo 1996-2024</h6>   
       </div>
       <script>
+
+    // Assume raw_EVs_string is provided from the server-side and looks like:
+    // [[ [x, percentage], ... ], [ ... ], ... ]
+    // For example, EVs[0] corresponds to HP, EVs[1] to Attack, etc.
+    raw_EVs_string = {{raw_EVs | tojson}};
+    const EVs = JSON.parse(raw_EVs_string);
+
+    // Stat labels for the x-axis title.
+    const statLabels = ["HP", "Attack", "Defense", "Sp. Attack", "Sp. Defense", "Speed"];
+
+    // Helper function to sort a dataset by its x value.
+    function sortData(dataArray) {
+      return dataArray.slice().sort((a, b) => a[0] - b[0]);
+    }
+
+    // Convert the dataset to objects for Chart.js (and convert y from fraction to percentage).
+    function processData(dataArray) {
+      return dataArray.map(pair => ({ x: pair[0], y: pair[1] }));
+    }
+
+    // Compute x and y axis limits from the dataset.
+    function computeAxisLimits(dataArray) {
+      const xValues = dataArray.map(pair => pair[0]);
+      const minX = Math.min(...xValues);
+      const maxX = Math.max(...xValues);
+      // Multiply y (fraction) by 100 to get percentage values.
+      const yValues = dataArray.map(pair => pair[1]);
+      // Round up the max y value so the chart's top tick is a whole number.
+      const maxY = Math.ceil(Math.max(...yValues));
+      return { minX, maxX, maxY };
+    }
+
+    // INITIALIZE CHART WITH THE FIRST STAT (HP)
+    let currentData = sortData(EVs[0]);
+    const { minX, maxX, maxY } = computeAxisLimits(currentData);
+    const processedData = processData(currentData);
+
+    const ctx = document.getElementById('evChart').getContext('2d');
+    const evChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        // With a linear x-axis we no longer use a labels array—
+        // each data point includes its x value.
+        datasets: [{
+          data: processedData,
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          borderColor: 'rgba(75, 192, 192, 1)',
+          borderWidth: 1,
+          barPercentage: 1,
+          categoryPercentage: 1,
+        }]
+      },
+      options: {
+         interaction: {
+           mode: 'nearest', // look for the nearest item
+           intersect: false // show tooltip even if not directly intersecting the bar
+         },
+         plugins: {
+           tooltip: {
+             intersect: false
+           },
+           legend: { display: false }
+         },
+         responsive: true,
+         maintainAspectRatio: false,
+         scales: {
+           y: {
+             beginAtZero: true,
+             max: maxY, // computed based on your data
+             ticks: {
+               stepSize: 1,
+               callback: function(value) {
+                 return value + '%';
+               }
+             }
+           },
+           x: {
+             type: 'linear',
+             position: 'bottom',
+             min: minX,
+             max: maxX,
+             ticks: {
+               stepSize: 1
+             },
+             title: {
+               display: true,
+               text: statLabels[0]
+             }
+           }
+         }
+       }
+    });
+
+    // Update function for switching stats.
+    function updateChart(event, index) {
+      event.preventDefault();
+      // Sort and process the new dataset.
+      const newData = sortData(EVs[index]);
+      const { minX, maxX, maxY } = computeAxisLimits(newData);
+      const processedData = processData(newData);
+      
+      // Update the dataset and x/y axis limits.
+      evChart.data.datasets[0].data = processedData;
+      evChart.options.scales.x.min = minX;
+      evChart.options.scales.x.max = maxX;
+      evChart.options.scales.x.title.text = statLabels[index];
+      evChart.options.scales.y.max = maxY;
+      evChart.update();
+    }
+
+         
          let initialItems = $("#pokemon-list li").get();
          let initialItemsMeta = $("#meta-list li").get();
 

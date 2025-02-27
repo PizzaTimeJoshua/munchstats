@@ -5,6 +5,7 @@ import pyjson5
 from datetime import datetime
 import difflib
 import re
+import math
 
 app = Flask(__name__)
 
@@ -107,8 +108,14 @@ def safe_load_files():
         with open('stats/pokedex.json', 'r', encoding="utf8") as file:
             pokedexRaw = file.read()
         pokedexData = pyjson5.loads(pokedexRaw)
+def calculateStat(base, iv, ev, level, natureMultiplier) :
+    return math.floor(((2 * base + iv + math.floor(ev / 4)) * level / 100 + 5) * natureMultiplier)
+    
+def calculateHP(base, iv, ev, level) :
+    return math.floor((2 * base + iv + math.floor(ev / 4)) * level / 100) + level + 10
 
-def top_data_list(data,pokemon,cat):
+
+def top_data_list(data,pokemon,cat,meta="",baseStats=[]):
     if not data.get(pokemon,False):
         return []
     if cat=="Stats":
@@ -156,6 +163,82 @@ def top_data_list(data,pokemon,cat):
     else:
         dataPokemon = data[pokemon].get(cat,{})
 
+    if cat== "Graph":
+        dataPokemon = {"hp" : {}, "atk" : {},"def" : {},"spa" : {},"spd" : {},"spe" : {}}
+        datSpread = data[pokemon].get("Spreads",[])
+        attack_natures = ["Naughty","Adamant","Lonely","Brave"]
+        defense_natures = ["Bold","Relaxed","Impish","Lax"]
+        sattack_natures = ["Modest","Mild","Quiet","Rash"]
+        sdefense_natures = ["Calm","Gentle","Sassy","Careful"]
+        speed_natures = ["Timid","Hasty","Jolly","Naive"]
+
+        attack_natures_m = ["Bold","Timid","Modest","Calm"]
+        defense_natures_m = ["Lonely","Hasty","Mild","Gentle"]
+        sattack_natures_m = ["Adamant","Impish","Jolly","Careful"]
+        sdefense_natures_m = ["Naughty","Lax","Naive","Rash"]
+        speed_natures_m = ["Brave","Relaxed","Quiet","Sassy"]
+        level = 100
+        if ("vgc" in meta.lower()):
+            level = 50
+        
+        for spread in datSpread:
+            nature = spread.split(':')[0]
+            EVs = spread.split(':')[1].split('/')
+            weight = data[pokemon]["Spreads"][spread]
+            pa  = 1.1 if nature in attack_natures else 1
+            pd  = 1.1 if nature in defense_natures else 1
+            psa  = 1.1 if nature in sattack_natures else 1
+            psd = 1.1 if nature in sdefense_natures else 1
+            pse = 1.1 if nature in speed_natures else 1
+
+            pa  = 0.9 if nature in attack_natures_m else pa
+            pd  = 0.9 if nature in defense_natures_m else pd
+            psa  = 0.9 if nature in sattack_natures_m else psa
+            psd = 0.9 if nature in sdefense_natures_m else psd
+            pse = 0.9 if nature in speed_natures_m else pse
+            EVs2 = [int(x) for x in EVs]
+            stats = EVs2.copy()
+            stats[0] = calculateHP(baseStats[0],31,EVs2[0],level)
+            stats[1] = calculateStat(baseStats[1],31,EVs2[1],level,pa)
+            stats[2] = calculateStat(baseStats[2],31,EVs2[2],level,pd)
+            stats[3] = calculateStat(baseStats[3],31,EVs2[3],level,psa)
+            stats[4] = calculateStat(baseStats[4],31,EVs2[4],level,psd)
+            speedIV = 31
+            if (pse == 0.9) and (EVs2[5] == 0):
+                speedIV = 0
+            stats[5] = calculateStat(baseStats[5],speedIV,EVs2[5],level,pse)
+
+            dataPokemon["hp"][stats[0]] = dataPokemon["hp"].get(stats[0],0) + weight
+            dataPokemon["atk"][stats[1]] = dataPokemon["atk"].get(stats[1],0) + weight
+            dataPokemon["def"][stats[2]] = dataPokemon["def"].get(stats[2],0) + weight
+            dataPokemon["spa"][stats[3]] = dataPokemon["spa"].get(stats[3],0) + weight
+            dataPokemon["spd"][stats[4]] = dataPokemon["spd"].get(stats[4],0) + weight
+            dataPokemon["spe"][stats[5]] = dataPokemon["spe"].get(stats[5],0) + weight
+
+
+
+        catSorted = [[],[],[],[],[],[]]
+
+        catSorted[0] = sorted(dataPokemon["hp"].keys(), key=lambda x: dataPokemon["hp"][x], reverse=True)
+        catSorted[0] = [[stat,dataPokemon["hp"][stat]/totalCount*100] for stat in catSorted[0] ]
+
+        catSorted[1] = sorted(dataPokemon["atk"].keys(), key=lambda x: dataPokemon["atk"][x], reverse=True)
+        catSorted[1] = [[stat,dataPokemon["atk"][stat]/totalCount*100] for stat in catSorted[1] ]
+
+        catSorted[2] = sorted(dataPokemon["def"].keys(), key=lambda x: dataPokemon["def"][x], reverse=True)
+        catSorted[2] = [[stat,dataPokemon["def"][stat]/totalCount*100] for stat in catSorted[2] ]
+
+        catSorted[3] = sorted(dataPokemon["spa"].keys(), key=lambda x: dataPokemon["spa"][x], reverse=True)
+        catSorted[3] = [[stat,dataPokemon["spa"][stat]/totalCount*100] for stat in catSorted[3] ]
+
+        catSorted[4] = sorted(dataPokemon["spd"].keys(), key=lambda x: dataPokemon["spd"][x], reverse=True)
+        catSorted[4] = [[stat,dataPokemon["spd"][stat]/totalCount*100] for stat in catSorted[4] ]
+
+        catSorted[5] = sorted(dataPokemon["spe"].keys(), key=lambda x: dataPokemon["spe"][x], reverse=True)
+        catSorted[5] = [[stat,dataPokemon["spe"][stat]/totalCount*100] for stat in catSorted[5] ]
+
+        return (pyjson5.dumps(catSorted, separators=(',', ':')))
+    
     if cat=="EVs":
         dataPokemon = {"atk" : {},"spa" : {},"spe" : {},"hp_def" : {},"hp_spd" : {}}
         datSpread = data[pokemon].get("Spreads",[])
@@ -363,6 +446,7 @@ def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
     pokemon_natures = top_data_list(pokemonData,pokeSearch,"Natures")
     pokemon_evs = top_data_list(pokemonData,pokeSearch,"EVs")
     pokemon_counters = top_data_list(pokemonData,pokeSearch,"Checks and Counters")
+    pokemon_graph = top_data_list(pokemonData,pokeSearch,"Graph",meta,pokemon_base_stats)
 
     #dictTera = getTeraData(meta,pokeSearch)
     #total_tera = sum(list(dictTera.values()))
@@ -389,7 +473,8 @@ def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
                            pokemon_counters=pokemon_counters,
                            current_pokemon = current_pokemon,
                            valid_ratings = valid_ratings,
-                           tera_data = listTera)
+                           tera_data = listTera,
+                           raw_EVs = pokemon_graph)
 
 @app.route('/search_pokemon', methods=['POST'])
 def search_pokemon():
@@ -531,6 +616,7 @@ def index():
     pokemon_natures = top_data_list(pokemonData,pokeSearch,"Natures")
     pokemon_evs = top_data_list(pokemonData,pokeSearch,"EVs")
     pokemon_counters = top_data_list(pokemonData,pokeSearch,"Checks and Counters")
+    pokemon_graph = top_data_list(pokemonData,pokeSearch,"Graph",meta,pokemon_base_stats)
 
     #dictTera = getTeraData(meta,pokeSearch)
     #total_tera = sum(list(dictTera.values()))
@@ -557,7 +643,8 @@ def index():
                            pokemon_counters=pokemon_counters,
                            current_pokemon = current_pokemon,
                            valid_ratings = valid_ratings,
-                           tera_data = listTera)
+                           tera_data = listTera,
+                           raw_EVs = pokemon_graph)
 
 if __name__ == "__main__":
     app.run(debug=True)
