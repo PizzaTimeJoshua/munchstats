@@ -54,6 +54,21 @@
             margin: 4px 0px;
             padding: 6px 8px;
          }
+         .tooltip {
+            position: absolute;
+            background-color: black;
+            color: white;
+            padding: 5px 10px;
+            border-radius: 5px;
+            font-size: 14px;
+            white-space: pre-line;
+            pointer-events: none;
+            display: none;
+            max-width: 300px;
+            word-wrap: break-word;
+            opacity: 80%;
+        }
+
          .rating-button:hover {
          background-color: #333333;
          color: #ffffff;
@@ -594,7 +609,7 @@
                   <ul>
                      {% for move in pokemon_moves %}
                      <li>
-                        <button type="button"class="export-button" export-data='{"move" : "{{move[0]}}" }'title='{{ move[2] }}'>
+                        <button type="button"class="export-button has-tooltip" export-data='{"move" : "{{move[0]}}" }'data-tooltip='{{ move[2] }}'>
                         <span class="left-text">{{ move[0] }}</span>
                         <span class="right-text">{{ move[1] }}%</span>
                         </button>
@@ -631,7 +646,7 @@
                <ul>
                   {% for item in pokemon_items %}
                   <li>
-                     <button type="button"class="export-button" export-data='{"item" : "{{item[0]}}" }' title='{{ item[2] }}'>
+                     <button type="button"class="export-button has-tooltip" export-data='{"item" : "{{item[0]}}" }' data-tooltip='{{ item[2] }}'>
                      <div class="image-item" style="background-position: {{item[3][1] * -24}}px {{item[3][0] * -24}}px;">
                         <span class="left-text" style="padding-left: 32px;">{{ item[0] }}</span>
                      </div>
@@ -653,7 +668,7 @@
                <ul>
                   {% for ability in pokemon_abilities %}
                   <li>
-                     <button type="button"class="export-button" export-data='{"ability" : "{{ ability[0] }}" }' title='{{ ability[2] }}'>
+                     <button type="button"class="export-button has-tooltip" export-data='{"ability" : "{{ ability[0] }}" }' data-tooltip='{{ ability[2] }}'>
                      <span class="left-text">{{ ability[0] }}</span>
                      <span class="right-text">{{ ability[1] }}%</span>
                      </button>
@@ -814,7 +829,7 @@
 
          {% if pokemon_evs[0]|length > 0 %}
          <div>
-            <h2 title="Click on Moves, Items, EV Spreads and Abilities to change the Export!">Export Pokemon <span class="fa" style="font-size: 14px; vertical-align: text-top; cursor: help;">&#xf059;</span></h2>
+            <h2>Export Pokemon <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Click on Moves, Items, EV Spreads and Abilities to change the Export!">&#xf059;</span></h2>
             <textarea class="Export" id="showdown-set" spellcheck="false"></textarea>
             <button type="button" class="copy-button" id="copy-button" style="text-align: center;">Copy Pokemon to Clipboard</button>
          </div>
@@ -850,8 +865,27 @@
          <h6><a href="/about">About</a></h6>
          <h6>Pokémon and All Respective Names are Trademark & © of Nintendo 1996-2024</h6>   
       </div>
+      <div class="tooltip" id="tooltip"></div>
       <script>
+      const buttons = document.querySelectorAll(".has-tooltip");
+      const tooltip = document.getElementById("tooltip");
 
+      buttons.forEach(button => {
+         button.addEventListener("mouseenter", (event) => {
+               textContent = event.target.getAttribute("data-tooltip");
+               tooltip.innerHTML = textContent.replace(/(?:\r\n|\r|\n)/g, '<br>'); // Convert \n to <br>
+               tooltip.style.display = "block";
+         });
+
+         button.addEventListener("mousemove", (event) => {
+               tooltip.style.left = event.pageX + 10 + "px";
+               tooltip.style.top = event.pageY + 10 + "px";
+         });
+
+         button.addEventListener("mouseleave", () => {
+               tooltip.style.display = "none";
+         });
+      });
     // Assume raw_EVs_string is provided from the server-side and looks like:
     // [[ [x, percentage], ... ], [ ... ], ... ]
     // For example, EVs[0] corresponds to HP, EVs[1] to Attack, etc.
