@@ -779,12 +779,12 @@
                margin-bottom: 0px;
            ">
                   <div>
-                     <button type="button" class="stat-button" onclick="updateChart(event, 0)">HP</button>
-                     <button type="button" class="stat-button" onclick="updateChart(event, 1)">ATK</button>
-                     <button type="button" class="stat-button" onclick="updateChart(event, 2)">DEF</button>
-                     <button type="button" class="stat-button" onclick="updateChart(event, 3)">SPA</button>
-                     <button type="button" class="stat-button" onclick="updateChart(event, 4)">SPD</button>
-                     <button type="button" class="stat-button" onclick="updateChart(event, 5)">SPE</button>
+                     <button type="button" class="stat-button" onclick="updateChart(event, 0)" id="stat-HP">HP</button>
+                     <button type="button" class="stat-button" onclick="updateChart(event, 1)" id="stat-Attack">ATK</button>
+                     <button type="button" class="stat-button" onclick="updateChart(event, 2)" id="stat-Defense">DEF</button>
+                     <button type="button" class="stat-button" onclick="updateChart(event, 3)" id="stat-Sp. Attack">SPA</button>
+                     <button type="button" class="stat-button" onclick="updateChart(event, 4)" id="stat-Sp. Defense">SPD</button>
+                     <button type="button" class="stat-button underline" onclick="updateChart(event, 5)" id="stat-Speed">SPE</button>
                    </div>
                   <!-- Chart container with fixed height -->
                   <div id="chart-container">
@@ -883,8 +883,8 @@
       return { minX, maxX, maxY };
     }
 
-    // INITIALIZE CHART WITH THE FIRST STAT (HP)
-    let currentData = sortData(EVs[0]);
+    // INITIALIZE CHART WITH THE LAST STAT (SPEED)
+    let currentData = sortData(EVs[5]);
     const { minX, maxX, maxY } = computeAxisLimits(currentData);
     const processedData = processData(currentData);
 
@@ -937,7 +937,7 @@
              },
              title: {
                display: true,
-               text: statLabels[0]
+               text: statLabels[5]
              }
            }
          }
@@ -958,6 +958,15 @@
       evChart.options.scales.x.max = maxX;
       evChart.options.scales.x.title.text = statLabels[index];
       evChart.options.scales.y.max = maxY;
+
+      document.getElementById("stat-HP").classList.remove("underline");
+      document.getElementById("stat-Attack").classList.remove("underline");
+      document.getElementById("stat-Defense").classList.remove("underline");
+      document.getElementById("stat-Sp. Attack").classList.remove("underline");
+      document.getElementById("stat-Sp. Defense").classList.remove("underline");
+      document.getElementById("stat-Speed").classList.remove("underline");
+
+      document.getElementById("stat-"+statLabels[index]).classList.add("underline");
       evChart.update();
     }
 
