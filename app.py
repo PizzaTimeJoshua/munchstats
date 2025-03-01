@@ -474,7 +474,7 @@ def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
                            current_pokemon = current_pokemon,
                            valid_ratings = valid_ratings,
                            tera_data = listTera,
-                           raw_EVs = pokemon_graph)
+                           raw_stats = pokemon_graph)
 
 @app.route('/search_pokemon', methods=['POST'])
 def search_pokemon():
@@ -644,7 +644,7 @@ def index():
                            current_pokemon = current_pokemon,
                            valid_ratings = valid_ratings,
                            tera_data = listTera,
-                           raw_EVs = pokemon_graph)
+                           raw_stats = pokemon_graph)
 
 if __name__ == "__main__":
     app.run(debug=True)

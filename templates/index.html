@@ -886,11 +886,9 @@
                tooltip.style.display = "none";
          });
       });
-    // Assume raw_EVs_string is provided from the server-side and looks like:
-    // [[ [x, percentage], ... ], [ ... ], ... ]
-    // For example, EVs[0] corresponds to HP, EVs[1] to Attack, etc.
-    raw_EVs_string = {{raw_EVs | tojson}};
-    const EVs = JSON.parse(raw_EVs_string);
+
+    raw_stats_string = {{raw_stats | tojson}};
+    const STATs = JSON.parse(raw_stats_string);
 
     // Stat labels for the x-axis title.
     const statLabels = ["HP", "Attack", "Defense", "Sp. Attack", "Sp. Defense", "Speed"];
@@ -918,7 +916,7 @@
     }
 
     // INITIALIZE CHART WITH THE LAST STAT (SPEED)
-    let currentData = sortData(EVs[5]);
+    let currentData = sortData(STATs[5]);
     const { minX, maxX, maxY } = computeAxisLimits(currentData);
     const processedData = processData(currentData);
 
@@ -982,7 +980,7 @@
     function updateChart(event, index) {
       event.preventDefault();
       // Sort and process the new dataset.
-      const newData = sortData(EVs[index]);
+      const newData = sortData(STATs[index]);
       const { minX, maxX, maxY } = computeAxisLimits(newData);
       const processedData = processData(newData);
       
