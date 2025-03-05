@@ -1,459 +1,536 @@
-import os
-import math
-import re
-import difflib
-from datetime import datetime
+
 from flask import Flask, render_template, request, redirect, url_for
+import os
 import pyjson5
+from datetime import datetime
+import difflib
+import re
+import math
 
 app = Flask(__name__)
 
-# Directory and global data definitions
-DATA_DIRECTORY = "stats"
-os.makedirs(DATA_DIRECTORY, exist_ok=True)
+DATA_DIR = "stats"
+os.makedirs(DATA_DIR, exist_ok=True)
 
-# Global dictionaries for loaded data
-formatDisplayNames = {}
-availableFormats = []
-spriteIndex = {}
-itemDetails = {}
-abilityDetails = {}
-moveDetails = {}
-pokedexEntries = {}
-
-def load_data_file(filepath, mode='r', encoding="utf8"):
-    """Load and return data from a JSON/JSON5 file if it exists."""
-    if os.path.exists(filepath):
-        with open(filepath, mode, encoding=encoding) as file:
-            return pyjson5.load(file)
-    return None
-
-def build_data_path(filename):
-    """Construct a path relative to the data directory."""
-    return os.path.join(DATA_DIRECTORY, filename)
-
-def get_previous_year_month():
-    """Return the year and month (as strings) for the previous month."""
-    now = datetime.now()
-    month = now.month - 1
-    year = now.year
-    if month == 0:
+def getPokemonData(meta,rating):
+    year = datetime.now().year
+    month = datetime.now().month-1
+    if month==0:
         month = 12
-        year -= 1
-    return str(year), str(month).zfill(2)
+        year = year-1
+    month = str(month).zfill(2)
+    year = str(year)
 
-def fetch_pokemon_usage_data(format_code, rating_threshold):
-    """Return usage data for a given format and rating threshold. Falls back if current data is missing."""
-    year, month = get_previous_year_month()
-    file_name = f"{year}-{month}-{format_code}-{rating_threshold}.json"
-    file_path = build_data_path(file_name)
-    usage_data = load_data_file(file_path)
-    if usage_data:
-        return usage_data.get("data", {})
-    # Fallback to previous month
-    previous_month = int(month) - 1
-    previous_year = int(year)
-    if previous_month == 0:
-        previous_month = 12
-        previous_year -= 1
-    prev_file_name = f"{previous_year}-{str(previous_month).zfill(2)}-{format_code}-{rating_threshold}.json"
-    prev_file_path = build_data_path(prev_file_name)
-    usage_data = load_data_file(prev_file_path)
-    if usage_data:
-        print("Warning: Usage stats data is outdated.")
-        return usage_data.get("data", {})
-    return {}
+    if os.path.exists(f"stats/{year}-{month}-{meta}-{rating}.json"):
+        with open(f'stats/{year}-{month}-{meta}-{rating}.json', 'r', encoding="utf8") as file:
+            statsRaw = pyjson5.loads(file.read())
+        pokemonData = statsRaw["data"]
+    else:
+        oldMonth = int(month)-1
+        oldYear = int(year)
+        if oldMonth==0:
+            oldMonth = 12
+            oldYear=oldYear-1
+        oldMonth = str(oldMonth).zfill(2)
+        oldYear = str(oldYear)
+        with open(f'stats/{oldYear}-{oldMonth}-{meta}-{rating}.json', 'r', encoding="utf8") as file:
+            statsRaw = pyjson5.loads(file.read())
+        pokemonData = statsRaw["data"]
+        print("Warning, Usage Stats outdated.")
 
-def extract_generation_from_filename(filename):
-    """Extract the generation number from a filename string."""
-    special_formats = ["1v1","2v2","350","12switch"]
-    try:
-        segment = filename.split("-")[2]
-        gen_segment = segment
-        for format in special_formats:
-            gen_segment = gen_segment.split(format)[0]
-        return int(re.findall(r'\d+', gen_segment)[0])
-    except (IndexError, ValueError):
-        return None
+    return pokemonData
+def getTeraData(meta,poke):
+    if os.path.exists(f"stats/tera-data-{meta}.json"):
+        with open(f"stats/tera-data-{meta}.json",'rb') as file:
+            teraData = pyjson5.load(file)
+    else:
+        teraData = {}
+    return teraData.get(poke,{})
 
-def sort_files_by_generation_and_size(file_list):
-    """Sort file names by generation (descending) and file size (descending)."""
-    file_info = [(f, extract_generation_from_filename(f), os.path.getsize(f)) for f in file_list]
-    sorted_files = sorted(file_info, key=lambda x: (-x[1] if x[1] is not None else 0, -x[2]))
-    return [info[0] for info in sorted_files]
+def extract_gen(s):
+    """Extract the generation number from the string."""
+    val = s.split("-")[2].split("gen")[1].split("1v1")[0].split("2v2")[0].split("350")[0]
+    val = int(re.findall(r'\d+', val)[0]) if re.findall(r'\d+', val) else None
+    return val
 
-def get_valid_rating_thresholds(format_code):
-    """Return a sorted list of valid rating thresholds for a format."""
-    files = [f for f in os.listdir(DATA_DIRECTORY) if format_code in f.split("-")]
-    ratings = sorted([f.split("-")[-1].split(".")[0] for f in files], key=int)
-    return ratings
+def sort_files_by_gen_and_size(files):
+    """Sort the list of files by generation and size."""
+    files_info = [(f, extract_gen(f), os.path.getsize(f)) for f in files]
+    sorted_files = sorted(files_info, key=lambda x: (-x[1], -x[2]))
+    return [f[0] for f in sorted_files]
 
-def fuzzy_match(target, options):
-    """Return the closest match to target within options using fuzzy matching."""
-    normalized_options = {option.lower(): option for option in options}
-    matches = difflib.get_close_matches(target.lower(), normalized_options.keys(), 10)
-    return normalized_options[matches[0]] if matches else None
+def get_valid_ratings(meta):
+    valid_rates = ["stats/"+f for f in os.listdir("stats/") if meta in f.split("-")]
+    valid_rates = [f.split("-")[-1] for f in valid_rates]
+    valid_rates = [f.split(".")[0] for f in valid_rates]
+    valid_rates.sort(key=int)
+    return valid_rates
+    
 
-def load_all_data():
-    """Load all necessary data files into global variables."""
-    global formatDisplayNames, availableFormats, spriteIndex, itemDetails, abilityDetails, moveDetails, pokedexEntries
-    formatDisplayNames = load_data_file(build_data_path("meta_names.json")) or {}
-    # Build availableFormats list from files ending with "0.json"
-    format_files = [build_data_path(f) for f in os.listdir(DATA_DIRECTORY) if f.endswith("-0.json")]
-    format_files = sort_files_by_generation_and_size(format_files)
-    availableFormats = []
-    for file_path in format_files:
-        parts = os.path.basename(file_path).split("-")
-        if len(parts) >= 3:
-            fmt = parts[-2]
-            if fmt in formatDisplayNames:
-                availableFormats.append([fmt, formatDisplayNames[fmt]])
-    spriteIndex = load_data_file(build_data_path("forms_index.json")) or {}
-    itemDetails = load_data_file(build_data_path("items.json")) or {}
-    abilityDetails = load_data_file(build_data_path("abilities.json")) or {}
-    moveDetails = load_data_file(build_data_path("moves.json")) or {}
-    pokedexEntries = load_data_file(build_data_path("pokedex.json")) or {}
+def safe_load_files():
+    global itemData, movesData, abilitiesData, pokedexData, meta_games_list, indexData, meta_names
+    # Load Meta Names
+    if os.path.exists("stats/meta_names.json"):
+        with open('stats/meta_names.json', 'r') as file:
+            meta_names = pyjson5.load(file)
+    meta_games_list = ["stats/"+f for f in os.listdir("stats/") if f.split("-")[-1] == "0.json"]
+    meta_games_list = sort_files_by_gen_and_size(meta_games_list)
+    meta_games_list = [f.split("-")[-2] for f in meta_games_list]
+    meta_games_list = [[meta,meta_names[meta]] for meta in meta_games_list if meta_names.get(meta,False)]
+   
 
-def calculate_stat_value(base, iv, ev, level, nature_multiplier):
-    """Calculate a stat value given parameters."""
-    return math.floor(((2 * base + iv + math.floor(ev / 4)) * level / 100 + 5) * nature_multiplier)
+    # Load Sprite Index
+    if os.path.exists("stats/forms_index.json"):
+        with open('stats/forms_index.json', 'r', encoding="utf8") as file:
+            indexRaw = file.read()
+        indexData = pyjson5.loads(indexRaw)
 
-def calculate_hp_value(base, iv, ev, level):
-    """Calculate HP value."""
+    # Load Items
+    if os.path.exists("stats/items.json"):
+        with open('stats/items.json', 'r', encoding="utf8") as file:
+            itemRaw = file.read()
+        itemData = pyjson5.loads(itemRaw)
+
+    # Load Abilities
+    if os.path.exists("stats/abilities.json"):
+        with open('stats/abilities.json', 'r', encoding="utf8") as file:
+            abilitiesRaw = file.read()
+        abilitiesData = pyjson5.loads(abilitiesRaw)
+
+    # Load Moves
+    if os.path.exists("stats/moves.json"):
+        with open('stats/moves.json', 'r', encoding="utf8") as file:
+            movesRaw = file.read()
+        movesData = pyjson5.loads(movesRaw)
+    
+    # Load Pokedex
+    if os.path.exists("stats/pokedex.json"):
+        with open('stats/pokedex.json', 'r', encoding="utf8") as file:
+            pokedexRaw = file.read()
+        pokedexData = pyjson5.loads(pokedexRaw)
+def calculateStat(base, iv, ev, level, natureMultiplier) :
+    return math.floor(((2 * base + iv + math.floor(ev / 4)) * level / 100 + 5) * natureMultiplier)
+    
+def calculateHP(base, iv, ev, level) :
     return math.floor((2 * base + iv + math.floor(ev / 4)) * level / 100) + level + 10
 
-def compile_top_data(usage_data, pokemon_name, category, format_code="", base_stats=[]):
-    """Compile and return the requested category data for a given Pokémon."""
-    if pokemon_name not in usage_data:
-        return []
-    
-    # Branch for 'Stats' and 'Types'
-    if category in ["Stats", "Types"]:
-        matched_name = fuzzy_match(pokemon_name, pokedexEntries.keys())
-        if not matched_name:
-            return []
-        if category == "Stats":
-            stats = pokedexEntries[matched_name]["baseStats"]
-            return [stats[k] for k in ["hp", "atk", "def", "spa", "spd", "spe"]]
-        else:
-            return pokedexEntries[matched_name]["types"]
-    
-    # Branch for 'Natures'
-    if category == "Natures":
-        nature_weights = {}
-        for spread_key, weight in usage_data[pokemon_name].get("Spreads", {}).items():
-            nature = spread_key.split(':')[0]
-            nature_weights[nature] = nature_weights.get(nature, 0) + weight
-        total_weight = max(sum(usage_data[pokemon_name].get("Abilities", {"Unknown": 1}).values()), 1)
-        sorted_natures = sorted(nature_weights.keys(), key=lambda x: nature_weights[x], reverse=True)[:10]
-        return [[n, "{:.3f}".format(round(nature_weights[n] / total_weight * 100, 3))] for n in sorted_natures][:10]
-    
-    
-    # Branch for 'Graph'
-    if category == "Graph":
-        graph_stats = {stat: {} for stat in ["hp", "atk", "def", "spa", "spd", "spe"]}
-        spreads = usage_data[pokemon_name].get("Spreads", {})
-        level = 50 if "vgc" in format_code.lower() else 100
-        total_weight = max(sum(usage_data[pokemon_name].get("Abilities", {"Unknown": 1}).values()), 1)
-        stat_modifiers = {
-            "atk": (["Naughty", "Adamant", "Lonely", "Brave"], ["Bold", "Timid", "Modest", "Calm"]),
-            "def": (["Bold", "Relaxed", "Impish", "Lax"], ["Lonely", "Hasty", "Mild", "Gentle"]),
-            "spa": (["Modest", "Mild", "Quiet", "Rash"], ["Adamant", "Impish", "Jolly", "Careful"]),
-            "spd": (["Calm", "Gentle", "Sassy", "Careful"], ["Naughty", "Lax", "Naive", "Rash"]),
-            "spe": (["Timid", "Hasty", "Jolly", "Naive"], ["Brave", "Relaxed", "Quiet", "Sassy"])
-        }
-        for spread, weight in spreads.items():
-            parts = spread.split(':')
-            nature = parts[0]
-            evs = list(map(int, parts[1].split('/')))
-            multipliers = {}
-            for stat, (boost_list, nerf_list) in stat_modifiers.items():
-                if nature in boost_list:
-                    multipliers[stat] = 1.1
-                elif nature in nerf_list:
-                    multipliers[stat] = 0.9
-                else:
-                    multipliers[stat] = 1
-            hp_val = calculate_hp_value(base_stats[0], 31, evs[0], level)
-            atk_val = calculate_stat_value(base_stats[1], 31, evs[1], level, multipliers["atk"])
-            def_val = calculate_stat_value(base_stats[2], 31, evs[2], level, multipliers["def"])
-            spa_val = calculate_stat_value(base_stats[3], 31, evs[3], level, multipliers["spa"])
-            spd_val = calculate_stat_value(base_stats[4], 31, evs[4], level, multipliers["spd"])
-            speed_iv = 0 if (multipliers["spe"] == 0.9 and evs[5] == 0) else 31
-            spe_val = calculate_stat_value(base_stats[5], speed_iv, evs[5], level, multipliers["spe"])
-            for stat, value in zip(["hp", "atk", "def", "spa", "spd", "spe"],
-                                   [hp_val, atk_val, def_val, spa_val, spd_val, spe_val]):
-                graph_stats[stat][value] = graph_stats[stat].get(value, 0) + weight
-        sorted_graph = []
-        for stat in ["hp", "atk", "def", "spa", "spd", "spe"]:
-            sorted_values = sorted(graph_stats[stat].items(), key=lambda x: x[1], reverse=True)
-            sorted_graph.append([[val, graph_stats[stat][val] / total_weight * 100] for val, _ in sorted_values])
-        return pyjson5.dumps(sorted_graph, separators=(',', ':'))
-    
-    # Branch for 'Moves'
-    if category == "Moves":
-        moves = usage_data[pokemon_name].get("Moves", {})
-        total_weight = max(sum(usage_data[pokemon_name].get("Abilities", {"Unknown": 1}).values()), 1)
-        sorted_moves = sorted(moves.keys(), key=lambda m: moves[m], reverse=True)[:10]
-        result = []
-        for move in sorted_moves:
-            move_info = moveDetails.get(move, {
-                "name": "Nothing", "type": "", "category": "",
-                "basePower": "N/A", "accuracy": "N/A", "priority": 0, "desc": "No info."
-            })
-            usage_percent = "{:.3f}".format(round(moves[move] / total_weight * 100, 3))
-            move_text = (f"{move_info.get('type','')} ({move_info.get('category','')})\n"
-                         f"Base Power: {'N/A' if move_info.get('basePower', 'N/A') == 0 else move_info.get('basePower', 'N/A')}\n"
-                         f"Accuracy: {'N/A' if move_info.get('accuracy', 'N/A') is True else move_info.get('accuracy', 'N/A')}\n"
-                         f"Priority: {move_info.get('priority', 0)}\n"
-                         f"{move_info.get('desc','No info.')}")
-            result.append([move_info.get("name", "Nothing"), usage_percent, move_text])
-        return result
 
-    # Branch for 'Teammates'
-    if category == "Teammates":
-        teammates = usage_data[pokemon_name].get("Teammates", {})
-        total_weight = max(sum(usage_data[pokemon_name].get("Abilities", {"Unknown": 1}).values()), 1)
-        sorted_teammates = sorted(teammates.keys(), key=lambda x: teammates[x], reverse=True)[:10]
-        return [[poke, "{:.3f}".format(round(teammates[poke] / total_weight * 100, 3)), get_pokemon_sprite(poke)]
-                for poke in sorted_teammates]
+def top_data_list(data,pokemon,cat,meta="",baseStats=[]):
+    if not data.get(pokemon,False):
+        return []
+    if cat=="Stats":
+        word = pokemon.lower()
+        possibilities = pokedexData.keys()
+        normalized_possibilities = {p.lower(): p for p in possibilities}
+        result = difflib.get_close_matches(word, normalized_possibilities.keys(),10)
+        normalized_result = [normalized_possibilities[r] for r in result]
+        if len(normalized_result)>0:
+            close = normalized_result[0]
+            pokeSearch = close
+        else:
+            return []
+        statData = pokedexData[pokeSearch]["baseStats"]
+        return [statData["hp"],
+               statData["atk"],
+               statData["def"],
+               statData["spa"],
+               statData["spd"],
+               statData["spe"]]
     
-    # Branch for 'Items'
-    if category == "Items":
-        items = usage_data[pokemon_name].get("Items", {})
-        total_weight = max(sum(items.values()), 1)
-        sorted_items = sorted(items.keys(), key=lambda x: items[x], reverse=True)[:10]
-        return [[itemDetails.get(item, {"name": "Nothing"})["name"],
-                 "{:.3f}".format(round(items[item] / total_weight * 100, 3)),
-                 itemDetails.get(item, {"desc": "No info."}).get("desc", "No info."),
-                 divmod(itemDetails.get(item, {"spritenum": 0})["spritenum"], 16)]
-                for item in sorted_items]
+    if cat=="Types":
+        word = pokemon.lower()
+        possibilities = pokedexData.keys()
+        normalized_possibilities = {p.lower(): p for p in possibilities}
+        result = difflib.get_close_matches(word, normalized_possibilities.keys(),10)
+        normalized_result = [normalized_possibilities[r] for r in result]
+        if len(normalized_result)>0:
+            close = normalized_result[0]
+            pokeSearch = close
+        else:
+            return []
+        statData = pokedexData[pokeSearch]["types"]
+        return statData
     
-    # Branch for 'Abilities'
-    if category == "Abilities":
-        abilities = usage_data[pokemon_name].get("Abilities", {})
-        total_weight = max(sum(abilities.values()), 1)
-        sorted_abilities = sorted(abilities.keys(), key=lambda x: abilities[x], reverse=True)[:10]
-        return [[abilityDetails.get(ability, {"name": "Nothing"})["name"],
-                 "{:.1f}".format(round(abilities[ability] / total_weight * 100, 1)),
-                 abilityDetails.get(ability, {"desc": "No info."}).get("desc", "No info.")]
-                for ability in sorted_abilities]
+    totalCount = max(sum(list(data[pokemon].get("Abilities",{"Unknown":1}).values())),1)
+    totalCount2 = max(sum(list(data[pokemon].get("Items",{"Unknown":1}).values())),1)
+    if cat=="Natures":
+        dataPokemon = {}
+        datSpread = data[pokemon].get("Spreads",[])
+        for spread in datSpread:
+            nature = spread.split(':')[0]
+            weight = data[pokemon]["Spreads"][spread]
+            dataPokemon[nature] = dataPokemon.get(nature,0) + weight
+    else:
+        dataPokemon = data[pokemon].get(cat,{})
+
+    if cat== "Graph":
+        dataPokemon = {"hp" : {}, "atk" : {},"def" : {},"spa" : {},"spd" : {},"spe" : {}}
+        datSpread = data[pokemon].get("Spreads",[])
+        attack_natures = ["Naughty","Adamant","Lonely","Brave"]
+        defense_natures = ["Bold","Relaxed","Impish","Lax"]
+        sattack_natures = ["Modest","Mild","Quiet","Rash"]
+        sdefense_natures = ["Calm","Gentle","Sassy","Careful"]
+        speed_natures = ["Timid","Hasty","Jolly","Naive"]
+
+        attack_natures_m = ["Bold","Timid","Modest","Calm"]
+        defense_natures_m = ["Lonely","Hasty","Mild","Gentle"]
+        sattack_natures_m = ["Adamant","Impish","Jolly","Careful"]
+        sdefense_natures_m = ["Naughty","Lax","Naive","Rash"]
+        speed_natures_m = ["Brave","Relaxed","Quiet","Sassy"]
+        level = 100
+        if ("vgc" in meta.lower()):
+            level = 50
+        
+        for spread in datSpread:
+            nature = spread.split(':')[0]
+            EVs = spread.split(':')[1].split('/')
+            weight = data[pokemon]["Spreads"][spread]
+            pa  = 1.1 if nature in attack_natures else 1
+            pd  = 1.1 if nature in defense_natures else 1
+            psa  = 1.1 if nature in sattack_natures else 1
+            psd = 1.1 if nature in sdefense_natures else 1
+            pse = 1.1 if nature in speed_natures else 1
+
+            pa  = 0.9 if nature in attack_natures_m else pa
+            pd  = 0.9 if nature in defense_natures_m else pd
+            psa  = 0.9 if nature in sattack_natures_m else psa
+            psd = 0.9 if nature in sdefense_natures_m else psd
+            pse = 0.9 if nature in speed_natures_m else pse
+            EVs2 = [int(x) for x in EVs]
+            stats = EVs2.copy()
+            stats[0] = calculateHP(baseStats[0],31,EVs2[0],level)
+            stats[1] = calculateStat(baseStats[1],31,EVs2[1],level,pa)
+            stats[2] = calculateStat(baseStats[2],31,EVs2[2],level,pd)
+            stats[3] = calculateStat(baseStats[3],31,EVs2[3],level,psa)
+            stats[4] = calculateStat(baseStats[4],31,EVs2[4],level,psd)
+            speedIV = 31
+            if (pse == 0.9) and (EVs2[5] == 0):
+                speedIV = 0
+            stats[5] = calculateStat(baseStats[5],speedIV,EVs2[5],level,pse)
+
+            dataPokemon["hp"][stats[0]] = dataPokemon["hp"].get(stats[0],0) + weight
+            dataPokemon["atk"][stats[1]] = dataPokemon["atk"].get(stats[1],0) + weight
+            dataPokemon["def"][stats[2]] = dataPokemon["def"].get(stats[2],0) + weight
+            dataPokemon["spa"][stats[3]] = dataPokemon["spa"].get(stats[3],0) + weight
+            dataPokemon["spd"][stats[4]] = dataPokemon["spd"].get(stats[4],0) + weight
+            dataPokemon["spe"][stats[5]] = dataPokemon["spe"].get(stats[5],0) + weight
+
+
+
+        catSorted = [[],[],[],[],[],[]]
+
+        catSorted[0] = sorted(dataPokemon["hp"].keys(), key=lambda x: dataPokemon["hp"][x], reverse=True)
+        catSorted[0] = [[stat,dataPokemon["hp"][stat]/totalCount*100] for stat in catSorted[0] ]
+
+        catSorted[1] = sorted(dataPokemon["atk"].keys(), key=lambda x: dataPokemon["atk"][x], reverse=True)
+        catSorted[1] = [[stat,dataPokemon["atk"][stat]/totalCount*100] for stat in catSorted[1] ]
+
+        catSorted[2] = sorted(dataPokemon["def"].keys(), key=lambda x: dataPokemon["def"][x], reverse=True)
+        catSorted[2] = [[stat,dataPokemon["def"][stat]/totalCount*100] for stat in catSorted[2] ]
+
+        catSorted[3] = sorted(dataPokemon["spa"].keys(), key=lambda x: dataPokemon["spa"][x], reverse=True)
+        catSorted[3] = [[stat,dataPokemon["spa"][stat]/totalCount*100] for stat in catSorted[3] ]
+
+        catSorted[4] = sorted(dataPokemon["spd"].keys(), key=lambda x: dataPokemon["spd"][x], reverse=True)
+        catSorted[4] = [[stat,dataPokemon["spd"][stat]/totalCount*100] for stat in catSorted[4] ]
+
+        catSorted[5] = sorted(dataPokemon["spe"].keys(), key=lambda x: dataPokemon["spe"][x], reverse=True)
+        catSorted[5] = [[stat,dataPokemon["spe"][stat]/totalCount*100] for stat in catSorted[5] ]
+
+        return (pyjson5.dumps(catSorted, separators=(',', ':')))
     
-    # Branch for 'Spreads'
-    if category == "Spreads":
-        spreads = usage_data[pokemon_name].get("Spreads", {})
-        total_spread_weight = max(sum(spreads.values()), 1)
-        sorted_spreads = sorted(spreads.keys(), key=lambda s: spreads[s], reverse=True)[:15]
-        return [[s, "{:.3f}".format(round(spreads[s] / total_spread_weight * 100, 3))] for s in sorted_spreads]
-    
-    # Branch for 'EVs'
-    if category == "EVs":
-        # Initialize dictionary for EVs by category.
-        ev_data = {"atk": {}, "spa": {}, "spe": {}, "hp_def": {}, "hp_spd": {}}
-        spreads = usage_data[pokemon_name].get("Spreads", {})
-        total_count = max(sum(usage_data[pokemon_name].get("Abilities", {"Unknown": 1}).values()), 1)
-        # Define nature lists.
-        attack_natures = ["Naughty", "Adamant", "Lonely", "Brave"]
-        defense_natures = ["Bold", "Relaxed", "Impish", "Lax"]
-        sattack_natures = ["Modest", "Mild", "Quiet", "Rash"]
-        sdefense_natures = ["Calm", "Gentle", "Sassy", "Careful"]
-        speed_natures = ["Timid", "Hasty", "Jolly", "Naive"]
-        attack_natures_m = ["Bold", "Timid", "Modest", "Calm"]
-        defense_natures_m = ["Lonely", "Hasty", "Mild", "Gentle"]
-        sattack_natures_m = ["Adamant", "Impish", "Jolly", "Careful"]
-        sdefense_natures_m = ["Naughty", "Lax", "Naive", "Rash"]
-        speed_natures_m = ["Brave", "Relaxed", "Quiet", "Sassy"]
-        for spread in spreads:
-            parts = spread.split(':')
-            nature = parts[0]
-            EVs = parts[1].split('/')
-            weight = spreads[spread]
-            pa = "+" if nature in attack_natures else ""
-            pd = "+" if nature in defense_natures else ""
-            psa = "+" if nature in sattack_natures else ""
+    if cat=="EVs":
+        dataPokemon = {"atk" : {},"spa" : {},"spe" : {},"hp_def" : {},"hp_spd" : {}}
+        datSpread = data[pokemon].get("Spreads",[])
+        attack_natures = ["Naughty","Adamant","Lonely","Brave"]
+        defense_natures = ["Bold","Relaxed","Impish","Lax"]
+        sattack_natures = ["Modest","Mild","Quiet","Rash"]
+        sdefense_natures = ["Calm","Gentle","Sassy","Careful"]
+        speed_natures = ["Timid","Hasty","Jolly","Naive"]
+
+        attack_natures_m = ["Bold","Timid","Modest","Calm"]
+        defense_natures_m = ["Lonely","Hasty","Mild","Gentle"]
+        sattack_natures_m = ["Adamant","Impish","Jolly","Careful"]
+        sdefense_natures_m = ["Naughty","Lax","Naive","Rash"]
+        speed_natures_m = ["Brave","Relaxed","Quiet","Sassy"]
+
+        for spread in datSpread:
+            nature = spread.split(':')[0]
+            EVs = spread.split(':')[1].split('/')
+            weight = data[pokemon]["Spreads"][spread]
+            pa  = "+" if nature in attack_natures else ""
+            pd  = "+" if nature in defense_natures else ""
+            psa  = "+" if nature in sattack_natures else ""
             psd = "+" if nature in sdefense_natures else ""
             pse = "+" if nature in speed_natures else ""
-            if nature in attack_natures_m:
-                pa = "-"
-            if nature in defense_natures_m:
-                pd = "-"
-            if nature in sattack_natures_m:
-                psa = "-"
-            if nature in sdefense_natures_m:
-                psd = "-"
-            if nature in speed_natures_m:
-                pse = "-"
-            key_atk = EVs[1] + pa + " Atk"
-            key_spa = EVs[3] + psa + " SpA"
-            key_spe = EVs[5] + pse + " Spe"
-            key_hp_def = EVs[0] + " HP / " + EVs[2] + pd + " Def"
-            key_hp_spd = EVs[0] + " HP / " + EVs[4] + psd + " SpD"
-            ev_data["atk"][key_atk] = ev_data["atk"].get(key_atk, 0) + weight
-            ev_data["spa"][key_spa] = ev_data["spa"].get(key_spa, 0) + weight
-            ev_data["spe"][key_spe] = ev_data["spe"].get(key_spe, 0) + weight
-            ev_data["hp_def"][key_hp_def] = ev_data["hp_def"].get(key_hp_def, 0) + weight
-            ev_data["hp_spd"][key_hp_spd] = ev_data["hp_spd"].get(key_hp_spd, 0) + weight
-        # Now sort each category and calculate percentages. "{:.3f}".format(round(items[item] / total_weight * 100, 3))
-        sorted_ev = [[], [], [], [], []]
-        sorted_ev[0] = sorted(ev_data["atk"].keys(), key=lambda x: ev_data["atk"][x], reverse=True)
-        sorted_ev[0] = [[stat, "{:.3f}".format(round(ev_data["atk"][stat] / total_count * 100, 3))] for stat in sorted_ev[0]][:15]
-        sorted_ev[1] = sorted(ev_data["spa"].keys(), key=lambda x: ev_data["spa"][x], reverse=True)
-        sorted_ev[1] = [[stat, "{:.3f}".format(round(ev_data["spa"][stat] / total_count * 100, 3))] for stat in sorted_ev[1]][:15]
-        sorted_ev[2] = sorted(ev_data["spe"].keys(), key=lambda x: ev_data["spe"][x], reverse=True)
-        sorted_ev[2] = [[stat, "{:.3f}".format(round(ev_data["spe"][stat] / total_count * 100, 3))] for stat in sorted_ev[2]][:15]
-        sorted_ev[3] = sorted(ev_data["hp_def"].keys(), key=lambda x: ev_data["hp_def"][x], reverse=True)
-        sorted_ev[3] = [[stat, "{:.3f}".format(round(ev_data["hp_def"][stat] / total_count * 100, 3))] for stat in sorted_ev[3]][:15]
-        sorted_ev[4] = sorted(ev_data["hp_spd"].keys(), key=lambda x: ev_data["hp_spd"][x], reverse=True)
-        sorted_ev[4] = [[stat, "{:.3f}".format(round(ev_data["hp_spd"][stat] / total_count * 100, 3))] for stat in sorted_ev[4]][:15]
-        return sorted_ev
-    
-    # Branch for 'Tera Types'
-    if category == "Tera Types":
-        tera_types = usage_data[pokemon_name].get("Tera Types", {})
-        total_tera_types_weight = max(sum(tera_types.values()), 1)
-        sorted_tera_types = sorted(tera_types.keys(), key=lambda s: tera_types[s], reverse=True)[:15]
-        return [[t.capitalize(), "{:.3f}".format(round(tera_types[t] / total_tera_types_weight * 100, 3))] for t in sorted_tera_types]
-    
-    # Branch for 'Checks and Counters'
-    if category == "Checks and Counters":
-        unfiltered_counters = usage_data[pokemon_name].get("Checks and Counters", {})
-        filtered_counters = {key: value for key, value in unfiltered_counters.items() if (value[2] < 0.01 and value[1] > 0.5)}
-        sorted_counters = sorted(filtered_counters.keys(), key=lambda x: filtered_counters[x][1], reverse=True)[:10]
-        return [[poke,"{:.3f}".format(round(filtered_counters[poke][1]*100,3)), get_pokemon_sprite(poke)] for poke in sorted_counters]
-                
-    
-    # Default branch:
-    total_weight = max(sum(usage_data[pokemon_name].get("Abilities", {"Unknown":1}).values()), 1)
-    sorted_keys = sorted(usage_data[pokemon_name].keys(),
-                         key=lambda key: usage_data[pokemon_name][key] if isinstance(usage_data[pokemon_name][key], (int, float)) else 0,
-                         reverse=True)[:10]
-    return [[key, "{:.3f}".format(round(usage_data[pokemon_name][key] / total_weight * 100, 3))]
-            for key in sorted_keys]
 
-def get_pokemon_sprite(pokemon_name):
-    """Return sprite coordinates as a tuple (row, col) for a given Pokémon name."""
-    word = pokemon_name.lower()
+            pa  = "-" if nature in attack_natures_m else pa
+            pd  = "-" if nature in defense_natures_m else pd
+            psa  = "-" if nature in sattack_natures_m else psa
+            psd = "-" if nature in sdefense_natures_m else psd
+            pse = "-" if nature in speed_natures_m else pse
+
+
+            dataPokemon["atk"][EVs[1]+pa+" Atk"] = dataPokemon["atk"].get(EVs[1]+pa+" Atk",0) + weight
+            dataPokemon["spa"][EVs[3]+psa+" SpA"] = dataPokemon["spa"].get(EVs[3]+psa+" SpA",0) + weight
+            dataPokemon["spe"][EVs[5]+pse+" Spe"] = dataPokemon["spe"].get(EVs[5]+pse+" Spe",0) + weight
+            dataPokemon["hp_def"][EVs[0]+" HP / "+EVs[2]+pd+" Def"] = dataPokemon["hp_def"].get(EVs[0]+" HP / "+EVs[2]+pd+" Def",0) + weight
+            dataPokemon["hp_spd"][EVs[0]+" HP / "+EVs[4]+psd+" SpD"] = dataPokemon["hp_spd"].get(EVs[0]+" HP / "+EVs[4]+psd+" SpD",0) + weight
+
+
+        catSorted = [[],[],[],[],[],[]]
+
+        catSorted[0] = sorted(dataPokemon["atk"].keys(), key=lambda x: dataPokemon["atk"][x], reverse=True)[:15]
+        catSorted[0] = [[stat,"{:.3f}".format(round(dataPokemon["atk"][stat]/totalCount*100,3))] for stat in catSorted[0] ]
+
+        catSorted[1] = sorted(dataPokemon["spa"].keys(), key=lambda x: dataPokemon["spa"][x], reverse=True)[:15]
+        catSorted[1] = [[stat,"{:.3f}".format(round(dataPokemon["spa"][stat]/totalCount*100,3))] for stat in catSorted[1] ]
+
+        catSorted[2] = sorted(dataPokemon["spe"].keys(), key=lambda x: dataPokemon["spe"][x], reverse=True)[:15]
+        catSorted[2] = [[stat,"{:.3f}".format(round(dataPokemon["spe"][stat]/totalCount*100,3))] for stat in catSorted[2] ]
+
+        catSorted[3] = sorted(dataPokemon["hp_def"].keys(), key=lambda x: dataPokemon["hp_def"][x], reverse=True)[:15]
+        catSorted[3] = [[stat,"{:.3f}".format(round(dataPokemon["hp_def"][stat]/totalCount*100,3))] for stat in catSorted[3] ]
+
+        catSorted[4] = sorted(dataPokemon["hp_spd"].keys(), key=lambda x: dataPokemon["hp_spd"][x], reverse=True)[:15]
+        catSorted[4] = [[stat,"{:.3f}".format(round(dataPokemon["hp_spd"][stat]/totalCount*100,3))] for stat in catSorted[4] ]
+        
+        return catSorted
+
+        
+    if cat=="Checks and Counters":
+        filtered_counters = {key: value for key, value in dataPokemon.items() if (value[2] < 0.01 and value[1] > 0.5)}
+        catSorted = sorted(filtered_counters.keys(), key=lambda x: filtered_counters[x][1], reverse=True)[:10]
+        catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke][1]*100,3)), get_sprite_pokemon(poke)] for poke in catSorted ]
+        return catSorted
+    if cat=="Moves":
+        catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
+        catSorted = [[movesData.get(poke,{"name": "Nothing"})["name"],"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)),
+                      movesData.get(poke, {"type" : ""}).get("type","")+" ("+movesData.get(poke, {"category" : ""}).get("category","")+")"+
+                      '\nBase Power: '+f'{"N/A" if movesData.get(poke, {"basePower" : "N/A"}).get("basePower","N/A")==0 else movesData.get(poke, {"basePower" : "N/A"}).get("basePower","N/A")}'+
+                      "\nAccuracy: "+f"{"N/A" if movesData.get(poke, {"accuracy" : "N/A"}).get("accuracy","N/A")==True else movesData.get(poke, {"accuracy" : "N/A"}).get("accuracy","N/A")}"+
+                      '\nPriority: '+f'{movesData.get(poke, {"priority" : 0}).get("priority",0)}'+
+                      '\n'+movesData.get(poke, {"desc" : "No info."}).get("desc","No info.")] for poke in catSorted ]
+        return catSorted
+    if cat=="Items":
+        catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
+        catSorted = [[itemData.get(poke,{"name": "Nothing"})["name"],"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3)), itemData.get(poke, {"desc" : "No info."}).get("desc","No info."),(divmod(itemData.get(poke, {"spritenum" : 0})["spritenum"],16))] for poke in catSorted ]
+        return catSorted
+    if cat=="Abilities":
+        catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
+        catSorted = [[abilitiesData.get(poke,{"name": "Nothing"})["name"],"{:.1f}".format(round(dataPokemon[poke]/totalCount*100,1)),abilitiesData.get(poke, {"desc" : "No info."}).get("desc","No info.")] for poke in catSorted ]
+        return catSorted
+    if cat=="Teammates":
+        catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
+        catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount2*100,3)), get_sprite_pokemon(poke)] for poke in catSorted ]
+        return catSorted
+    if cat=="Spreads":
+        catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)
+        catSorted = catSorted[:15]
+        catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3))] for poke in catSorted]
+        return catSorted
+    if cat=="Tera Types":
+        catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)
+        catSorted = catSorted[:15]
+        catSorted = [[poke.capitalize(),"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3))] for poke in catSorted]
+        return catSorted
+    
+    catSorted = sorted(dataPokemon.keys(), key=lambda x: dataPokemon[x], reverse=True)[:10]
+    catSorted = [[poke,"{:.3f}".format(round(dataPokemon[poke]/totalCount*100,3))] for poke in catSorted ]
+    return catSorted
+
+def get_sprite_pokemon(poke):
+    word = poke.lower()
     word = re.sub(r'[^a-z0-9]+', '', word)
-    if word in spriteIndex.keys():
-        sprite_num = spriteIndex[word]
-    elif word in pokedexEntries.keys():
-        sprite_num = pokedexEntries[word].get("num",0)
+    if word in indexData.keys():
+        sprite_num = indexData[word]
+    elif word in pokedexData.keys():
+        sprite_num = pokedexData[word].get("num",0)
     else:
         return (0,0)
     return divmod(sprite_num,12)
+    
+safe_load_files()
 
-load_all_data()
-@app.route('/about/')
-def about():
-    return render_template('about.html')
 
-@app.route('/<format_code>/<rating_threshold>/<pokemon_name>')
-@app.route('/<format_code>/<rating_threshold>/')
-@app.route('/<format_code>/')
-def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
-    default_format = "gen9vgc2025regg"
+@app.route('/<meta_name>/<meta_rating>/<pokemon_name>')
+@app.route('/<meta_name>/<meta_rating>/')
+@app.route('/<meta_name>/')
+def show_page_pokemon(meta_name,meta_rating="",pokemon_name=""):
+    rating = "0"
+    meta = "gen9vgc2025regg"
+
+    selected_rating = meta_rating
+    selected_meta = f"{[meta_name,meta_names.get(meta_name,meta_name)]}"
+    selected_pokemon = pokemon_name
+
     try:
-        selected_format = pyjson5.loads(f'["{format_code}", "{formatDisplayNames.get(format_code, format_code)}"]')
-    except Exception:
-        selected_format = [default_format, formatDisplayNames.get(default_format, default_format)]
+        selected_meta = pyjson5.loads(selected_meta)
+    except pyjson5.Json5IllegalCharacter:
+        selected_meta = [meta,meta_names.get(meta,meta)]
+
     
-    chosen_format = selected_format[0] if selected_format[0] in formatDisplayNames else default_format
-    rating_options = get_valid_rating_thresholds(chosen_format)
-    
-    if rating_threshold in rating_options:
-        chosen_rating = rating_threshold
+    if (selected_meta[0] in meta_names.keys()):
+        meta = selected_meta[0]
+    valid_ratings = get_valid_ratings(meta)
+
+    if (selected_rating in valid_ratings):
+        rating = selected_rating 
     else:
-        chosen_rating = rating_options[-1]
-        rating_threshold = chosen_rating
-    
-    usage_stats = fetch_pokemon_usage_data(chosen_format, chosen_rating)
-    sorted_pokemon = sorted(usage_stats.keys(), key=lambda name: usage_stats[name]["usage"], reverse=True)
-    default_pokemon = sorted_pokemon[0] if sorted_pokemon else ""
-    
-    if pokemon_name and pokemon_name != "No Pokemon":
-        matched_pokemon = fuzzy_match(pokemon_name, usage_stats.keys())
-        if matched_pokemon:
-            default_pokemon = matched_pokemon
-    
-    # Only redirect if not on the homepage ("/")
-    if (chosen_format != format_code or chosen_rating != rating_threshold or default_pokemon != pokemon_name) and request.path != '/':
-        return redirect(url_for('display_pokemon_page',
-                                format_code=chosen_format,
-                                rating_threshold=chosen_rating,
-                                pokemon_name=default_pokemon))
-    
+        rating = valid_ratings[-1]
+        selected_rating = valid_ratings[-1]
+
+
+    pokemonData = getPokemonData(meta,rating)
+
+    pokemon_top_usage = list(sorted(pokemonData.keys(), key=lambda x: pokemonData[x]["usage"], reverse=True))
     try:
-        rank = sorted_pokemon.index(default_pokemon) + 1
+        pokeSearch = pokemon_top_usage[0]
+    except IndexError:
+        pokeSearch = ""
+        
+    if selected_pokemon != "No Pokemon":
+        word = selected_pokemon.lower()
+        possibilities = pokemonData.keys()
+        normalized_possibilities = {p.lower(): p for p in possibilities}
+        result = difflib.get_close_matches(word, normalized_possibilities.keys(),10)
+        normalized_result = [normalized_possibilities[r] for r in result]
+        if len(normalized_result)>0:
+            close = normalized_result[0]
+            pokeSearch = close
+    print((selected_meta),selected_rating,selected_pokemon)
+    if (meta != meta_name):
+        print("Incorrect Meta")
+        return redirect(url_for('show_page_pokemon',
+                            meta_name=meta,
+                            meta_rating=rating,
+                            pokemon_name=pokeSearch))
+
+    if (rating != meta_rating):
+        print("Incorrect Rating")
+        return redirect(url_for('show_page_pokemon',
+                            meta_name=meta,
+                            meta_rating=rating,
+                            pokemon_name=pokeSearch))
+
+    if (pokeSearch != selected_pokemon):
+        print("Incorrect Pokemon")
+        return redirect(url_for('show_page_pokemon',
+                            meta_name=meta,
+                            meta_rating=rating,
+                            pokemon_name=pokeSearch))
+
+    try:
+        rank = pokemon_top_usage.index(pokeSearch) + 1
     except ValueError:
         rank = "N/A"
-    usage_percent = round(usage_stats.get(default_pokemon, {}).get("usage", 0) * 100, 2)
-    current_pokemon_data = [default_pokemon, usage_percent, rank, get_pokemon_sprite(default_pokemon)]
+
+    try:
+        use = round(pokemonData[pokeSearch]["usage"]*100,2)
+    except ValueError:
+        use = "N/A"
+
+    pokemon_top_usage = [[poke,"{:.2f}".format(round(pokemonData[poke]["usage"]*100,2)),get_sprite_pokemon(poke)] for poke in pokemon_top_usage]
     
-    base_stats = compile_top_data(usage_stats, default_pokemon, "Stats")
-    pokemon_types = compile_top_data(usage_stats, default_pokemon, "Types")
-    moves_list = compile_top_data(usage_stats, default_pokemon, "Moves")
-    teammates_list = compile_top_data(usage_stats, default_pokemon, "Teammates")
-    items_list = compile_top_data(usage_stats, default_pokemon, "Items")
-    abilities_list = compile_top_data(usage_stats, default_pokemon, "Abilities")
-    spreads_list = compile_top_data(usage_stats, default_pokemon, "Spreads")
-    natures_list = compile_top_data(usage_stats, default_pokemon, "Natures")
-    evs_list = compile_top_data(usage_stats, default_pokemon, "EVs")
-    counters_list = compile_top_data(usage_stats, default_pokemon, "Checks and Counters")
-    graph_data = compile_top_data(usage_stats, default_pokemon, "Graph", chosen_format, base_stats)
-    tera_types_list = compile_top_data(usage_stats, default_pokemon, "Tera Types")
-    
+
+
+    current_pokemon = [pokeSearch,use,rank,get_sprite_pokemon(pokeSearch)]
+
+    pokemon_base_stats = top_data_list(pokemonData,pokeSearch,"Stats")
+    pokemon_types = top_data_list(pokemonData,pokeSearch,"Types")
+    pokemon_moves = top_data_list(pokemonData,pokeSearch,"Moves")
+    pokemon_teammates = top_data_list(pokemonData,pokeSearch,"Teammates")
+    pokemon_items = top_data_list(pokemonData,pokeSearch,"Items")
+    pokemon_abilities = top_data_list(pokemonData,pokeSearch,"Abilities")
+    pokemon_spreads = top_data_list(pokemonData,pokeSearch,"Spreads")
+    pokemon_natures = top_data_list(pokemonData,pokeSearch,"Natures")
+    pokemon_evs = top_data_list(pokemonData,pokeSearch,"EVs")
+    pokemon_counters = top_data_list(pokemonData,pokeSearch,"Checks and Counters")
+    pokemon_graph = top_data_list(pokemonData,pokeSearch,"Graph",meta,pokemon_base_stats)
+
+    #dictTera = getTeraData(meta,pokeSearch)
+    #total_tera = sum(list(dictTera.values()))
+    #listTera = [(tera,round(dictTera[tera]/total_tera*100,2)) for tera in dictTera.keys()]
+    #listTera.sort(key=lambda x: x[1],reverse=True)
+    #listTera = [(tera[0],"{:.2f}".format(tera[1])) for tera in listTera]
+    listTera = top_data_list(pokemonData,pokeSearch,"Tera Types")
+
     return render_template('index.html', 
-                           pokemon_names=[[name, "{:.2f}".format(round(usage_stats[name]["usage"] * 100, 2)), get_pokemon_sprite(name)]
-                                          for name in sorted_pokemon],
-                           availableFormats=availableFormats,
-                           selected_format=selected_format,
-                           selected_pokemon=default_pokemon,
-                           selected_rating=rating_threshold,
-                           base_stats=base_stats,
+                           pokemon_names=pokemon_top_usage,
+                           meta_games=meta_games_list,
+                           selected_meta=selected_meta,
+                           selected_pokemon=selected_pokemon,
+                           selected_rating=selected_rating,
+                           pokemon_base_stats=pokemon_base_stats,
                            pokemon_types=pokemon_types,
-                           moves_list=moves_list,
-                           teammates_list=teammates_list,
-                           items_list=items_list,
-                           abilities_list=abilities_list,
-                           spreads_list=spreads_list,
-                           natures_list=natures_list,
-                           evs_list=evs_list,
-                           counters_list=counters_list,
-                           current_pokemon=current_pokemon_data,
-                           rating_options=rating_options,
-                           tera_types_list=tera_types_list,
-                           graph_data=graph_data)
+                           pokemon_moves=pokemon_moves,
+                           pokemon_teammates=pokemon_teammates,
+                           pokemon_items=pokemon_items,
+                           pokemon_abilities=pokemon_abilities,
+                           pokemon_spreads=pokemon_spreads,
+                           pokemon_natures=pokemon_natures,
+                           pokemon_evs=pokemon_evs,
+                           pokemon_counters=pokemon_counters,
+                           current_pokemon = current_pokemon,
+                           valid_ratings = valid_ratings,
+                           tera_data = listTera,
+                           raw_stats = pokemon_graph)
 
 @app.route('/search_pokemon', methods=['POST'])
-def search_pokemon_route():
-    default_format = "gen9vgc2025regg"
-    selected_format_input = request.form.get('meta_value', f'["{default_format}", "{formatDisplayNames.get(default_format, default_format)}"]')
-    selected_pokemon_input = request.form.get('pokemon_value', "No Pokemon")
-    selected_rating_input = request.form.get('rating_value', "No Rating")
-    print(selected_format_input,selected_pokemon_input,selected_rating_input)
-    
+def search_pokemon():
+    meta = "gen9vgc2025regg"
+    selected_meta = request.form.get('meta_value',f"{[meta,meta_names.get(meta,meta)]}")
+    selected_pokemon = request.form.get('pokemon_value',"No Pokemon")
+    selected_rating = request.form.get('rating_value',"No Rating")
+#
     try:
-        selected_format = pyjson5.loads(selected_format_input)
-    except Exception:
-        selected_format = [default_format, formatDisplayNames.get(default_format, default_format)]
+        selected_meta = pyjson5.loads(selected_meta)
+    except pyjson5.Json5IllegalCharacter:
+        selected_meta = [meta,meta_names.get(meta,meta)]
+
     
-    chosen_format = selected_format[0] if selected_format[0] in formatDisplayNames else default_format
-    rating_options = get_valid_rating_thresholds(chosen_format)
-    chosen_rating = selected_rating_input if selected_rating_input in rating_options else rating_options[-1]
+    if (selected_meta[0] in meta_names.keys()):
+        meta = selected_meta[0]
+    valid_ratings = get_valid_ratings(meta)
+
+    if (selected_rating in valid_ratings):
+        rating = selected_rating 
+    else:
+        rating = valid_ratings[-1]
+        selected_rating = valid_ratings[-1]
+
+
+    pokemonData = getPokemonData(meta,rating)
+
+    pokemon_top_usage = list(sorted(pokemonData.keys(), key=lambda x: pokemonData[x]["usage"], reverse=True))
+    try:
+        pokeSearch = pokemon_top_usage[0]
+    except IndexError:
+        pokeSearch = ""
+        
+    if selected_pokemon != "No Pokemon":
+        word = selected_pokemon.lower()
+        possibilities = pokemonData.keys()
+        normalized_possibilities = {p.lower(): p for p in possibilities}
+        result = difflib.get_close_matches(word, normalized_possibilities.keys(),10)
+        normalized_result = [normalized_possibilities[r] for r in result]
+        if len(normalized_result)>0:
+            close = normalized_result[0]
+            pokeSearch = close
+    if (meta != selected_meta[0]):
+        print("Incorrect Meta")
+
+    if (rating != selected_rating):
+        print("Incorrect Rating")
+
+    if (pokeSearch != selected_pokemon):
+        print("Incorrect Pokemon")
+#
     
-    usage_stats = fetch_pokemon_usage_data(chosen_format, chosen_rating)
-    sorted_pokemon = sorted(usage_stats.keys(), key=lambda name: usage_stats[name]["usage"], reverse=True)
-    default_pokemon = sorted_pokemon[0] if sorted_pokemon else ""
-    
-    if selected_pokemon_input != "No Pokemon":
-        matched_pokemon = fuzzy_match(selected_pokemon_input, usage_stats.keys())
-        if matched_pokemon:
-            default_pokemon = matched_pokemon
-    
-    return redirect(url_for('display_pokemon_page',
-                            format_code=chosen_format,
-                            rating_threshold=chosen_rating,
-                            pokemon_name=default_pokemon))
+    return redirect(url_for('show_page_pokemon',
+                            meta_name=meta,
+                            meta_rating=rating,
+                            pokemon_name=pokeSearch))
 
 @app.errorhandler(404)
 def page_not_found(e):
@@ -463,10 +540,111 @@ def page_not_found(e):
 def internal_server_error(e):
     return render_template('500.html'), 500
 
+@app.route('/about')
+def about():
+    return render_template('about.html')
 
 @app.route('/', methods=['GET'])
 def index():
-    return display_pokemon_page("gen9vgc2025regg")
+    rating = "0"
+    meta = "gen9vgc2025regg"
+    selected_pokemon = ""
+    valid_ratings = ["0","1500","1760"]
+
+    selected_meta = request.form.get('meta_value',f"{[meta,meta_names.get(meta,meta)]}")
+    selected_pokemon = request.form.get('pokemon_value',"No Pokemon")
+    selected_rating = request.form.get('rating_value',"No Rating")
+    valid_ratings = request.form.get('valid_ratings',valid_ratings)
+
+    try:
+        selected_meta = pyjson5.loads(selected_meta)
+    except pyjson5.Json5IllegalCharacter:
+        selected_meta = [meta,meta_names.get(meta,meta)]
+
+    print((selected_meta[1]),selected_rating,selected_pokemon)
+    if (selected_meta[0] in meta_names.keys()):
+        meta = selected_meta[0]
+    valid_ratings = get_valid_ratings(meta)
+
+    if (selected_rating in valid_ratings):
+        rating = selected_rating 
+    else:
+        rating = valid_ratings[-1]
+        selected_rating = valid_ratings[-1]
+    
+    pokemonData = getPokemonData(meta,rating)
+
+    pokemon_top_usage = list(sorted(pokemonData.keys(), key=lambda x: pokemonData[x]["usage"], reverse=True))
+    try:
+        pokeSearch = pokemon_top_usage[0]
+    except IndexError:
+        pokeSearch = ""
+        
+    if selected_pokemon != "No Pokemon":
+        word = selected_pokemon.lower()
+        possibilities = pokemonData.keys()
+        normalized_possibilities = {p.lower(): p for p in possibilities}
+        result = difflib.get_close_matches(word, normalized_possibilities.keys(),10)
+        normalized_result = [normalized_possibilities[r] for r in result]
+        if len(normalized_result)>0:
+            close = normalized_result[0]
+            pokeSearch = close
+
+    try:
+        rank = pokemon_top_usage.index(pokeSearch) + 1
+    except ValueError:
+        rank = "N/A"
+
+    try:
+        use = round(pokemonData[pokeSearch]["usage"]*100,2)
+    except ValueError:
+        use = "N/A"
+
+    pokemon_top_usage = [[poke,"{:.2f}".format(round(pokemonData[poke]["usage"]*100,2)),get_sprite_pokemon(poke)] for poke in pokemon_top_usage]
+    
+
+
+    current_pokemon = [pokeSearch,use,rank,get_sprite_pokemon(pokeSearch)]
+
+    pokemon_base_stats = top_data_list(pokemonData,pokeSearch,"Stats")
+    pokemon_types = top_data_list(pokemonData,pokeSearch,"Types")
+    pokemon_moves = top_data_list(pokemonData,pokeSearch,"Moves")
+    pokemon_teammates = top_data_list(pokemonData,pokeSearch,"Teammates")
+    pokemon_items = top_data_list(pokemonData,pokeSearch,"Items")
+    pokemon_abilities = top_data_list(pokemonData,pokeSearch,"Abilities")
+    pokemon_spreads = top_data_list(pokemonData,pokeSearch,"Spreads")
+    pokemon_natures = top_data_list(pokemonData,pokeSearch,"Natures")
+    pokemon_evs = top_data_list(pokemonData,pokeSearch,"EVs")
+    pokemon_counters = top_data_list(pokemonData,pokeSearch,"Checks and Counters")
+    pokemon_graph = top_data_list(pokemonData,pokeSearch,"Graph",meta,pokemon_base_stats)
+
+    #dictTera = getTeraData(meta,pokeSearch)
+    #total_tera = sum(list(dictTera.values()))
+    #listTera = [(tera,round(dictTera[tera]/total_tera*100,2)) for tera in dictTera.keys()]
+    #listTera.sort(key=lambda x: x[1],reverse=True)
+    #listTera = [(tera[0],"{:.2f}".format(tera[1])) for tera in listTera]
+    listTera = top_data_list(pokemonData,pokeSearch,"Tera Types")
+
+    return render_template('index.html', 
+                           pokemon_names=pokemon_top_usage,
+                           meta_games=meta_games_list,
+                           selected_meta=selected_meta,
+                           selected_pokemon=selected_pokemon,
+                           selected_rating=selected_rating,
+                           pokemon_base_stats=pokemon_base_stats,
+                           pokemon_types=pokemon_types,
+                           pokemon_moves=pokemon_moves,
+                           pokemon_teammates=pokemon_teammates,
+                           pokemon_items=pokemon_items,
+                           pokemon_abilities=pokemon_abilities,
+                           pokemon_spreads=pokemon_spreads,
+                           pokemon_natures=pokemon_natures,
+                           pokemon_evs=pokemon_evs,
+                           pokemon_counters=pokemon_counters,
+                           current_pokemon = current_pokemon,
+                           valid_ratings = valid_ratings,
+                           tera_data = listTera,
+                           raw_stats = pokemon_graph)
 
 if __name__ == "__main__":
     app.run(debug=True)
