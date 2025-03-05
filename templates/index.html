@@ -3,14 +3,14 @@
    <head>
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width, initial-scale=1">
-      {% if request.path == "/ "%}
-         <title>MunchStats</title>
-         <meta name="description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
-         <meta name="twitter:description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
-      {% else %}
+      {% if request.path|length > 1%}
          <title>{{ current_pokemon[0] }} | MunchStats | {{ selected_format[1] }}</title>
          <meta name="description" content="Find data about {{ current_pokemon[0] }} for {{ selected_format[1] }}. Find common EVs, Moves, Item, and Abilities!">
          <meta name="twitter:description" content="Find data about {{ current_pokemon[0] }} for {{ selected_format[1] }}. Find common EVs, Moves, Item, and Abilities!">
+         {% else %}
+         <title>MunchStats</title>
+         <meta name="description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
+         <meta name="twitter:description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
       {% endif%}
       <meta property="og:image" content="{{ url_for('static', filename='favicon.png') }}" />
       <meta name="twitter:image" content="{{ url_for('static', filename='favicon.png') }}">
