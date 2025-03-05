@@ -5,15 +5,18 @@
       <meta name="viewport" content="width=device-width, initial-scale=1">
       {% if request.path|length > 1%}
          <title>{{ current_pokemon[0] }} | MunchStats | {{ selected_meta[1] }}</title>
+         <meta name="og:description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
          <meta name="description" content="Find data about {{ current_pokemon[0] }} for {{ selected_meta[1] }}. Find common EVs, Moves, Item, and Abilities!">
          <meta name="twitter:description" content="Find data about {{ current_pokemon[0] }} for {{ selected_meta[1] }}. Find common EVs, Moves, Item, and Abilities!">
          {% else %}
          <title>MunchStats</title>
+         <meta name="og:description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
          <meta name="description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
          <meta name="twitter:description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
       {% endif%}
-      <meta property="og:image" content="https://www.munchstats.com/static/favicon.png" />
-      <meta name="twitter:image" content="https://www.munchstats.com/static/favicon.png">
+      <meta property="og:image" content="https://www.munchstats.com//static/favicon1280x720.png" />
+      <meta name="twitter:card" content="summary_large_image" />
+      <meta name="twitter:image" content="https://www.munchstats.com/static/favicon1280x720.png">
       <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
       <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
       <meta name="description" content="Find out Latest Pokemon Showdown Usage Statistics. Most Pokemon Showdown formats supported!">
