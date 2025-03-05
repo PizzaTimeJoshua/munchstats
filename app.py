@@ -49,7 +49,7 @@ def getTeraData(meta,poke):
 
 def extract_gen(s):
     """Extract the generation number from the string."""
-    val = s.split("-")[2].split("gen")[1].split("1v1")[0].split("2v2")[0].split("350")[0]
+    val = s.split("-")[2].split("gen")[1].split("1v1")[0].split("2v2")[0].split("350")[0].split("12switch")[0]
     val = int(re.findall(r'\d+', val)[0]) if re.findall(r'\d+', val) else None
     return val
 
