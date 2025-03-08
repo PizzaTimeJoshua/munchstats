@@ -470,4 +470,4 @@ def index():
     return display_pokemon_page("gen9vgc2025regg")
 
 if __name__ == "__main__":
-    app.run(debug=True,port=5001)
+    app.run(debug=True)
