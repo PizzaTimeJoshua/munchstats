@@ -30,8 +30,7 @@ def load_data_file(filepath, mode='r', encoding="utf8"):
 
 def build_data_path(filename):
     """Construct a path relative to the data directory."""
-    path = f"{DATA_DIRECTORY}/{filename}"
-    return path
+    return os.path.join(DATA_DIRECTORY, filename)
 
 def get_previous_year_month():
     """Return the year and month (as strings) for the previous month."""
