@@ -30,7 +30,7 @@ def load_data_file(filepath, mode='r', encoding="utf8"):
 
 def build_data_path(filename):
     """Construct a path relative to the data directory."""
-    path = f"{DATA_DIRECTORY}\{filename}"
+    path = f"{DATA_DIRECTORY}\\{filename}"
     return path
 
 def get_previous_year_month():
