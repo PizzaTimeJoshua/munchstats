@@ -119,7 +119,7 @@ $(document).ready(function() {
     }
     let currentMoves = window.initialMoves;
     let currentTeraType = "";
-    if (window.teraType !== "") {
+    if (window.teraType !== "" && window.teraType !== "Nothing") {
       currentTeraType = "\nTera Type: " + window.teraType;
     }
     let currentLevel = "";
