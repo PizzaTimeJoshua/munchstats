@@ -215,7 +215,7 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
         teammates = usage_data[pokemon_name].get("Teammates", {})
         total_weight = max(sum(usage_data[pokemon_name].get("Abilities", {"Unknown": 1}).values()), 1)
         # Hot Fix for Teammmate Usage
-        if total_weight < sum(teammates.values())/10:
+        if total_weight < sum(teammates.values())/6:
             total_weight = sum(teammates.values())/6 
         sorted_teammates = sorted(teammates.keys(), key=lambda x: teammates[x], reverse=True)[:10]
         return [[poke, "{:.3f}".format(round(teammates[poke] / total_weight * 100, 3)), get_pokemon_sprite(poke)]
