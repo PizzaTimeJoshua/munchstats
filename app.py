@@ -354,7 +354,7 @@ def about():
 @app.route('/<format_code>/<rating_threshold>/')
 @app.route('/<format_code>/')
 def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
-    default_format = "gen9vgc2025regi"
+    default_format = "gen9vgc2025regibo3"
     try:
         selected_format = pyjson5.loads(f'["{format_code}", "{formatDisplayNames.get(format_code, format_code)}"]')
     except Exception:
@@ -429,7 +429,7 @@ def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
 
 @app.route('/search_pokemon', methods=['POST'])
 def search_pokemon_route():
-    default_format = "gen9vgc2025regi"
+    default_format = "gen9vgc2025regibo3"
     selected_format_input = request.form.get('meta_value', f'["{default_format}", "{formatDisplayNames.get(default_format, default_format)}"]')
     selected_pokemon_input = request.form.get('pokemon_value', "No Pokemon")
     selected_rating_input = request.form.get('rating_value', "No Rating")
@@ -469,7 +469,7 @@ def internal_server_error(e):
 
 @app.route('/', methods=['GET'])
 def index():
-    return display_pokemon_page("gen9vgc2025regi")
+    return display_pokemon_page("gen9vgc2025regibo3")
 
 if __name__ == "__main__":
     app.run(debug=True)
