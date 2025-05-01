@@ -649,17 +649,17 @@
             {% if evs_list[0]|length > 0 %}
             <div>
                <h2 style="margin-bottom: 5px;">Top EVs By Category</h2>
-               <input type="hidden" name="rating_value" id="selectedEVs" value="hp">
-               <button type="button" id="atk_evs" onclick="selectEVs('atk')" value="atk" class="ev-button underline">ATK</button>
+               <input type="hidden" name="rating_value" id="selectedEVs" value="spe">
+               <button type="button" id="atk_evs" onclick="selectEVs('atk')" value="atk" class="ev-button">ATK</button>
                <button type="button" id="spa_evs" onclick="selectEVs('spa')" value="spa" class="ev-button">SPA</button>
-               <button type="button" id="spe_evs" onclick="selectEVs('spe')" value="spe" class="ev-button">SPE</button>
+               <button type="button" id="spe_evs" onclick="selectEVs('spe')" value="spe" class="ev-button underline">SPE</button>
                <button type="button" id="def_evs" onclick="selectEVs('def')" value="def" class="ev-button">HP+DEF</button>
                <button type="button" id="spd_evs" onclick="selectEVs('spd')" value="spd" class="ev-button">HP+SPD</button>
                <div class="Data" style="height: 188px;">
                   {% if evs_list[0]|length > 0 %}
                   <ul>
                      {% for evSet in evs_list[0] %}
-                     <li class="evs_atk">
+                     <li class="evs_atk" hidden>
                         <button type="button" class="export-button" export-data='{"ev": "{{ evSet[0] }}"}'>
                            <span class="left-text">{{ evSet[0] }}</span>
                            <span class="right-text">{{ evSet[1] }}%</span>
@@ -675,7 +675,7 @@
                      </li>
                      {% endfor %}
                      {% for evSet in evs_list[2] %}
-                     <li class="evs_spe" hidden>
+                     <li class="evs_spe">
                         <button type="button" class="export-button" export-data='{"ev": "{{ evSet[0] }}"}'>
                            <span class="left-text">{{ evSet[0] }}</span>
                            <span class="right-text">{{ evSet[1] }}%</span>
@@ -769,7 +769,7 @@
          </div>
       </form>
       <div style="text-align: center; height: 32px;">
-         <h6>Usage stats data from the month of March 2025</h6>   
+         <h6>Usage stats data from the month of April 2025</h6>   
       </div>
       <div style="text-align: center; height: 32px">
          <h6><a href="/about">About</a></h6>
