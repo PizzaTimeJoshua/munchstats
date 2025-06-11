@@ -19,7 +19,12 @@ $(document).ready(function() {
   
     // Chart setup and functions
     const graphDataString = window.graphData;
-    const chartStats = JSON.parse(graphDataString);
+    let chartStats;
+    try {
+      chartStats = JSON.parse(graphDataString);
+    } catch (e) {
+      chartStats = [[],[],[],[],[],[]];
+    }
     const statLabels = ["HP", "Attack", "Defense", "Sp. Attack", "Sp. Defense", "Speed"];
   
     function sortChartData(dataArray) {

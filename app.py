@@ -188,6 +188,8 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
         for stat in ["hp", "atk", "def", "spa", "spd", "spe"]:
             sorted_values = sorted(graph_stats[stat].items(), key=lambda x: x[1], reverse=True)
             sorted_graph.append([[val, graph_stats[stat][val] / total_weight * 100] for val, _ in sorted_values])
+        if sorted_graph == []:
+            return pyjson5.dumps([])
         return pyjson5.dumps(sorted_graph, separators=(',', ':'))
     
     # Branch for 'Moves'
@@ -381,9 +383,14 @@ def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
     # Only redirect if not on the homepage ("/")
     if (chosen_format != format_code or chosen_rating != rating_threshold or default_pokemon != pokemon_name) and request.path != '/':
         return redirect(url_for('display_pokemon_page',
-                                format_code=chosen_format,
-                                rating_threshold=chosen_rating,
-                                pokemon_name=default_pokemon))
+                format_code=chosen_format,
+                rating_threshold=chosen_rating,
+                pokemon_name=default_pokemon))
+    if (default_pokemon == ""):
+        return redirect(url_for('display_pokemon_page',
+                format_code=chosen_format,
+                rating_threshold="0",
+                pokemon_name=default_pokemon))
     
     try:
         rank = sorted_pokemon.index(default_pokemon) + 1
