@@ -769,7 +769,7 @@
          </div>
       </form>
       <div style="text-align: center; height: 32px;">
-         <h6>Usage stats data from the month of June 2025</h6>   
+         <h6>Usage stats data from the month of July 2025</h6>   
       </div>
       <div style="text-align: center; height: 32px">
          <h6><a href="/about">About</a></h6>
@@ -777,10 +777,16 @@
       </div>
       <div class="tooltip" id="tooltip"></div>
       <script>
+         function decodeHtmlEntities(encodedString) {
+         const tempElement = document.createElement('textarea');
+
+         tempElement.innerHTML = encodedString;
+         return tempElement.value;
+         }
          window.graphData = {{ graph_data | tojson }};
          window.currentPokemonName = "{{ current_pokemon[0] }}";
          window.currentItem = {% if items_list|length > 0 %}"{{ items_list[0][0] }}"{% else %}""{% endif %};
-         window.currentAbility = {% if abilities_list|length > 0 %}"{{ abilities_list[0][0] }}"{% else %}""{% endif %};
+         window.currentAbility = {% if abilities_list|length > 0 %} decodeHtmlEntities("{{ abilities_list[0][0] }}") {% else %}""{% endif %};
          window.initialSpread = {% if spreads_list|length > 0 %}"{{ spreads_list[0][0] }}"{% else %}""{% endif %};
          window.selectedFormat = "{{ selected_format[0] }}";
          window.teraType = {% if tera_types_list|length > 0 %}"{{ tera_types_list[0][0] }}"{% else %}""{% endif %};
