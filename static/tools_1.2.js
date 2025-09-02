@@ -117,6 +117,7 @@ $(document).ready(function() {
     let currentAbility = window.currentAbility;
     let currentNature = "";
     let currentEVSpread = "";
+    let currentIVs = "";
     if (window.initialSpread !== "") {
       const spreadResult = toShowdownSpread(window.initialSpread);
       currentNature = spreadResult[0];
@@ -124,6 +125,15 @@ $(document).ready(function() {
     }
     let currentMoves = window.initialMoves;
     let currentTeraType = "";
+    if (window.initialSpread !== "") {
+      let [naturePart, evPart] = window.initialSpread.split(":");
+      let evs = evPart.replace(/\s/g, '').split("/");
+      if (["Brave","Relaxed","Quiet","Sassy"].includes(currentNature) && evs[5]=="0") {
+        currentIVs = "\nIVs: 0 Spe";
+      } else {
+        currentIVs = "";
+      }
+    }
     if (window.teraType !== "" && window.teraType !== "Nothing") {
       currentTeraType = "\nTera Type: " + window.teraType;
     }
@@ -144,6 +154,7 @@ $(document).ready(function() {
       showdownSet += currentTeraType;
       showdownSet += "\nEVs: " + currentEVSpread;
       showdownSet += "\n" + currentNature + " Nature";
+      showdownSet += currentIVs;
       currentMoves.forEach(move => {
         showdownSet += "\n- " + move;
       });
@@ -330,6 +341,12 @@ $(document).ready(function() {
       }
       if (typeof exportData.nature === 'string') {
         currentNature = exportData.nature;
+        let speed_evs = currentEVSpread.includes("Spe")
+        if (["Brave","Relaxed","Quiet","Sassy"].includes(currentNature) && !speed_evs) {
+          currentIVs = "\nIVs: 0 Spe";
+        } else {
+          currentIVs = "";
+        }
       }
       if (typeof exportData.tera === 'string') {
         currentTeraType = "\nTera Type: " + exportData.tera;
@@ -348,6 +365,15 @@ $(document).ready(function() {
         const temp = toShowdownSpread(exportData.spread);
         currentNature = temp[0];
         currentEVSpread = temp[1];
+      }
+      if (typeof exportData.spread === 'string') {
+        let [naturePart, evPart] = exportData.spread.split(":");
+        let evs = evPart.replace(/\s/g, '').split("/");
+        if (["Brave","Relaxed","Quiet","Sassy"].includes(currentNature) && evs[5]=="0") {
+          currentIVs = "\nIVs: 0 Spe";
+        } else {
+          currentIVs = "";
+        }
       }
       $("#showdown-set").val(generateShowdownSet());
     });
