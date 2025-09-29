@@ -57,7 +57,7 @@ export FLASK_APP=app.py  # Windows: set FLASK_APP=app.py
 flask run
 
 # Prod-like
-gunicorn app:app --workers 2 --bind 0.0.0.0:8000
+gunicorn app:app --workers 2 --bind 127.0.0.1:8000
 ```
 
 ## Deployment
