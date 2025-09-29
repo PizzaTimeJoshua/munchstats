@@ -1,4 +1,4 @@
-# MunchStats — README.m
+# MunchStats — README.md
 
 > **Live:** https://munchstats.com  
 > **Repo:** https://github.com/PizzaTimeJoshua/munchstats
