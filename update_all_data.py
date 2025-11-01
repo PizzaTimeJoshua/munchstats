@@ -60,7 +60,7 @@ def extract_battle_icon_indexes_from_url(mjs_url, output_json_path):
     icon_indexes_dict = eval(f"{{{content_string}}}")
 
     # 5. Serialize the dictionary to a JSON file
-    with open(output_json_path, 'wb') as json_file:
+    with open(output_json_path, 'w') as json_file:
         pyjson5.dump(icon_indexes_dict, json_file, indent=4)
 
 
@@ -145,12 +145,10 @@ def generateFormatList():
             meta_names[meta]=pokeSearch
         else:
             print(f"Unable to find format name for {meta}")
-    with open('stats/meta_names.json', 'wb') as file:
+    with open('stats/meta_names.json', 'w') as file:
         pyjson5.dump(meta_names,file)
         
 if __name__ == "__main__":
-    updateData()
-    updateImage()
-    updateMetagames()
+
     generateFormatList()
     print("Update done.")
