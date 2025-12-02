@@ -149,6 +149,8 @@ def generateFormatList():
         pyjson5.dump(meta_names,file)
         
 if __name__ == "__main__":
-
+    updateData()
+    updateImage()
+    updateMetagames()
     generateFormatList()
     print("Update done.")
