@@ -477,7 +477,7 @@ def internal_server_error(e):
 
 @app.route('/', methods=['GET'])
 def index():
-    return display_pokemon_page("gen9vgc2025regh")
+    return display_pokemon_page(DEFAULT_META)
 
 if __name__ == "__main__":
     app.run(debug=True)
