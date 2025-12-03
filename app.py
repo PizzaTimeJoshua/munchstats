@@ -12,6 +12,7 @@ app = Flask(__name__)
 DATA_DIRECTORY = "stats"
 os.makedirs(DATA_DIRECTORY, exist_ok=True)
 
+DEFAULT_META = "gen9vgc2026regf"
 # Global dictionaries for loaded data
 formatDisplayNames = {}
 availableFormats = []
@@ -356,7 +357,7 @@ def about():
 @app.route('/<format_code>/<rating_threshold>/')
 @app.route('/<format_code>/')
 def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
-    default_format = "gen9vgc2025regh"
+    default_format = DEFAULT_META
     try:
         selected_format = pyjson5.loads(f'["{format_code}", "{formatDisplayNames.get(format_code, format_code)}"]')
     except Exception:
@@ -436,7 +437,7 @@ def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
 
 @app.route('/search_pokemon', methods=['POST'])
 def search_pokemon_route():
-    default_format = "gen9vgc2025regh"
+    default_format = DEFAULT_META
     selected_format_input = request.form.get('meta_value', f'["{default_format}", "{formatDisplayNames.get(default_format, default_format)}"]')
     selected_pokemon_input = request.form.get('pokemon_value', "No Pokemon")
     selected_rating_input = request.form.get('rating_value', "No Rating")
