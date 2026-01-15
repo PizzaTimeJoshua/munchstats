@@ -1,803 +1,871 @@
 <!doctype html>
 <html lang="en">
-   <head>
-      <meta charset="utf-8">
-      <meta name="viewport" content="width=device-width, initial-scale=1">
-      {% if request.path|length > 1%}
-         <title>{{ current_pokemon[0] }} | MunchStats | {{ selected_format[1] }}</title>
-         <meta property="og:title" content="{{ current_pokemon[0] }} | MunchStats | {{ selected_format[1] }}">
-         <meta name="og:description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
-         <meta name="description" content="Find data about {{ current_pokemon[0] }} for {{ selected_format[1] }}. Find common EVs, Moves, Item, and Abilities!">
-         <meta name="twitter:description" content="Find data about {{ current_pokemon[0] }} for {{ selected_format[1] }}. Find common EVs, Moves, Item, and Abilities!">
-         {% else %}
-         <title>MunchStats</title>
-         <meta property="og:title" content="MunchStats">
-         <meta name="og:description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
-         <meta name="description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
-         <meta name="twitter:description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
-      {% endif%}
-      <meta property="og:image" content="https://www.munchstats.com//static/favicon.png" />
-      <meta name="twitter:card" content="summary_large_image" />
-      <meta name="twitter:image" content="https://www.munchstats.com/static/favicon1280x720.png">
-      <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-      <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-      <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
-      <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-      <style>
-         /* Container for the chart so we can control height */
-         #chart-container {
-            width: 100%;
-            height: 185px;
-            position: relative;
-         }
-         body {
-            background-color: #1e1e1e;
-            display: grid;
-            grid-template-columns: 1fr;
-            grid-template-rows: auto 1fr auto;
-            color: #e0e0e0;
-            font-family: Arial, sans-serif;
-         }
-         input[type="text"], input[type="submit"] {
-            background-color: #222222;
-            color: #e0e0e0;
-            border: 1px solid #555;
-            padding: 8px 12px;
-            margin: 5px;
-         }
-         input[type="submit"]:hover {
-            background-color: #333333;
-         }
-         .rating-buttons {
-            text-align: center;
-            max-height: 50px;
-            padding-bottom: 10px;
-         }
-         .rating-button, .ev-button, .stat-button {
-            background-color: #222222;
-            color: #e0e0e0;
-            border: 1px solid #555;
-            padding: 8px 12px;
-            margin: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-         }
-         .ev-button, .stat-button {
-            margin: 4px 0px;
-            padding: 6px 8px;
-         }
-         .tooltip {
-            position: absolute;
-            background-color: black;
-            color: white;
-            padding: 5px 10px;
-            border-radius: 5px;
-            font-size: 14px;
-            white-space: pre-line;
-            pointer-events: none;
-            display: none;
-            max-width: 300px;
-            word-wrap: break-word;
-            opacity: 80%;
-         }
-         .rating-button:hover {
-            background-color: #333333;
-            color: #ffffff;
-         }
-         .pokemon-buttons {
-            text-align: left;
-         }
-         .pokemon-button, .export-button, .copy-button {
-            background-color: #222222;
-            color: #e0e0e0;
-            border: 0px solid #555;
-            padding: 8px 8px;
-            width: 100%;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            justify-content: space-between;
-            align-items: center; 
-            display: flex;
-         }
-         .pokemon-button:hover, .export-button:hover, .copy-button:hover {
-            background-color: #333333;
-            color: #ffffff;
-         }
-         .copy-button {
-            justify-content: center;
-            height: 24px;
-         }
-         .pokemon-list {
-            height: 210px;
-            overflow-y: scroll;
-            overflow-x: hidden;
-            margin-bottom: 20px;
-            width: 300px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            justify-self: center; 
-            align-self: center;   
-            max-height: 210px;
-            margin-right: 10px;
-         }
-         .pokemon-list ul {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-         }
-         .pokemon-listli {
-            padding: 0px;
-         }
-         .pokemon-list li:hover {
-            background-color: #333333;
-         }
-         .pokemon-list::-webkit-scrollbar {
-            width: 12px;
-         }
-         .pokemon-list::-webkit-scrollbar-track {
-            background: #222222;
-         }
-         .pokemon-list::-webkit-scrollbar-thumb {
-            background: #333333;
-         }
-         .pokemon-list::-webkit-scrollbar-thumb:hover {
-            background: #111111;
-         }
-         .meta-buttons {
-            padding-left: 10px;
-         }
-         .meta-button {
-            background-color: #222222;
-            color: #e0e0e0;
-            border: 0px solid #555;
-            padding: 8px 16px;
-            width: 300px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-            text-align: left;
-         }
-         .meta-button:hover {
-            background-color: #333333;
-            color: #ffffff;
-         }
-         .meta-list {
-            height: 300px;
-            overflow-y: scroll;
-            overflow-x: hidden;
-            margin-bottom: 20px;
-            width: 300px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            justify-self: center;
-            align-self: center;
-            max-height: 210px;
-            margin-right: 10px;
-         }
-         .meta-list ul {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-         }
-         .meta-listli {
-            padding: 0px;
-         }
-         .meta-list li:hover {
-            background-color: #333333;
-         }
-         .meta-list::-webkit-scrollbar {
-            width: 12px;
-         }
-         .meta-list::-webkit-scrollbar-track {
-            background: #222222;
-         }
-         .meta-list::-webkit-scrollbar-thumb {
-            background: #333333;
-         }
-         .meta-list::-webkit-scrollbar-thumb:hover {
-            background: #111111;
-         }
-         .left-text, .right-text {
-            white-space: nowrap;
-         }
-         .left-text {
-            margin-right: 10px;
-            padding-left: 10px;
-         }
-         .right-text {
-            margin-left: 10px;
-            padding-right: 10px;
-         }
-         .left {
-            display: grid;
-            grid-template-columns: 1fr; 
-            grid-template-rows: auto auto auto auto auto;
-            text-align: center;
-            align-content: center;
-            align-items: center;
-            height: fit-content;
-         }
-         .right {
-            display: grid;
-            grid-template-columns: repeat(auto-fill,310px); 
-            grid-template-rows: auto 1fr auto auto auto; 
-            text-align: center;
-            justify-self: left;
-            justify-items: center;
-            height: min-content;
-            width: 100%;
-         }
-         .Data, .Export {
-            height: 210px;
-            overflow-y: scroll;
-            overflow-x: hidden;
-            margin-bottom: 20px;
-            width: 300px;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            justify-self: center;
-            align-self: center;
-            max-height: 210px;
-            margin-right: 10px;
-         }
-         .Export {
-            overflow-y: hidden;
-            overflow-x: auto;
-            height: 174px;
-            margin-bottom: 5px;
-         }
-         .Data ul {
-            list-style-type: none;
-            padding: 0;
-            margin: 0;
-         }
-         .Data li {
-            padding: 0px;
-         }
-         .Data li:hover {
-            background-color: #333333;
-         }
-         .Data::-webkit-scrollbar {
-            width: 12px;
-         }
-         .Export::-webkit-scrollbar {
-            height: 12px;
-         }
-         .Data::-webkit-scrollbar-track, .Export::-webkit-scrollbar-track {
-            background: #222222;
-         }
-         .Data::-webkit-scrollbar-thumb, .Export::-webkit-scrollbar-thumb {
-            background: #333333;
-         }
-         .Data::-webkit-scrollbar-thumb:hover, .Export::-webkit-scrollbar-thumb:hover {
-            background: #111111;
-         }
-         .bar-container {
-            width: 300px;
-            height: 20px;
-            background-color: #1e1e1e;
-            margin-top: 0px;
-            display: flex;
-            align-items: left;
-            justify-content: space-between;
-            padding: 4px 0px;
-         }
-         .Stats {
-            width: 300px;
-            margin: 0 auto;
-            text-align: center;
-         }
-         .left-container {
-            display: flex;
-            align-items: center;
-            height: 30px;
-            width: 300px;
-         }
-         .bar-fill {
-            height: 95%;
-         }
-         .hp-fill {
-            background-color: red;
-         }
-         .atk-fill {
-            background-color: orange;
-         }
-         .def-fill {
-            background-color: yellow;
-         }
-         .spa-fill {
-            background-color: turquoise;
-         }
-         .spd-fill {
-            background-color: green;
-         }
-         .spe-fill {
-            background-color: magenta;
-         }
-         .bar-text-left, .bar-text-right {
-            padding: 7px 10px;
-         }
-         .grid-container {
-            display: grid;
-            grid-template-columns: min-content 1fr;
-            grid-gap: 30px;
-            padding-top: 0px;
-         }
-         .image-item {
-            width: 24px; 
-            height: 24px;
-            justify-items: center;
-            line-height: 24px;
-            background-image: url({{ url_for('static', filename='itemicons-sheet.png') }});
-            background-position: -24px -24px;
-            background-repeat: no-repeat;
-         }
-         .image-pokemon {
-            width: 40px; 
-            height: 30px;
-            justify-items: center;
-            line-height: 30px;
-            background-image: url({{ url_for('static', filename='pokemonicons-sheet.png') }});
-            background-position: 0px 0px;
-            background-repeat: no-repeat;
-         }
-         textarea {
-            width: 300px;
-            height: 174px;
-            font-size: 13px;
-            resize: none; 
-            background-color: #1e1e1e; 
-            color: #ffffff;
-            overflow-y: scroll;
-            overflow-x: scroll;
-            white-space: nowrap;
-            box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-            border: 0px;
-            text-align: left;
-         }
-         .twitter-follow-div {
-            padding-top: 5px;
-            padding-right: 5px;
-            justify-self: right;
-            align-items: center;
-            height: 35px;
-         }
-         h3 {
-            margin-top: 5px;
-            margin-bottom: 7px;
-         }
-         .underline {
-            text-decoration: underline;
-         }
-         .munchteams-button {
-            background-color: #04AA6D;
-            border: none;
-            color: white;
-            padding: 8px 8px;
-            text-align: center;
-            text-decoration: none;
-            display: inline-block;
-            font-size: 12px;
-            vertical-align: top;
-         }
-         .type-Normal, .type-Fire, .type-Fighting, .type-Water,
-         .type-Flying, .type-Grass, .type-Poison, .type-Electric,
-         .type-Ground, .type-Psychic, .type-Rock, .type-Ice,
-         .type-Bug, .type-Dragon, .type-Ghost, .type-Dark,
-         .type-Steel, .type-Fairy, .type-Stellar {
-            font-size: 12px;
-            box-shadow: 0 0 0 1px #000;
-            border-radius: 10px;
-            color: #ffffff;
-            letter-spacing: 0;
-            text-align: center;
-            display: inline;
-            padding: 1px 5px 1px 7px;
-            background: #9FA19F;
-            text-transform: uppercase;
-            font-weight: bold;
-         }
-         .type-Normal { background-color: #9FA19F; }
-         .type-Fire { background-color: #e62829; }
-         .type-Fighting { background-color: #ff8000; }
-         .type-Water { background-color: #2980ef; }
-         .type-Flying { background-color: #81b9ef; }
-         .type-Grass { background-color: #3fa129; }
-         .type-Poison { background-color: #9141cb; }
-         .type-Electric { background-color: #fac000; }
-         .type-Steel { background-color: #60a1b8; }
-         .type-Ground { background-color: #915121; }
-         .type-Psychic { background-color: #ef4179; }
-         .type-Rock { background-color: #afa981; }
-         .type-Ice { background-color: #3dcef3; }
-         .type-Bug { background-color: #91a119; }
-         .type-Dragon { background-color: #5060e1; }
-         .type-Ghost { background-color: #704170; }
-         .type-Dark { background-color: #624d4e; }
-         .type-Fairy { background-color: #ef70ef; }
-         .type-Stellar { background-color: #40b5a5; }
-      </style>
-   </head>
-   <!-- Google tag (gtag.js) -->
-   <script async src="https://www.googletagmanager.com/gtag/js?id=G-K1B7P5XXK6"></script>
-   <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag(){dataLayer.push(arguments);}
-      gtag('js', new Date());
-      gtag('config', 'G-K1B7P5XXK6');
-   </script>
-   <body>
-      <div class="twitter-follow-div">
-         <a href="https://munchteams.com" target="_blank" class="munchteams-button">Check out MunchTeams!</a>
-         <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">
-            <img height="29" style="border:0px;height:29px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=3" border="0" alt="Buy Me a Coffee at ko-fi.com" />
-         </a>
-         <a href="https://twitter.com/MunchStats?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large" data-show-screen-name="false" data-dnt="true" data-show-count="false">Follow @MunchStats</a>
-         <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-      </div>
-      <form class="grid-container" action="/search_pokemon" method="post">
-         <div class="left" style="width: 300px;">
-            <div>
-               <h3> Current Format:<br><span style="color: yellow;">{{ selected_format[1] }}</span></h3>
-               <h3> Current Glicko Rating Threshold: <span style="color: yellow;">{{ selected_rating }}</span></h3>
-               <h3> Current Pokemon:<br>
-                  <div style="color: yellow;">
-                     <span>{{ current_pokemon[0] }}</span>
-                     <div class="image-pokemon" style="background-position: {{ current_pokemon[3][1] * -40 }}px {{ current_pokemon[3][0] * -30 }}px; position: relative;left: 135px;"></div>
-                  </div>
-                  {% for type in pokemon_types %}
-                     <div class="type-{{ type }}">{{ type }}</div>
-                  {% endfor %}
-               </h3>
-               <h3> Usage: <span style="color: yellow;">{{ current_pokemon[1] }}%</span></h3>
-               <h3> Monthly Rank: <span style="color: yellow;">{{ current_pokemon[2] }}</span></h3>
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    {% if request.path|length > 1 %}
+      <title>{{ current_pokemon[0] }} | MunchStats | {{ selected_format[1] }}</title>
+      <meta property="og:title" content="{{ current_pokemon[0] }} | MunchStats | {{ selected_format[1] }}">
+      <meta name="og:description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
+      <meta name="description" content="Find data about {{ current_pokemon[0] }} for {{ selected_format[1] }}. Find common EVs, Moves, Item, and Abilities!">
+      <meta name="twitter:description" content="Find data about {{ current_pokemon[0] }} for {{ selected_format[1] }}. Find common EVs, Moves, Item, and Abilities!">
+    {% else %}
+      <title>MunchStats</title>
+      <meta property="og:title" content="MunchStats">
+      <meta name="og:description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
+      <meta name="description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
+      <meta name="twitter:description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
+    {% endif %}
+    <meta property="og:image" content="https://www.munchstats.com//static/favicon.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:image" content="https://www.munchstats.com/static/favicon1280x720.png">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+    <style>
+      /* Container for the chart so we can control height */
+      #chart-container {
+        width: 100%;
+        height: 185px;
+        position: relative;
+      }
+      body {
+        background-color: #1e1e1e;
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto 1fr auto;
+        color: #e0e0e0;
+        font-family: Arial, sans-serif;
+      }
+      input[type="text"],
+      input[type="submit"] {
+        background-color: #222222;
+        color: #e0e0e0;
+        border: 1px solid #555;
+        padding: 8px 12px;
+        margin: 5px;
+      }
+      input[type="submit"]:hover {
+        background-color: #333333;
+      }
+      .rating-buttons {
+        text-align: center;
+        max-height: 50px;
+        padding-bottom: 10px;
+      }
+      .rating-button,
+      .ev-button,
+      .stat-button {
+        background-color: #222222;
+        color: #e0e0e0;
+        border: 1px solid #555;
+        padding: 8px 12px;
+        margin: 5px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+      }
+      .ev-button,
+      .stat-button {
+        margin: 4px 0px;
+        padding: 6px 8px;
+      }
+      .tooltip {
+        position: absolute;
+        background-color: black;
+        color: white;
+        padding: 5px 10px;
+        border-radius: 5px;
+        font-size: 14px;
+        white-space: pre-line;
+        pointer-events: none;
+        display: none;
+        max-width: 300px;
+        word-wrap: break-word;
+        opacity: 80%;
+      }
+      .rating-button:hover {
+        background-color: #333333;
+        color: #ffffff;
+      }
+      .pokemon-buttons {
+        text-align: left;
+      }
+      .pokemon-button,
+      .export-button,
+      .copy-button {
+        background-color: #222222;
+        color: #e0e0e0;
+        border: 0px solid #555;
+        padding: 8px 8px;
+        width: 100%;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        justify-content: space-between;
+        align-items: center;
+        display: flex;
+      }
+      .pokemon-button:hover,
+      .export-button:hover,
+      .copy-button:hover {
+        background-color: #333333;
+        color: #ffffff;
+      }
+      .copy-button {
+        justify-content: center;
+        height: 24px;
+      }
+      .pokemon-list {
+        height: 210px;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        margin-bottom: 20px;
+        width: 300px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        justify-self: center;
+        align-self: center;
+        max-height: 210px;
+        margin-right: 10px;
+      }
+      .pokemon-list ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+      }
+      .pokemon-listli {
+        padding: 0px;
+      }
+      .pokemon-list li:hover {
+        background-color: #333333;
+      }
+      .pokemon-list::-webkit-scrollbar {
+        width: 12px;
+      }
+      .pokemon-list::-webkit-scrollbar-track {
+        background: #222222;
+      }
+      .pokemon-list::-webkit-scrollbar-thumb {
+        background: #333333;
+      }
+      .pokemon-list::-webkit-scrollbar-thumb:hover {
+        background: #111111;
+      }
+      .meta-buttons {
+        padding-left: 10px;
+      }
+      .meta-button {
+        background-color: #222222;
+        color: #e0e0e0;
+        border: 0px solid #555;
+        padding: 8px 16px;
+        width: 300px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        text-align: left;
+      }
+      .meta-button:hover {
+        background-color: #333333;
+        color: #ffffff;
+      }
+      .meta-list {
+        height: 300px;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        margin-bottom: 20px;
+        width: 300px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        justify-self: center;
+        align-self: center;
+        max-height: 210px;
+        margin-right: 10px;
+      }
+      .meta-list ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+      }
+      .meta-listli {
+        padding: 0px;
+      }
+      .meta-list li:hover {
+        background-color: #333333;
+      }
+      .meta-list::-webkit-scrollbar {
+        width: 12px;
+      }
+      .meta-list::-webkit-scrollbar-track {
+        background: #222222;
+      }
+      .meta-list::-webkit-scrollbar-thumb {
+        background: #333333;
+      }
+      .meta-list::-webkit-scrollbar-thumb:hover {
+        background: #111111;
+      }
+      .left-text,
+      .right-text {
+        white-space: nowrap;
+      }
+      .left-text {
+        margin-right: 10px;
+        padding-left: 10px;
+      }
+      .right-text {
+        margin-left: 10px;
+        padding-right: 10px;
+      }
+      .left {
+        display: grid;
+        grid-template-columns: 1fr;
+        grid-template-rows: auto auto auto auto auto;
+        text-align: center;
+        align-content: center;
+        align-items: center;
+        height: fit-content;
+      }
+      .right {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, 310px);
+        grid-template-rows: auto 1fr auto auto auto;
+        text-align: center;
+        justify-self: left;
+        justify-items: center;
+        height: min-content;
+        width: 100%;
+      }
+      .Data,
+      .Export {
+        height: 210px;
+        overflow-y: scroll;
+        overflow-x: hidden;
+        margin-bottom: 20px;
+        width: 300px;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        justify-self: center;
+        align-self: center;
+        max-height: 210px;
+        margin-right: 10px;
+      }
+      .Export {
+        overflow-y: hidden;
+        overflow-x: auto;
+        height: 174px;
+        margin-bottom: 5px;
+      }
+      .Data ul {
+        list-style-type: none;
+        padding: 0;
+        margin: 0;
+      }
+      .Data li {
+        padding: 0px;
+      }
+      .Data li:hover {
+        background-color: #333333;
+      }
+      .Data::-webkit-scrollbar {
+        width: 12px;
+      }
+      .Export::-webkit-scrollbar {
+        height: 12px;
+      }
+      .Data::-webkit-scrollbar-track,
+      .Export::-webkit-scrollbar-track {
+        background: #222222;
+      }
+      .Data::-webkit-scrollbar-thumb,
+      .Export::-webkit-scrollbar-thumb {
+        background: #333333;
+      }
+      .Data::-webkit-scrollbar-thumb:hover,
+      .Export::-webkit-scrollbar-thumb:hover {
+        background: #111111;
+      }
+      .bar-container {
+        width: 300px;
+        height: 20px;
+        background-color: #1e1e1e;
+        margin-top: 0px;
+        display: flex;
+        align-items: left;
+        justify-content: space-between;
+        padding: 4px 0px;
+      }
+      .Stats {
+        width: 300px;
+        margin: 0 auto;
+        text-align: center;
+      }
+      .left-container {
+        display: flex;
+        align-items: center;
+        height: 30px;
+        width: 300px;
+      }
+      .bar-fill {
+        height: 95%;
+      }
+      .hp-fill {
+        background-color: red;
+      }
+      .atk-fill {
+        background-color: orange;
+      }
+      .def-fill {
+        background-color: yellow;
+      }
+      .spa-fill {
+        background-color: turquoise;
+      }
+      .spd-fill {
+        background-color: green;
+      }
+      .spe-fill {
+        background-color: magenta;
+      }
+      .bar-text-left,
+      .bar-text-right {
+        padding: 7px 10px;
+      }
+      .grid-container {
+        display: grid;
+        grid-template-columns: min-content 1fr;
+        grid-gap: 30px;
+        padding-top: 0px;
+      }
+      .image-item {
+        width: 24px;
+        height: 24px;
+        justify-items: center;
+        line-height: 24px;
+        background-image: url({{ url_for('static', filename='itemicons-sheet.png') }});
+        background-position: -24px -24px;
+        background-repeat: no-repeat;
+      }
+      .image-pokemon {
+        width: 40px;
+        height: 30px;
+        justify-items: center;
+        line-height: 30px;
+        background-image: url({{ url_for('static', filename='pokemonicons-sheet.png') }});
+        background-position: 0px 0px;
+        background-repeat: no-repeat;
+      }
+      textarea {
+        width: 300px;
+        height: 174px;
+        font-size: 13px;
+        resize: none;
+        background-color: #1e1e1e;
+        color: #ffffff;
+        overflow-y: scroll;
+        overflow-x: scroll;
+        white-space: nowrap;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        border: 0px;
+        text-align: left;
+      }
+      .twitter-follow-div {
+        padding-top: 5px;
+        padding-right: 5px;
+        justify-self: right;
+        align-items: center;
+        height: 35px;
+      }
+      h3 {
+        margin-top: 5px;
+        margin-bottom: 7px;
+      }
+      .underline {
+        text-decoration: underline;
+      }
+      .munchteams-button {
+        background-color: #04AA6D;
+        border: none;
+        color: white;
+        padding: 8px 8px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 12px;
+        vertical-align: top;
+      }
+      .type-Normal,
+      .type-Fire,
+      .type-Fighting,
+      .type-Water,
+      .type-Flying,
+      .type-Grass,
+      .type-Poison,
+      .type-Electric,
+      .type-Ground,
+      .type-Psychic,
+      .type-Rock,
+      .type-Ice,
+      .type-Bug,
+      .type-Dragon,
+      .type-Ghost,
+      .type-Dark,
+      .type-Steel,
+      .type-Fairy,
+      .type-Stellar {
+        font-size: 12px;
+        box-shadow: 0 0 0 1px #000;
+        border-radius: 10px;
+        color: #ffffff;
+        letter-spacing: 0;
+        text-align: center;
+        display: inline;
+        padding: 1px 5px 1px 7px;
+        background: #9FA19F;
+        text-transform: uppercase;
+        font-weight: bold;
+      }
+      .type-Normal {
+        background-color: #9FA19F;
+      }
+      .type-Fire {
+        background-color: #e62829;
+      }
+      .type-Fighting {
+        background-color: #ff8000;
+      }
+      .type-Water {
+        background-color: #2980ef;
+      }
+      .type-Flying {
+        background-color: #81b9ef;
+      }
+      .type-Grass {
+        background-color: #3fa129;
+      }
+      .type-Poison {
+        background-color: #9141cb;
+      }
+      .type-Electric {
+        background-color: #fac000;
+      }
+      .type-Steel {
+        background-color: #60a1b8;
+      }
+      .type-Ground {
+        background-color: #915121;
+      }
+      .type-Psychic {
+        background-color: #ef4179;
+      }
+      .type-Rock {
+        background-color: #afa981;
+      }
+      .type-Ice {
+        background-color: #3dcef3;
+      }
+      .type-Bug {
+        background-color: #91a119;
+      }
+      .type-Dragon {
+        background-color: #5060e1;
+      }
+      .type-Ghost {
+        background-color: #704170;
+      }
+      .type-Dark {
+        background-color: #624d4e;
+      }
+      .type-Fairy {
+        background-color: #ef70ef;
+      }
+      .type-Stellar {
+        background-color: #40b5a5;
+      }
+    </style>
+  </head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-K1B7P5XXK6"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() {
+      dataLayer.push(arguments);
+    }
+    gtag("js", new Date());
+    gtag("config", "G-K1B7P5XXK6");
+  </script>
+  <body>
+    <div class="twitter-follow-div">
+      <a href="https://munchteams.com" target="_blank" class="munchteams-button">Check out MunchTeams!</a>
+      <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">
+        <img height="29" style="border:0px;height:29px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=3" border="0" alt="Buy Me a Coffee at ko-fi.com" />
+      </a>
+      <a href="https://twitter.com/MunchStats?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large" data-show-screen-name="false" data-dnt="true" data-show-count="false">Follow @MunchStats</a>
+      <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+    </div>
+    <form class="grid-container" action="/search_pokemon" method="post">
+      <div class="left" style="width: 300px;">
+        <div>
+          <h3> Current Format:<br><span style="color: yellow;">{{ selected_format[1] }}</span></h3>
+          <h3> Current Glicko Rating Threshold: <span style="color: yellow;">{{ selected_rating }}</span></h3>
+          <h3> Current Pokemon:<br>
+            <div style="color: yellow;">
+              <span>{{ current_pokemon[0] }}</span>
+              <div class="image-pokemon" style="background-position: {{ current_pokemon[3][1] * -40 }}px {{ current_pokemon[3][0] * -30 }}px; position: relative;left: 135px;"></div>
             </div>
-            <div style="height: 50px;">
-               <input type="text" id="metaSearchInput" placeholder="Search for a Format">
-            </div>
-            <div class="meta-list">
-               <input type="hidden" name="meta_value" id="selectedMeta" value="{{ selected_format }}">
-               <ul id="meta-list">
-                  {% for format in availableFormats %}
-                  <li>
-                     <button type="submit" name="meta_value" value="{{ format }}" onclick='selectMeta("{{ format }}")' class="meta-button">{{ format[1] }}</button>
-                  </li>
-                  {% endfor %}
-               </ul>
-            </div>
-            <div class="rating-buttons">
-               <input type="hidden" name="rating_value" id="selectedRating" value="{{ selected_rating }}">
-               {% for rate in rating_options %}
-               <button type="submit" name="rating_value" onclick="selectRating('{{ rate }}')" value="{{ rate }}" class="rating-button">{{ rate }}+</button>
-               {% endfor %}
-            </div>
-            <div style="height: 50px;">
-               <input type="text" id="pokemonSearchInput" placeholder="Search for a Pokémon">
-            </div>
-            <div class="pokemon-list">
-               <input type="hidden" name="pokemon_value" id="selectedPokemon" value="{{ selected_pokemon }}">
-               <ul id="pokemon-list">
-                  {% for pokemon in pokemon_names %}
-                  <li>
-                     <button type="submit" name="pokemon_value" value="{{ pokemon[0] }}" onclick="selectPokemon('{{ pokemon[0] }}')" class="pokemon-button" style="padding: 2px 8px;">
-                        <div class="image-pokemon" style="background-position: {{ pokemon[2][1] * -40 }}px {{ pokemon[2][0] * -30 }}px;">
-                           <span class="left-text" style="padding-left: 48px;">{{ pokemon[0] }}</span>
-                        </div>
-                        <span class="right-text">{{ pokemon[1] }}%</span>
-                     </button>
-                  </li>
-                  {% endfor %}
-               </ul>
-            </div>
-         </div>
-         <div class="right">
-            <div class="Stats">
-               <h2>Base Stats</h2>
-               {% if base_stats|length > 0 %}
-               <div class="bar-container">
-                  <div class="left-container">
-                     <span class="bar-text-left" style="width: 30px;">HP</span>
-                     <div class="bar-fill hp-fill" style="width: {{ base_stats[0] / 255 * 81 }}%;"></div>
-                  </div>
-                  <span class="bar-text-right">{{ base_stats[0] }}</span>
-               </div>
-               <div class="bar-container">
-                  <div class="left-container">
-                     <span class="bar-text-left" style="width: 30px;">Atk</span>
-                     <div class="bar-fill atk-fill" style="width: {{ base_stats[1] / 255 * 81 }}%;"></div>
-                  </div>
-                  <span class="bar-text-right">{{ base_stats[1] }}</span>
-               </div>
-               <div class="bar-container">
-                  <div class="left-container">
-                     <span class="bar-text-left" style="width: 30px;">Def</span>
-                     <div class="bar-fill def-fill" style="width: {{ base_stats[2] / 255 * 81 }}%;"></div>
-                  </div>
-                  <span class="bar-text-right">{{ base_stats[2] }}</span>
-               </div>
-               <div class="bar-container">
-                  <div class="left-container">
-                     <span class="bar-text-left" style="width: 30px;">SpA</span>
-                     <div class="bar-fill spa-fill" style="width: {{ base_stats[3] / 255 * 81 }}%;"></div>
-                  </div>
-                  <span class="bar-text-right">{{ base_stats[3] }}</span>
-               </div>
-               <div class="bar-container">
-                  <div class="left-container">
-                     <span class="bar-text-left" style="width: 30px;">SpD</span>
-                     <div class="bar-fill spd-fill" style="width: {{ base_stats[4] / 255 * 81 }}%;"></div>
-                  </div>
-                  <span class="bar-text-right">{{ base_stats[4] }}</span>
-               </div>
-               <div class="bar-container">
-                  <div class="left-container">
-                     <span class="bar-text-left" style="width: 30px;">Spe</span>
-                     <div class="bar-fill spe-fill" style="width: {{ base_stats[5] / 255 * 81 }}%;"></div>
-                  </div>
-                  <span class="bar-text-right">{{ base_stats[5] }}</span>
-               </div>
-               {% endif %}
-            </div>
-            <div>
-               <h2>Moves</h2>
-               <div class="Data">
-                  {% if moves_list|length > 0 %}
-                  <ul>
-                     {% for move in moves_list %}
-                     <li>
-                        <button type="button" class="export-button has-tooltip" export-data='{"move": "{{ move[0] }}"}' data-tooltip="{{ move[2] }}">
-                           <span class="left-text">{{ move[0] }}</span>
-                           <span class="right-text">{{ move[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                  </ul>
-                  {% endif %}
-               </div>
-            </div>
-            <div>
-               <h2>Teammates</h2>
-               <div class="Data">
-                  {% if teammates_list|length > 0 %}
-                  <ul>
-                     {% for team in teammates_list %}
-                     <li>
-                        <button type="submit" name="pokemon_value" value="{{ team[0] }}" onclick="selectPokemon('{{ team[0] }}')" class="pokemon-button" style="padding: 2px 8px;">
-                           <div class="image-pokemon" style="background-position: {{ team[2][1] * -40 }}px {{ team[2][0] * -30 }}px;">
-                              <span class="left-text" style="padding-left: 48px;">{{ team[0] }}</span>
-                           </div>
-                           <span class="right-text">{{ team[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                  </ul>
-                  {% endif %}
-               </div>
-            </div>
-            {% if items_list|length > 0 %}
-            {% if (abilities_list[0][0] != 'Nothing') %}
-            <div>
-               <h2>Items</h2>
-               <div class="Data">
-                  <ul>
-                     {% for item in items_list %}
-                     <li>
-                        <button type="button" class="export-button has-tooltip" export-data='{"item": "{{ item[0] }}"}' data-tooltip="{{ item[2] }}">
-                           <div class="image-item" style="background-position: {{ item[3][1] * -24 }}px {{ item[3][0] * -24 }}px;">
-                              <span class="left-text" style="padding-left: 32px;">{{ item[0] }}</span>
-                           </div>
-                           <span class="right-text">{{ item[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                  </ul>
-               </div>
-            </div>
-            {% endif %}
-            {% endif %}
-            {% if abilities_list|length > 0 %}
-            {% if (abilities_list[0][0] != 'Nothing') %}
-            <div>
-               <h2>Abilities</h2>
-               <div class="Data">
-                  <ul>
-                     {% for ability in abilities_list %}
-                     <li>
-                        <button type="button" class="export-button has-tooltip" export-data='{"ability": "{{ ability[0] }}"}' data-tooltip="{{ ability[2] }}">
-                           <span class="left-text">{{ ability[0] }}</span>
-                           <span class="right-text">{{ ability[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                  </ul>
-               </div>
-            </div>
-            {% endif %}
-            {% endif %}
-            {% if spreads_list|length > 0 %}
-            <div>
-               <h2>EV Spreads</h2>
-               <div class="Data">
-                  <ul>
-                     {% for spread in spreads_list %}
-                     <li>
-                        <button type="button" export-data='{"spread": "{{ spread[0] }}"}' class="export-button">
-                           <span class="left-text">{{ spread[0] }}</span>
-                           <span class="right-text">{{ spread[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                  </ul>
-               </div>
-            </div>
-            {% endif %}
-            {% if natures_list|length > 0 %}
-            <div>
-               <h2>Natures</h2>
-               <div class="Data">
-                  {% if natures_list|length > 0 %}
-                  <ul>
-                     {% for nature in natures_list %}
-                     <li>
-                        <button type="button" class="export-button" export-data='{"nature": "{{ nature[0] }}"}'>
-                           <span class="left-text">{{ nature[0] }}</span>
-                           <span class="right-text">{{ nature[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                  </ul>
-                  {% endif %}
-               </div>
-            </div>
-            {% endif %}
-            {% if evs_list[0]|length > 0 %}
-            <div>
-               <h2 style="margin-bottom: 5px;">Top EVs By Category</h2>
-               <input type="hidden" name="rating_value" id="selectedEVs" value="spe">
-               <button type="button" id="atk_evs" onclick="selectEVs('atk')" value="atk" class="ev-button">ATK</button>
-               <button type="button" id="spa_evs" onclick="selectEVs('spa')" value="spa" class="ev-button">SPA</button>
-               <button type="button" id="spe_evs" onclick="selectEVs('spe')" value="spe" class="ev-button underline">SPE</button>
-               <button type="button" id="def_evs" onclick="selectEVs('def')" value="def" class="ev-button">HP+DEF</button>
-               <button type="button" id="spd_evs" onclick="selectEVs('spd')" value="spd" class="ev-button">HP+SPD</button>
-               <div class="Data" style="height: 188px;">
-                  {% if evs_list[0]|length > 0 %}
-                  <ul>
-                     {% for evSet in evs_list[0] %}
-                     <li class="evs_atk" hidden>
-                        <button type="button" class="export-button" export-data='{"ev": "{{ evSet[0] }}"}'>
-                           <span class="left-text">{{ evSet[0] }}</span>
-                           <span class="right-text">{{ evSet[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                     {% for evSet in evs_list[1] %}
-                     <li class="evs_spa" hidden>
-                        <button type="button" class="export-button" export-data='{"ev": "{{ evSet[0] }}"}'>
-                           <span class="left-text">{{ evSet[0] }}</span>
-                           <span class="right-text">{{ evSet[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                     {% for evSet in evs_list[2] %}
-                     <li class="evs_spe">
-                        <button type="button" class="export-button" export-data='{"ev": "{{ evSet[0] }}"}'>
-                           <span class="left-text">{{ evSet[0] }}</span>
-                           <span class="right-text">{{ evSet[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                     {% for evSet in evs_list[3] %}
-                     <li class="evs_def" hidden>
-                        <button type="button" class="export-button" export-data='{"ev": "{{ evSet[0] }}"}'>
-                           <span class="left-text">{{ evSet[0] }}</span>
-                           <span class="right-text">{{ evSet[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                     {% for evSet in evs_list[4] %}
-                     <li class="evs_spd" hidden>
-                        <button type="button" class="export-button" export-data='{"ev": "{{ evSet[0] }}"}'>
-                           <span class="left-text">{{ evSet[0] }}</span>
-                           <span class="right-text">{{ evSet[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                  </ul>
-                  {% endif %}
-               </div>
-            </div>
-            {% endif %}
-            {% if graph_data == "[[],[],[],[],[],[]]" %}
-            <div style="display: none;">
-            {% else %}
-            <div>
-            {% endif %}
-               <h2 style="margin-bottom: 5px;">Stats Graph (Beta)</h2>
-               <div class="Data" style="max-height: 225px; height: 225px; margin-bottom: 0px;">
-                  <div>
-                     <button type="button" class="stat-button" onclick="updateChartData(event, 0)" id="stat-HP">HP</button>
-                     <button type="button" class="stat-button" onclick="updateChartData(event, 1)" id="stat-Attack">ATK</button>
-                     <button type="button" class="stat-button" onclick="updateChartData(event, 2)" id="stat-Defense">DEF</button>
-                     <button type="button" class="stat-button" onclick="updateChartData(event, 3)" id="stat-Sp. Attack">SPA</button>
-                     <button type="button" class="stat-button" onclick="updateChartData(event, 4)" id="stat-Sp. Defense">SPD</button>
-                     <button type="button" class="stat-button underline" onclick="updateChartData(event, 5)" id="stat-Speed">SPE</button>
-                  </div>
-                  <div id="chart-container">
-                     <canvas id="evChart"></canvas>
-                  </div>
-               </div>
-            </div>
-            {% if tera_types_list|length > 0 %}
-            <div>
-               <h2>Tera Types</h2>
-               <div class="Data">
-                  <ul>
-                     {% for tera in tera_types_list %}
-                     <li>
-                        <button type="button" class="export-button" export-data='{"tera": "{{ tera[0] }}"}'>
-                           <span class="type-{{ tera[0] }}">{{ tera[0] }}</span>
-                           <span class="right-text">{{ tera[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                  </ul>
-               </div>
-            </div>
-            {% endif %}
-            {% if evs_list[0]|length > 0 %}
-            <div>
-               <h2>Export Pokemon <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Click on Moves, Items, EV Spreads and Abilities to change the Export!">&#xf059;</span></h2>
-               <textarea class="Export" id="showdown-set" spellcheck="false"></textarea>
-               <button type="button" class="copy-button" id="copy-button" style="text-align: center;">Copy Pokemon to Clipboard</button>
-            </div>
-            {% endif %}
-            {% if counters_list|length > 0 %}
-            <div>
-               <h2>Checks and Counters</h2>
-               <div class="Data">
-                  <ul>
-                     {% for counter in counters_list %}
-                     <li>
-                        <button type="submit" name="pokemon_value" value="{{ counter[0] }}" onclick="selectPokemon('{{ counter[0] }}')" class="pokemon-button" style="padding: 2px 8px;">
-                           <div class="image-pokemon" style="background-position: {{ counter[2][1] * -40 }}px {{ counter[2][0] * -30 }}px;">
-                              <span class="left-text" style="padding-left: 48px;">{{ counter[0] }}</span>
-                           </div>
-                           <span class="right-text">{{ counter[1] }}%</span>
-                        </button>
-                     </li>
-                     {% endfor %}
-                  </ul>
-               </div>   
-            </div>
-            {% endif %}
-         </div>
-      </form>
-      <div style="text-align: center; height: 32px;">
-         <h6>Usage stats data from the month of December 2025</h6>   
-      </div>
-      <div style="text-align: center; height: 32px">
-         <h6><a href="/about">About</a></h6>
-         <h6>Pokémon and All Respective Names are Trademark & © of Nintendo 1996-2024</h6>   
-      </div>
-      <div class="tooltip" id="tooltip"></div>
-      <script>
-         function decodeHtmlEntities(encodedString) {
-         const tempElement = document.createElement('textarea');
-
-         tempElement.innerHTML = encodedString;
-         return tempElement.value;
-         }
-         window.graphData = {{ graph_data | tojson }};
-         window.currentPokemonName = "{{ current_pokemon[0] }}";
-         window.currentItem = {% if items_list|length > 0 %}"{{ items_list[0][0] }}"{% else %}""{% endif %};
-         window.currentAbility = {% if abilities_list|length > 0 %} decodeHtmlEntities("{{ abilities_list[0][0] }}") {% else %}""{% endif %};
-         window.initialSpread = {% if spreads_list|length > 0 %}"{{ spreads_list[0][0] }}"{% else %}""{% endif %};
-         window.selectedFormat = "{{ selected_format[0] }}";
-         window.teraType = {% if tera_types_list|length > 0 %}"{{ tera_types_list[0][0] }}"{% else %}""{% endif %};
-         window.initialMoves = [
-            {% for move in moves_list[:4] if move[0] != "Nothing" %}
-               "{{ move[0] }}"{% if not loop.last %},{% endif %}
+            {% for type in pokemon_types %}
+              <div class="type-{{ type }}">{{ type }}</div>
             {% endfor %}
-         ];
-      </script>
-      
-      <!-- External JavaScript file -->
-     <script src="{{ url_for('static', filename='tools_1.2.js') }}"></script>
-   </body>
+          </h3>
+          <h3> Usage: <span style="color: yellow;">{{ current_pokemon[1] }}%</span></h3>
+          <h3> Monthly Rank: <span style="color: yellow;">{{ current_pokemon[2] }}</span></h3>
+        </div>
+        <div style="height: 50px;">
+          <input type="text" id="metaSearchInput" placeholder="Search for a Format">
+        </div>
+        <div class="meta-list">
+          <input type="hidden" name="meta_value" id="selectedMeta" value="{{ selected_format }}">
+          <ul id="meta-list">
+            {% for format in availableFormats %}
+            <li>
+              <button type="submit" name="meta_value" value="{{ format }}" onclick='selectMeta("{{ format }}")' class="meta-button">{{ format[1] }}</button>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+        <div class="rating-buttons">
+          <input type="hidden" name="rating_value" id="selectedRating" value="{{ selected_rating }}">
+          {% for rate in rating_options %}
+          <button type="submit" name="rating_value" onclick="selectRating('{{ rate }}')" value="{{ rate }}" class="rating-button">{{ rate }}+</button>
+          {% endfor %}
+        </div>
+        <div style="height: 50px;">
+          <input type="text" id="pokemonSearchInput" placeholder="Search for a PokAcmon">
+        </div>
+        <div class="pokemon-list">
+          <input type="hidden" name="pokemon_value" id="selectedPokemon" value="{{ selected_pokemon }}">
+          <ul id="pokemon-list">
+            {% for pokemon in pokemon_names %}
+            <li>
+              <button type="submit" name="pokemon_value" value="{{ pokemon[0] }}" onclick="selectPokemon('{{ pokemon[0] }}')" class="pokemon-button" style="padding: 2px 8px;">
+                <div class="image-pokemon" style="background-position: {{ pokemon[2][1] * -40 }}px {{ pokemon[2][0] * -30 }}px;">
+                  <span class="left-text" style="padding-left: 48px;">{{ pokemon[0] }}</span>
+                </div>
+                <span class="right-text">{{ pokemon[1] }}%</span>
+              </button>
+            </li>
+            {% endfor %}
+          </ul>
+        </div>
+      </div>
+      <div class="right">
+        <div class="Stats">
+          <h2>Base Stats</h2>
+          {% if base_stats|length > 0 %}
+          <div class="bar-container">
+            <div class="left-container">
+              <span class="bar-text-left" style="width: 30px;">HP</span>
+              <div class="bar-fill hp-fill" style="width: {{ base_stats[0] / 255 * 81 }}%;"></div>
+            </div>
+            <span class="bar-text-right">{{ base_stats[0] }}</span>
+          </div>
+          <div class="bar-container">
+            <div class="left-container">
+              <span class="bar-text-left" style="width: 30px;">Atk</span>
+              <div class="bar-fill atk-fill" style="width: {{ base_stats[1] / 255 * 81 }}%;"></div>
+            </div>
+            <span class="bar-text-right">{{ base_stats[1] }}</span>
+          </div>
+          <div class="bar-container">
+            <div class="left-container">
+              <span class="bar-text-left" style="width: 30px;">Def</span>
+              <div class="bar-fill def-fill" style="width: {{ base_stats[2] / 255 * 81 }}%;"></div>
+            </div>
+            <span class="bar-text-right">{{ base_stats[2] }}</span>
+          </div>
+          <div class="bar-container">
+            <div class="left-container">
+              <span class="bar-text-left" style="width: 30px;">SpA</span>
+              <div class="bar-fill spa-fill" style="width: {{ base_stats[3] / 255 * 81 }}%;"></div>
+            </div>
+            <span class="bar-text-right">{{ base_stats[3] }}</span>
+          </div>
+          <div class="bar-container">
+            <div class="left-container">
+              <span class="bar-text-left" style="width: 30px;">SpD</span>
+              <div class="bar-fill spd-fill" style="width: {{ base_stats[4] / 255 * 81 }}%;"></div>
+            </div>
+            <span class="bar-text-right">{{ base_stats[4] }}</span>
+          </div>
+          <div class="bar-container">
+            <div class="left-container">
+              <span class="bar-text-left" style="width: 30px;">Spe</span>
+              <div class="bar-fill spe-fill" style="width: {{ base_stats[5] / 255 * 81 }}%;"></div>
+            </div>
+            <span class="bar-text-right">{{ base_stats[5] }}</span>
+          </div>
+          {% endif %}
+        </div>
+        <div>
+          <h2>Moves</h2>
+          <div class="Data">
+            {% if moves_list|length > 0 %}
+            <ul>
+              {% for move in moves_list %}
+              <li>
+                <button type="button" class="export-button has-tooltip" export-data='{"move": "{{ move[0] }}"}' data-tooltip="{{ move[2] }}">
+                  <span class="left-text">{{ move[0] }}</span>
+                  <span class="right-text">{{ move[1] }}%</span>
+                </button>
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </div>
+        </div>
+        <div>
+          <h2>Teammates</h2>
+          <div class="Data">
+            {% if teammates_list|length > 0 %}
+            <ul>
+              {% for team in teammates_list %}
+              <li>
+                <button type="submit" name="pokemon_value" value="{{ team[0] }}" onclick="selectPokemon('{{ team[0] }}')" class="pokemon-button" style="padding: 2px 8px;">
+                  <div class="image-pokemon" style="background-position: {{ team[2][1] * -40 }}px {{ team[2][0] * -30 }}px;">
+                    <span class="left-text" style="padding-left: 48px;">{{ team[0] }}</span>
+                  </div>
+                  <span class="right-text">{{ team[1] }}%</span>
+                </button>
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </div>
+        </div>
+        {% if items_list|length > 0 %}
+        {% if (abilities_list[0][0] != 'Nothing') %}
+        <div>
+          <h2>Items</h2>
+          <div class="Data">
+            <ul>
+              {% for item in items_list %}
+              <li>
+                <button type="button" class="export-button has-tooltip" export-data='{"item": "{{ item[0] }}"}' data-tooltip="{{ item[2] }}">
+                  <div class="image-item" style="background-position: {{ item[3][1] * -24 }}px {{ item[3][0] * -24 }}px;">
+                    <span class="left-text" style="padding-left: 32px;">{{ item[0] }}</span>
+                  </div>
+                  <span class="right-text">{{ item[1] }}%</span>
+                </button>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+        {% endif %}
+        {% if abilities_list|length > 0 %}
+        {% if (abilities_list[0][0] != 'Nothing') %}
+        <div>
+          <h2>Abilities</h2>
+          <div class="Data">
+            <ul>
+              {% for ability in abilities_list %}
+              <li>
+                <button type="button" class="export-button has-tooltip" export-data='{"ability": "{{ ability[0] }}"}' data-tooltip="{{ ability[2] }}">
+                  <span class="left-text">{{ ability[0] }}</span>
+                  <span class="right-text">{{ ability[1] }}%</span>
+                </button>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+        {% endif %}
+        {% if spreads_list|length > 0 %}
+        <div>
+          <h2>EV Spreads</h2>
+          <div class="Data">
+            <ul>
+              {% for spread in spreads_list %}
+              <li>
+                <button type="button" export-data='{"spread": "{{ spread[0] }}"}' class="export-button">
+                  <span class="left-text">{{ spread[0] }}</span>
+                  <span class="right-text">{{ spread[1] }}%</span>
+                </button>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+        {% if natures_list|length > 0 %}
+        <div>
+          <h2>Natures</h2>
+          <div class="Data">
+            {% if natures_list|length > 0 %}
+            <ul>
+              {% for nature in natures_list %}
+              <li>
+                <button type="button" class="export-button" export-data='{"nature": "{{ nature[0] }}"}'>
+                  <span class="left-text">{{ nature[0] }}</span>
+                  <span class="right-text">{{ nature[1] }}%</span>
+                </button>
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+        {% if evs_list[0]|length > 0 %}
+        <div>
+          <h2 style="margin-bottom: 5px;">Top EVs By Category</h2>
+          <input type="hidden" name="rating_value" id="selectedEVs" value="spe">
+          <button type="button" id="atk_evs" onclick="selectEVs('atk')" value="atk" class="ev-button">ATK</button>
+          <button type="button" id="spa_evs" onclick="selectEVs('spa')" value="spa" class="ev-button">SPA</button>
+          <button type="button" id="spe_evs" onclick="selectEVs('spe')" value="spe" class="ev-button underline">SPE</button>
+          <button type="button" id="def_evs" onclick="selectEVs('def')" value="def" class="ev-button">HP+DEF</button>
+          <button type="button" id="spd_evs" onclick="selectEVs('spd')" value="spd" class="ev-button">HP+SPD</button>
+          <div class="Data" style="height: 188px;">
+            {% if evs_list[0]|length > 0 %}
+            <ul>
+              {% for evSet in evs_list[0] %}
+              <li class="evs_atk" hidden>
+                <button type="button" class="export-button" export-data='{"ev": "{{ evSet[0] }}"}'>
+                  <span class="left-text">{{ evSet[0] }}</span>
+                  <span class="right-text">{{ evSet[1] }}%</span>
+                </button>
+              </li>
+              {% endfor %}
+              {% for evSet in evs_list[1] %}
+              <li class="evs_spa" hidden>
+                <button type="button" class="export-button" export-data='{"ev": "{{ evSet[0] }}"}'>
+                  <span class="left-text">{{ evSet[0] }}</span>
+                  <span class="right-text">{{ evSet[1] }}%</span>
+                </button>
+              </li>
+              {% endfor %}
+              {% for evSet in evs_list[2] %}
+              <li class="evs_spe">
+                <button type="button" class="export-button" export-data='{"ev": "{{ evSet[0] }}"}'>
+                  <span class="left-text">{{ evSet[0] }}</span>
+                  <span class="right-text">{{ evSet[1] }}%</span>
+                </button>
+              </li>
+              {% endfor %}
+              {% for evSet in evs_list[3] %}
+              <li class="evs_def" hidden>
+                <button type="button" class="export-button" export-data='{"ev": "{{ evSet[0] }}"}'>
+                  <span class="left-text">{{ evSet[0] }}</span>
+                  <span class="right-text">{{ evSet[1] }}%</span>
+                </button>
+              </li>
+              {% endfor %}
+              {% for evSet in evs_list[4] %}
+              <li class="evs_spd" hidden>
+                <button type="button" class="export-button" export-data='{"ev": "{{ evSet[0] }}"}'>
+                  <span class="left-text">{{ evSet[0] }}</span>
+                  <span class="right-text">{{ evSet[1] }}%</span>
+                </button>
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </div>
+        </div>
+        {% endif %}
+        {% if graph_data == "[[],[],[],[],[],[]]" %}
+        <div style="display: none;">
+        {% else %}
+        <div>
+        {% endif %}
+          <h2 style="margin-bottom: 5px;">Stats Graph (Beta)</h2>
+          <div class="Data" style="max-height: 225px; height: 225px; margin-bottom: 0px;">
+            <div>
+              <button type="button" class="stat-button" onclick="updateChartData(event, 0)" id="stat-HP">HP</button>
+              <button type="button" class="stat-button" onclick="updateChartData(event, 1)" id="stat-Attack">ATK</button>
+              <button type="button" class="stat-button" onclick="updateChartData(event, 2)" id="stat-Defense">DEF</button>
+              <button type="button" class="stat-button" onclick="updateChartData(event, 3)" id="stat-Sp. Attack">SPA</button>
+              <button type="button" class="stat-button" onclick="updateChartData(event, 4)" id="stat-Sp. Defense">SPD</button>
+              <button type="button" class="stat-button underline" onclick="updateChartData(event, 5)" id="stat-Speed">SPE</button>
+            </div>
+            <div id="chart-container">
+              <canvas id="evChart"></canvas>
+            </div>
+          </div>
+        </div>
+        {% if tera_types_list|length > 0 %}
+        <div>
+          <h2>Tera Types</h2>
+          <div class="Data">
+            <ul>
+              {% for tera in tera_types_list %}
+              <li>
+                <button type="button" class="export-button" export-data='{"tera": "{{ tera[0] }}"}'>
+                  <span class="type-{{ tera[0] }}">{{ tera[0] }}</span>
+                  <span class="right-text">{{ tera[1] }}%</span>
+                </button>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+        {% if evs_list[0]|length > 0 %}
+        <div>
+          <h2>Export Pokemon <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Click on Moves, Items, EV Spreads and Abilities to change the Export!">&#xf059;</span></h2>
+          <textarea class="Export" id="showdown-set" spellcheck="false"></textarea>
+          <button type="button" class="copy-button" id="copy-button" style="text-align: center;">Copy Pokemon to Clipboard</button>
+        </div>
+        {% endif %}
+        {% if counters_list|length > 0 %}
+        <div>
+          <h2>Checks and Counters</h2>
+          <div class="Data">
+            <ul>
+              {% for counter in counters_list %}
+              <li>
+                <button type="submit" name="pokemon_value" value="{{ counter[0] }}" onclick="selectPokemon('{{ counter[0] }}')" class="pokemon-button" style="padding: 2px 8px;">
+                  <div class="image-pokemon" style="background-position: {{ counter[2][1] * -40 }}px {{ counter[2][0] * -30 }}px;">
+                    <span class="left-text" style="padding-left: 48px;">{{ counter[0] }}</span>
+                  </div>
+                  <span class="right-text">{{ counter[1] }}%</span>
+                </button>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </form>
+    <div style="text-align: center; height: 32px;">
+      <h6>Usage stats data from the month of December 2025</h6>
+    </div>
+    <div style="text-align: center; height: 32px">
+      <h6><a href="/about">About</a></h6>
+      <h6>PokAcmon and All Respective Names are Trademark & Ac of Nintendo 1996-2024</h6>
+    </div>
+    <div class="tooltip" id="tooltip"></div>
+    <script>
+      function decodeHtmlEntities(encodedString) {
+        const tempElement = document.createElement("textarea");
+
+        tempElement.innerHTML = encodedString;
+        return tempElement.value;
+      }
+      window.graphData = {{ graph_data | tojson }};
+      window.currentPokemonName = "{{ current_pokemon[0] }}";
+      window.currentItem = {% if items_list|length > 0 %}"{{ items_list[0][0] }}"{% else %}""{% endif %};
+      window.currentAbility = {% if abilities_list|length > 0 %}decodeHtmlEntities("{{ abilities_list[0][0] }}"){% else %}""{% endif %};
+      window.initialSpread = {% if spreads_list|length > 0 %}"{{ spreads_list[0][0] }}"{% else %}""{% endif %};
+      window.selectedFormat = "{{ selected_format[0] }}";
+      window.teraType = {% if tera_types_list|length > 0 %}"{{ tera_types_list[0][0] }}"{% else %}""{% endif %};
+      window.initialMoves = [
+        {% for move in moves_list[:4] if move[0] != "Nothing" %}
+          "{{ move[0] }}"{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ];
+    </script>
+
+    <!-- External JavaScript file -->
+    <script src="{{ url_for('static', filename='tools_1.2.js') }}"></script>
+  </body>
 </html>
