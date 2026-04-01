@@ -13,7 +13,7 @@ app = Flask(__name__)
 DATA_DIRECTORY = "stats"
 os.makedirs(DATA_DIRECTORY, exist_ok=True)
 
-DEFAULT_META = "gen9vgc2026regf"
+DEFAULT_META = "gen9vgc2026regi"
 
 # Global dictionaries for loaded data
 formatDisplayNames = {}
