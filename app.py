@@ -508,15 +508,15 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
         filtered_counters = {
             key: value
             for key, value in unfiltered_counters.items()
-            if value[2] < 0.01 and value[1] > 0.5
+            if value['d'] < 0.01 and value['p'] > 0.5
         }
         sorted_counters = sorted(
-            filtered_counters.keys(), key=lambda x: filtered_counters[x][1], reverse=True
+            filtered_counters.keys(), key=lambda x: filtered_counters[x]['p'], reverse=True
         )[:10]
         return [
             [
                 poke,
-                "{:.3f}".format(round(filtered_counters[poke][1] * 100, 3)),
+                "{:.3f}".format(round(filtered_counters[poke]['p'] * 100, 3)),
                 get_pokemon_sprite(poke),
             ]
             for poke in sorted_counters
