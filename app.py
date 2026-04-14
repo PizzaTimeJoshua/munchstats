@@ -135,6 +135,10 @@ def load_all_data():
             fmt = parts[-2]
             if fmt in formatDisplayNames:
                 availableFormats.append([fmt, formatDisplayNames[fmt]])
+    # Put Champions formats at the top of the list
+    champions = [f for f in availableFormats if f[1].startswith("[Champions]")]
+    others = [f for f in availableFormats if not f[1].startswith("[Champions]")]
+    availableFormats = champions + others
     spriteIndex = load_data_file(build_data_path("forms_index.json")) or {}
     itemDetails = load_data_file(build_data_path("items.json")) or {}
     abilityDetails = load_data_file(build_data_path("abilities.json")) or {}
