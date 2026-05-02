@@ -170,9 +170,68 @@ def generateFormatList():
         pyjson5.dump(meta_names, file)
 
 
+def parse_ts_overrides(ts_content, relevant_fields):
+    """Parse a Showdown TS mod file and extract relevant field overrides."""
+    overrides = {}
+    pattern = re.compile(r"^\t(\w+):\s*\{(.*?)\n\t\}", re.MULTILINE | re.DOTALL)
+    for match in pattern.finditer(ts_content):
+        entry_id = match.group(1)
+        body = match.group(2)
+        entry = {}
+        for field in relevant_fields:
+            num_match = re.search(rf"^\s*{field}:\s*(\d+)\s*,?\s*$", body, re.MULTILINE)
+            if num_match:
+                entry[field] = int(num_match.group(1))
+                continue
+            bool_match = re.search(rf"^\s*{field}:\s*(true|false)\s*,?\s*$", body, re.MULTILINE)
+            if bool_match:
+                entry[field] = True if bool_match.group(1) == "true" else False
+                continue
+            str_match = re.search(rf'^\s*{field}:\s*"((?:[^"\\]|\\.)*)"\s*,?\s*$', body, re.MULTILINE)
+            if str_match:
+                entry[field] = str_match.group(1)
+                continue
+        if entry:
+            overrides[entry_id] = entry
+    return overrides
+
+
+def updateChampionsMods():
+    """Download Champions mod data and merge with base moves/abilities."""
+    moves_url = "https://raw.githubusercontent.com/smogon/pokemon-showdown/refs/heads/master/data/mods/champions/moves.ts"
+    abilities_url = "https://raw.githubusercontent.com/smogon/pokemon-showdown/refs/heads/master/data/mods/champions/abilities.ts"
+
+    print("Getting Champions moves mod data.")
+    moves_ts = requests.get(moves_url).text
+    move_overrides = parse_ts_overrides(
+        moves_ts, {"basePower", "accuracy", "pp", "type", "desc", "shortDesc"}
+    )
+    with open("stats/moves.json", "r", encoding="utf-8") as f:
+        base_moves = pyjson5.loads(f.read())
+    for entry_id, fields in move_overrides.items():
+        if entry_id in base_moves:
+            base_moves[entry_id].update(fields)
+    with open("stats/champions_moves.json", "w", encoding="utf-8") as f:
+        pyjson5.dump(base_moves, f, separators=(",", ":"))
+    print(f"  Applied {len(move_overrides)} move overrides.")
+
+    print("Getting Champions abilities mod data.")
+    abilities_ts = requests.get(abilities_url).text
+    ability_overrides = parse_ts_overrides(abilities_ts, {"desc", "shortDesc"})
+    with open("stats/abilities.json", "r", encoding="utf-8") as f:
+        base_abilities = pyjson5.loads(f.read())
+    for entry_id, fields in ability_overrides.items():
+        if entry_id in base_abilities:
+            base_abilities[entry_id].update(fields)
+    with open("stats/champions_abilities.json", "w", encoding="utf-8") as f:
+        pyjson5.dump(base_abilities, f, separators=(",", ":"))
+    print(f"  Applied {len(ability_overrides)} ability overrides.")
+
+
 if __name__ == "__main__":
     updateData()
     updateImage()
     updateMetagames()
     generateFormatList()
+    updateChampionsMods()
     print("Update done.")

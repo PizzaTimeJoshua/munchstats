@@ -22,6 +22,8 @@ spriteIndex = {}
 itemDetails = {}
 abilityDetails = {}
 moveDetails = {}
+championsMoveDetails = {}
+championsAbilityDetails = {}
 pokedexEntries = {}
 
 
@@ -119,7 +121,7 @@ def fuzzy_match(target, options):
 
 def load_all_data():
     """Load all necessary data files into global variables."""
-    global formatDisplayNames, availableFormats, spriteIndex, itemDetails, abilityDetails, moveDetails, pokedexEntries
+    global formatDisplayNames, availableFormats, spriteIndex, itemDetails, abilityDetails, moveDetails, championsMoveDetails, championsAbilityDetails, pokedexEntries
     formatDisplayNames = load_data_file(build_data_path("meta_names.json")) or {}
     # Build availableFormats list from files ending with "0.json"
     format_files = [
@@ -143,6 +145,8 @@ def load_all_data():
     itemDetails = load_data_file(build_data_path("items.json")) or {}
     abilityDetails = load_data_file(build_data_path("abilities.json")) or {}
     moveDetails = load_data_file(build_data_path("moves.json")) or {}
+    championsMoveDetails = load_data_file(build_data_path("champions_moves.json")) or moveDetails
+    championsAbilityDetails = load_data_file(build_data_path("champions_abilities.json")) or abilityDetails
     pokedexEntries = load_data_file(build_data_path("pokedex.json")) or {}
 
 
@@ -336,10 +340,11 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
             sum(usage_data[pokemon_name].get("Abilities", {"Unknown": 1}).values()),
             1,
         )
+        moves_source = championsMoveDetails if is_champions_format(format_code) else moveDetails
         sorted_moves = sorted(moves.keys(), key=lambda m: moves[m], reverse=True)[:10]
         result = []
         for move in sorted_moves:
-            move_info = moveDetails.get(
+            move_info = moves_source.get(
                 move,
                 {
                     "name": "Nothing",
@@ -403,6 +408,7 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
 
     # Branch for 'Abilities'
     if category == "Abilities":
+        abilities_source = championsAbilityDetails if is_champions_format(format_code) else abilityDetails
         abilities = usage_data[pokemon_name].get("Abilities", {})
         total_weight = max(sum(abilities.values()), 1)
         sorted_abilities = sorted(
@@ -410,9 +416,9 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
         )[:10]
         return [
             [
-                abilityDetails.get(ability, {"name": "Nothing"})["name"],
+                abilities_source.get(ability, {"name": "Nothing"})["name"],
                 "{:.1f}".format(round(abilities[ability] / total_weight * 100, 1)),
-                abilityDetails.get(ability, {"desc": "No info."}).get(
+                abilities_source.get(ability, {"desc": "No info."}).get(
                     "desc", "No info."
                 ),
             ]
@@ -702,10 +708,10 @@ def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
 
     base_stats = compile_top_data(usage_stats, default_pokemon, "Stats")
     pokemon_types = compile_top_data(usage_stats, default_pokemon, "Types")
-    moves_list = compile_top_data(usage_stats, default_pokemon, "Moves")
+    moves_list = compile_top_data(usage_stats, default_pokemon, "Moves", chosen_format)
     teammates_list = compile_top_data(usage_stats, default_pokemon, "Teammates")
     items_list = compile_top_data(usage_stats, default_pokemon, "Items")
-    abilities_list = compile_top_data(usage_stats, default_pokemon, "Abilities")
+    abilities_list = compile_top_data(usage_stats, default_pokemon, "Abilities", chosen_format)
     spreads_list = compile_top_data(usage_stats, default_pokemon, "Spreads")
     natures_list = compile_top_data(usage_stats, default_pokemon, "Natures")
     evs_list = compile_top_data(usage_stats, default_pokemon, "EVs")
