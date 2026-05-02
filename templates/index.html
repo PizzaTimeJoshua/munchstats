@@ -7,8 +7,8 @@
       <title>{{ current_pokemon[0] }} | MunchStats | {{ selected_format[1] }}</title>
       <meta property="og:title" content="{{ current_pokemon[0] }} | MunchStats | {{ selected_format[1] }}">
       <meta name="og:description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
-      <meta name="description" content="Find data about {{ current_pokemon[0] }} for {{ selected_format[1] }}. Find common EVs, Moves, Item, and Abilities!">
-      <meta name="twitter:description" content="Find data about {{ current_pokemon[0] }} for {{ selected_format[1] }}. Find common EVs, Moves, Item, and Abilities!">
+      <meta name="description" content="Find data about {{ current_pokemon[0] }} for {{ selected_format[1] }}. Find common {% if is_champions %}Stat Points{% else %}EVs{% endif %}, Moves, Item, and Abilities!">
+      <meta name="twitter:description" content="Find data about {{ current_pokemon[0] }} for {{ selected_format[1] }}. Find common {% if is_champions %}Stat Points{% else %}EVs{% endif %}, Moves, Item, and Abilities!">
     {% else %}
       <title>MunchStats</title>
       <meta property="og:title" content="MunchStats">
@@ -680,7 +680,7 @@
         {% endif %}
         {% if spreads_list|length > 0 %}
         <div>
-          <h2>EV Spreads</h2>
+          <h2>{% if is_champions %}Stat Point Spreads{% else %}EV Spreads{% endif %}</h2>
           <div class="Data">
             <ul>
               {% for spread in spreads_list %}
@@ -716,7 +716,7 @@
         {% endif %}
         {% if evs_list[0]|length > 0 %}
         <div>
-          <h2 style="margin-bottom: 5px;">Top EVs By Category</h2>
+          <h2 style="margin-bottom: 5px;">{% if is_champions %}Top Points By Category{% else %}Top EVs By Category{% endif %}</h2>
           <input type="hidden" name="rating_value" id="selectedEVs" value="spe">
           <button type="button" id="atk_evs" onclick="selectEVs('atk')" value="atk" class="ev-button">ATK</button>
           <button type="button" id="spa_evs" onclick="selectEVs('spa')" value="spa" class="ev-button">SPA</button>
@@ -791,7 +791,7 @@
             </div>
           </div>
         </div>
-        {% if tera_types_list|length > 0 %}
+        {% if tera_types_list|length > 0 and tera_types_list[0][0] != 'Nothing' %}
         <div>
           <h2>Tera Types</h2>
           <div class="Data">
@@ -810,7 +810,7 @@
         {% endif %}
         {% if evs_list[0]|length > 0 %}
         <div>
-          <h2>Export Pokemon <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Click on Moves, Items, EV Spreads and Abilities to change the Export!">&#xf059;</span></h2>
+          <h2>Export Pokemon <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Click on Moves, Items, {% if is_champions %}Stat Point Spreads{% else %}EV Spreads{% endif %} and Abilities to change the Export!">&#xf059;</span></h2>
           <textarea class="Export" id="showdown-set" spellcheck="false"></textarea>
           <button type="button" class="copy-button" id="copy-button" style="text-align: center;">Copy Pokemon to Clipboard</button>
         </div>
@@ -837,11 +837,11 @@
       </div>
     </form>
     <div style="text-align: center; height: 32px;">
-      <h6>Usage stats data from the month of March 2026</h6>
+      <h6>Usage stats data from the month of April 2026</h6>
     </div>
     <div style="text-align: center; height: 32px">
       <h6><a href="/about">About</a></h6>
-      <h6>PokAcmon and All Respective Names are Trademark & Ac of Nintendo 1996-2024</h6>
+      <h6>PokAcmon and All Respective Names are Trademark & Ac of Nintendo 1996-2026</h6>
     </div>
     <div class="tooltip" id="tooltip"></div>
     <script>
@@ -857,6 +857,7 @@
       window.currentAbility = {% if abilities_list|length > 0 %}decodeHtmlEntities("{{ abilities_list[0][0] }}"){% else %}""{% endif %};
       window.initialSpread = {% if spreads_list|length > 0 %}"{{ spreads_list[0][0] }}"{% else %}""{% endif %};
       window.selectedFormat = "{{ selected_format[0] }}";
+      window.isChampions = {{ is_champions | tojson }};
       window.teraType = {% if tera_types_list|length > 0 %}"{{ tera_types_list[0][0] }}"{% else %}""{% endif %};
       window.initialMoves = [
         {% for move in moves_list[:4] if move[0] != "Nothing" %}
@@ -866,6 +867,6 @@
     </script>
 
     <!-- External JavaScript file -->
-    <script src="{{ url_for('static', filename='tools_1.2.js') }}"></script>
+    <script src="{{ url_for('static', filename='tools_1.3.js') }}"></script>
   </body>
 </html>

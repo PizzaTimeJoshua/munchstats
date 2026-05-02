@@ -146,6 +146,11 @@ def load_all_data():
     pokedexEntries = load_data_file(build_data_path("pokedex.json")) or {}
 
 
+def is_champions_format(format_code):
+    """Check if a format code is a Champions format."""
+    return "champions" in format_code.lower()
+
+
 def calculate_stat_value(base, iv, ev, level, nature_multiplier):
     """Calculate a stat value given parameters."""
     return math.floor(
@@ -161,6 +166,16 @@ def calculate_hp_value(base, iv, ev, level):
         + level
         + 10
     )
+
+
+def calculate_champions_stat_value(base, stat_points, alignment):
+    """Calculate a stat value for Champions format."""
+    return math.floor((base + stat_points + 20) * alignment)
+
+
+def calculate_champions_hp_value(base, stat_points):
+    """Calculate HP value for Champions format."""
+    return base + stat_points + 75
 
 
 def compile_top_data(usage_data, pokemon_name, category, format_code="", base_stats=[]):
@@ -203,7 +218,9 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
     if category == "Graph":
         graph_stats = {stat: {} for stat in ["hp", "atk", "def", "spa", "spd", "spe"]}
         spreads = usage_data[pokemon_name].get("Spreads", {})
-        level = 50 if "vgc" in format_code.lower() else 100
+        champions = is_champions_format(format_code)
+        fmt_lower = format_code.lower()
+        level = 50 if ("vgc" in fmt_lower or "bss" in fmt_lower or "champions" in fmt_lower) else 100
         total_weight = max(
             sum(usage_data[pokemon_name].get("Abilities", {"Unknown": 1}).values()),
             1,
@@ -242,23 +259,41 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
                     multipliers[stat] = 0.9
                 else:
                     multipliers[stat] = 1
-            hp_val = calculate_hp_value(base_stats[0], 31, evs[0], level)
-            atk_val = calculate_stat_value(
-                base_stats[1], 31, evs[1], level, multipliers["atk"]
-            )
-            def_val = calculate_stat_value(
-                base_stats[2], 31, evs[2], level, multipliers["def"]
-            )
-            spa_val = calculate_stat_value(
-                base_stats[3], 31, evs[3], level, multipliers["spa"]
-            )
-            spd_val = calculate_stat_value(
-                base_stats[4], 31, evs[4], level, multipliers["spd"]
-            )
-            speed_iv = 0 if (multipliers["spe"] == 0.9 and evs[5] == 0) else 31
-            spe_val = calculate_stat_value(
-                base_stats[5], speed_iv, evs[5], level, multipliers["spe"]
-            )
+            if champions:
+                hp_val = calculate_champions_hp_value(base_stats[0], evs[0])
+                atk_val = calculate_champions_stat_value(
+                    base_stats[1], evs[1], multipliers["atk"]
+                )
+                def_val = calculate_champions_stat_value(
+                    base_stats[2], evs[2], multipliers["def"]
+                )
+                spa_val = calculate_champions_stat_value(
+                    base_stats[3], evs[3], multipliers["spa"]
+                )
+                spd_val = calculate_champions_stat_value(
+                    base_stats[4], evs[4], multipliers["spd"]
+                )
+                spe_val = calculate_champions_stat_value(
+                    base_stats[5], evs[5], multipliers["spe"]
+                )
+            else:
+                hp_val = calculate_hp_value(base_stats[0], 31, evs[0], level)
+                atk_val = calculate_stat_value(
+                    base_stats[1], 31, evs[1], level, multipliers["atk"]
+                )
+                def_val = calculate_stat_value(
+                    base_stats[2], 31, evs[2], level, multipliers["def"]
+                )
+                spa_val = calculate_stat_value(
+                    base_stats[3], 31, evs[3], level, multipliers["spa"]
+                )
+                spd_val = calculate_stat_value(
+                    base_stats[4], 31, evs[4], level, multipliers["spd"]
+                )
+                speed_iv = 0 if (multipliers["spe"] == 0.9 and evs[5] == 0) else 31
+                spe_val = calculate_stat_value(
+                    base_stats[5], speed_iv, evs[5], level, multipliers["spe"]
+                )
             for stat, value in zip(
                 ["hp", "atk", "def", "spa", "spd", "spe"],
                 [hp_val, atk_val, def_val, spa_val, spd_val, spe_val],
@@ -695,6 +730,7 @@ def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
         rating_options=rating_options,
         tera_types_list=tera_types_list,
         graph_data=graph_data,
+        is_champions=is_champions_format(chosen_format),
     )
 
 
