@@ -703,7 +703,7 @@
             <ul>
               {% for nature in natures_list %}
               <li>
-                <button type="button" class="export-button" export-data='{"nature": "{{ nature[0] }}"}'>
+                <button type="button" class="export-button has-tooltip" export-data='{"nature": "{{ nature[0] }}"}' data-tooltip="{{ nature[2] }}">
                   <span class="left-text">{{ nature[0] }}</span>
                   <span class="right-text">{{ nature[1] }}%</span>
                 </button>

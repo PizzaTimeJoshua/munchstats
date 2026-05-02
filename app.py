@@ -195,6 +195,20 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
 
     # Branch for 'Natures'
     if category == "Natures":
+        nature_info = {
+            "Adamant": "+Atk / -SpA", "Brave": "+Atk / -Spe",
+            "Lonely": "+Atk / -Def", "Naughty": "+Atk / -SpD",
+            "Bold": "+Def / -Atk", "Relaxed": "+Def / -Spe",
+            "Impish": "+Def / -SpA", "Lax": "+Def / -SpD",
+            "Modest": "+SpA / -Atk", "Quiet": "+SpA / -Spe",
+            "Mild": "+SpA / -Def", "Rash": "+SpA / -SpD",
+            "Calm": "+SpD / -Atk", "Sassy": "+SpD / -Spe",
+            "Gentle": "+SpD / -Def", "Careful": "+SpD / -SpA",
+            "Timid": "+Spe / -Atk", "Hasty": "+Spe / -Def",
+            "Jolly": "+Spe / -SpA", "Naive": "+Spe / -SpD",
+            "Hardy": "Neutral", "Docile": "Neutral",
+            "Serious": "Neutral", "Bashful": "Neutral", "Quirky": "Neutral",
+        }
         nature_weights = {}
         for spread_key, weight in usage_data[pokemon_name].get("Spreads", {}).items():
             nature = spread_key.split(":")[0]
@@ -210,6 +224,7 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
             [
                 n,
                 "{:.3f}".format(round(nature_weights[n] / total_weight * 100, 3)),
+                nature_info.get(n, ""),
             ]
             for n in sorted_natures
         ][:10]
