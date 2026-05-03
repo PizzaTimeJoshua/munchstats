@@ -416,6 +416,84 @@ $(document).ready(function () {
   }
   window.changeNature = changeNature;
 
+  // Helper to sync move highlights with currentMoves array
+  function updateMoveHighlights() {
+    $(".export-button").each(function () {
+      const data = JSON.parse($(this).attr("export-data") || "{}");
+      if (typeof data.move === "string") {
+        if (currentMoves.includes(data.move)) {
+          $(this).addClass("selected");
+        } else {
+          $(this).removeClass("selected");
+        }
+      }
+    });
+  }
+
+  // Helper to sync ability highlights
+  function updateAbilityHighlights() {
+    $(".export-button").each(function () {
+      const data = JSON.parse($(this).attr("export-data") || "{}");
+      if (typeof data.ability === "string") {
+        if (data.ability === currentAbility) {
+          $(this).addClass("selected");
+        } else {
+          $(this).removeClass("selected");
+        }
+      }
+    });
+  }
+
+  // Helper to sync item highlights
+  function updateItemHighlights() {
+    $(".export-button").each(function () {
+      const data = JSON.parse($(this).attr("export-data") || "{}");
+      if (typeof data.item === "string") {
+        if (data.item === currentItem) {
+          $(this).addClass("selected");
+        } else {
+          $(this).removeClass("selected");
+        }
+      }
+    });
+  }
+
+  // Helper to sync spread highlights
+  function updateSpreadHighlights() {
+    $(".export-button").each(function () {
+      const data = JSON.parse($(this).attr("export-data") || "{}");
+      if (typeof data.spread === "string") {
+        const temp = toShowdownSpread(data.spread);
+        if (temp[0] === currentNature && temp[1] === currentEVSpread) {
+          $(this).addClass("selected");
+        } else {
+          $(this).removeClass("selected");
+        }
+      }
+    });
+  }
+
+  // Helper to sync nature highlights
+  function updateNatureHighlights() {
+    $(".export-button").each(function () {
+      const data = JSON.parse($(this).attr("export-data") || "{}");
+      if (typeof data.nature === "string") {
+        if (data.nature === currentNature) {
+          $(this).addClass("selected");
+        } else {
+          $(this).removeClass("selected");
+        }
+      }
+    });
+  }
+
+  // Initial highlights on page load
+  updateMoveHighlights();
+  updateAbilityHighlights();
+  updateItemHighlights();
+  updateSpreadHighlights();
+  updateNatureHighlights();
+
   $(".export-button").click(function () {
     const exportDataText = $(this).attr("export-data");
     const exportData = JSON.parse(exportDataText);
@@ -445,12 +523,24 @@ $(document).ready(function () {
       }
       currentNature = changeNature(currentNature, stat, diff);
       currentEVSpread = exportData.ev.replace("+", "").replace("-", "");
+      updateSpreadHighlights();
+      updateNatureHighlights();
     }
     if (typeof exportData.item === "string") {
-      currentItem = exportData.item;
+      if ($(this).hasClass("selected")) {
+        currentItem = window.currentItem;
+      } else {
+        currentItem = exportData.item;
+      }
+      updateItemHighlights();
     }
     if (typeof exportData.ability === "string") {
-      currentAbility = exportData.ability;
+      if ($(this).hasClass("selected")) {
+        currentAbility = window.currentAbility;
+      } else {
+        currentAbility = exportData.ability;
+      }
+      updateAbilityHighlights();
     }
     if (typeof exportData.nature === "string") {
       currentNature = exportData.nature;
@@ -465,38 +555,60 @@ $(document).ready(function () {
           currentIVs = "";
         }
       }
+      // Deselect spread if its nature no longer matches
+      updateSpreadHighlights();
+      updateNatureHighlights();
     }
     if (typeof exportData.tera === "string") {
       currentTeraType = "\nTera Type: " + exportData.tera;
     }
     if (typeof exportData.move === "string" && exportData.move != "Nothing") {
-      if (!currentMoves.includes(exportData.move)) {
-        currentMoves.unshift(exportData.move);
-        if (currentMoves.length > 4) {
-          currentMoves.pop();
+      if ($(this).hasClass("selected")) {
+        // Deselect: remove move from export
+        const pos = currentMoves.indexOf(exportData.move);
+        if (pos !== -1) {
+          currentMoves.splice(pos, 1);
         }
       } else {
-        const pos = currentMoves.indexOf(exportData.move);
-        currentMoves.splice(pos, 1);
-        currentMoves.unshift(exportData.move);
+        // Select: add move, remove oldest if over 4
+        currentMoves.push(exportData.move);
+        if (currentMoves.length > 4) {
+          currentMoves.shift();
+        }
       }
+      updateMoveHighlights();
     }
     if (typeof exportData.spread === "string") {
-      const temp = toShowdownSpread(exportData.spread);
-      currentNature = temp[0];
-      currentEVSpread = temp[1];
-    }
-    if (typeof exportData.spread === "string" && !window.isChampions) {
-      let [naturePart, evPart] = exportData.spread.split(":");
-      let evs = evPart.replace(/\s/g, "").split("/");
-      if (
-        ["Brave", "Relaxed", "Quiet", "Sassy"].includes(currentNature) &&
-        evs[5] == "0"
-      ) {
-        currentIVs = "\nIVs: 0 Spe";
+      const wasSelected = $(this).hasClass("selected");
+      if (wasSelected) {
+        // Deselect: revert to initial spread
+        if (window.initialSpread !== "") {
+          const temp = toShowdownSpread(window.initialSpread);
+          currentNature = temp[0];
+          currentEVSpread = temp[1];
+        }
       } else {
-        currentIVs = "";
+        const temp = toShowdownSpread(exportData.spread);
+        currentNature = temp[0];
+        currentEVSpread = temp[1];
       }
+      if (!window.isChampions) {
+        let spreadToCheck = wasSelected ? window.initialSpread : exportData.spread;
+        if (spreadToCheck) {
+          let [naturePart, evPart] = spreadToCheck.split(":");
+          let evs = evPart.replace(/\s/g, "").split("/");
+          if (
+            ["Brave", "Relaxed", "Quiet", "Sassy"].includes(currentNature) &&
+            evs[5] == "0"
+          ) {
+            currentIVs = "\nIVs: 0 Spe";
+          } else {
+            currentIVs = "";
+          }
+        }
+      }
+      updateSpreadHighlights();
+      updateNatureHighlights();
     }
     $("#showdown-set").val(generateShowdownSet());
   });

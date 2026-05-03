@@ -78,7 +78,7 @@ def fetch_pokemon_usage_data(format_code, rating_threshold):
 
 def extract_generation_from_filename(filename):
     """Extract the generation number from a filename string."""
-    special_formats = ["1v1", "2v2", "350", "12switch"]
+    special_formats = ["1v1", "2v2", "350", "12switch","4v4"]
     try:
         segment = filename.split("-")[2]
         gen_segment = segment
