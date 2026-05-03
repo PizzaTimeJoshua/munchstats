@@ -3,68 +3,158 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>About</title>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <title>About | MunchStats</title>
+    <meta property="og:title" content="About | MunchStats">
+    <meta name="description" content="Learn about MunchStats - a free, ad-free Pokemon Showdown usage statistics site.">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <style>
-      body,
-      h1,
-      h2,
-      h3,
-      h4,
-      h5,
-      h6 {
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
         background-color: #1e1e1e;
-        display: grid;
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr auto;
         color: #e0e0e0;
         font-family: Arial, sans-serif;
-        padding: 4px 4px;
-        margin-top: 5px;
-        margin-bottom: 5px;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 20px;
       }
-      button {
+      .container {
+        max-width: 700px;
+        width: 100%;
+      }
+      h1 {
+        font-size: 36px;
+        color: #ffffff;
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      .intro {
+        font-size: 16px;
+        color: #cccccc;
+        line-height: 1.6;
+        margin-bottom: 36px;
+        text-align: center;
+      }
+      .faq-section {
+        margin-bottom: 36px;
+      }
+      .faq-section h2 {
+        font-size: 24px;
+        color: #ffffff;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #333;
+        padding-bottom: 8px;
+      }
+      .faq-item {
+        margin-bottom: 20px;
+      }
+      .faq-item h3 {
+        font-size: 16px;
+        color: #ffffff;
+        margin-bottom: 6px;
+      }
+      .faq-item p {
+        font-size: 15px;
+        color: #999999;
+        line-height: 1.5;
+      }
+      .contact-section {
+        text-align: center;
+        margin-bottom: 36px;
+        padding: 20px;
+        background-color: #222222;
+        border-radius: 4px;
+      }
+      .contact-section h3 {
+        font-size: 16px;
+        color: #ffffff;
+        margin-bottom: 10px;
+      }
+      .contact-email {
+        font-size: 16px;
+        color: #cccccc;
+        font-family: monospace;
+      }
+      .home-button {
         background-color: #222222;
         color: #e0e0e0;
         border: 1px solid #555;
-        padding: 8px 12px;
-        margin: 5px;
+        padding: 12px 24px;
+        font-size: 16px;
         cursor: pointer;
         transition: background-color 0.3s;
+        text-decoration: none;
+        display: inline-block;
       }
-      button:hover {
+      .home-button:hover {
         background-color: #333333;
+        color: #ffffff;
+      }
+      .button-container {
+        text-align: center;
+        margin-bottom: 36px;
+      }
+      .footer {
+        text-align: center;
+        font-size: 12px;
+        color: #666666;
+        margin-top: auto;
+        padding-top: 20px;
+      }
+      .footer a {
+        color: #999999;
+        text-decoration: none;
+      }
+      .footer a:hover {
         color: #ffffff;
       }
     </style>
   </head>
   <body>
-    <div style="text-align: center;">
-      <h1>About Us</h1>
+    <div class="container">
+      <h1>About MunchStats</h1>
+      <p class="intro">
+        This here is a side project that I've worked on just for fun. I make absolutely no money from this site.
+        It runs ad-free! If I receive any kind of donation, it'll go directly to keeping this site up.
+        This site was the product of "Pikalytics is taking a while to update its usage stats." So instead of waiting, I made this site.
+      </p>
+
+      <div class="faq-section">
+        <h2>FAQ</h2>
+        <div class="faq-item">
+          <h3>Where does the data come from?</h3>
+          <p>It comes from Pokemon Showdown's Monthly Usage Stats, the same place as Pikalytics!</p>
+        </div>
+        <div class="faq-item">
+          <h3>How often does this get updated?</h3>
+          <p>Once a month. Near the beginning of the month when Showdown releases its usage stats.</p>
+        </div>
+        <div class="faq-item">
+          <h3>Pokemon Showdown doesn't provide Tera Data, where do you get it from?</h3>
+          <p>Starting September 1st 2024, Pokemon Showdown DOES show Tera Data. Previously, this used to be based off public replay data.</p>
+        </div>
+        <div class="faq-item">
+          <h3>I found a bug! / I want to suggest a feature!</h3>
+          <p>Contact me below!</p>
+        </div>
+      </div>
+
+      <div class="contact-section">
+        <h3>Contact</h3>
+        <span class="contact-email"><tt>cont</tt><tt>act@</tt><tt>munc</tt><tt>hstat</tt><tt>s.com</tt></span>
+      </div>
+
+      <div class="button-container">
+        <a href="{{ url_for('index') }}" class="home-button">Go back to the homepage</a>
+      </div>
     </div>
-    <div>
-      This here is a side project that I've worked on just for fun. I make absolutely no money from this site.
-      It runs ad-free! If I receive any kind of donation, it'll go directly to keeping this site up.
-      This site was the product of "Pikalytics is taking a while to update its usage stats." So instead of waiting, I made this site.
-    </div>
-    <h3>FAQ</h3>
-    <h4>Where does the data come from?</h4>
-    <h5>It comes from Pokemon Showdown's Monthly Usage Stats, the same place as Pikalytics!</h5>
-    <h4>How often does this get updated?</h4>
-    <h5>Once a month. Near the beginning of the month when Showdown releases it's usage stats.</h5>
-    <h4>Pokemon Showdown doesn't provide Tera Data, where do you get it from?</h4>
-    <h5>Starting September 1st 2024, Pokemon Showdown DOES show Tera Data. Previously, this used to be based off public replay data.</h5>
-    <h4>I found a bug!/I want to suggest a feature!</h4>
-    <h5>Contact me below!</h5>
-    <blockquote>
-      <p><tt>cont</tt><tt>act@munc</tt><tt>hstat</tt><tt>s.com</tt></p>
-    </blockquote>
-    <div style="text-align: center; height: 32px; margin-bottom: 15px;">
-      <button onclick="location.href='{{ url_for('index') }}'">Go back to the homepage </button>
-    </div>
-    <div style="text-align: center; height: 32px">
-      <h6>PokAcmon and All Respective Names are Trademark & Ac of Nintendo 1996-2023</h6>
+    <div class="footer">
+      <p>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</p>
     </div>
   </body>
 </html>

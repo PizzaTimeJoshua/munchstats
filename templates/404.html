@@ -3,42 +3,89 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Page Not Found</title>
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <title>404 | MunchStats</title>
+    <meta property="og:title" content="Page Not Found | MunchStats">
+    <meta name="description" content="The page you're looking for doesn't exist.">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
     <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
       body {
         background-color: #1e1e1e;
-        display: grid;
-        grid-template-columns: 1fr;
-        grid-template-rows: 1fr auto;
         color: #e0e0e0;
         font-family: Arial, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
       }
-      button {
+      .container {
+        text-align: center;
+        padding: 40px 20px;
+        max-width: 600px;
+      }
+      h1 {
+        font-size: 72px;
+        color: #ffffff;
+        margin-bottom: 10px;
+      }
+      h2 {
+        font-size: 24px;
+        color: #cccccc;
+        margin-bottom: 20px;
+        font-weight: normal;
+      }
+      p {
+        font-size: 16px;
+        color: #999999;
+        margin-bottom: 30px;
+        line-height: 1.5;
+      }
+      .home-button {
         background-color: #222222;
         color: #e0e0e0;
         border: 1px solid #555;
-        padding: 8px 12px;
-        margin: 5px;
+        padding: 12px 24px;
+        font-size: 16px;
         cursor: pointer;
         transition: background-color 0.3s;
+        text-decoration: none;
+        display: inline-block;
       }
-      button:hover {
+      .home-button:hover {
         background-color: #333333;
+        color: #ffffff;
+      }
+      .footer {
+        position: absolute;
+        bottom: 20px;
+        text-align: center;
+        font-size: 12px;
+        color: #666666;
+      }
+      .footer a {
+        color: #999999;
+        text-decoration: none;
+      }
+      .footer a:hover {
         color: #ffffff;
       }
     </style>
   </head>
   <body>
-    <div style="text-align: center;">
-      <h1>Error 404: Page Not Found</h1>
+    <div class="container">
+      <h1>404</h1>
+      <h2>Page Not Found</h2>
+      <p>The page you're looking for doesn't exist or has been moved.</p>
+      <a href="{{ url_for('index') }}" class="home-button">Go back to the homepage</a>
     </div>
-    <div style="text-align: center; height: 32px;">
-      <button onclick="location.href='{{ url_for('index') }}'">Go back to the homepage </button>
-    </div>
-    <div style="text-align: center; height: 32px">
-      <h6>PokAcmon and All Respective Names are Trademark & Ac of Nintendo 1996-2023</h6>
+    <div class="footer">
+      <p><a href="/about">About</a></p>
+      <p>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</p>
     </div>
   </body>
 </html>
