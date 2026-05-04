@@ -503,9 +503,9 @@
       <a href="https://twitter.com/MunchStats?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large" data-show-screen-name="false" data-dnt="true" data-show-count="false">Follow @MunchStats</a>
       <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
     </div>
-    <form class="grid-container" action="/search_pokemon" method="post">
+    <div class="grid-container">
       <div class="left" style="width: 300px;">
-        <div>
+        <div id="pokemon-info">
           <h3> Current Format:<br><span style="color: yellow;">{{ selected_format[1] }}</span></h3>
           <h3> Current Glicko Rating Threshold: <span style="color: yellow;">{{ selected_rating }}</span></h3>
           <h3> Current Pokemon:<br>
@@ -528,15 +528,15 @@
           <ul id="meta-list">
             {% for format in availableFormats %}
             <li>
-              <button type="submit" name="meta_value" value="{{ format }}" onclick='selectMeta("{{ format }}")' class="meta-button">{{ format[1] }}</button>
+              <button type="button" onclick='selectMeta("{{ format[0] }}")' class="meta-button">{{ format[1] }}</button>
             </li>
             {% endfor %}
           </ul>
         </div>
-        <div class="rating-buttons">
+        <div class="rating-buttons" id="rating-buttons-container">
           <input type="hidden" name="rating_value" id="selectedRating" value="{{ selected_rating }}">
           {% for rate in rating_options %}
-          <button type="submit" name="rating_value" onclick="selectRating('{{ rate }}')" value="{{ rate }}" class="rating-button">{{ rate }}+</button>
+          <button type="button" onclick="selectRating('{{ rate }}')" class="rating-button">{{ rate }}+</button>
           {% endfor %}
         </div>
         <div style="height: 50px;">
@@ -547,7 +547,7 @@
           <ul id="pokemon-list">
             {% for pokemon in pokemon_names %}
             <li>
-              <button type="submit" name="pokemon_value" value="{{ pokemon[0] }}" onclick="selectPokemon('{{ pokemon[0] }}')" class="pokemon-button" style="padding: 2px 8px;">
+              <button type="button" onclick="selectPokemon('{{ pokemon[0] }}')" class="pokemon-button" style="padding: 2px 8px;">
                 <div class="image-pokemon" style="background-position: {{ pokemon[2][1] * -40 }}px {{ pokemon[2][0] * -30 }}px;">
                   <span class="left-text" style="padding-left: 48px;">{{ pokemon[0] }}</span>
                 </div>
@@ -558,7 +558,7 @@
           </ul>
         </div>
       </div>
-      <div class="right">
+      <div class="right" id="right-panel">
         <div class="Stats">
           <h2>Base Stats</h2>
           {% if base_stats|length > 0 %}
@@ -630,7 +630,7 @@
             <ul>
               {% for team in teammates_list %}
               <li>
-                <button type="submit" name="pokemon_value" value="{{ team[0] }}" onclick="selectPokemon('{{ team[0] }}')" class="pokemon-button" style="padding: 2px 8px;">
+                <button type="button" onclick="selectPokemon('{{ team[0] }}')" class="pokemon-button" style="padding: 2px 8px;">
                   <div class="image-pokemon" style="background-position: {{ team[2][1] * -40 }}px {{ team[2][0] * -30 }}px;">
                     <span class="left-text" style="padding-left: 48px;">{{ team[0] }}</span>
                   </div>
@@ -826,7 +826,7 @@
             <ul>
               {% for counter in counters_list %}
               <li>
-                <button type="submit" name="pokemon_value" value="{{ counter[0] }}" onclick="selectPokemon('{{ counter[0] }}')" class="pokemon-button" style="padding: 2px 8px;">
+                <button type="button" onclick="selectPokemon('{{ counter[0] }}')" class="pokemon-button" style="padding: 2px 8px;">
                   <div class="image-pokemon" style="background-position: {{ counter[2][1] * -40 }}px {{ counter[2][0] * -30 }}px;">
                     <span class="left-text" style="padding-left: 48px;">{{ counter[0] }}</span>
                   </div>
@@ -839,7 +839,7 @@
         </div>
         {% endif %}
       </div>
-    </form>
+    </div>
     <div style="text-align: center; height: 32px;">
       <h6>Usage stats data from the month of April 2026</h6>
     </div>
@@ -861,6 +861,7 @@
       window.currentAbility = {% if abilities_list|length > 0 %}decodeHtmlEntities("{{ abilities_list[0][0] }}"){% else %}""{% endif %};
       window.initialSpread = {% if spreads_list|length > 0 %}"{{ spreads_list[0][0] }}"{% else %}""{% endif %};
       window.selectedFormat = "{{ selected_format[0] }}";
+      window.selectedRating = "{{ selected_rating }}";
       window.isChampions = {{ is_champions | tojson }};
       window.teraType = {% if tera_types_list|length > 0 %}"{{ tera_types_list[0][0] }}"{% else %}""{% endif %};
       window.initialMoves = [
@@ -871,6 +872,6 @@
     </script>
 
     <!-- External JavaScript file -->
-    <script src="{{ url_for('static', filename='tools_1.4.js') }}"></script>
+    <script src="{{ url_for('static', filename='tools_2.0.js') }}"></script>
   </body>
 </html>
