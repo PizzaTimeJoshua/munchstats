@@ -14,7 +14,7 @@
 ## Tech Stack
 - **Backend:** Python 3 · Flask
 - **Templating:** Jinja2
-- **Frontend:** HTML/CSS/JavaScript (custom; see `static/tools_1.2.js`)
+- **Frontend:** HTML/CSS/JavaScript (custom; see `static/tools_2.1.js`)
 - **Process management:** Gunicorn (Procfile)
 - **Data:** Pre‑generated JSON stats files per format & rating in `/stats`
 
@@ -33,7 +33,7 @@
 ## Project Structure
 ```
 / static
-  favicon.ico, pokemonicons-sheet.png, itemicons-sheet.png, tools_1.2.js
+  favicon.ico, pokemonicons-sheet.png, itemicons-sheet.png, tools_2.1.js
 / templates
   index.html, about.html, 404.html, 500.html
 / stats

@@ -351,6 +351,111 @@ $(document).ready(function () {
   }
   window.toShowdownSpread = toShowdownSpread;
 
+  var statOrder = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"];
+
+  function emptyStatValues() {
+    return {
+      HP: "0",
+      Atk: "0",
+      Def: "0",
+      SpA: "0",
+      SpD: "0",
+      Spe: "0",
+    };
+  }
+
+  function parseStatLabel(label) {
+    var match = String(label)
+      .trim()
+      .match(/^(\d+)\s*([+-])?\s+(HP|Atk|Def|SpA|SpD|Spe)$/);
+    if (!match) return null;
+    return {
+      value: match[1],
+      diff: match[2] || " ",
+      stat: match[3],
+    };
+  }
+
+  function parseSpreadValues(spread) {
+    var values = emptyStatValues();
+    String(spread || "")
+      .split("/")
+      .forEach(function (part) {
+        var parsed = parseStatLabel(part);
+        if (parsed) values[parsed.stat] = parsed.value;
+      });
+    return values;
+  }
+
+  function formatSpreadValues(values) {
+    var spreadParts = [];
+    statOrder.forEach(function (stat) {
+      var value = values[stat] || "0";
+      if (parseInt(value, 10) > 0) {
+        spreadParts.push(value + " " + stat);
+      }
+    });
+    return spreadParts.join(" / ");
+  }
+
+  function parseEVCategorySelection(label) {
+    var selection = {
+      values: emptyStatValues(),
+      affectedStats: [],
+      natureStat: "",
+      diff: " ",
+    };
+    String(label || "")
+      .split("/")
+      .forEach(function (part) {
+        var parsed = parseStatLabel(part);
+        if (!parsed) return;
+        selection.values[parsed.stat] = parsed.value;
+        selection.affectedStats.push(parsed.stat);
+        if (parsed.stat !== "HP") {
+          selection.natureStat = parsed.stat;
+          selection.diff = parsed.diff;
+        }
+      });
+    return selection;
+  }
+
+  function updateSpeedIVsForCurrentSpread() {
+    if (window.isChampions) {
+      currentIVs = "";
+      return;
+    }
+    var values = parseSpreadValues(currentEVSpread);
+    if (
+      ["Brave", "Relaxed", "Quiet", "Sassy"].includes(currentNature) &&
+      values.Spe === "0"
+    ) {
+      currentIVs = "\nIVs: 0 Spe";
+    } else {
+      currentIVs = "";
+    }
+  }
+
+  function applyEVCategorySelection(label, clearSelection) {
+    var selection = parseEVCategorySelection(label);
+    if (selection.affectedStats.length === 0) return;
+
+    var values = parseSpreadValues(currentEVSpread);
+    selection.affectedStats.forEach(function (stat) {
+      values[stat] = clearSelection ? "0" : selection.values[stat];
+    });
+
+    if (selection.natureStat) {
+      currentNature = changeNature(
+        currentNature,
+        selection.natureStat,
+        clearSelection ? " " : selection.diff
+      );
+    }
+    currentEVSpread = formatSpreadValues(values);
+    updateSpeedIVsForCurrentSpread();
+  }
+
   function initExportState() {
     currentPokemonName = window.currentPokemonName;
     currentItem = window.currentItem;
@@ -579,18 +684,7 @@ $(document).ready(function () {
   }
 
   function currentStatPointLabels() {
-    var values = {
-      HP: "0",
-      Atk: "0",
-      Def: "0",
-      SpA: "0",
-      SpD: "0",
-      Spe: "0",
-    };
-    currentEVSpread.split("/").forEach(function (part) {
-      var match = part.trim().match(/^(\d+)\s+(HP|Atk|Def|SpA|SpD|Spe)$/);
-      if (match) values[match[2]] = match[1];
-    });
+    var values = parseSpreadValues(currentEVSpread);
     return [
       values.Atk + natureSuffixForStat("Atk", currentNature) + " Atk",
       values.SpA + natureSuffixForStat("SpA", currentNature) + " SpA",
@@ -698,17 +792,7 @@ $(document).ready(function () {
     var exportDataText = $(this).attr("export-data");
     var exportData = JSON.parse(exportDataText);
     if (typeof exportData.ev === "string") {
-      var stat = "";
-      if (exportData.ev.includes("Atk")) stat = "Atk";
-      if (exportData.ev.includes("SpA")) stat = "SpA";
-      if (exportData.ev.includes("Spe")) stat = "Spe";
-      if (exportData.ev.includes("Def")) stat = "Def";
-      if (exportData.ev.includes("SpD")) stat = "SpD";
-      var diff = " ";
-      if (exportData.ev.includes("+")) diff = "+";
-      if (exportData.ev.includes("-")) diff = "-";
-      currentNature = changeNature(currentNature, stat, diff);
-      currentEVSpread = exportData.ev.replace("+", "").replace("-", "");
+      applyEVCategorySelection(exportData.ev, $(this).hasClass("selected"));
       updateSpreadHighlights();
       updateNatureHighlights();
       updateEVHighlights();
