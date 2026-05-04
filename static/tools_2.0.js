@@ -34,6 +34,13 @@ $(document).ready(function () {
     "Sp. Defense",
     "Speed",
   ];
+  var graphDatasetIndexes = { usage: 0, cumulative: 1, reverseCumulative: 2 };
+  var graphDatasetVisibility = {
+    usage: true,
+    cumulative: false,
+    reverseCumulative: false,
+  };
+
 
   function sortChartData(dataArray) {
     return dataArray.slice().sort(function (a, b) {
@@ -45,7 +52,28 @@ $(document).ready(function () {
       return { x: pair[0], y: pair[1] };
     });
   }
+  function convertCumulativeChartData(dataArray) {
+    var cumulative = 0;
+    return dataArray.map(function (pair) {
+      cumulative += pair[1];
+      return { x: pair[0], y: Math.min(cumulative, 100) };
+    });
+  }
+  function convertReverseCumulativeChartData(dataArray) {
+    var cumulative = 0;
+    return dataArray
+      .slice()
+      .reverse()
+      .map(function (pair) {
+        cumulative += pair[1];
+        return { x: pair[0], y: Math.min(cumulative, 100) };
+      })
+      .reverse();
+  }
   function calculateAxisLimits(dataArray) {
+    if (!dataArray.length) {
+      return { minX: 0, maxX: 1, maxY: 1 };
+    }
     var xValues = dataArray.map(function (pair) {
       return pair[0];
     });
@@ -54,8 +82,48 @@ $(document).ready(function () {
     var yValues = dataArray.map(function (pair) {
       return pair[1];
     });
-    var maxY = Math.ceil(Math.max.apply(null, yValues));
+    var maxY = Math.max(1, Math.ceil(Math.max.apply(null, yValues) * 1.1));
     return { minX: minX, maxX: maxX, maxY: maxY };
+  }
+
+  function updateGraphToggleButtons() {
+    Object.keys(graphDatasetVisibility).forEach(function (name) {
+      var button = document.getElementById("graph-toggle-" + name);
+      if (!button) return;
+      button.classList.toggle("selected", graphDatasetVisibility[name]);
+      button.setAttribute(
+        "aria-pressed",
+        graphDatasetVisibility[name] ? "true" : "false"
+      );
+    });
+  }
+
+  function applyGraphDatasetVisibility(redraw) {
+    var cumulativeVisible =
+      graphDatasetVisibility.cumulative ||
+      graphDatasetVisibility.reverseCumulative;
+    if (evChart) {
+      Object.keys(graphDatasetIndexes).forEach(function (name) {
+        evChart.setDatasetVisibility(
+          graphDatasetIndexes[name],
+          graphDatasetVisibility[name]
+        );
+      });
+      evChart.options.scales.y.ticks.color = graphDatasetVisibility.usage
+        ? "rgba(224, 224, 224, 0.58)"
+        : "rgba(224, 224, 224, 0)";
+      evChart.options.scales.y.border.color = graphDatasetVisibility.usage
+        ? "rgba(255, 255, 255, 0.12)"
+        : "rgba(255, 255, 255, 0)";
+      evChart.options.scales.yCumulative.ticks.color = cumulativeVisible
+        ? "rgba(245, 193, 84, 0.78)"
+        : "rgba(245, 193, 84, 0)";
+      evChart.options.scales.yCumulative.border.color = cumulativeVisible
+        ? "rgba(245, 193, 84, 0.4)"
+        : "rgba(245, 193, 84, 0)";
+      if (redraw !== false) evChart.update();
+    }
+    updateGraphToggleButtons();
   }
 
   function initChart(graphDataString) {
@@ -84,19 +152,71 @@ $(document).ready(function () {
       data: {
         datasets: [
           {
+            type: "bar",
+            label: "Usage",
             data: convertChartData(currentChartData),
             backgroundColor: "rgba(75, 192, 192, 0.2)",
             borderColor: "rgba(75, 192, 192, 1)",
             borderWidth: 1,
             barPercentage: 1,
             categoryPercentage: 1,
+            hidden: !graphDatasetVisibility.usage,
+            yAxisID: "y",
+            order: 2,
+          },
+          {
+            type: "line",
+            label: "Cumulative",
+            data: convertCumulativeChartData(currentChartData),
+            borderColor: "rgba(245, 193, 84, 0.95)",
+            backgroundColor: "rgba(245, 193, 84, 0.12)",
+            borderWidth: 2.5,
+            cubicInterpolationMode: "monotone",
+            pointHitRadius: 8,
+            pointRadius: 0,
+            pointHoverRadius: 3,
+            tension: 0.35,
+            fill: false,
+            hidden: !graphDatasetVisibility.cumulative,
+            yAxisID: "yCumulative",
+            order: 1,
+          },
+          {
+            type: "line",
+            label: "Reverse Cumulative",
+            data: convertReverseCumulativeChartData(currentChartData),
+            borderColor: "rgba(180, 150, 255, 0.95)",
+            backgroundColor: "rgba(180, 150, 255, 0.12)",
+            borderWidth: 2.5,
+            cubicInterpolationMode: "monotone",
+            pointHitRadius: 8,
+            pointRadius: 0,
+            pointHoverRadius: 3,
+            tension: 0.35,
+            fill: false,
+            hidden: !graphDatasetVisibility.reverseCumulative,
+            yAxisID: "yCumulative",
+            order: 1,
           },
         ],
       },
       options: {
-        interaction: { mode: "nearest", intersect: false },
+        interaction: { mode: "index", intersect: false },
+        layout: { padding: { top: 4, right: 2, bottom: 0, left: 0 } },
         plugins: {
-          tooltip: { intersect: false },
+          tooltip: {
+            intersect: false,
+            backgroundColor: "rgba(12, 12, 12, 0.92)",
+            borderColor: "rgba(255, 255, 255, 0.14)",
+            borderWidth: 1,
+            displayColors: true,
+            callbacks: {
+              label: function (context) {
+                var value = context.parsed.y || 0;
+                return context.dataset.label + ": " + value.toFixed(1) + "%";
+              },
+            },
+          },
           legend: { display: false },
         },
         responsive: true,
@@ -104,9 +224,32 @@ $(document).ready(function () {
         scales: {
           y: {
             beginAtZero: true,
+            display: true,
             max: limits.maxY,
+            border: { color: "rgba(255, 255, 255, 0.12)" },
+            grid: { color: "rgba(255, 255, 255, 0.055)" },
             ticks: {
-              stepSize: 1,
+              color: "rgba(224, 224, 224, 0.58)",
+              font: { size: 11 },
+              maxTicksLimit: 5,
+              padding: 4,
+              callback: function (value) {
+                return value + "%";
+              },
+            },
+          },
+          yCumulative: {
+            beginAtZero: true,
+            display: true,
+            max: 100,
+            position: "right",
+            border: { color: "rgba(245, 193, 84, 0.4)" },
+            grid: { drawOnChartArea: false },
+            ticks: {
+              color: "rgba(245, 193, 84, 0.78)",
+              font: { size: 11, weight: "bold" },
+              padding: 4,
+              stepSize: 25,
               callback: function (value) {
                 return value + "%";
               },
@@ -117,13 +260,46 @@ $(document).ready(function () {
             position: "bottom",
             min: limits.minX,
             max: limits.maxX,
-            ticks: { stepSize: 1 },
-            title: { display: true, text: statLabels[5] },
+            border: { color: "rgba(255, 255, 255, 0.12)" },
+            grid: { color: "rgba(255, 255, 255, 0.035)" },
+            ticks: {
+              autoSkip: true,
+              color: "rgba(224, 224, 224, 0.5)",
+              font: { size: 10 },
+              maxRotation: 0,
+              maxTicksLimit: 6,
+              minRotation: 0,
+              padding: 3,
+              stepSize: 1,
+              callback: function (value) {
+                return Math.round(value);
+              },
+            },
+            title: { display: false, text: statLabels[5] },
           },
         },
       },
     });
+    applyGraphDatasetVisibility(false);
   }
+
+  window.toggleGraphDataset = function (event, datasetName) {
+    event.preventDefault();
+    if (!Object.prototype.hasOwnProperty.call(graphDatasetVisibility, datasetName)) {
+      return;
+    }
+    var nextVisibility = !graphDatasetVisibility[datasetName];
+    var visibleCount = Object.keys(graphDatasetVisibility).filter(function (name) {
+      return name === datasetName
+        ? nextVisibility
+        : graphDatasetVisibility[name];
+    }).length;
+    if (visibleCount === 0) {
+      return;
+    }
+    graphDatasetVisibility[datasetName] = nextVisibility;
+    applyGraphDatasetVisibility();
+  };
 
   window.updateChartData = function (event, index) {
     event.preventDefault();
@@ -131,6 +307,8 @@ $(document).ready(function () {
     var newData = sortChartData(chartStats[index]);
     var limits = calculateAxisLimits(newData);
     evChart.data.datasets[0].data = convertChartData(newData);
+    evChart.data.datasets[1].data = convertCumulativeChartData(newData);
+    evChart.data.datasets[2].data = convertReverseCumulativeChartData(newData);
     evChart.options.scales.x.min = limits.minX;
     evChart.options.scales.x.max = limits.maxX;
     evChart.options.scales.x.title.text = statLabels[index];
@@ -376,6 +554,60 @@ $(document).ready(function () {
   }
   window.changeNature = changeNature;
 
+  function natureSuffixForStat(stat, natureVal) {
+    var boostedNatures = {
+      Atk: ["Naughty", "Adamant", "Lonely", "Brave"],
+      Def: ["Bold", "Relaxed", "Impish", "Lax"],
+      SpA: ["Modest", "Mild", "Quiet", "Rash"],
+      SpD: ["Calm", "Gentle", "Sassy", "Careful"],
+      Spe: ["Timid", "Hasty", "Jolly", "Naive"],
+    };
+    var loweredNatures = {
+      Atk: ["Bold", "Timid", "Modest", "Calm"],
+      Def: ["Lonely", "Hasty", "Mild", "Gentle"],
+      SpA: ["Adamant", "Impish", "Jolly", "Careful"],
+      SpD: ["Naughty", "Lax", "Naive", "Rash"],
+      Spe: ["Brave", "Relaxed", "Quiet", "Sassy"],
+    };
+    if (boostedNatures[stat] && boostedNatures[stat].includes(natureVal)) {
+      return "+";
+    }
+    if (loweredNatures[stat] && loweredNatures[stat].includes(natureVal)) {
+      return "-";
+    }
+    return "";
+  }
+
+  function currentStatPointLabels() {
+    var values = {
+      HP: "0",
+      Atk: "0",
+      Def: "0",
+      SpA: "0",
+      SpD: "0",
+      Spe: "0",
+    };
+    currentEVSpread.split("/").forEach(function (part) {
+      var match = part.trim().match(/^(\d+)\s+(HP|Atk|Def|SpA|SpD|Spe)$/);
+      if (match) values[match[2]] = match[1];
+    });
+    return [
+      values.Atk + natureSuffixForStat("Atk", currentNature) + " Atk",
+      values.SpA + natureSuffixForStat("SpA", currentNature) + " SpA",
+      values.Spe + natureSuffixForStat("Spe", currentNature) + " Spe",
+      values.HP +
+        " HP / " +
+        values.Def +
+        natureSuffixForStat("Def", currentNature) +
+        " Def",
+      values.HP +
+        " HP / " +
+        values.SpD +
+        natureSuffixForStat("SpD", currentNature) +
+        " SpD",
+    ];
+  }
+
   // ========== HIGHLIGHT HELPERS ==========
   function updateMoveHighlights() {
     $(".export-button").each(function () {
@@ -438,12 +670,26 @@ $(document).ready(function () {
       }
     });
   }
+  function updateEVHighlights() {
+    var selectedStats = currentStatPointLabels();
+    $(".export-button").each(function () {
+      var data = JSON.parse($(this).attr("export-data") || "{}");
+      if (typeof data.ev === "string") {
+        if (selectedStats.includes(data.ev)) {
+          $(this).addClass("selected");
+        } else {
+          $(this).removeClass("selected");
+        }
+      }
+    });
+  }
   function updateAllHighlights() {
     updateMoveHighlights();
     updateAbilityHighlights();
     updateItemHighlights();
     updateSpreadHighlights();
     updateNatureHighlights();
+    updateEVHighlights();
   }
   updateAllHighlights();
 
@@ -465,6 +711,7 @@ $(document).ready(function () {
       currentEVSpread = exportData.ev.replace("+", "").replace("-", "");
       updateSpreadHighlights();
       updateNatureHighlights();
+      updateEVHighlights();
     }
     if (typeof exportData.item === "string") {
       if ($(this).hasClass("selected")) {
@@ -497,6 +744,7 @@ $(document).ready(function () {
       }
       updateSpreadHighlights();
       updateNatureHighlights();
+      updateEVHighlights();
     }
     if (typeof exportData.tera === "string") {
       currentTeraType = "\nTera Type: " + exportData.tera;
@@ -543,6 +791,7 @@ $(document).ready(function () {
       }
       updateSpreadHighlights();
       updateNatureHighlights();
+      updateEVHighlights();
     }
     updateShowdownSet();
   });
@@ -907,7 +1156,7 @@ $(document).ready(function () {
     var html = "<div" + (isEmpty ? ' style="display: none;"' : "") + ">";
     html += '<h2 style="margin-bottom: 5px;">Stats Graph (Beta)</h2>';
     html +=
-      '<div class="Data" style="max-height: 225px; height: 225px; margin-bottom: 0px;"><div>';
+      '<div class="Data" style="max-height: 225px; height: 225px; margin-bottom: 0px; overflow: hidden;"><div>';
     html +=
       '<button type="button" class="stat-button" onclick="updateChartData(event, 0)" id="stat-HP">HP</button>';
     html +=
@@ -921,6 +1170,10 @@ $(document).ready(function () {
     html +=
       '<button type="button" class="stat-button underline" onclick="updateChartData(event, 5)" id="stat-Speed">SPE</button>';
     html +=
+      '</div><div class="graph-toggle-row">' +
+      '<button type="button" class="graph-toggle-button selected" id="graph-toggle-usage" onclick="toggleGraphDataset(event, \'usage\')" aria-pressed="true">Usage</button>' +
+      '<button type="button" class="graph-toggle-button" id="graph-toggle-cumulative" onclick="toggleGraphDataset(event, \'cumulative\')" aria-pressed="false">Cumulative</button>' +
+      '<button type="button" class="graph-toggle-button" id="graph-toggle-reverseCumulative" onclick="toggleGraphDataset(event, \'reverseCumulative\')" aria-pressed="false">Reverse</button>' +
       '</div><div id="chart-container"><canvas id="evChart"></canvas></div></div></div>';
     return html;
   }

@@ -27,7 +27,7 @@
       /* Container for the chart so we can control height */
       #chart-container {
         width: 100%;
-        height: 185px;
+        height: 148px;
         position: relative;
       }
       body {
@@ -69,6 +69,34 @@
       .stat-button {
         margin: 4px 0px;
         padding: 6px 8px;
+      }
+      .graph-toggle-row {
+        align-items: center;
+        display: flex;
+        gap: 6px;
+        justify-content: center;
+        margin: 0 0 2px;
+      }
+      .graph-toggle-button {
+        background-color: #222222;
+        border: 1px solid #555;
+        color: #999;
+        cursor: pointer;
+        font-size: 11px;
+        padding: 3px 8px;
+      }
+      .graph-toggle-button.selected {
+        border-color: #888888;
+        color: #ffffff;
+      }
+      #graph-toggle-usage.selected {
+        border-color: rgba(56, 189, 201, 0.9);
+      }
+      #graph-toggle-cumulative.selected {
+        border-color: rgba(245, 193, 84, 0.95);
+      }
+      #graph-toggle-reverseCumulative.selected {
+        border-color: rgba(180, 150, 255, 0.95);
       }
       .tooltip {
         position: absolute;
@@ -781,7 +809,7 @@
         <div>
         {% endif %}
           <h2 style="margin-bottom: 5px;">Stats Graph (Beta)</h2>
-          <div class="Data" style="max-height: 225px; height: 225px; margin-bottom: 0px;">
+          <div class="Data" style="max-height: 225px; height: 225px; margin-bottom: 0px; overflow: hidden;">
             <div>
               <button type="button" class="stat-button" onclick="updateChartData(event, 0)" id="stat-HP">HP</button>
               <button type="button" class="stat-button" onclick="updateChartData(event, 1)" id="stat-Attack">ATK</button>
@@ -789,6 +817,11 @@
               <button type="button" class="stat-button" onclick="updateChartData(event, 3)" id="stat-Sp. Attack">SPA</button>
               <button type="button" class="stat-button" onclick="updateChartData(event, 4)" id="stat-Sp. Defense">SPD</button>
               <button type="button" class="stat-button underline" onclick="updateChartData(event, 5)" id="stat-Speed">SPE</button>
+            </div>
+            <div class="graph-toggle-row">
+              <button type="button" class="graph-toggle-button selected" id="graph-toggle-usage" onclick="toggleGraphDataset(event, 'usage')" aria-pressed="true">Usage</button>
+              <button type="button" class="graph-toggle-button" id="graph-toggle-cumulative" onclick="toggleGraphDataset(event, 'cumulative')" aria-pressed="false">Cumulative</button>
+              <button type="button" class="graph-toggle-button" id="graph-toggle-reverseCumulative" onclick="toggleGraphDataset(event, 'reverseCumulative')" aria-pressed="false">Reverse</button>
             </div>
             <div id="chart-container">
               <canvas id="evChart"></canvas>
