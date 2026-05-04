@@ -4,7 +4,7 @@ import os
 import re
 from datetime import datetime
 
-from flask import Flask, redirect, render_template, request, url_for
+from flask import Flask, jsonify, redirect, render_template, request, url_for
 import pyjson5
 
 app = Flask(__name__)
@@ -628,33 +628,19 @@ def about():
     return render_template("about.html")
 
 
-@app.route("/<format_code>/<rating_threshold>/<pokemon_name>")
-@app.route("/<format_code>/<rating_threshold>/")
-@app.route("/<format_code>/")
-def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
+def compile_page_data(format_code, rating_threshold="", pokemon_name=""):
+    """Resolve parameters and compile all data needed for a Pokemon page."""
     default_format = DEFAULT_META
-    try:
-        selected_format = pyjson5.loads(
-            f'["{format_code}", "{formatDisplayNames.get(format_code, format_code)}"]'
-        )
-    except Exception:
-        selected_format = [
-            default_format,
-            formatDisplayNames.get(default_format, default_format),
-        ]
+    chosen_format = format_code if format_code in formatDisplayNames else default_format
+    selected_format = [chosen_format, formatDisplayNames.get(chosen_format, chosen_format)]
 
-    chosen_format = (
-        selected_format[0]
-        if selected_format[0] in formatDisplayNames
-        else default_format
-    )
     rating_options = get_valid_rating_thresholds(chosen_format)
+    if not rating_options:
+        return None
 
-    if rating_threshold in rating_options:
-        chosen_rating = rating_threshold
-    else:
-        chosen_rating = rating_options[-1]
-        rating_threshold = chosen_rating
+    chosen_rating = (
+        rating_threshold if rating_threshold in rating_options else rating_options[-1]
+    )
 
     usage_stats = fetch_pokemon_usage_data(chosen_format, chosen_rating)
     sorted_pokemon = sorted(
@@ -667,38 +653,16 @@ def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
         if matched_pokemon:
             default_pokemon = matched_pokemon
 
-    # Only redirect if not on the homepage ("/")
-    if (
-        (
-            chosen_format != format_code
-            or chosen_rating != rating_threshold
-            or default_pokemon != pokemon_name
-        )
-        and request.path != "/"
-    ):
-        return redirect(
-            url_for(
-                "display_pokemon_page",
-                format_code=chosen_format,
-                rating_threshold=chosen_rating,
-                pokemon_name=default_pokemon,
-            )
-        )
     if default_pokemon == "":
-        return redirect(
-            url_for(
-                "display_pokemon_page",
-                format_code=chosen_format,
-                rating_threshold="0",
-                pokemon_name=default_pokemon,
-            )
-        )
+        return None
 
     try:
         rank = sorted_pokemon.index(default_pokemon) + 1
     except ValueError:
         rank = "N/A"
-    usage_percent = round(usage_stats.get(default_pokemon, {}).get("usage", 0) * 100, 2)
+    usage_percent = round(
+        usage_stats.get(default_pokemon, {}).get("usage", 0) * 100, 2
+    )
     current_pokemon_data = [
         default_pokemon,
         usage_percent,
@@ -708,10 +672,14 @@ def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
 
     base_stats = compile_top_data(usage_stats, default_pokemon, "Stats")
     pokemon_types = compile_top_data(usage_stats, default_pokemon, "Types")
-    moves_list = compile_top_data(usage_stats, default_pokemon, "Moves", chosen_format)
+    moves_list = compile_top_data(
+        usage_stats, default_pokemon, "Moves", chosen_format
+    )
     teammates_list = compile_top_data(usage_stats, default_pokemon, "Teammates")
     items_list = compile_top_data(usage_stats, default_pokemon, "Items")
-    abilities_list = compile_top_data(usage_stats, default_pokemon, "Abilities", chosen_format)
+    abilities_list = compile_top_data(
+        usage_stats, default_pokemon, "Abilities", chosen_format
+    )
     spreads_list = compile_top_data(usage_stats, default_pokemon, "Spreads")
     natures_list = compile_top_data(usage_stats, default_pokemon, "Natures")
     evs_list = compile_top_data(usage_stats, default_pokemon, "EVs")
@@ -723,9 +691,8 @@ def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
     )
     tera_types_list = compile_top_data(usage_stats, default_pokemon, "Tera Types")
 
-    return render_template(
-        "index.html",
-        pokemon_names=[
+    return {
+        "pokemon_names": [
             [
                 name,
                 "{:.2f}".format(round(usage_stats[name]["usage"] * 100, 2)),
@@ -733,26 +700,68 @@ def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
             ]
             for name in sorted_pokemon
         ],
-        availableFormats=availableFormats,
-        selected_format=selected_format,
-        selected_pokemon=default_pokemon,
-        selected_rating=rating_threshold,
-        base_stats=base_stats,
-        pokemon_types=pokemon_types,
-        moves_list=moves_list,
-        teammates_list=teammates_list,
-        items_list=items_list,
-        abilities_list=abilities_list,
-        spreads_list=spreads_list,
-        natures_list=natures_list,
-        evs_list=evs_list,
-        counters_list=counters_list,
-        current_pokemon=current_pokemon_data,
-        rating_options=rating_options,
-        tera_types_list=tera_types_list,
-        graph_data=graph_data,
-        is_champions=is_champions_format(chosen_format),
-    )
+        "selected_format": selected_format,
+        "selected_pokemon": default_pokemon,
+        "selected_rating": chosen_rating,
+        "base_stats": base_stats,
+        "pokemon_types": pokemon_types,
+        "moves_list": moves_list,
+        "teammates_list": teammates_list,
+        "items_list": items_list,
+        "abilities_list": abilities_list,
+        "spreads_list": spreads_list,
+        "natures_list": natures_list,
+        "evs_list": evs_list,
+        "counters_list": counters_list,
+        "current_pokemon": current_pokemon_data,
+        "rating_options": rating_options,
+        "tera_types_list": tera_types_list,
+        "graph_data": graph_data,
+        "is_champions": is_champions_format(chosen_format),
+    }
+
+
+@app.route("/<format_code>/<rating_threshold>/<pokemon_name>")
+@app.route("/<format_code>/<rating_threshold>/")
+@app.route("/<format_code>/")
+def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
+    data = compile_page_data(format_code, rating_threshold, pokemon_name)
+    if data is None:
+        return redirect(
+            url_for(
+                "display_pokemon_page",
+                format_code=DEFAULT_META,
+                rating_threshold="0",
+                pokemon_name="",
+            )
+        )
+
+    # Redirect if parameters were corrected (not on homepage)
+    if request.path != "/" and (
+        data["selected_format"][0] != format_code
+        or data["selected_rating"] != rating_threshold
+        or data["selected_pokemon"] != pokemon_name
+    ):
+        return redirect(
+            url_for(
+                "display_pokemon_page",
+                format_code=data["selected_format"][0],
+                rating_threshold=data["selected_rating"],
+                pokemon_name=data["selected_pokemon"],
+            )
+        )
+
+    return render_template("index.html", **data, availableFormats=availableFormats)
+
+
+@app.route("/api/<format_code>/<rating_threshold>/<pokemon_name>")
+@app.route("/api/<format_code>/<rating_threshold>/")
+@app.route("/api/<format_code>/")
+def api_pokemon_data(format_code, rating_threshold="", pokemon_name=""):
+    data = compile_page_data(format_code, rating_threshold, pokemon_name)
+    if data is None:
+        return jsonify({"error": "No data found"}), 404
+    return jsonify(data)
 
 
 @app.route("/search_pokemon", methods=["POST"])
