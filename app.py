@@ -1,9 +1,13 @@
 import difflib
+import gzip
+import json
 import math
 import os
 import re
 from datetime import datetime
+from functools import lru_cache
 
+import requests
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 import pyjson5
 
@@ -14,6 +18,7 @@ DATA_DIRECTORY = "stats"
 os.makedirs(DATA_DIRECTORY, exist_ok=True)
 
 DEFAULT_META = "gen9championsvgc2026regmabo3"
+SMOGON_STATS_URL = "https://www.smogon.com/stats/"
 
 # Global dictionaries for loaded data
 formatDisplayNames = {}
@@ -40,76 +45,203 @@ def build_data_path(filename):
     return os.path.join(DATA_DIRECTORY, filename)
 
 
-def get_previous_year_month():
-    """Return the year and month (as strings) for the previous month."""
+def get_local_months():
+    """Return sorted list of locally available month strings."""
+    return sorted(
+        d for d in os.listdir(DATA_DIRECTORY)
+        if os.path.isdir(os.path.join(DATA_DIRECTORY, d)) and re.match(r"\d{4}-\d{2}$", d)
+    )
+
+
+@lru_cache(maxsize=1)
+def get_smogon_months():
+    """Fetch and cache the list of available months from Smogon. Returns sorted list."""
+    try:
+        from bs4 import BeautifulSoup as BS
+        resp = requests.get(SMOGON_STATS_URL, timeout=10)
+        if resp.status_code != 200:
+            return []
+        soup = BS(resp.text, "html.parser")
+        months = set()
+        for a in soup.find_all("a", href=True):
+            href = a["href"].strip("/")
+            # Match base months like 2024-06 (not DLC/H suffixes)
+            if re.match(r"\d{4}-\d{2}$", href):
+                months.add(href)
+            # Also include DLC/H variants mapped to their base month
+            elif re.match(r"\d{4}-\d{2}-(DLC[12]|H[12])$", href):
+                months.add(href[:7])
+        return sorted(months)
+    except Exception as e:
+        print(f"Warning: Could not fetch Smogon month list: {e}")
+        return []
+
+
+def get_available_months():
+    """Return sorted list of all available months (local + Smogon remote)."""
+    local = set(get_local_months())
+    remote = set(get_smogon_months())
+    return sorted(local | remote)
+
+
+def get_latest_month():
+    """Return the latest available month string."""
+    local = get_local_months()
+    if local:
+        return local[-1]
     now = datetime.now()
     month = now.month - 1
     year = now.year
     if month == 0:
         month = 12
         year -= 1
-    return str(year), str(month).zfill(2)
+    return f"{year}-{str(month).zfill(2)}"
 
 
-def fetch_pokemon_usage_data(format_code, rating_threshold):
-    """Return usage data for a given format and rating threshold. Falls back if current data is missing."""
-    year, month = get_previous_year_month()
-    file_name = f"{year}-{month}-{format_code}-{rating_threshold}.json"
-    file_path = build_data_path(file_name)
-    usage_data = load_data_file(file_path)
-    if usage_data:
-        return usage_data.get("data", {})
-    # Fallback to previous month
-    previous_month = int(month) - 1
-    previous_year = int(year)
-    if previous_month == 0:
-        previous_month = 12
-        previous_year -= 1
-    prev_file_name = (
-        f"{previous_year}-{str(previous_month).zfill(2)}-{format_code}-{rating_threshold}.json"
-    )
-    prev_file_path = build_data_path(prev_file_name)
-    usage_data = load_data_file(prev_file_path)
-    if usage_data:
-        print("Warning: Usage stats data is outdated.")
-        return usage_data.get("data", {})
+def is_local_month(month):
+    """Check if a month has locally split data."""
+    return os.path.isdir(os.path.join(DATA_DIRECTORY, month))
+
+
+@lru_cache(maxsize=64)
+def fetch_remote_format_data(month, format_code, rating):
+    """Fetch a full format JSON from Smogon and return its data dict. Cached."""
+    # Try variants: base, DLC1, DLC2, H1, H2
+    suffixes = ["", "-DLC1", "-DLC2", "-H1", "-H2"]
+    for suffix in suffixes:
+        url = f"{SMOGON_STATS_URL}{month}{suffix}/chaos/{format_code}-{rating}.json.gz"
+        try:
+            resp = requests.get(url, timeout=15)
+            if resp.status_code == 200:
+                raw = gzip.decompress(resp.content)
+                data = pyjson5.loads(raw.decode("utf-8"))
+                return data
+        except Exception:
+            continue
+    # Fallback: try uncompressed
+    for suffix in suffixes:
+        url = f"{SMOGON_STATS_URL}{month}{suffix}/chaos/{format_code}-{rating}.json"
+        try:
+            resp = requests.get(url, timeout=15)
+            if resp.status_code == 200:
+                return pyjson5.loads(resp.text)
+        except Exception:
+            continue
+    return None
+
+
+@lru_cache(maxsize=128)
+def get_remote_formats_for_month(month):
+    """Fetch the list of available formats and ratings for a remote month. Returns dict {format_code: [ratings]}."""
+    from bs4 import BeautifulSoup as BS
+    suffixes = ["", "-DLC1", "-DLC2", "-H1", "-H2"]
+    for suffix in suffixes:
+        url = f"{SMOGON_STATS_URL}{month}{suffix}/chaos/"
+        try:
+            resp = requests.get(url, timeout=10)
+            if resp.status_code != 200:
+                continue
+            soup = BS(resp.text, "html.parser")
+            formats = {}
+            for a in soup.find_all("a", href=True):
+                href = a["href"]
+                if href.endswith(".json") and ".gz" not in href:
+                    # Parse "gen9ou-0.json" -> format_code="gen9ou", rating="0"
+                    name = href.rsplit(".", 1)[0]
+                    parts = name.rsplit("-", 1)
+                    if len(parts) == 2 and parts[1].isdigit():
+                        fmt, rat = parts
+                        formats.setdefault(fmt, []).append(rat)
+            for fmt in formats:
+                formats[fmt] = sorted(formats[fmt], key=int)
+            return formats
+        except Exception:
+            continue
     return {}
 
 
-def extract_generation_from_filename(filename):
-    """Extract the generation number from a filename string."""
-    special_formats = ["1v1", "2v2", "350", "12switch","4v4"]
+def fetch_index_data(format_code, rating, month=None):
+    """Load index data for a format/rating/month. Returns dict with 'info' and 'pokemon' keys."""
+    if month is None:
+        month = get_latest_month()
+    # Try local first
+    if is_local_month(month):
+        file_path = os.path.join(DATA_DIRECTORY, month, format_code, str(rating), "_index.json")
+        data = load_data_file(file_path)
+        if data:
+            return data
+    # Fall back to remote Smogon fetch
+    remote_data = fetch_remote_format_data(month, format_code, str(rating))
+    if remote_data and "data" in remote_data:
+        # Build index from remote monolithic data
+        info = remote_data.get("info", {})
+        num_battles = info.get("number of battles", 0)
+        pokemon_index = {}
+        for name, poke in remote_data["data"].items():
+            usage = poke.get("usage", 0)
+            raw = poke.get("Raw count", 0)
+            # Pre-2015-12 data lacks the "usage" field — compute it
+            if not usage and raw and num_battles:
+                usage = raw / (num_battles * 2)
+            pokemon_index[name] = {"usage": usage, "raw": raw}
+        return {"info": info, "pokemon": pokemon_index}
+    return {}
+
+
+def fetch_pokemon_data(format_code, rating, pokemon_name, month=None):
+    """Load individual Pokémon data. Returns the Pokémon's data dict."""
+    if month is None:
+        month = get_latest_month()
+    # Try local first
+    if is_local_month(month):
+        file_path = os.path.join(DATA_DIRECTORY, month, format_code, str(rating), f"{pokemon_name}.json")
+        data = load_data_file(file_path)
+        if data:
+            return data
+    # Fall back to remote (the full format is already cached by fetch_remote_format_data)
+    remote_data = fetch_remote_format_data(month, format_code, str(rating))
+    if remote_data and "data" in remote_data:
+        return remote_data["data"].get(pokemon_name, {})
+    return {}
+
+
+@lru_cache(maxsize=128)
+def load_trend_data(format_code, rating):
+    """Load pre-computed trend data for a format/rating. Returns dict or None."""
+    trend_path = os.path.join(DATA_DIRECTORY, "trends", format_code, f"{rating}.json")
+    if os.path.exists(trend_path):
+        with open(trend_path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return None
+
+
+def extract_generation_from_format(format_code):
+    """Extract the generation number from a format code string like 'gen9ou'."""
+    special_formats = ["1v1", "2v2", "350", "12switch", "4v4"]
     try:
-        segment = filename.split("-")[2]
-        gen_segment = segment
-        for format_code in special_formats:
-            gen_segment = gen_segment.split(format_code)[0]
+        gen_segment = format_code
+        for sf in special_formats:
+            gen_segment = gen_segment.split(sf)[0]
         return int(re.findall(r"\d+", gen_segment)[0])
     except (IndexError, ValueError):
         return None
 
 
-def sort_files_by_generation_and_size(file_list):
-    """Sort file names by generation (descending) and file size (descending)."""
-    file_info = [
-        (f, extract_generation_from_filename(f), os.path.getsize(f))
-        for f in file_list
-    ]
-    sorted_files = sorted(
-        file_info,
-        key=lambda x: (-x[1] if x[1] is not None else 0, -x[2]),
-    )
-    return [info[0] for info in sorted_files]
-
-
-def get_valid_rating_thresholds(format_code):
+def get_valid_rating_thresholds(format_code, month=None):
     """Return a sorted list of valid rating thresholds for a format."""
-    files = [f for f in os.listdir(DATA_DIRECTORY) if format_code in f.split("-")]
-    ratings = sorted(
-        [f.split("-")[-1].split(".")[0] for f in files],
-        key=int,
-    )
-    return ratings
+    if month is None:
+        month = get_latest_month()
+    # Try local first
+    if is_local_month(month):
+        format_dir = os.path.join(DATA_DIRECTORY, month, format_code)
+        if os.path.isdir(format_dir):
+            return sorted(
+                [d for d in os.listdir(format_dir) if d.isdigit()],
+                key=int,
+            )
+    # Fall back to remote
+    remote_formats = get_remote_formats_for_month(month)
+    return remote_formats.get(format_code, [])
 
 
 def fuzzy_match(target, options):
@@ -123,20 +255,27 @@ def load_all_data():
     """Load all necessary data files into global variables."""
     global formatDisplayNames, availableFormats, spriteIndex, itemDetails, abilityDetails, moveDetails, championsMoveDetails, championsAbilityDetails, pokedexEntries
     formatDisplayNames = load_data_file(build_data_path("meta_names.json")) or {}
-    # Build availableFormats list from files ending with "0.json"
-    format_files = [
-        build_data_path(f)
-        for f in os.listdir(DATA_DIRECTORY)
-        if f.endswith("-0.json")
-    ]
-    format_files = sort_files_by_generation_and_size(format_files)
-    availableFormats = []
-    for file_path in format_files:
-        parts = os.path.basename(file_path).split("-")
-        if len(parts) >= 3:
-            fmt = parts[-2]
-            if fmt in formatDisplayNames:
-                availableFormats.append([fmt, formatDisplayNames[fmt]])
+    # Build availableFormats from directory structure
+    latest_month = get_latest_month()
+    month_dir = os.path.join(DATA_DIRECTORY, latest_month)
+    if os.path.isdir(month_dir):
+        format_dirs = [
+            d for d in os.listdir(month_dir)
+            if os.path.isdir(os.path.join(month_dir, d))
+        ]
+    else:
+        format_dirs = []
+    # Build list with generation and pokemon count for sorting
+    format_info = []
+    for fmt in format_dirs:
+        if fmt in formatDisplayNames:
+            gen = extract_generation_from_format(fmt)
+            idx_path = os.path.join(month_dir, fmt, "0", "_index.json")
+            idx_data = load_data_file(idx_path)
+            count = len(idx_data.get("pokemon", {})) if idx_data else 0
+            format_info.append((fmt, formatDisplayNames[fmt], gen or 0, count))
+    format_info.sort(key=lambda x: (-x[2], -x[3]))
+    availableFormats = [[fi[0], fi[1]] for fi in format_info]
     # Put Champions formats at the top of the list
     champions = [f for f in availableFormats if f[1].startswith("[Champions]")]
     others = [f for f in availableFormats if not f[1].startswith("[Champions]")]
@@ -148,6 +287,23 @@ def load_all_data():
     championsMoveDetails = load_data_file(build_data_path("champions_moves.json")) or moveDetails
     championsAbilityDetails = load_data_file(build_data_path("champions_abilities.json")) or abilityDetails
     pokedexEntries = load_data_file(build_data_path("pokedex.json")) or {}
+
+
+def get_formats_for_month(month):
+    """Get sorted format list for a given month. Returns list of [code, display_name] pairs."""
+    if is_local_month(month):
+        return availableFormats
+    # Remote month: build format list from Smogon directory listing
+    remote_formats = get_remote_formats_for_month(month)
+    format_list = []
+    for fmt in remote_formats:
+        display = formatDisplayNames.get(fmt, fmt)
+        gen = extract_generation_from_format(fmt) or 0
+        format_list.append([fmt, display, gen])
+    format_list.sort(key=lambda x: (-x[2], x[1]))
+    champions = [[f[0], f[1]] for f in format_list if f[1].startswith("[Champions]")]
+    others = [[f[0], f[1]] for f in format_list if not f[1].startswith("[Champions]")]
+    return champions + others
 
 
 def is_champions_format(format_code):
@@ -182,9 +338,9 @@ def calculate_champions_hp_value(base, stat_points):
     return base + stat_points + 75
 
 
-def compile_top_data(usage_data, pokemon_name, category, format_code="", base_stats=[]):
-    """Compile and return the requested category data for a given PokAcmon."""
-    if pokemon_name not in usage_data:
+def compile_top_data(pokemon_data, pokemon_name, category, format_code="", base_stats=[]):
+    """Compile and return the requested category data for a given Pokémon."""
+    if not pokemon_data:
         return []
 
     # Branch for 'Stats' and 'Types'
@@ -214,11 +370,11 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
             "Serious": "Neutral", "Bashful": "Neutral", "Quirky": "Neutral",
         }
         nature_weights = {}
-        for spread_key, weight in usage_data[pokemon_name].get("Spreads", {}).items():
+        for spread_key, weight in pokemon_data.get("Spreads", {}).items():
             nature = spread_key.split(":")[0]
             nature_weights[nature] = nature_weights.get(nature, 0) + weight
         total_weight = max(
-            sum(usage_data[pokemon_name].get("Abilities", {"Unknown": 1}).values()),
+            sum(pokemon_data.get("Abilities", {"Unknown": 1}).values()),
             1,
         )
         sorted_natures = sorted(
@@ -236,12 +392,12 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
     # Branch for 'Graph'
     if category == "Graph":
         graph_stats = {stat: {} for stat in ["hp", "atk", "def", "spa", "spd", "spe"]}
-        spreads = usage_data[pokemon_name].get("Spreads", {})
+        spreads = pokemon_data.get("Spreads", {})
         champions = is_champions_format(format_code)
         fmt_lower = format_code.lower()
         level = 50 if ("vgc" in fmt_lower or "bss" in fmt_lower or "champions" in fmt_lower) else 100
         total_weight = max(
-            sum(usage_data[pokemon_name].get("Abilities", {"Unknown": 1}).values()),
+            sum(pokemon_data.get("Abilities", {"Unknown": 1}).values()),
             1,
         )
         stat_modifiers = {
@@ -335,9 +491,9 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
 
     # Branch for 'Moves'
     if category == "Moves":
-        moves = usage_data[pokemon_name].get("Moves", {})
+        moves = pokemon_data.get("Moves", {})
         total_weight = max(
-            sum(usage_data[pokemon_name].get("Abilities", {"Unknown": 1}).values()),
+            sum(pokemon_data.get("Abilities", {"Unknown": 1}).values()),
             1,
         )
         moves_source = championsMoveDetails if is_champions_format(format_code) else moveDetails
@@ -371,9 +527,9 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
 
     # Branch for 'Teammates'
     if category == "Teammates":
-        teammates = usage_data[pokemon_name].get("Teammates", {})
+        teammates = pokemon_data.get("Teammates", {})
         total_weight = max(
-            sum(usage_data[pokemon_name].get("Abilities", {"Unknown": 1}).values()),
+            sum(pokemon_data.get("Abilities", {"Unknown": 1}).values()),
             1,
         )
         # Hot Fix for Teammmate Usage
@@ -393,7 +549,7 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
 
     # Branch for 'Items'
     if category == "Items":
-        items = usage_data[pokemon_name].get("Items", {})
+        items = pokemon_data.get("Items", {})
         total_weight = max(sum(items.values()), 1)
         sorted_items = sorted(items.keys(), key=lambda x: items[x], reverse=True)[:10]
         return [
@@ -409,7 +565,7 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
     # Branch for 'Abilities'
     if category == "Abilities":
         abilities_source = championsAbilityDetails if is_champions_format(format_code) else abilityDetails
-        abilities = usage_data[pokemon_name].get("Abilities", {})
+        abilities = pokemon_data.get("Abilities", {})
         total_weight = max(sum(abilities.values()), 1)
         sorted_abilities = sorted(
             abilities.keys(), key=lambda x: abilities[x], reverse=True
@@ -427,7 +583,7 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
 
     # Branch for 'Spreads'
     if category == "Spreads":
-        spreads = usage_data[pokemon_name].get("Spreads", {})
+        spreads = pokemon_data.get("Spreads", {})
         total_spread_weight = max(sum(spreads.values()), 1)
         sorted_spreads = sorted(
             spreads.keys(), key=lambda s: spreads[s], reverse=True
@@ -441,9 +597,9 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
     if category == "EVs":
         # Initialize dictionary for EVs by category.
         ev_data = {"atk": {}, "spa": {}, "spe": {}, "hp_def": {}, "hp_spd": {}}
-        spreads = usage_data[pokemon_name].get("Spreads", {})
+        spreads = pokemon_data.get("Spreads", {})
         total_count = max(
-            sum(usage_data[pokemon_name].get("Abilities", {"Unknown": 1}).values()),
+            sum(pokemon_data.get("Abilities", {"Unknown": 1}).values()),
             1,
         )
         # Define nature lists.
@@ -547,7 +703,7 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
 
     # Branch for 'Tera Types'
     if category == "Tera Types":
-        tera_types = usage_data[pokemon_name].get("Tera Types", {})
+        tera_types = pokemon_data.get("Tera Types", {})
         total_tera_types_weight = max(sum(tera_types.values()), 1)
         sorted_tera_types = sorted(
             tera_types.keys(), key=lambda s: tera_types[s], reverse=True
@@ -564,10 +720,17 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
 
     # Branch for 'Checks and Counters'
     if category == "Checks and Counters":
-        unfiltered_counters = usage_data[pokemon_name].get("Checks and Counters", {})
+        unfiltered_counters = pokemon_data.get("Checks and Counters", {})
+        # Normalize: remote data uses [n, p, d] lists, local uses {"n", "p", "d"} dicts
+        normalized = {}
+        for key, value in unfiltered_counters.items():
+            if isinstance(value, list):
+                normalized[key] = {"n": value[0], "p": value[1], "d": value[2]}
+            else:
+                normalized[key] = value
         filtered_counters = {
             key: value
-            for key, value in unfiltered_counters.items()
+            for key, value in normalized.items()
             if value['d'] < 0.01 and value['p'] > 0.5
         }
         sorted_counters = sorted(
@@ -584,14 +747,14 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
 
     # Default branch:
     total_weight = max(
-        sum(usage_data[pokemon_name].get("Abilities", {"Unknown": 1}).values()),
+        sum(pokemon_data.get("Abilities", {"Unknown": 1}).values()),
         1,
     )
     sorted_keys = sorted(
-        usage_data[pokemon_name].keys(),
+        pokemon_data.keys(),
         key=lambda key: (
-            usage_data[pokemon_name][key]
-            if isinstance(usage_data[pokemon_name][key], (int, float))
+            pokemon_data[key]
+            if isinstance(pokemon_data[key], (int, float))
             else 0
         ),
         reverse=True,
@@ -600,7 +763,7 @@ def compile_top_data(usage_data, pokemon_name, category, format_code="", base_st
         [
             key,
             "{:.3f}".format(
-                round(usage_data[pokemon_name][key] / total_weight * 100, 3)
+                round(pokemon_data[key] / total_weight * 100, 3)
             ),
         ]
         for key in sorted_keys
@@ -628,13 +791,24 @@ def about():
     return render_template("about.html")
 
 
-def compile_page_data(format_code, rating_threshold="", pokemon_name=""):
+def compile_page_data(format_code, rating_threshold="", pokemon_name="", month=None):
     """Resolve parameters and compile all data needed for a Pokemon page."""
-    default_format = DEFAULT_META
-    chosen_format = format_code if format_code in formatDisplayNames else default_format
-    selected_format = [chosen_format, formatDisplayNames.get(chosen_format, chosen_format)]
+    if month is None:
+        month = get_latest_month()
 
-    rating_options = get_valid_rating_thresholds(chosen_format)
+    # Get formats available for this month
+    month_formats = get_formats_for_month(month)
+    month_format_codes = {f[0] for f in month_formats}
+
+    default_format = DEFAULT_META
+    chosen_format = format_code if format_code in month_format_codes else default_format
+    # Fall back further if default isn't in this month either
+    if chosen_format not in month_format_codes and month_formats:
+        chosen_format = month_formats[0][0]
+    display_name = formatDisplayNames.get(chosen_format, chosen_format)
+    selected_format = [chosen_format, display_name]
+
+    rating_options = get_valid_rating_thresholds(chosen_format, month)
     if not rating_options:
         return None
 
@@ -642,18 +816,28 @@ def compile_page_data(format_code, rating_threshold="", pokemon_name=""):
         rating_threshold if rating_threshold in rating_options else rating_options[-1]
     )
 
-    usage_stats = fetch_pokemon_usage_data(chosen_format, chosen_rating)
+    # Load index for sidebar pokemon list
+    index_data = fetch_index_data(chosen_format, chosen_rating, month)
+    if not index_data or not index_data.get("pokemon"):
+        return None
+
+    pokemon_index = index_data["pokemon"]
     sorted_pokemon = sorted(
-        usage_stats.keys(), key=lambda name: usage_stats[name]["usage"], reverse=True
+        pokemon_index.keys(), key=lambda name: pokemon_index[name]["usage"], reverse=True
     )
     default_pokemon = sorted_pokemon[0] if sorted_pokemon else ""
 
     if pokemon_name and pokemon_name != "No Pokemon":
-        matched_pokemon = fuzzy_match(pokemon_name, usage_stats.keys())
+        matched_pokemon = fuzzy_match(pokemon_name, pokemon_index.keys())
         if matched_pokemon:
             default_pokemon = matched_pokemon
 
     if default_pokemon == "":
+        return None
+
+    # Load individual pokemon data
+    poke_data = fetch_pokemon_data(chosen_format, chosen_rating, default_pokemon, month)
+    if not poke_data:
         return None
 
     try:
@@ -661,7 +845,7 @@ def compile_page_data(format_code, rating_threshold="", pokemon_name=""):
     except ValueError:
         rank = "N/A"
     usage_percent = round(
-        usage_stats.get(default_pokemon, {}).get("usage", 0) * 100, 2
+        pokemon_index.get(default_pokemon, {}).get("usage", 0) * 100, 2
     )
     current_pokemon_data = [
         default_pokemon,
@@ -670,39 +854,78 @@ def compile_page_data(format_code, rating_threshold="", pokemon_name=""):
         get_pokemon_sprite(default_pokemon),
     ]
 
-    base_stats = compile_top_data(usage_stats, default_pokemon, "Stats")
-    pokemon_types = compile_top_data(usage_stats, default_pokemon, "Types")
+    # Load trend data
+    trend_data = load_trend_data(chosen_format, chosen_rating)
+    trend_months = []
+    trend_usage = []
+    trend_pokemon = {}
+    if trend_data:
+        trend_pokemon = trend_data.get("pokemon", {})
+        pokemon_trend = trend_pokemon.get(default_pokemon)
+        if pokemon_trend:
+            trend_months = trend_data["months"]
+            trend_usage = pokemon_trend
+
+    def get_trend_direction(name):
+        """Return 'up', 'down', 'same', or '' based on last two months."""
+        vals = trend_pokemon.get(name)
+        if not vals:
+            return ""
+        # Fill interior nulls with 0, keep leading/trailing nulls
+        non_null_idxs = [i for i, v in enumerate(vals) if v is not None]
+        if len(non_null_idxs) < 2:
+            return ""
+        first, last = non_null_idxs[0], non_null_idxs[-1]
+        resolved = [
+            (v if v is not None else 0) if first <= i <= last else None
+            for i, v in enumerate(vals)
+        ]
+        # Compare last two non-null values
+        recent = [v for v in resolved if v is not None]
+        if len(recent) < 2:
+            return ""
+        if recent[-1] > recent[-2]:
+            return "up"
+        elif recent[-1] < recent[-2]:
+            return "down"
+        return "same"
+
+    base_stats = compile_top_data(poke_data, default_pokemon, "Stats")
+    pokemon_types = compile_top_data(poke_data, default_pokemon, "Types")
     moves_list = compile_top_data(
-        usage_stats, default_pokemon, "Moves", chosen_format
+        poke_data, default_pokemon, "Moves", chosen_format
     )
-    teammates_list = compile_top_data(usage_stats, default_pokemon, "Teammates")
-    items_list = compile_top_data(usage_stats, default_pokemon, "Items")
+    teammates_list = compile_top_data(poke_data, default_pokemon, "Teammates")
+    items_list = compile_top_data(poke_data, default_pokemon, "Items")
     abilities_list = compile_top_data(
-        usage_stats, default_pokemon, "Abilities", chosen_format
+        poke_data, default_pokemon, "Abilities", chosen_format
     )
-    spreads_list = compile_top_data(usage_stats, default_pokemon, "Spreads")
-    natures_list = compile_top_data(usage_stats, default_pokemon, "Natures")
-    evs_list = compile_top_data(usage_stats, default_pokemon, "EVs")
+    spreads_list = compile_top_data(poke_data, default_pokemon, "Spreads")
+    natures_list = compile_top_data(poke_data, default_pokemon, "Natures")
+    evs_list = compile_top_data(poke_data, default_pokemon, "EVs")
     counters_list = compile_top_data(
-        usage_stats, default_pokemon, "Checks and Counters"
+        poke_data, default_pokemon, "Checks and Counters"
     )
     graph_data = compile_top_data(
-        usage_stats, default_pokemon, "Graph", chosen_format, base_stats
+        poke_data, default_pokemon, "Graph", chosen_format, base_stats
     )
-    tera_types_list = compile_top_data(usage_stats, default_pokemon, "Tera Types")
+    tera_types_list = compile_top_data(poke_data, default_pokemon, "Tera Types")
 
     return {
         "pokemon_names": [
             [
                 name,
-                "{:.2f}".format(round(usage_stats[name]["usage"] * 100, 2)),
+                "{:.2f}".format(round(pokemon_index[name]["usage"] * 100, 2)),
                 get_pokemon_sprite(name),
+                get_trend_direction(name) if month == get_latest_month() else "",
             ]
             for name in sorted_pokemon
         ],
         "selected_format": selected_format,
         "selected_pokemon": default_pokemon,
         "selected_rating": chosen_rating,
+        "selected_month": month,
+        "available_months": get_available_months(),
         "base_stats": base_stats,
         "pokemon_types": pokemon_types,
         "moves_list": moves_list,
@@ -718,6 +941,10 @@ def compile_page_data(format_code, rating_threshold="", pokemon_name=""):
         "tera_types_list": tera_types_list,
         "graph_data": graph_data,
         "is_champions": is_champions_format(chosen_format),
+        "month_formats": month_formats,
+        "trend_months": trend_months,
+        "trend_usage": trend_usage,
+        "show_trend": sum(1 for v in trend_usage if v is not None and v > 0) >= 2,
     }
 
 
@@ -725,7 +952,8 @@ def compile_page_data(format_code, rating_threshold="", pokemon_name=""):
 @app.route("/<format_code>/<rating_threshold>/")
 @app.route("/<format_code>/")
 def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
-    data = compile_page_data(format_code, rating_threshold, pokemon_name)
+    month = request.args.get("month", None)
+    data = compile_page_data(format_code, rating_threshold, pokemon_name, month)
     if data is None:
         return redirect(
             url_for(
@@ -742,23 +970,24 @@ def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
         or data["selected_rating"] != rating_threshold
         or data["selected_pokemon"] != pokemon_name
     ):
-        return redirect(
-            url_for(
-                "display_pokemon_page",
-                format_code=data["selected_format"][0],
-                rating_threshold=data["selected_rating"],
-                pokemon_name=data["selected_pokemon"],
-            )
-        )
+        redirect_args = {
+            "format_code": data["selected_format"][0],
+            "rating_threshold": data["selected_rating"],
+            "pokemon_name": data["selected_pokemon"],
+        }
+        if month and month != get_latest_month():
+            redirect_args["month"] = month
+        return redirect(url_for("display_pokemon_page", **redirect_args))
 
-    return render_template("index.html", **data, availableFormats=availableFormats)
+    return render_template("index.html", **data, availableFormats=data["month_formats"])
 
 
 @app.route("/api/<format_code>/<rating_threshold>/<pokemon_name>")
 @app.route("/api/<format_code>/<rating_threshold>/")
 @app.route("/api/<format_code>/")
 def api_pokemon_data(format_code, rating_threshold="", pokemon_name=""):
-    data = compile_page_data(format_code, rating_threshold, pokemon_name)
+    month = request.args.get("month", None)
+    data = compile_page_data(format_code, rating_threshold, pokemon_name, month)
     if data is None:
         return jsonify({"error": "No data found"}), 404
     return jsonify(data)
@@ -795,14 +1024,15 @@ def search_pokemon_route():
         else rating_options[-1]
     )
 
-    usage_stats = fetch_pokemon_usage_data(chosen_format, chosen_rating)
+    index_data = fetch_index_data(chosen_format, chosen_rating)
+    pokemon_index = index_data.get("pokemon", {})
     sorted_pokemon = sorted(
-        usage_stats.keys(), key=lambda name: usage_stats[name]["usage"], reverse=True
+        pokemon_index.keys(), key=lambda name: pokemon_index[name]["usage"], reverse=True
     )
     default_pokemon = sorted_pokemon[0] if sorted_pokemon else ""
 
     if selected_pokemon_input != "No Pokemon":
-        matched_pokemon = fuzzy_match(selected_pokemon_input, usage_stats.keys())
+        matched_pokemon = fuzzy_match(selected_pokemon_input, pokemon_index.keys())
         if matched_pokemon:
             default_pokemon = matched_pokemon
 
