@@ -608,6 +608,10 @@
     <div id="loading-overlay">
       <div class="loading-spinner">Loading stats...</div>
     </div>
+    <div id="old-month-banner" style="display: {% if selected_month != available_months[-1] %}block{% else %}none{% endif %}; background: #3a2a00; color: #ffd54f; text-align: center; padding: 6px 12px; font-size: 13px; border-bottom: 1px solid #665500;">
+      You are viewing data from <strong id="banner-month">{{ selected_month }}</strong>.
+      <button type="button" onclick="selectMonth('{{ available_months[-1] }}')" id="banner-jump-btn" style="background: none; border: 1px solid #ffd54f; color: #ffd54f; border-radius: 3px; padding: 2px 10px; margin-left: 8px; cursor: pointer; font-size: 12px;">Jump to latest</button>
+    </div>
     <div class="twitter-follow-div">
       <a href="https://munchteams.com" target="_blank" class="munchteams-button">Check out MunchTeams!</a>
       <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">

@@ -1616,6 +1616,20 @@ $(document).ready(function () {
       monthOptions.forEach(function (btn) {
         btn.classList.toggle("active", btn.textContent.trim() === data.selected_month);
       });
+      // Show/hide old month banner
+      var banner = document.getElementById("old-month-banner");
+      if (banner && data.available_months) {
+        var latest = data.available_months[data.available_months.length - 1];
+        if (data.selected_month !== latest) {
+          banner.style.display = "block";
+          var bannerMonth = document.getElementById("banner-month");
+          if (bannerMonth) bannerMonth.textContent = data.selected_month;
+          var bannerBtn = document.getElementById("banner-jump-btn");
+          if (bannerBtn) bannerBtn.setAttribute("onclick", "selectMonth('" + latest + "')");
+        } else {
+          banner.style.display = "none";
+        }
+      }
     }
 
     // Update info panel
