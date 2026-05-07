@@ -1516,7 +1516,7 @@ $(document).ready(function () {
     loadingTimer = setTimeout(function () {
       var overlay = document.getElementById("loading-overlay");
       if (overlay) overlay.classList.add("active");
-    }, 300);
+    }, 500);
   }
   function hideLoading() {
     clearTimeout(loadingTimer);
