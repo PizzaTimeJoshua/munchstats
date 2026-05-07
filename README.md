@@ -1,47 +1,76 @@
 # MunchStats — README.md
 
-> **Live:** https://munchstats.com  
+> **Live:** https://munchstats.com
 > **Repo:** https://github.com/PizzaTimeJoshua/munchstats
 
 ## Overview
-**MunchStats** is a fast, single‑page style Flask app that presents Pokémon Showdown usage statistics by format. Pick a ladder (e.g., VGC 2025, OU), then dive into Pokémon detail pages with usage %, common moves, items, abilities, and EV spreads.
+**MunchStats** is a fast, single-page style Flask app that presents Pokémon Showdown usage statistics by format. Pick a ladder (e.g., VGC 2026, OU), then dive into Pokémon detail pages with usage %, common moves, items, abilities, EV spreads, and usage trends.
 
 ## Key Features
-- Format selector (VGC / Singles ladders)
-- Pokémon detail pages (usage %, moves, items, abilities, EVs)
-- Rating threshold controls (e.g., 1500/1630/1760)
+- Format selector across all generations and metagames
+- Pokémon detail pages (usage %, moves, items, abilities, EVs, natures, teammates, checks & counters)
+- Rating threshold controls (e.g., 0/1500/1630/1760)
+- Usage trend line chart showing 12 months of historical usage data
+- Trend direction indicators (up/down/same) in the Pokémon sidebar list
+- Month selector to browse historical stats from any available Smogon month
+- On-demand fetching of historical months from Smogon with LRU caching
+- Per-Pokémon JSON splitting for fast page loads (~5-50KB per request vs 2-13MB)
+- Showdown set export with move/item/ability/spread selection
+- EV distribution graph with cumulative toggle
+- Tera Type display for Gen 9 formats
+- Champions format mod support (custom moves/abilities)
 
 ## Tech Stack
 - **Backend:** Python 3 · Flask
 - **Templating:** Jinja2
-- **Frontend:** HTML/CSS/JavaScript (custom; see `static/tools_2.1.js`)
+- **Frontend:** HTML/CSS/JavaScript (custom; see `static/tools_2.2.js`)
+- **Charts:** Chart.js (EV distribution bar chart, usage trend line chart)
 - **Process management:** Gunicorn (Procfile)
-- **Data:** Pre‑generated JSON stats files per format & rating in `/stats`
+- **Data:** Per-Pokémon JSON files in `stats/`, trend data in `stats/trends/`
 
 ## Data Files
-- Location: `stats/`
-- Naming: `YYYY-MM-<format-code>-<rating>.json`  
-  Example: `2025-08-gen9vgc2025regh-1760.json`
-- Each file contains a JSON object with a top‑level `data` map keyed by Pokémon.
+- **Per-Pokémon stats:** `stats/{YYYY-MM}/{format}/{rating}/{Pokemon}.json`
+- **Index files:** `stats/{YYYY-MM}/{format}/{rating}/_index.json` (Pokémon list + usage + raw count)
+- **Trend data:** `stats/trends/{format}/{rating}.json` (12 months of usage % per Pokémon)
+- **Metadata:** `stats/pokedex.json`, `stats/moves.json`, `stats/items.json`, `stats/abilities.json`, `stats/forms_index.json`, `stats/meta_names.json`
 
 ## Routes (Flask)
-- `GET /` → home/index
+- `GET /` → home/index (default format)
 - `GET /about/` → about page
-- `GET /<format_code>/` → format landing / Pokémon table
-- `POST /search_pokemon` → returns a rendered Pokémon detail panel based on submitted form data
+- `GET /<format_code>/` → format landing
+- `GET /<format_code>/<rating>/` → format with specific rating
+- `GET /<format_code>/<rating>/<pokemon_name>` → Pokémon detail page
+- `GET /api/<format_code>/<rating>/<pokemon_name>` → JSON API for dynamic page updates
+- `POST /search_pokemon` → fuzzy search redirect
 
 ## Project Structure
 ```
 / static
-  favicon.ico, pokemonicons-sheet.png, itemicons-sheet.png, tools_2.1.js
+  favicon.ico, pokemonicons-sheet.png, itemicons-sheet.png, tools_2.2.js
 / templates
   index.html, about.html, 404.html, 500.html
 / stats
-  <YYYY-MM-format-rating>.json files (see Data Files)
-app.py
+  {YYYY-MM}/                  Per-Pokémon split stats by month/format/rating
+  trends/                     Pre-computed 12-month usage trend data
+  pokedex.json, moves.json, items.json, abilities.json, etc.
+app.py                        Flask application
+update_all_data.py            Data pipeline (downloads, splits, generates trends)
 Procfile
 requirements.txt
 ```
+
+## Data Pipeline
+Run `update_all_data.py` to update all data:
+```bash
+python update_all_data.py
+```
+This will:
+1. Download latest Pokémon data (pokedex, moves, items, abilities, sprites)
+2. Download current month's usage stats from Smogon
+3. Split monolithic JSON files into per-Pokémon files
+4. Generate 12-month usage trend data from Smogon chaos files
+5. Generate format name mappings
+6. Download Champions mod data
 
 ## Local Setup
 ```bash

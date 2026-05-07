@@ -1,4 +1,5 @@
 import difflib
+import json
 import os
 import re
 from datetime import datetime
@@ -143,10 +144,20 @@ def generateFormatList():
 
     format_names = re.findall(r"name:\s*['\"]([^'\"]+)['\"]", mjs_content)
 
+    # Find latest month directory and list format subdirectories
+    month_dirs = sorted(
+        [d for d in os.listdir("stats/") if re.match(r"\d{4}-\d{2}$", d)]
+    )
+    if not month_dirs:
+        print("No month directories found. Unable to generate format list.")
+        return
+    latest = month_dirs[-1]
+    latest_path = os.path.join("stats", latest)
     meta_games_list = [
-        "stats/" + f for f in os.listdir("stats/") if f.split("-")[-1] == "0.json"
+        d
+        for d in os.listdir(latest_path)
+        if os.path.isdir(os.path.join(latest_path, d))
     ]
-    meta_games_list = [f.split("-")[-2] for f in meta_games_list]
     meta_names = {}
     for meta in meta_games_list:
         word = meta
@@ -228,10 +239,186 @@ def updateChampionsMods():
     print(f"  Applied {len(ability_overrides)} ability overrides.")
 
 
+def get_trend_months(num_months=12):
+    """Return list of the last num_months month strings (YYYY-MM), oldest first."""
+    now = datetime.now()
+    year = now.year
+    month = now.month - 1
+    if month == 0:
+        month = 12
+        year -= 1
+    months = []
+    for i in range(num_months):
+        m = month - i
+        y = year
+        while m <= 0:
+            m += 12
+            y -= 1
+        months.append(f"{y}-{str(m).zfill(2)}")
+    return list(reversed(months))
+
+
+def fetch_chaos_usage(session, month, fmt, rating):
+    """Fetch chaos JSON for a format-rating-month and return {pokemon: usage_pct} or None."""
+    import gzip as _gzip
+    suffixes = ["", "-DLC1", "-DLC2", "-H1", "-H2"]
+    for suffix in suffixes:
+        # Try .json.gz first (much smaller)
+        gz_url = f"https://www.smogon.com/stats/{month}{suffix}/chaos/{fmt}-{rating}.json.gz"
+        try:
+            resp = session.get(gz_url, timeout=30)
+            if resp.status_code == 200:
+                raw = _gzip.decompress(resp.content)
+                data = json.loads(raw)
+                return _extract_usage_from_chaos(data)
+        except Exception:
+            pass
+        # Fall back to plain JSON
+        json_url = f"https://www.smogon.com/stats/{month}{suffix}/chaos/{fmt}-{rating}.json"
+        try:
+            resp = session.get(json_url, timeout=30)
+            if resp.status_code == 200:
+                data = resp.json()
+                return _extract_usage_from_chaos(data)
+        except Exception:
+            pass
+    return None
+
+
+def _extract_usage_from_chaos(chaos_data):
+    """Extract {pokemon_name: usage_percent} from a chaos JSON structure."""
+    poke_data = chaos_data.get("data", {})
+    info = chaos_data.get("info", {})
+    num_battles = info.get("number of battles", 0)
+    result = {}
+    for name, entry in poke_data.items():
+        usage = entry.get("usage", 0)
+        # Pre-2015-12 data may lack 'usage'; compute from raw count
+        if not usage and num_battles:
+            raw = entry.get("Raw count", 0)
+            if raw:
+                usage = raw / (num_battles * 2)
+        result[name] = round(usage * 100, 3)
+    return result
+
+
+def generate_trend_data():
+    """Download chaos JSON from Smogon for the last 12 months and build trend files."""
+    months = get_trend_months(12)
+    # Find latest local month directory to discover formats/ratings
+    month_dirs = sorted(
+        [d for d in os.listdir("stats/") if re.match(r"\d{4}-\d{2}$", d)]
+    )
+    if not month_dirs:
+        print("No local month data found. Skipping trend generation.")
+        return
+
+    latest = month_dirs[-1]
+    latest_path = os.path.join("stats", latest)
+    format_ratings = {}
+    for fmt in os.listdir(latest_path):
+        fmt_path = os.path.join(latest_path, fmt)
+        if os.path.isdir(fmt_path):
+            ratings = [d for d in os.listdir(fmt_path) if d.isdigit()]
+            if ratings:
+                format_ratings[fmt] = sorted(ratings, key=int)
+
+    if not format_ratings:
+        print("No format/rating pairs found. Skipping trend generation.")
+        return
+
+    os.makedirs("stats/trends", exist_ok=True)
+    session = requests.Session()
+    total_pairs = sum(len(r) for r in format_ratings.values())
+    count = 0
+
+    for fmt, ratings in format_ratings.items():
+        for rating in ratings:
+            count += 1
+            print(f"[{count}/{total_pairs}] Generating trend: {fmt}/{rating}")
+            trend = {"months": months, "pokemon": {}}
+
+            for month_idx, m in enumerate(months):
+                # Use local _index.json if available
+                index_path = os.path.join("stats", m, fmt, rating, "_index.json")
+                usage_data = None
+                if os.path.exists(index_path):
+                    with open(index_path, "r", encoding="utf-8") as f:
+                        index = json.load(f)
+                    info = index.get("info", {})
+                    num_battles = info.get("number of battles", 0)
+                    usage_data = {}
+                    for name, entry in index.get("pokemon", {}).items():
+                        usage = entry.get("usage", 0)
+                        if not usage and num_battles:
+                            raw = entry.get("raw", 0)
+                            if raw:
+                                usage = raw / (num_battles * 2)
+                        usage_data[name] = round(usage * 100, 3)
+                else:
+                    usage_data = fetch_chaos_usage(session, m, fmt, rating)
+
+                if usage_data:
+                    for pokemon_name, usage_pct in usage_data.items():
+                        if pokemon_name not in trend["pokemon"]:
+                            trend["pokemon"][pokemon_name] = [None] * len(months)
+                        trend["pokemon"][pokemon_name][month_idx] = usage_pct
+
+            trend_dir = os.path.join("stats", "trends", fmt)
+            os.makedirs(trend_dir, exist_ok=True)
+            trend_path = os.path.join(trend_dir, f"{rating}.json")
+            with open(trend_path, "w", encoding="utf-8") as f:
+                json.dump(trend, f, separators=(",", ":"))
+
+    print(f"Trend generation complete. Wrote {count} trend files.")
+
+
+def splitMetagameFiles():
+    """Split monolithic format JSON files into per-Pokémon files in a directory structure."""
+    pattern = re.compile(r"^(\d{4}-\d{2})-(.+)-(\d+)\.json$")
+    stats_dir = "stats"
+    files = [f for f in os.listdir(stats_dir) if pattern.match(f)]
+    if not files:
+        print("No monolithic stats files to split.")
+        return
+    for filename in files:
+        match = pattern.match(filename)
+        month, format_code, rating = match.group(1), match.group(2), match.group(3)
+        filepath = os.path.join(stats_dir, filename)
+        print(f"Splitting {filename}...")
+        with open(filepath, "r", encoding="utf-8") as f:
+            raw = json.load(f)
+        info = raw.get("info", {})
+        data = raw.get("data", {})
+        if not data:
+            print(f"  Skipping {filename} (no data).")
+            continue
+        out_dir = os.path.join(stats_dir, month, format_code, rating)
+        os.makedirs(out_dir, exist_ok=True)
+        index = {
+            "info": info,
+            "pokemon": {
+                name: {"usage": poke.get("usage", 0), "raw": poke.get("Raw count", 0)}
+                for name, poke in data.items()
+            },
+        }
+        with open(os.path.join(out_dir, "_index.json"), "w", encoding="utf-8") as f:
+            json.dump(index, f, separators=(",", ":"))
+        for name, poke in data.items():
+            poke_path = os.path.join(out_dir, f"{name}.json")
+            with open(poke_path, "w", encoding="utf-8") as f:
+                json.dump(poke, f, separators=(",", ":"))
+        os.remove(filepath)
+        print(f"  Split into {len(data)} Pokémon files.")
+    print("Splitting complete.")
+
+
 if __name__ == "__main__":
     updateData()
     updateImage()
     updateMetagames()
+    splitMetagameFiles()
+    generate_trend_data()
     generateFormatList()
     updateChampionsMods()
     print("Update done.")

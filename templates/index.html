@@ -182,6 +182,9 @@
       .pokemon-list::-webkit-scrollbar-thumb:hover {
         background: #111111;
       }
+      .trend-up { color: #4caf50; font-size: 8px; vertical-align: middle; }
+      .trend-down { color: #f44336; font-size: 8px; vertical-align: middle; }
+      .trend-same { color: #ffeb3b; font-size: 10px; vertical-align: middle; }
       .meta-buttons {
         padding-left: 10px;
       }
@@ -510,6 +513,85 @@
       .type-Stellar {
         background-color: #40b5a5;
       }
+      .month-selector {
+        text-align: center;
+        padding: 6px 0;
+      }
+      .month-toggle {
+        background: #2a2a2a;
+        color: #e0e0e0;
+        border: 1px solid #555;
+        border-radius: 4px;
+        padding: 5px 14px;
+        cursor: pointer;
+        font-size: 13px;
+        width: 100%;
+      }
+      .month-toggle:hover {
+        background: #333;
+      }
+      .month-toggle i {
+        margin-left: 6px;
+      }
+      .month-dropdown {
+        max-height: 200px;
+        overflow-y: auto;
+        background: #222;
+        border: 1px solid #555;
+        border-radius: 4px;
+        margin-top: 4px;
+      }
+      .month-option {
+        display: block;
+        width: 100%;
+        background: none;
+        color: #e0e0e0;
+        border: none;
+        padding: 5px 10px;
+        cursor: pointer;
+        text-align: center;
+        font-size: 13px;
+      }
+      .month-option:hover {
+        background: #333;
+      }
+      .month-option.active {
+        color: yellow;
+      }
+      #loading-overlay {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+      }
+      #loading-overlay.active {
+        display: flex;
+      }
+      .loading-spinner {
+        color: #e0e0e0;
+        font-size: 18px;
+        text-align: center;
+      }
+      .loading-spinner::before {
+        content: "";
+        display: block;
+        width: 40px;
+        height: 40px;
+        margin: 0 auto 12px;
+        border: 4px solid #555;
+        border-top-color: yellow;
+        border-radius: 50%;
+        animation: spin 0.8s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
     </style>
   </head>
   <!-- Google tag (gtag.js) -->
@@ -523,6 +605,9 @@
     gtag("config", "G-K1B7P5XXK6");
   </script>
   <body>
+    <div id="loading-overlay">
+      <div class="loading-spinner">Loading stats...</div>
+    </div>
     <div class="twitter-follow-div">
       <a href="https://munchteams.com" target="_blank" class="munchteams-button">Check out MunchTeams!</a>
       <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">
@@ -579,7 +664,7 @@
                 <div class="image-pokemon" style="background-position: {{ pokemon[2][1] * -40 }}px {{ pokemon[2][0] * -30 }}px;">
                   <span class="left-text" style="padding-left: 48px;">{{ pokemon[0] }}</span>
                 </div>
-                <span class="right-text">{{ pokemon[1] }}%</span>
+                <span class="right-text">{% if pokemon[3] == 'up' %}<span class="trend-up">&#9650;</span> {% elif pokemon[3] == 'down' %}<span class="trend-down">&#9660;</span> {% elif pokemon[3] == 'same' %}<span class="trend-same">&#8212;</span> {% endif %}{{ pokemon[1] }}%</span>
               </button>
             </li>
             {% endfor %}
@@ -634,6 +719,16 @@
           </div>
           {% endif %}
         </div>
+        {% if show_trend %}
+        <div>
+          <h2>Usage Trend</h2>
+          <div class="Data" style="max-height: 210px; height: 210px; margin-bottom: 0px; overflow: hidden;">
+            <div id="trend-chart-container" style="width: 100%; height: 190px; position: relative;">
+              <canvas id="trendChart"></canvas>
+            </div>
+          </div>
+        </div>
+        {% endif %}
         <div>
           <h2>Moves</h2>
           <div class="Data">
@@ -873,8 +968,21 @@
         {% endif %}
       </div>
     </div>
-    <div style="text-align: center; height: 32px;">
-      <h6>Usage stats data from the month of April 2026</h6>
+    <div style="text-align: center; position: relative; display: inline-block; width: 100%;" id="footer-month-container">
+      <h6 style="display: inline;">Usage stats data from </h6>
+      <div class="month-selector" id="month-selector" style="display: inline-block; position: relative; padding: 0;">
+        <button type="button" class="month-toggle" id="month-toggle" style="width: auto; padding: 3px 10px; font-size: 12px;">
+          <span id="month-display">{{ selected_month }}</span>
+          <i class="fa fa-calendar"></i>
+        </button>
+        <div class="month-dropdown" id="month-dropdown" style="display: none; position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%); margin-bottom: 4px; width: 120px;">
+          {% for m in available_months | reverse %}
+          <button type="button" onclick="selectMonth('{{ m }}')" class="month-option {% if m == selected_month %}active{% endif %}">
+            {{ m }}
+          </button>
+          {% endfor %}
+        </div>
+      </div>
     </div>
     <div style="text-align: center; height: 32px">
       <h6><a href="/about">About</a></h6>
@@ -895,7 +1003,11 @@
       window.initialSpread = {% if spreads_list|length > 0 %}"{{ spreads_list[0][0] }}"{% else %}""{% endif %};
       window.selectedFormat = "{{ selected_format[0] }}";
       window.selectedRating = "{{ selected_rating }}";
+      window.selectedMonth = "{{ selected_month }}";
+      window.availableMonths = {{ available_months | tojson }};
       window.isChampions = {{ is_champions | tojson }};
+      window.trendMonths = {{ trend_months | tojson }};
+      window.trendUsage = {{ trend_usage | tojson }};
       window.teraType = {% if tera_types_list|length > 0 %}"{{ tera_types_list[0][0] }}"{% else %}""{% endif %};
       window.initialMoves = [
         {% for move in moves_list[:4] if move[0] != "Nothing" %}
@@ -905,6 +1017,6 @@
     </script>
 
     <!-- External JavaScript file -->
-    <script src="{{ url_for('static', filename='tools_2.1.js') }}"></script>
+    <script src="{{ url_for('static', filename='tools_2.2.js') }}"></script>
   </body>
 </html>
