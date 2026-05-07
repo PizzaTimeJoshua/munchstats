@@ -1708,13 +1708,13 @@ $(document).ready(function () {
     fetchPageData(metaCode, currentRatingValue, "");
   };
   window.selectRating = function (ratingType) {
-    fetchPageData(currentFormatCode, ratingType, "");
+    fetchPageData(currentFormatCode, ratingType, currentPokemonName);
   };
   window.selectMonth = function (month) {
     currentMonth = month;
     var dropdown = document.getElementById("month-dropdown");
     if (dropdown) dropdown.style.display = "none";
-    fetchPageData(currentFormatCode, currentRatingValue, "");
+    fetchPageData(currentFormatCode, currentRatingValue, currentPokemonName);
   };
 
   // ========== BROWSER HISTORY ==========
