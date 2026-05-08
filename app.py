@@ -103,7 +103,7 @@ def is_local_month(month):
     return os.path.isdir(os.path.join(DATA_DIRECTORY, month))
 
 
-@lru_cache(maxsize=64)
+@lru_cache(maxsize=8)
 def fetch_remote_format_data(month, format_code, rating):
     """Fetch a full format JSON from Smogon and return its data dict. Cached."""
     # Try variants: base, DLC1, DLC2, H1, H2
@@ -130,7 +130,7 @@ def fetch_remote_format_data(month, format_code, rating):
     return None
 
 
-@lru_cache(maxsize=128)
+@lru_cache(maxsize=12)
 def get_remote_formats_for_month(month):
     """Fetch the list of available formats and ratings for a remote month. Returns dict {format_code: [ratings]}."""
     from bs4 import BeautifulSoup as BS
@@ -205,7 +205,7 @@ def fetch_pokemon_data(format_code, rating, pokemon_name, month=None):
     return {}
 
 
-@lru_cache(maxsize=128)
+@lru_cache(maxsize=32)
 def load_trend_data(format_code, rating):
     """Load pre-computed trend data for a format/rating. Returns dict or None."""
     trend_path = os.path.join(DATA_DIRECTORY, "trends", format_code, f"{rating}.json")
