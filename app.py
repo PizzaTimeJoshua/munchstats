@@ -36,7 +36,11 @@ def load_data_file(filepath, mode="r", encoding="utf8"):
     """Load and return data from a JSON/JSON5 file if it exists."""
     if os.path.exists(filepath):
         with open(filepath, mode, encoding=encoding) as file:
-            return pyjson5.loads(file.read())
+            content = file.read()
+        try:
+            return json.loads(content)
+        except (json.JSONDecodeError, ValueError):
+            return pyjson5.loads(content)
     return None
 
 
@@ -114,7 +118,7 @@ def fetch_remote_format_data(month, format_code, rating):
             resp = requests.get(url, timeout=15)
             if resp.status_code == 200:
                 raw = gzip.decompress(resp.content)
-                data = pyjson5.loads(raw.decode("utf-8"))
+                data = json.loads(raw.decode("utf-8"))
                 return data
         except Exception:
             continue
@@ -124,7 +128,7 @@ def fetch_remote_format_data(month, format_code, rating):
         try:
             resp = requests.get(url, timeout=15)
             if resp.status_code == 200:
-                return pyjson5.loads(resp.text)
+                return json.loads(resp.text)
         except Exception:
             continue
     return None
@@ -486,8 +490,8 @@ def compile_top_data(pokemon_data, pokemon_name, category, format_code="", base_
                 ]
             )
         if sorted_graph == []:
-            return pyjson5.dumps([])
-        return pyjson5.dumps(sorted_graph, separators=(",", ":"))
+            return json.dumps([])
+        return json.dumps(sorted_graph, separators=(",", ":"))
 
     # Branch for 'Moves'
     if category == "Moves":
@@ -1005,7 +1009,7 @@ def search_pokemon_route():
     print(selected_format_input, selected_pokemon_input, selected_rating_input)
 
     try:
-        selected_format = pyjson5.loads(selected_format_input)
+        selected_format = json.loads(selected_format_input)
     except Exception:
         selected_format = [
             default_format,
