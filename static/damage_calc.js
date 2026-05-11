@@ -971,9 +971,11 @@ function computeSpeedComparison() {
   const def = calcState.defender;
   if (!baseSpe || !def?.spreads?.length || !def?.baseStats?.spe) return null;
   let totalW = 0, outW = 0, tieW = 0;
+  const defSpeBoost = (def.boosts || {}).spe || 0;
+  const defSpeBoostMult = defSpeBoost >= 0 ? (2 + defSpeBoost) / 2 : 2 / (2 + Math.abs(defSpeBoost));
   for (const s of def.spreads) {
     const defBaseSpe = defSpeedFromSpread(s.spread, def.baseStats.spe, def.level, def.isChampions);
-    const defSpe = defBaseSpe * (field.isDefTailwind ? 2 : 1);
+    const defSpe = Math.floor(defBaseSpe * defSpeBoostMult) * (field.isDefTailwind ? 2 : 1);
     const w = s.usage || 1;
     totalW += w;
     if (userSpe > defSpe) outW += w;
@@ -1263,10 +1265,10 @@ async function onDefenderChange() {
     atkGroups: data.atkGroups || [], spaGroups: data.spaGroups || [],
     defTiers: data.defTiers || {}, spdTiers: data.spdTiers || {},
     topMoves: data.topMoves,
-    boosts: { atk: 0, def: 0, spa: 0, spd: 0 }, customMoves: [],
+    boosts: { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, customMoves: [],
   };
   // Reset opponent boost selects
-  ["atk","spa","def","spd"].forEach(k => {
+  ["atk","spa","def","spd","spe"].forEach(k => {
     const el = document.getElementById(`calc-boost-opp-${k}`);
     if (el) { el.value = "0"; applyBoostColor(el); }
   });
@@ -1341,8 +1343,8 @@ function initBoostSelects() {
     const v = i - 6;
     return `<option value="${v}"${v===0?" selected":""}>${v>0?"+":""}${v}</option>`;
   }).join("");
-  ["calc-boost-atk","calc-boost-def","calc-boost-spa","calc-boost-spd",
-   "calc-boost-opp-atk","calc-boost-opp-spa","calc-boost-opp-def","calc-boost-opp-spd"].forEach(id => {
+  ["calc-boost-atk","calc-boost-def","calc-boost-spa","calc-boost-spd","calc-boost-spe",
+   "calc-boost-opp-atk","calc-boost-opp-spa","calc-boost-opp-def","calc-boost-opp-spd","calc-boost-opp-spe"].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.innerHTML = opts;
   });

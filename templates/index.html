@@ -673,7 +673,7 @@
       .calc-poke-panel h4.your-pokemon { color: #81d4fa; }
       .calc-poke-panel h4.avg-pokemon  { color: #a5d6a7; }
       .calc-poke-panel input[type=text],
-      .calc-poke-panel select {
+      .calc-poke-panel select:not(.calc-boost-sel) {
         width: 100%;
         background: #252525;
         color: #e0e0e0;
@@ -765,10 +765,7 @@
       /* nHKO row */
       .calc-nhko-row { display: flex; gap: 8px; font-size: 11px; flex-wrap: wrap; margin-top: 2px; }
       /* Boost selects (table column + row) */
-      .calc-boost-sel {
-        background: #1a1a1a; color: #e0e0e0; border: 1px solid #3a3a3a;
-        padding: 1px 1px; font-size: 10px; cursor: pointer; width: 42px;
-      }
+      /* .calc-boost-sel consolidated below */
       .calc-nhko-badge { font-weight: bold; font-size: 11px; }
       /* Boost row (opponent panel) */
       .calc-boost-row {
@@ -811,19 +808,18 @@
       .ev-base { color: #555; font-size: 11px; }
       .calc-ev-input {
         background: #1a1a1a; color: #e0e0e0; border: 1px solid #3a3a3a;
-        padding: 2px 4px; font-size: 11px; width: 55px; box-sizing: border-box;
+        padding: 2px 4px; font-size: 11px; width: 42px; box-sizing: border-box;
         -moz-appearance: textfield; text-align: center;
       }
       .calc-ev-input::-webkit-outer-spin-button,
       .calc-ev-input::-webkit-inner-spin-button { -webkit-appearance: none; }
       .ev-final {
-        display: flex; align-items: center; justify-content: flex-end; gap: 6px;
-        font-family: monospace; font-size: 12px; padding-left: 10px;
+        text-align: right; font-family: monospace; font-size: 12px;
       }
-      .ev-boosted { color: #a5d6a7; font-size: 11px; flex-shrink: 0; white-space: nowrap; }
+      .ev-boosted { color: #a5d6a7; font-size: 11px; white-space: nowrap; }
       .calc-boost-sel {
-        flex-shrink: 0; background: #1a1a1a; color: #e0e0e0; border: 1px solid #3a3a3a;
-        font-size: 10px; padding: 1px 1px; width: 46px; box-sizing: border-box; cursor: pointer;
+        background: #1a1a1a; color: #e0e0e0; border: 1px solid #3a3a3a;
+        font-size: 10px; padding: 1px 2px; width: 42px; box-sizing: border-box; cursor: pointer;
       }
       .calc-speed-comp { font-size: 10px; margin: 2px 0 6px; line-height: 1.6; }
       /* Calc string output */
@@ -994,16 +990,16 @@
               <table class="calc-ev-table">
                 <thead>
                   <tr class="calc-ev-header">
-                    <th></th><th>Base</th><th><span id="calc-ev-col-label">EV</span></th><th>Final</th>
+                    <th></th><th>Base</th><th><span id="calc-ev-col-label">EV</span></th><th>Mod</th><th>Final</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr class="calc-ev-row"><td>HP</td><td class="ev-base"><span id="calc-atk-base-hp">—</span></td><td><input type="number" id="calc-atk-ev-hp" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td class="ev-final"><span id="calc-atk-final-hp">—</span></td></tr>
-                  <tr class="calc-ev-row"><td>Atk</td><td class="ev-base"><span id="calc-atk-base-atk">—</span></td><td><input type="number" id="calc-atk-ev-atk" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td class="ev-final"><select id="calc-boost-atk" class="calc-boost-sel" onchange="onBoostChange('atk',true)"></select><span id="calc-atk-final-atk">—</span></td></tr>
-                  <tr class="calc-ev-row"><td>Def</td><td class="ev-base"><span id="calc-atk-base-def">—</span></td><td><input type="number" id="calc-atk-ev-def" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td class="ev-final"><select id="calc-boost-def" class="calc-boost-sel" onchange="onBoostChange('def',true)"></select><span id="calc-atk-final-def">—</span></td></tr>
-                  <tr class="calc-ev-row"><td>SpA</td><td class="ev-base"><span id="calc-atk-base-spa">—</span></td><td><input type="number" id="calc-atk-ev-spa" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td class="ev-final"><select id="calc-boost-spa" class="calc-boost-sel" onchange="onBoostChange('spa',true)"></select><span id="calc-atk-final-spa">—</span></td></tr>
-                  <tr class="calc-ev-row"><td>SpD</td><td class="ev-base"><span id="calc-atk-base-spd">—</span></td><td><input type="number" id="calc-atk-ev-spd" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td class="ev-final"><select id="calc-boost-spd" class="calc-boost-sel" onchange="onBoostChange('spd',true)"></select><span id="calc-atk-final-spd">—</span></td></tr>
-                  <tr class="calc-ev-row"><td>Spe</td><td class="ev-base"><span id="calc-atk-base-spe">—</span></td><td><input type="number" id="calc-atk-ev-spe" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td class="ev-final"><select id="calc-boost-spe" class="calc-boost-sel" onchange="onBoostChange('spe',true)"></select><span id="calc-atk-final-spe">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>HP</td><td class="ev-base"><span id="calc-atk-base-hp">—</span></td><td><input type="number" id="calc-atk-ev-hp" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td></td><td class="ev-final"><span id="calc-atk-final-hp">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>Atk</td><td class="ev-base"><span id="calc-atk-base-atk">—</span></td><td><input type="number" id="calc-atk-ev-atk" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td><select id="calc-boost-atk" class="calc-boost-sel" onchange="onBoostChange('atk',true)"></select></td><td class="ev-final"><span id="calc-atk-final-atk">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>Def</td><td class="ev-base"><span id="calc-atk-base-def">—</span></td><td><input type="number" id="calc-atk-ev-def" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td><select id="calc-boost-def" class="calc-boost-sel" onchange="onBoostChange('def',true)"></select></td><td class="ev-final"><span id="calc-atk-final-def">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>SpA</td><td class="ev-base"><span id="calc-atk-base-spa">—</span></td><td><input type="number" id="calc-atk-ev-spa" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td><select id="calc-boost-spa" class="calc-boost-sel" onchange="onBoostChange('spa',true)"></select></td><td class="ev-final"><span id="calc-atk-final-spa">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>SpD</td><td class="ev-base"><span id="calc-atk-base-spd">—</span></td><td><input type="number" id="calc-atk-ev-spd" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td><select id="calc-boost-spd" class="calc-boost-sel" onchange="onBoostChange('spd',true)"></select></td><td class="ev-final"><span id="calc-atk-final-spd">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>Spe</td><td class="ev-base"><span id="calc-atk-base-spe">—</span></td><td><input type="number" id="calc-atk-ev-spe" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td><select id="calc-boost-spe" class="calc-boost-sel" onchange="onBoostChange('spe',true)"></select></td><td class="ev-final"><span id="calc-atk-final-spe">—</span></td></tr>
                 </tbody>
               </table>
 
@@ -1051,6 +1047,7 @@
                 <label>SpA<select id="calc-boost-opp-spa" class="calc-boost-sel" onchange="onBoostChange('spa',false)"></select></label>
                 <label>Def<select id="calc-boost-opp-def" class="calc-boost-sel" onchange="onBoostChange('def',false)"></select></label>
                 <label>SpD<select id="calc-boost-opp-spd" class="calc-boost-sel" onchange="onBoostChange('spd',false)"></select></label>
+                <label>Spe<select id="calc-boost-opp-spe" class="calc-boost-sel" onchange="onBoostChange('spe',false)"></select></label>
               </div>
 
               <label>Ability</label>
