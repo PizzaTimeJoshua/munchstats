@@ -982,6 +982,260 @@ def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
     return render_template("index.html", **data, availableFormats=data["month_formats"])
 
 
+def compile_calc_data(format_code, rating, pokemon_name, month=None):
+    """Return base stats, spread distribution, and top moves/ability/item for damage calc."""
+    if month is None:
+        month = get_latest_month()
+
+    index_data = fetch_index_data(format_code, rating, month)
+    if not index_data:
+        return None
+    pokemon_index = index_data.get("pokemon", {})
+    if not pokemon_index:
+        return None
+
+    matched_pokemon = fuzzy_match(pokemon_name, pokemon_index.keys())
+    if not matched_pokemon:
+        return None
+
+    poke_data = fetch_pokemon_data(format_code, rating, matched_pokemon, month)
+    if not poke_data:
+        return None
+
+    matched_dex = fuzzy_match(matched_pokemon, pokedexEntries.keys())
+    base_stats_dict = pokedexEntries.get(matched_dex, {}).get("baseStats", {}) if matched_dex else {}
+    pokemon_types = pokedexEntries.get(matched_dex, {}).get("types", ["Normal"]) if matched_dex else ["Normal"]
+    base_list = [base_stats_dict.get(k, 0) for k in ["hp", "atk", "def", "spa", "spd", "spe"]]
+
+    champions = is_champions_format(format_code)
+    fmt_lower = format_code.lower()
+    level = 50 if any(k in fmt_lower for k in ("vgc", "bss", "champions", "doubl")) else 100
+
+    stat_mod_lists = {
+        "atk": (["Naughty", "Adamant", "Lonely", "Brave"], ["Bold", "Timid", "Modest", "Calm"]),
+        "def": (["Bold", "Relaxed", "Impish", "Lax"], ["Lonely", "Hasty", "Mild", "Gentle"]),
+        "spa": (["Modest", "Mild", "Quiet", "Rash"], ["Adamant", "Impish", "Jolly", "Careful"]),
+        "spd": (["Calm", "Gentle", "Sassy", "Careful"], ["Naughty", "Lax", "Naive", "Rash"]),
+        "spe": (["Timid", "Hasty", "Jolly", "Naive"], ["Brave", "Relaxed", "Quiet", "Sassy"]),
+    }
+
+    spreads_raw = poke_data.get("Spreads", {})
+    total_raw = sum(spreads_raw.values()) or 1
+
+    # Process ALL spreads for stat group accuracy; preset dropdown gets top 30.
+    all_computed = []
+    for spread_key, weight in sorted(spreads_raw.items(), key=lambda x: -x[1]):
+        parts = spread_key.split(":")
+        if len(parts) < 2:
+            continue
+        nature = parts[0]
+        try:
+            evs = list(map(int, parts[1].split("/")))
+            if len(evs) < 6:
+                continue
+        except (ValueError, IndexError):
+            continue
+        multipliers = {}
+        for stat, (boosts, nerfs) in stat_mod_lists.items():
+            multipliers[stat] = 1.1 if nature in boosts else (0.9 if nature in nerfs else 1.0)
+        if champions:
+            stats = {
+                "hp": calculate_champions_hp_value(base_list[0], evs[0]),
+                "atk": calculate_champions_stat_value(base_list[1], evs[1], multipliers["atk"]),
+                "def": calculate_champions_stat_value(base_list[2], evs[2], multipliers["def"]),
+                "spa": calculate_champions_stat_value(base_list[3], evs[3], multipliers["spa"]),
+                "spd": calculate_champions_stat_value(base_list[4], evs[4], multipliers["spd"]),
+                "spe": calculate_champions_stat_value(base_list[5], evs[5], multipliers["spe"]),
+            }
+        else:
+            speed_iv = 0 if (multipliers["spe"] == 0.9 and evs[5] == 0) else 31
+            stats = {
+                "hp": calculate_hp_value(base_list[0], 31, evs[0], level),
+                "atk": calculate_stat_value(base_list[1], 31, evs[1], level, multipliers["atk"]),
+                "def": calculate_stat_value(base_list[2], 31, evs[2], level, multipliers["def"]),
+                "spa": calculate_stat_value(base_list[3], 31, evs[3], level, multipliers["spa"]),
+                "spd": calculate_stat_value(base_list[4], 31, evs[4], level, multipliers["spd"]),
+                "spe": calculate_stat_value(base_list[5], speed_iv, evs[5], level, multipliers["spe"]),
+            }
+        all_computed.append({"spread": spread_key, "weight": weight / total_raw, "stats": stats})
+
+    # Top-30 preset list for the attacker dropdown
+    computed_spreads = all_computed[:30]
+
+    if all_computed:
+        total_w = sum(s["weight"] for s in all_computed)
+        avg_stats = {
+            stat: round(sum(s["stats"][stat] * s["weight"] for s in all_computed) / total_w)
+            for stat in ["hp", "atk", "def", "spa", "spd", "spe"]
+        }
+    else:
+        avg_stats = {k: 0 for k in ["hp", "atk", "def", "spa", "spd", "spe"]}
+
+    # Build stat group distributions from ALL spreads for maximum accuracy
+    def_pair_counter = {}
+    spd_pair_counter = {}
+    atk_counter = {}
+    spa_counter = {}
+    for s in all_computed:
+        st, w = s["stats"], s["weight"]
+        def_key = (st["hp"], st["def"])
+        spd_key = (st["hp"], st["spd"])
+        def_pair_counter[def_key] = def_pair_counter.get(def_key, 0) + w
+        spd_pair_counter[spd_key] = spd_pair_counter.get(spd_key, 0) + w
+        atk_counter[st["atk"]] = atk_counter.get(st["atk"], 0) + w
+        spa_counter[st["spa"]] = spa_counter.get(st["spa"], 0) + w
+
+    def_groups = sorted([{"hp": k[0], "def": k[1], "weight": round(v, 5)} for k, v in def_pair_counter.items()], key=lambda x: -x["weight"])
+    spd_groups = sorted([{"hp": k[0], "spd": k[1], "weight": round(v, 5)} for k, v in spd_pair_counter.items()], key=lambda x: -x["weight"])
+    atk_groups = sorted([{"atk": k, "weight": round(v, 5)} for k, v in atk_counter.items()], key=lambda x: -x["weight"])
+    spa_groups = sorted([{"spa": k, "weight": round(v, 5)} for k, v in spa_counter.items()], key=lambda x: -x["weight"])
+
+    def _build_tiers(groups, stat_key):
+        sorted_g = sorted(groups, key=lambda g: g[stat_key])
+        total = sum(g["weight"] for g in sorted_g) or 1
+        buckets = {"frail": [], "average": [], "bulky": []}
+        cumulative = 0
+        for g in sorted_g:
+            frac = cumulative / total
+            if frac < 0.33:
+                buckets["frail"].append(g)
+            elif frac < 0.67:
+                buckets["average"].append(g)
+            else:
+                buckets["bulky"].append(g)
+            cumulative += g["weight"]
+
+        def _tier_info(tier_groups):
+            if not tier_groups:
+                return None
+            tw = sum(g["weight"] for g in tier_groups) or 1
+            avg_hp = round(sum(g["hp"] * g["weight"] for g in tier_groups) / tw)
+            avg_stat = round(sum(g[stat_key] * g["weight"] for g in tier_groups) / tw)
+            return {"hp": avg_hp, stat_key: avg_stat, "weight": round(tw, 5), "groups": tier_groups}
+
+        return {k: _tier_info(v) for k, v in buckets.items()}
+
+    def_tiers = _build_tiers(def_groups, "def") if def_groups else {"frail": None, "average": None, "bulky": None}
+    spd_tiers = _build_tiers(spd_groups, "spd") if spd_groups else {"frail": None, "average": None, "bulky": None}
+
+    moves_source = championsMoveDetails if champions else moveDetails
+    moves_raw = poke_data.get("Moves", {})
+    moves_total = max(sum(poke_data.get("Abilities", {"x": 1}).values()), 1)
+    top_moves = []
+    for move_key in sorted(moves_raw.keys(), key=lambda m: moves_raw[m], reverse=True)[:6]:
+        if move_key in ("nothing", ""):
+            continue
+        move_info = moves_source.get(move_key, {})
+        bp = move_info.get("basePower", 0)
+        if not isinstance(bp, (int, float)) or isinstance(bp, bool):
+            bp = 0
+        target = move_info.get("target", "normal")
+        flags = move_info.get("flags", {})
+        top_moves.append({
+            "id": move_key,
+            "name": move_info.get("name", move_key.title()),
+            "type": move_info.get("type", "Normal"),
+            "category": move_info.get("category", "Physical"),
+            "bp": bp,
+            "usagePct": round(moves_raw[move_key] / moves_total * 100, 1),
+            "isSpread": target in ("allAdjacentFoes", "allAdjacent"),
+            "flags": flags,
+            "hasSecondary": bool(move_info.get("secondary") or move_info.get("secondaries")),
+            "hasRecoil": bool(move_info.get("recoil")),
+        })
+
+    abilities_source = championsAbilityDetails if champions else abilityDetails
+    abilities_raw = poke_data.get("Abilities", {})
+    all_abilities = []
+    if abilities_raw:
+        for ab_key in sorted(abilities_raw.keys(), key=lambda a: abilities_raw[a], reverse=True)[:4]:
+            ab_info = abilities_source.get(ab_key, {})
+            all_abilities.append(ab_info.get("name", ab_key.title()))
+
+    items_raw = poke_data.get("Items", {})
+    all_items = []
+    if items_raw:
+        for item_key in sorted(items_raw.keys(), key=lambda i: items_raw[i], reverse=True)[:4]:
+            item_info = itemDetails.get(item_key, {})
+            name = item_info.get("name", item_key.title())
+            if name and name.lower() != "nothing":
+                all_items.append(name)
+
+    tera_raw = poke_data.get("Tera Types", {})
+    top_tera = ""
+    if tera_raw:
+        top_tera_key = max(tera_raw.keys(), key=lambda t: tera_raw[t])
+        if top_tera_key.lower() != "nothing":
+            top_tera = top_tera_key.capitalize()
+
+    return {
+        "name": matched_pokemon,
+        "types": pokemon_types,
+        "baseStats": base_stats_dict,
+        "level": level,
+        "isChampions": champions,
+        "averageStats": avg_stats,
+        "spreads": computed_spreads,
+        "defGroups": def_groups,
+        "spdGroups": spd_groups,
+        "atkGroups": atk_groups,
+        "spaGroups": spa_groups,
+        "defTiers": def_tiers,
+        "spdTiers": spd_tiers,
+        "topMoves": top_moves,
+        "topAbility": all_abilities[0] if all_abilities else "",
+        "topItem": all_items[0] if all_items else "",
+        "allAbilities": all_abilities,
+        "allItems": all_items,
+        "topTera": top_tera,
+    }
+
+
+@app.route("/api/moves/search")
+def api_moves_search():
+    q = request.args.get("q", "").strip().lower()
+    fmt = request.args.get("format", "")
+    if not q or len(q) < 2:
+        return jsonify([])
+    source = championsMoveDetails if is_champions_format(fmt) else moveDetails
+    if not source:
+        source = moveDetails or {}
+    results = []
+    for move_key, move_info in source.items():
+        name = move_info.get("name", move_key.title())
+        nl = name.lower()
+        if not (nl.startswith(q) or q in nl):
+            continue
+        bp = move_info.get("basePower", 0)
+        if not isinstance(bp, (int, float)) or isinstance(bp, bool):
+            bp = 0
+        target = move_info.get("target", "normal")
+        flags = move_info.get("flags", {})
+        results.append({
+            "id": move_key,
+            "name": name,
+            "type": move_info.get("type", "Normal"),
+            "category": move_info.get("category", "Physical"),
+            "bp": bp,
+            "isSpread": target in ("allAdjacentFoes", "allAdjacent"),
+            "flags": flags,
+            "hasSecondary": bool(move_info.get("secondary") or move_info.get("secondaries")),
+            "hasRecoil": bool(move_info.get("recoil")),
+        })
+    starts   = sorted([r for r in results if r["name"].lower().startswith(q)], key=lambda r: r["name"])
+    contains = sorted([r for r in results if not r["name"].lower().startswith(q)], key=lambda r: r["name"])
+    return jsonify((starts + contains)[:15])
+
+
+@app.route("/api/<format_code>/<rating_threshold>/calc/<pokemon_name>")
+def api_calc_data(format_code, rating_threshold="", pokemon_name=""):
+    month = request.args.get("month", None)
+    data = compile_calc_data(format_code, rating_threshold, pokemon_name, month)
+    if data is None:
+        return jsonify({"error": "No data found"}), 404
+    return jsonify(data)
+
+
 @app.route("/api/<format_code>/<rating_threshold>/<pokemon_name>")
 @app.route("/api/<format_code>/<rating_threshold>/")
 @app.route("/api/<format_code>/")
