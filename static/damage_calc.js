@@ -567,6 +567,7 @@ function computeStatsFromInputs() {
       }
     }
   }
+  updateEVTotal();
   return stats;
 }
 
@@ -1368,8 +1369,94 @@ function onAttackerPresetChange() {
   runCalc();
 }
 
+function updateEVTotal() {
+  let total = 0;
+  STAT_KEYS.forEach(k => {
+    total += parseInt(document.getElementById(`calc-atk-ev-${k}`)?.value) || 0;
+  });
+  const el = document.getElementById("calc-atk-ev-total");
+  if (el) el.textContent = total;
+}
+
+function updateEVInputLimits(isChampions) {
+  const max = isChampions ? 32 : 252;
+  STAT_KEYS.forEach(k => {
+    const el = document.getElementById(`calc-atk-ev-${k}`);
+    if (el) {
+      el.max = max;
+      if (parseInt(el.value) > max) el.value = max;
+    }
+  });
+  const maxLabel = document.getElementById("calc-atk-ev-max");
+  if (maxLabel) maxLabel.textContent = isChampions ? "" : " / 510";
+  updateEVTotal();
+}
+
+const ALL_POKEMON_TYPES = ["Normal","Fire","Water","Electric","Grass","Ice","Fighting","Poison","Ground","Flying","Psychic","Bug","Rock","Ghost","Dragon","Dark","Steel","Fairy"];
+
+function populateTypeSelects(side, types) {
+  const sel1 = document.getElementById(`calc-${side}-type1`);
+  const sel2 = document.getElementById(`calc-${side}-type2`);
+  if (!sel1 || !sel2) return;
+  sel1.innerHTML = ALL_POKEMON_TYPES.map(t => `<option value="${t}"${t === types[0] ? " selected" : ""}>${t}</option>`).join("");
+  sel2.innerHTML = `<option value="None"${types.length < 2 ? " selected" : ""}>None</option>` +
+    ALL_POKEMON_TYPES.map(t => `<option value="${t}"${types.length >= 2 && t === types[1] ? " selected" : ""}>${t}</option>`).join("");
+}
+
+function _onTypeChange(side, stateKey) {
+  if (!calcState[stateKey]) return;
+  const t1 = document.getElementById(`calc-${side}-type1`)?.value;
+  const t2 = document.getElementById(`calc-${side}-type2`)?.value;
+  if (t1) {
+    calcState[stateKey].types = t2 && t2 !== "None" ? [t1, t2] : [t1];
+  }
+  runCalc();
+}
+function onAttackerTypeChange() { _onTypeChange("attacker", "attacker"); }
+function onDefenderTypeChange() { _onTypeChange("defender", "defender"); }
+
+function populateFormSelect(side, formeOrder, currentName) {
+  const wrap = document.getElementById(`calc-${side}-form-wrap`);
+  const sel = document.getElementById(`calc-${side}-form`);
+  if (!wrap || !sel) return;
+  if (!formeOrder || formeOrder.length <= 1) {
+    wrap.style.display = "none";
+    return;
+  }
+  wrap.style.display = "";
+  sel.innerHTML = formeOrder.map(f =>
+    `<option value="${f}"${f === currentName ? " selected" : ""}>${f}</option>`
+  ).join("");
+}
+
+function onAttackerFormChange() {
+  const sel = document.getElementById("calc-attacker-form");
+  if (!sel) return;
+  const input = document.getElementById("calc-attacker-input");
+  if (input) input.value = sel.value;
+  onAttackerChange();
+}
+
+function onDefenderFormChange() {
+  const sel = document.getElementById("calc-defender-form");
+  if (!sel) return;
+  const input = document.getElementById("calc-defender-input");
+  if (input) input.value = sel.value;
+  onDefenderChange();
+}
+
 function onAttackerStatChange() {
   if (!calcState.attacker) return;
+  // Clamp EV/SP values
+  const max = calcState.attacker.isChampions ? 32 : 252;
+  STAT_KEYS.forEach(k => {
+    const el = document.getElementById(`calc-atk-ev-${k}`);
+    if (el) {
+      let v = parseInt(el.value) || 0;
+      if (v > max) { el.value = max; }
+      if (v < 0) { el.value = 0; }
+    }
+  });
   calcState.attacker.customStats = computeStatsFromInputs();
   runCalc();
 }
@@ -1391,13 +1478,16 @@ async function onAttackerChange() {
   populateTeraSelect("calc-attacker-tera", "None");
   populateAbilitySelect("calc-attacker-ability", data.allAbilities, data.topAbility);
   populateItemSelect("calc-attacker-item", data.allItems, data.topItem);
+  populateTypeSelects("attacker", data.types || ["Normal"]);
+  populateFormSelect("attacker", data.formeOrder || [], data.name);
   const attackerStatusSel = document.getElementById("calc-attacker-status");
   if (attackerStatusSel) attackerStatusSel.value = "Healthy";
   populatePresetSelect(data);
 
-  // Update EV/SP column label
+  // Update EV/SP column label and input limits
   const evLabel = document.getElementById("calc-ev-col-label");
   if (evLabel) evLabel.textContent = data.isChampions ? "SP" : "EV";
+  updateEVInputLimits(data.isChampions);
 
   // Store attacker state (needed by computeStatsFromInputs)
   const firstDamaging = data.topMoves.find(isDamagingMove);
@@ -1462,6 +1552,8 @@ async function onDefenderChange() {
   populateTeraSelect("calc-defender-tera", "None");
   populateAbilitySelect("calc-defender-ability", data.allAbilities, data.topAbility);
   populateItemSelect("calc-defender-item", data.allItems, data.topItem);
+  populateTypeSelects("defender", data.types || ["Normal"]);
+  populateFormSelect("defender", data.formeOrder || [], data.name);
   const defenderStatusSel = document.getElementById("calc-defender-status");
   if (defenderStatusSel) defenderStatusSel.value = "Healthy";
   populateDefenderPresetDisplay(data);
@@ -1681,7 +1773,7 @@ function switchTab(tab) {
 // ─── INIT ─────────────────────────────────────────────────────────────────────
 function initBoostSelects() {
   const opts = Array.from({length:13}, (_,i) => {
-    const v = i - 6;
+    const v = 6 - i;
     return `<option value="${v}"${v===0?" selected":""}>${v>0?"+":""}${v}</option>`;
   }).join("");
   ["calc-boost-atk","calc-boost-def","calc-boost-spa","calc-boost-spd","calc-boost-spe",

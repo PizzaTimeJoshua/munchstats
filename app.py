@@ -1211,6 +1211,18 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
         if top_tera_key.lower() != "nothing":
             top_tera = top_tera_key.capitalize()
 
+    # Get form data from pokedex, filtered to forms present in usage stats
+    forme_order = dex_entry.get("formeOrder", [])
+    if not forme_order and dex_entry.get("baseSpecies"):
+        base_key = fuzzy_match(
+            dex_entry["baseSpecies"].lower().replace(" ", "").replace("-", ""),
+            pokedexEntries.keys(),
+        )
+        if base_key:
+            forme_order = pokedexEntries[base_key].get("formeOrder", [])
+    pokemon_index_lower = {k.lower() for k in pokemon_index.keys()}
+    forme_order = [f for f in forme_order if f.lower() in pokemon_index_lower]
+
     return {
         "name": matched_pokemon,
         "types": pokemon_types,
@@ -1232,6 +1244,7 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
         "allAbilities": all_abilities,
         "allItems": all_items,
         "topTera": top_tera,
+        "formeOrder": forme_order,
     }
 
 
