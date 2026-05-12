@@ -36,7 +36,11 @@ def load_data_file(filepath, mode="r", encoding="utf8"):
     """Load and return data from a JSON/JSON5 file if it exists."""
     if os.path.exists(filepath):
         with open(filepath, mode, encoding=encoding) as file:
-            return pyjson5.loads(file.read())
+            content = file.read()
+        try:
+            return json.loads(content)
+        except (json.JSONDecodeError, ValueError):
+            return pyjson5.loads(content)
     return None
 
 
@@ -103,7 +107,7 @@ def is_local_month(month):
     return os.path.isdir(os.path.join(DATA_DIRECTORY, month))
 
 
-@lru_cache(maxsize=64)
+@lru_cache(maxsize=8)
 def fetch_remote_format_data(month, format_code, rating):
     """Fetch a full format JSON from Smogon and return its data dict. Cached."""
     # Try variants: base, DLC1, DLC2, H1, H2
@@ -114,7 +118,7 @@ def fetch_remote_format_data(month, format_code, rating):
             resp = requests.get(url, timeout=15)
             if resp.status_code == 200:
                 raw = gzip.decompress(resp.content)
-                data = pyjson5.loads(raw.decode("utf-8"))
+                data = json.loads(raw.decode("utf-8"))
                 return data
         except Exception:
             continue
@@ -124,13 +128,13 @@ def fetch_remote_format_data(month, format_code, rating):
         try:
             resp = requests.get(url, timeout=15)
             if resp.status_code == 200:
-                return pyjson5.loads(resp.text)
+                return json.loads(resp.text)
         except Exception:
             continue
     return None
 
 
-@lru_cache(maxsize=128)
+@lru_cache(maxsize=12)
 def get_remote_formats_for_month(month):
     """Fetch the list of available formats and ratings for a remote month. Returns dict {format_code: [ratings]}."""
     from bs4 import BeautifulSoup as BS
@@ -205,7 +209,7 @@ def fetch_pokemon_data(format_code, rating, pokemon_name, month=None):
     return {}
 
 
-@lru_cache(maxsize=128)
+@lru_cache(maxsize=32)
 def load_trend_data(format_code, rating):
     """Load pre-computed trend data for a format/rating. Returns dict or None."""
     trend_path = os.path.join(DATA_DIRECTORY, "trends", format_code, f"{rating}.json")
@@ -517,8 +521,8 @@ def compile_top_data(pokemon_data, pokemon_name, category, format_code="", base_
                 ]
             )
         if sorted_graph == []:
-            return pyjson5.dumps([])
-        return pyjson5.dumps(sorted_graph, separators=(",", ":"))
+            return json.dumps([])
+        return json.dumps(sorted_graph, separators=(",", ":"))
 
     # Branch for 'Moves'
     if category == "Moves":
@@ -1301,7 +1305,7 @@ def search_pokemon_route():
     print(selected_format_input, selected_pokemon_input, selected_rating_input)
 
     try:
-        selected_format = pyjson5.loads(selected_format_input)
+        selected_format = json.loads(selected_format_input)
     except Exception:
         selected_format = [
             default_format,

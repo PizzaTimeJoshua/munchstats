@@ -23,7 +23,7 @@
 ## Tech Stack
 - **Backend:** Python 3 · Flask
 - **Templating:** Jinja2
-- **Frontend:** HTML/CSS/JavaScript (custom; see `static/tools_2.2.js`)
+- **Frontend:** HTML/CSS/JavaScript (custom; see `static/tools_2.3.js`)
 - **Charts:** Chart.js (EV distribution bar chart, usage trend line chart)
 - **Process management:** Gunicorn (Procfile)
 - **Data:** Per-Pokémon JSON files in `stats/`, trend data in `stats/trends/`
@@ -46,7 +46,7 @@
 ## Project Structure
 ```
 / static
-  favicon.ico, pokemonicons-sheet.png, itemicons-sheet.png, tools_2.2.js
+  favicon.ico, pokemonicons-sheet.png, itemicons-sheet.png, tools_2.3.js
 / templates
   index.html, about.html, 404.html, 500.html
 / stats
