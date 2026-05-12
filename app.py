@@ -251,6 +251,37 @@ def fuzzy_match(target, options):
     return normalized_options[matches[0]] if matches else None
 
 
+def build_calc_move_payload(move_key, move_info, usage_pct=None):
+    """Normalize move data for the client-side damage calc."""
+    raw_bp = move_info.get("basePower", 0)
+    bp = raw_bp if isinstance(raw_bp, (int, float)) and not isinstance(raw_bp, bool) else 0
+    category = move_info.get("category", "Physical")
+    move_id = move_key.lower()
+    variable_bp_type = ""
+    if category != "Status" and move_info.get("basePowerCallback"):
+        if move_id in ("lowkick", "grassknot"):
+            variable_bp_type = "targetWeight"
+
+    target = move_info.get("target", "normal")
+    flags = move_info.get("flags", {})
+    payload = {
+        "id": move_key,
+        "name": move_info.get("name", move_key.title()),
+        "type": move_info.get("type", "Normal"),
+        "category": category,
+        "bp": bp,
+        "variableBp": bool(variable_bp_type),
+        "variableBpType": variable_bp_type,
+        "isSpread": target in ("allAdjacentFoes", "allAdjacent"),
+        "flags": flags,
+        "hasSecondary": bool(move_info.get("secondary") or move_info.get("secondaries")),
+        "hasRecoil": bool(move_info.get("recoil")),
+    }
+    if usage_pct is not None:
+        payload["usagePct"] = usage_pct
+    return payload
+
+
 def load_all_data():
     """Load all necessary data files into global variables."""
     global formatDisplayNames, availableFormats, spriteIndex, itemDetails, abilityDetails, moveDetails, championsMoveDetails, championsAbilityDetails, pokedexEntries
@@ -948,6 +979,28 @@ def compile_page_data(format_code, rating_threshold="", pokemon_name="", month=N
     }
 
 
+@app.route("/calc/")
+@app.route("/calc/<format_code>/")
+@app.route("/calc/<format_code>/<rating_threshold>/")
+def calc_page(format_code="", rating_threshold=""):
+    month = request.args.get("month", None)
+    data = compile_page_data(format_code or DEFAULT_META, rating_threshold, "", month)
+    if data is None:
+        return redirect(url_for("calc_page", format_code=DEFAULT_META, rating_threshold="0"))
+
+    calc_format_ratings = {
+        fmt[0]: get_valid_rating_thresholds(fmt[0], data["selected_month"])
+        for fmt in data["month_formats"]
+    }
+    return render_template(
+        "index.html",
+        **data,
+        availableFormats=data["month_formats"],
+        calc_only=True,
+        calc_format_ratings=calc_format_ratings,
+    )
+
+
 @app.route("/<format_code>/<rating_threshold>/<pokemon_name>")
 @app.route("/<format_code>/<rating_threshold>/")
 @app.route("/<format_code>/")
@@ -1003,8 +1056,10 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
         return None
 
     matched_dex = fuzzy_match(matched_pokemon, pokedexEntries.keys())
-    base_stats_dict = pokedexEntries.get(matched_dex, {}).get("baseStats", {}) if matched_dex else {}
-    pokemon_types = pokedexEntries.get(matched_dex, {}).get("types", ["Normal"]) if matched_dex else ["Normal"]
+    dex_entry = pokedexEntries.get(matched_dex, {}) if matched_dex else {}
+    base_stats_dict = dex_entry.get("baseStats", {})
+    pokemon_types = dex_entry.get("types", ["Normal"])
+    pokemon_weightkg = dex_entry.get("weightkg", 0)
     base_list = [base_stats_dict.get(k, 0) for k in ["hp", "atk", "def", "spa", "spd", "spe"]]
 
     champions = is_champions_format(format_code)
@@ -1126,23 +1181,11 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
         if move_key in ("nothing", ""):
             continue
         move_info = moves_source.get(move_key, {})
-        bp = move_info.get("basePower", 0)
-        if not isinstance(bp, (int, float)) or isinstance(bp, bool):
-            bp = 0
-        target = move_info.get("target", "normal")
-        flags = move_info.get("flags", {})
-        top_moves.append({
-            "id": move_key,
-            "name": move_info.get("name", move_key.title()),
-            "type": move_info.get("type", "Normal"),
-            "category": move_info.get("category", "Physical"),
-            "bp": bp,
-            "usagePct": round(moves_raw[move_key] / moves_total * 100, 1),
-            "isSpread": target in ("allAdjacentFoes", "allAdjacent"),
-            "flags": flags,
-            "hasSecondary": bool(move_info.get("secondary") or move_info.get("secondaries")),
-            "hasRecoil": bool(move_info.get("recoil")),
-        })
+        top_moves.append(build_calc_move_payload(
+            move_key,
+            move_info,
+            round(moves_raw[move_key] / moves_total * 100, 1),
+        ))
 
     abilities_source = championsAbilityDetails if champions else abilityDetails
     abilities_raw = poke_data.get("Abilities", {})
@@ -1171,6 +1214,7 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
     return {
         "name": matched_pokemon,
         "types": pokemon_types,
+        "weightkg": pokemon_weightkg,
         "baseStats": base_stats_dict,
         "level": level,
         "isChampions": champions,
@@ -1206,22 +1250,7 @@ def api_moves_search():
         nl = name.lower()
         if not (nl.startswith(q) or q in nl):
             continue
-        bp = move_info.get("basePower", 0)
-        if not isinstance(bp, (int, float)) or isinstance(bp, bool):
-            bp = 0
-        target = move_info.get("target", "normal")
-        flags = move_info.get("flags", {})
-        results.append({
-            "id": move_key,
-            "name": name,
-            "type": move_info.get("type", "Normal"),
-            "category": move_info.get("category", "Physical"),
-            "bp": bp,
-            "isSpread": target in ("allAdjacentFoes", "allAdjacent"),
-            "flags": flags,
-            "hasSecondary": bool(move_info.get("secondary") or move_info.get("secondaries")),
-            "hasRecoil": bool(move_info.get("recoil")),
-        })
+        results.append(build_calc_move_payload(move_key, move_info))
     starts   = sorted([r for r in results if r["name"].lower().startswith(q)], key=lambda r: r["name"])
     contains = sorted([r for r in results if not r["name"].lower().startswith(q)], key=lambda r: r["name"])
     return jsonify((starts + contains)[:15])

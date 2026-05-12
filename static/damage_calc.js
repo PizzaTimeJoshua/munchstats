@@ -69,6 +69,16 @@ const TYPE_IMMUNITY_ABILITIES = {
 };
 
 // ─── UTILITY ─────────────────────────────────────────────────────────────────
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    "\"": "&quot;",
+    "'": "&#39;"
+  }[ch]));
+}
+
 function pokeRound(n) { return Math.floor(n + 0.5); }
 
 function chainMods(mods) {
@@ -96,6 +106,48 @@ function checkAbilityImmunity(moveType, defAbility, moveFlags) {
   return abilImm === moveType;
 }
 
+function attackerIsBurned(attacker, field) {
+  return attacker?.status === "Burned" || !!field?.isBurned;
+}
+
+function variableBasePowerType(move) {
+  if (!move || move.category === "Status") return "";
+  const moveId = (move.id || "").toLowerCase();
+  if (move.variableBpType) return move.variableBpType;
+  if (moveId === "lowkick" || moveId === "grassknot") return "targetWeight";
+  return "";
+}
+
+function targetWeightBasePower(weightkg) {
+  const weight = Number(weightkg) || 0;
+  if (weight >= 200) return 120;
+  if (weight >= 100) return 100;
+  if (weight >= 50) return 80;
+  if (weight >= 25) return 60;
+  if (weight >= 10) return 40;
+  return 20;
+}
+
+function getMoveBasePower(move, field = {}) {
+  if (!move || move.category === "Status") return 0;
+  const bp = Number(move.bp) || 0;
+  if (bp > 0) return bp;
+  if (variableBasePowerType(move) === "targetWeight") {
+    return targetWeightBasePower(field.targetWeightkg);
+  }
+  return 0;
+}
+
+function isDamagingMove(move) {
+  return !!move && move.category !== "Status" && ((Number(move.bp) || 0) > 0 || !!variableBasePowerType(move));
+}
+
+function moveBasePowerLabel(move, field = null) {
+  if (!isDamagingMove(move)) return "—";
+  if (variableBasePowerType(move) === "targetWeight" && field?.targetWeightkg == null) return "20-120 BP";
+  return `${getMoveBasePower(move, field || {})} BP`;
+}
+
 function getSTABMod(attTypes, ability, moveType, atkTera) {
   const teraActive = atkTera && atkTera !== "None" && atkTera !== "";
   const hasOrigSTAB = attTypes.includes(moveType);
@@ -114,8 +166,8 @@ function getSTABMod(attTypes, ability, moveType, atkTera) {
 
 // ─── EFFECTIVE BASE POWER ─────────────────────────────────────────────────────
 function getEffectiveBasePower(move, attacker, field) {
-  let bp = move.bp;
-  if (!bp || move.category === "Status") return 0;
+  let bp = getMoveBasePower(move, field);
+  if (!bp) return 0;
   const ability = attacker.ability;
   const flags = move.flags || {};
   if (ability === "Technician" && bp <= 60) bp = Math.floor(bp * 1.5);
@@ -221,7 +273,7 @@ function calcDamageRolls(attacker, move, defStats, defTypes, defTera, defAbility
   if (berryType && berryType === move.type && typeEff > 1) finalMods.push(0x800);
 
   const finalChain = chainMods(finalMods);
-  const isBurned = field.isBurned && isPhys && attacker.ability !== "Guts";
+  const isBurned = attackerIsBurned(attacker, field) && isPhys && attacker.ability !== "Guts";
 
   const rolls = [];
   for (let i = 0; i <= 15; i++) {
@@ -350,7 +402,7 @@ function renderNHKORow(rolls, hp) {
 // ─── QUICK DAMAGE SUMMARY (for move list badges) ──────────────────────────────
 // Returns a short string like "54–64%" or "immune" using defender average stats.
 function quickDamageSummary(attacker, move, defenderData, field) {
-  if (!move.bp || move.category === "Status") return "—";
+  if (!isDamagingMove(move)) return "—";
   const isPhys = move.category === "Physical";
   const avgDef = defenderData.averageStats;
   const defStats = { hp: avgDef.hp, def: avgDef.def, spd: avgDef.spd };
@@ -366,12 +418,13 @@ function quickDamageSummary(attacker, move, defenderData, field) {
 
 // Quick damage for reverse (defender attacks user Pokemon using average stats)
 function quickReverseSummary(defenderData, move, attacker, field) {
-  if (!move.bp || move.category === "Status") return "—";
+  if (!isDamagingMove(move)) return "—";
   const defAsAttacker = {
     types: defenderData.types, ability: defenderData.ability, item: defenderData.item,
     tera: defenderData.tera, level: defenderData.level,
     customStats: defenderData.averageStats,
     boosts: defenderData.boosts || {},
+    status: defenderData.status || "Healthy",
   };
   const atkHP = attacker.customStats.hp || 1;
   const result = calcDamageRolls(defAsAttacker, move, attacker.customStats,
@@ -389,16 +442,59 @@ let calcState = {
   attacker: null,
   defender: null,
   selectedMove: null,  // { source: "attacker"|"defender", move: {...}, isCrit: false }
+  critByMove: {},
   field: {
     format: "Doubles",
     weather: "None",
     terrain: "None",
+    yourReflect: false, yourLightScreen: false, yourAuroraVeil: false,
+    yourHelpingHand: false, yourTailwind: false, yourFriendGuard: false,
+    oppReflect: false, oppLightScreen: false, oppAuroraVeil: false,
+    oppHelpingHand: false, oppTailwind: false, oppFriendGuard: false,
     isReflect: false, isLightScreen: false, isAuroraVeil: false,
     isHelpingHand: false, isAtkTailwind: false,
     isDefTailwind: false, isFriendGuard: false,
     isCritical: false, isBurned: false,
   },
 };
+
+function moveCritKey(source, moveId) {
+  return `${source}:${moveId}`;
+}
+
+function isMoveCrit(source, moveId) {
+  return !!calcState.critByMove?.[moveCritKey(source, moveId)];
+}
+
+function setMoveCrit(source, moveId, checked) {
+  const key = moveCritKey(source, moveId);
+  if (checked) calcState.critByMove[key] = true;
+  else delete calcState.critByMove[key];
+}
+
+function clearCritStateForSource(source) {
+  Object.keys(calcState.critByMove || {}).forEach(key => {
+    if (key.startsWith(`${source}:`)) delete calcState.critByMove[key];
+  });
+}
+
+function getEffectiveFieldForSource(source, isCritical = false) {
+  const field = calcState.field;
+  const userAttacking = source === "attacker";
+  const target = userAttacking ? calcState.defender : calcState.attacker;
+  const sourcePokemon = userAttacking ? calcState.attacker : calcState.defender;
+  return {
+    ...field,
+    isCritical,
+    attackerWeightkg: sourcePokemon?.weightkg ?? null,
+    targetWeightkg: target?.weightkg ?? null,
+    isHelpingHand: userAttacking ? field.yourHelpingHand : field.oppHelpingHand,
+    isReflect: userAttacking ? field.oppReflect : field.yourReflect,
+    isLightScreen: userAttacking ? field.oppLightScreen : field.yourLightScreen,
+    isAuroraVeil: userAttacking ? field.oppAuroraVeil : field.yourAuroraVeil,
+    isFriendGuard: userAttacking ? field.oppFriendGuard : field.yourFriendGuard,
+  };
+}
 
 // ─── API FETCH ────────────────────────────────────────────────────────────────
 async function fetchCalcData(pokemonName) {
@@ -545,6 +641,52 @@ function populatePresetSelect(data) {
   if (!data.spreads.length) sel.innerHTML = '<option value="">No spread data</option>';
 }
 
+function populateDefenderPresetDisplay(data) {
+  const sel = document.getElementById("calc-defender-preset");
+  if (sel) {
+    sel.disabled = false;
+    sel.innerHTML = '<option value="average">Usage-weighted average</option>';
+  }
+  const noteEl = document.getElementById("calc-defender-spread-note");
+  if (noteEl) {
+    const firstSpread = data.spreads?.[0];
+    noteEl.textContent = firstSpread ? `Most common: ${firstSpread.spread}` : "";
+  }
+  const natureEl = document.getElementById("calc-defender-nature");
+  if (natureEl) {
+    natureEl.disabled = false;
+    natureEl.innerHTML = "<option>Average</option>";
+  }
+}
+
+function setDefenderStatDisplay(baseStats, avgStats) {
+  STAT_KEYS.forEach(k => {
+    const baseEl = document.getElementById(`calc-def-base-${k}`);
+    const avgEl = document.getElementById(`calc-def-avg-${k}`);
+    const finalEl = document.getElementById(`calc-def-final-${k}`);
+    const baseVal = baseStats?.[k];
+    const avgVal = avgStats?.[k];
+    if (baseEl) baseEl.textContent = baseVal ?? "—";
+    if (avgEl) avgEl.textContent = avgVal ?? "—";
+    if (!finalEl) return;
+    if (avgVal == null) {
+      finalEl.textContent = "—";
+      finalEl.dataset.base = "";
+      finalEl.style.color = "";
+      return;
+    }
+    if (k === "hp") {
+      finalEl.textContent = avgVal;
+      finalEl.dataset.base = avgVal;
+      finalEl.style.color = "";
+    } else {
+      finalEl.dataset.base = avgVal;
+      finalEl.dataset.natColor = "";
+      applyEffectiveStat(finalEl, avgVal, (calcState.defender?.boosts || {})[k] || 0);
+    }
+  });
+}
+
 // ─── CUSTOM AUTOCOMPLETE ──────────────────────────────────────────────────────
 function initCalcAutocomplete(inputId, dropdownId, onSelect) {
   const input = document.getElementById(inputId);
@@ -552,12 +694,41 @@ function initCalcAutocomplete(inputId, dropdownId, onSelect) {
   if (!input || !dropdown) return;
   let activeIdx = -1;
 
+  function getPokemonOptions() {
+    const source = (Array.isArray(window.calcPokemonOptions) && window.calcPokemonOptions.length)
+      ? window.calcPokemonOptions
+      : (window.calcPokemonNames || []).map(name => ({ name, usage: "" }));
+    return source
+      .map(p => (typeof p === "string" ? { name: p, usage: "" } : p))
+      .filter(p => p?.name);
+  }
+
+  function formatUsage(usage) {
+    const text = String(usage ?? "").trim();
+    if (!text) return "";
+    return text.endsWith("%") ? text : `${text}%`;
+  }
+
+  function filterItems(query) {
+    const val = query.trim().toLowerCase();
+    const options = getPokemonOptions();
+    if (!val) return options;
+    const starts = options.filter(p => p.name.toLowerCase().startsWith(val));
+    const contains = options.filter(p => !p.name.toLowerCase().startsWith(val) && p.name.toLowerCase().includes(val));
+    return [...starts, ...contains];
+  }
+
   function showItems(items) {
     activeIdx = -1;
     if (!items.length) { dropdown.style.display = "none"; return; }
-    dropdown.innerHTML = items.map((n, i) =>
-      `<div class="calc-ac-item" data-idx="${i}" data-name="${n}">${n}</div>`
-    ).join("");
+    dropdown.innerHTML = items.map((p, i) => {
+      const name = escapeHTML(p.name);
+      const usage = formatUsage(p.usage);
+      return `<div class="calc-ac-item calc-pokemon-ac-item" data-idx="${i}" data-name="${name}">
+        <span class="calc-ac-name">${name}</span>
+        <span class="calc-ac-usage">${escapeHTML(usage)}</span>
+      </div>`;
+    }).join("");
     dropdown.style.display = "block";
     dropdown.querySelectorAll(".calc-ac-item").forEach(el => {
       el.addEventListener("mousedown", e => { e.preventDefault(); choose(el.dataset.name); });
@@ -579,11 +750,7 @@ function initCalcAutocomplete(inputId, dropdownId, onSelect) {
   }
 
   input.addEventListener("input", () => {
-    const val = input.value.trim().toLowerCase();
-    if (!val || !window.calcPokemonNames) { dropdown.style.display = "none"; return; }
-    const starts = window.calcPokemonNames.filter(n => n.toLowerCase().startsWith(val));
-    const contains = window.calcPokemonNames.filter(n => !n.toLowerCase().startsWith(val) && n.toLowerCase().includes(val));
-    showItems([...starts, ...contains].slice(0, 12));
+    showItems(filterItems(input.value));
   });
 
   input.addEventListener("keydown", e => {
@@ -595,7 +762,11 @@ function initCalcAutocomplete(inputId, dropdownId, onSelect) {
   });
 
   input.addEventListener("blur", () => setTimeout(() => { dropdown.style.display = "none"; }, 150));
-  input.addEventListener("focus", () => { if (input.value.trim()) input.dispatchEvent(new Event("input")); });
+  input.addEventListener("focus", () => {
+    setTimeout(() => input.select(), 0);
+    showItems(getPokemonOptions());
+  });
+  input.addEventListener("click", () => showItems(getPokemonOptions()));
 }
 
 function typeBadgeHTML(type) {
@@ -606,52 +777,61 @@ function typeBadgeHTML(type) {
 
 // ─── MOVE LIST RENDERING ──────────────────────────────────────────────────────
 function renderAttackerMoveList() {
-  const { attacker, defender, selectedMove, field } = calcState;
+  const { attacker, defender, selectedMove } = calcState;
   const container = document.getElementById("calc-atk-movelist");
   if (!container || !attacker) return;
-
-  const damaging = (attacker.topMoves || []).filter(m => m.bp > 0 && m.category !== "Status").slice(0, 4);
-  const status   = (attacker.topMoves || []).filter(m => !m.bp || m.category === "Status").slice(0, 2);
+  const damaging = (attacker.topMoves || []).filter(isDamagingMove).slice(0, 4);
+  const status   = (attacker.topMoves || []).filter(m => !isDamagingMove(m)).slice(0, 2);
   const custom   = attacker.customMoves || [];
   const allMoves = [...damaging, ...status, ...custom];
 
   container.innerHTML = allMoves.map(m => {
     const isSel = selectedMove?.source === "attacker" && selectedMove?.move?.id === m.id;
+    const isCrit = isMoveCrit("attacker", m.id);
+    const moveField = getEffectiveFieldForSource("attacker", isCrit);
     let dmgLabel = "";
-    if (defender && m.bp > 0 && m.category !== "Status") {
-      dmgLabel = `<span class="move-dmg-badge">${quickDamageSummary(attacker, m, defender, field)}</span>`;
+    if (defender && isDamagingMove(m)) {
+      dmgLabel = `<span class="move-dmg-badge">${quickDamageSummary(attacker, m, defender, moveField)}</span>`;
     }
     const catLabel = m.category === "Physical" ? "Phy" : m.category === "Special" ? "Spc" : "Sta";
-    return `<div class="calc-move-btn${isSel ? " selected" : ""}" data-moveid="${m.id}" onclick="onMoveClick('${m.id}', true)">
-      <span class="move-name">${m.name}</span>${m.id.startsWith("custom") ? " <span style='color:#555;font-size:10px'>(custom)</span>" : ""}
-      ${typeBadgeHTML(m.type)}
-      <span class="move-meta">${m.bp > 0 ? m.bp+" BP" : "—"} ${catLabel}</span>
-      ${dmgLabel}
+    return `<div class="calc-move-row">
+      <div class="calc-move-btn${isSel ? " selected" : ""}" data-moveid="${escapeHTML(m.id)}" onclick="onMoveClick(this.dataset.moveid, true)">
+        <span class="move-name">${m.name}</span>${m.id.startsWith("custom") ? " <span style='color:#555;font-size:10px'>(custom)</span>" : ""}
+        ${typeBadgeHTML(m.type)}
+        <span class="move-meta">${moveBasePowerLabel(m, moveField)} ${catLabel}</span>
+        ${dmgLabel}
+      </div>
+      <button type="button" class="move-crit-btn${isCrit ? " crit-on" : ""}" data-moveid="${escapeHTML(m.id)}" aria-pressed="${isCrit}" onclick="onMoveCritToggle(this.dataset.moveid, true)">Crit</button>
     </div>`;
   }).join("") || '<div style="color:#555;font-size:12px">No moves</div>';
 }
 
 function renderDefenderMoveList() {
-  const { attacker, defender, selectedMove, field } = calcState;
+  const { attacker, defender, selectedMove } = calcState;
   const container = document.getElementById("calc-def-movelist");
   if (!container || !defender) return;
-
-  const damaging = (defender.topMoves || []).filter(m => m.bp > 0 && m.category !== "Status").slice(0, 4);
+  const damaging = (defender.topMoves || []).filter(isDamagingMove).slice(0, 4);
+  const status   = (defender.topMoves || []).filter(m => !isDamagingMove(m)).slice(0, 2);
   const custom   = defender.customMoves || [];
-  const allMoves = [...damaging, ...custom];
+  const allMoves = [...damaging, ...status, ...custom];
 
   container.innerHTML = allMoves.map(m => {
     const isSel = selectedMove?.source === "defender" && selectedMove?.move?.id === m.id;
+    const isCrit = isMoveCrit("defender", m.id);
+    const moveField = getEffectiveFieldForSource("defender", isCrit);
     let dmgLabel = "";
-    if (attacker) {
-      dmgLabel = `<span class="move-dmg-badge">${quickReverseSummary(defender, m, attacker, field)}</span>`;
+    if (attacker && isDamagingMove(m)) {
+      dmgLabel = `<span class="move-dmg-badge">${quickReverseSummary(defender, m, attacker, moveField)}</span>`;
     }
-    const catLabel = m.category === "Physical" ? "Phy" : "Spc";
-    return `<div class="calc-move-btn${isSel ? " selected" : ""}" data-moveid="${m.id}" onclick="onMoveClick('${m.id}', false)">
-      <span class="move-name">${m.name}</span>${m.id.startsWith("custom") ? " <span style='color:#555;font-size:10px'>(custom)</span>" : ""}
-      ${typeBadgeHTML(m.type)}
-      <span class="move-meta">${m.bp > 0 ? m.bp+" BP" : "—"} ${catLabel}</span>
-      ${dmgLabel}
+    const catLabel = m.category === "Physical" ? "Phy" : m.category === "Special" ? "Spc" : "Sta";
+    return `<div class="calc-move-row">
+      <div class="calc-move-btn${isSel ? " selected" : ""}" data-moveid="${escapeHTML(m.id)}" onclick="onMoveClick(this.dataset.moveid, false)">
+        <span class="move-name">${m.name}</span>${m.id.startsWith("custom") ? " <span style='color:#555;font-size:10px'>(custom)</span>" : ""}
+        ${typeBadgeHTML(m.type)}
+        <span class="move-meta">${moveBasePowerLabel(m, moveField)} ${catLabel}</span>
+        ${dmgLabel}
+      </div>
+      <button type="button" class="move-crit-btn${isCrit ? " crit-on" : ""}" data-moveid="${escapeHTML(m.id)}" aria-pressed="${isCrit}" onclick="onMoveCritToggle(this.dataset.moveid, false)">Crit</button>
     </div>`;
   }).join("") || '<div style="color:#555;font-size:12px">No moves</div>';
 }
@@ -667,6 +847,7 @@ const TIER_CONFIG = {
 function renderFactorChips(atkObj, move, defObj, field) {
   const chips = [];
   const isPhys = move.category === "Physical";
+  const basePower = getMoveBasePower(move, field);
   const typeEff = getTypeEffectiveness(move.type, defObj.types || [], defObj.tera);
 
   if (typeEff === 4) chips.push(["4× effective", "#4caf50"]);
@@ -680,7 +861,7 @@ function renderFactorChips(atkObj, move, defObj, field) {
   else if (stabMod === 0x1800) chips.push(["STAB ×1.5", "#ffd54f"]);
   else if (stabMod > 0x1000) chips.push(["STAB", "#ffd54f"]);
 
-  if (move.bp <= 60 && atkObj.ability === "Technician") chips.push(["Technician ×1.5 BP", "#b0bec5"]);
+  if (basePower <= 60 && atkObj.ability === "Technician") chips.push(["Technician ×1.5 BP", "#b0bec5"]);
   if ((move.flags||{}).bite && atkObj.ability === "Strong Jaw") chips.push(["Strong Jaw ×1.5 BP", "#b0bec5"]);
   if ((move.flags||{}).punch && atkObj.ability === "Iron Fist") chips.push(["Iron Fist ×1.2 BP", "#b0bec5"]);
   if (atkObj.ability === "Huge Power" || atkObj.ability === "Pure Power") chips.push([`${atkObj.ability} ×2 Atk`, "#b0bec5"]);
@@ -726,7 +907,7 @@ function renderFactorChips(atkObj, move, defObj, field) {
   if (move.isSpread && field.format !== "Singles") chips.push(["Spread ×0.75", "#aaa"]);
   if (field.isHelpingHand) chips.push(["Helping Hand ×1.5", "#a5d6a7"]);
   if (field.isCritical) chips.push(["Crit ×1.5", "#ef9a9a"]);
-  if (field.isBurned && isPhys && atkObj.ability !== "Guts") chips.push(["Burned ÷2", "#f08030"]);
+  if (attackerIsBurned(atkObj, field) && isPhys && atkObj.ability !== "Guts") chips.push(["Burned ÷2", "#f08030"]);
 
   const atkBoost = (atkObj.boosts || {})[isPhys ? "atk" : "spa"] || 0;
   if (atkBoost) {
@@ -749,6 +930,24 @@ function renderKOLabel(koPct, label = "OHKO") {
   if (koPct >= 6.25) return `<span style="color:#ffd54f;font-weight:bold">${koPct.toFixed(1)}% ${label} (${Math.round(koPct/6.25)}/16)</span>`;
   if (koPct > 0) return `<span style="color:#ff9800;font-weight:bold">&lt;6.25% ${label}</span>`;
   return `<span style="color:#555">0% ${label}</span>`;
+}
+
+function renderPrimaryResult(title, damageText, koHTML, note = "") {
+  return `<div class="calc-primary-result">
+    <div class="calc-primary-title">${title}</div>
+    <div class="calc-primary-main">${damageText}</div>
+    <div class="calc-primary-ko">${koHTML}${note ? ` <span>${note}</span>` : ""}</div>
+  </div>`;
+}
+
+function renderBestKOLabelForRolls(rolls, hp) {
+  const o1 = calcNHKOChance(rolls, hp, 1);
+  const o2 = o1 > 0 ? 0 : calcNHKOChance(rolls, hp, 2);
+  const o3 = (o1 > 0 || o2 > 0) ? 0 : calcNHKOChance(rolls, hp, 3);
+  if (o1 > 0) return renderKOLabel(o1, "OHKO");
+  if (o2 > 0) return renderKOLabel(o2, "2HKO");
+  if (o3 > 0) return renderKOLabel(o3, "3HKO");
+  return `<span style="color:#555">Cannot 3HKO</span>`;
 }
 
 function doesAtkItemBoostDamage(item, move, isPhys, typeEff) {
@@ -776,7 +975,7 @@ function doesDefItemReduceDamage(item, move, isPhys, typeEff) {
 // useEVNotation = true           → reads attacker EVs/nature from DOM
 // defEvStr      = "252 HP / 4 SpD" → prepended before defender name (reverse calc)
 // overridePcts  = { o1, o2, o3 } → precomputed weighted KO probabilities (forward calc)
-function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, defEvStr, overridePcts) {
+function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, defEvStr, overridePcts, extraClass = "") {
   if (!rolls || !rolls.length || !hp) return "";
   const isPhys = move.category === "Physical";
   const statKey = isPhys ? "atk" : "spa";
@@ -801,6 +1000,7 @@ function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, 
 
   // Attacker item: only show if it boosts damage
   const itemPart = doesAtkItemBoostDamage(atkObj.item, move, isPhys, typeEff) ? `${atkObj.item} ` : "";
+  const statusPart = attackerIsBurned(atkObj, field) && isPhys && atkObj.ability !== "Guts" ? "burned " : "";
 
   // Defender boost on defense stat
   const defBoostKey = isPhys ? "def" : "spd";
@@ -848,22 +1048,22 @@ function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, 
   if (field.weather === "Sand" || field.weather === "Sandstorm") residual = " after sandstorm damage";
   else if (field.weather === "Snow" || field.weather === "Hail") residual = " after hail damage";
 
-  const str = `${boostPart}${evPart}${itemPart}${atkObj.name} ${hhPart}${move.name} vs. ${defEvPart}${defItemPart}${defObj.name}${defBoostPart}${screenPart}: (${minPct} - ${maxPct}%) -- ${koText}${residual}`;
-  return `<div class="calc-string"><code>${str}</code><button class="calc-copy-btn" onclick="navigator.clipboard.writeText(${JSON.stringify(str)})">Copy</button></div>`;
+  const str = `${boostPart}${evPart}${itemPart}${statusPart}${atkObj.name} ${hhPart}${move.name} vs. ${defEvPart}${defItemPart}${defObj.name}${defBoostPart}${screenPart}: (${minPct} - ${maxPct}%) -- ${koText}${residual}`;
+  return `<div class="calc-string${extraClass ? ` ${extraClass}` : ""}"><code>${str}</code><button class="calc-copy-btn" onclick="navigator.clipboard.writeText(${JSON.stringify(str)})">Copy</button></div>`;
 }
 
 function renderForwardResults(koDist, move, attacker, defenderData, field) {
   if (!koDist) return `<div style="color:#666;padding:6px 0">No data.</div>`;
   const moveName = move.name, defenderName = defenderData.name;
-  if (koDist.immune) return `<div style="color:#666;padding:6px 0"><strong>${moveName}</strong> → No effect (${defenderName} is immune)</div>`;
+  if (koDist.immune) return renderPrimaryResult(`${moveName} -> ${defenderName}`, "No effect", `<span style="color:#666">${defenderName} is immune</span>`);
 
   const defLabel = koDist.isPhys ? "Def" : "SpD";
-  let html = `<div class="calc-result-header">${moveName} → ${defenderName}</div>`;
-  html += renderFactorChips(attacker, move, defenderData, field);
+  let html = renderFactorChips(attacker, move, defenderData, field);
 
   const tierNames = ["frail", "average", "bulky"];
   let hasTiers = false;
   let w2 = 0, w3 = 0, wTotal = 0;
+  let allMinPct = Infinity, allMaxPct = -Infinity;
 
   for (const name of tierNames) {
     const tier = koDist.tiers[name];
@@ -874,6 +1074,8 @@ function renderForwardResults(koDist, move, attacker, defenderData, field) {
     const minD = rolls[0], maxD = rolls[rolls.length - 1];
     const minP = (minD / hp * 100).toFixed(1);
     const maxP = (maxD / hp * 100).toFixed(1);
+    allMinPct = Math.min(allMinPct, minD / hp * 100);
+    allMaxPct = Math.max(allMaxPct, maxD / hp * 100);
     const pct = (tier.weight * 100).toFixed(0);
     const p2 = calcNHKOChance(rolls, hp, 2);
     const p3 = calcNHKOChance(rolls, hp, 3);
@@ -904,16 +1106,15 @@ function renderForwardResults(koDist, move, attacker, defenderData, field) {
   const ovHTML = ovLabel ? renderKOLabel(ovPct, ovLabel) : `<span style="color:#444">Cannot 3HKO</span>`;
   html += `<div class="calc-overall-ko"><strong>Weighted overall:</strong> ${ovHTML} <span style="color:#555;font-size:11px">across all usage sets</span></div>`;
 
+  const damageSummary = isFinite(allMinPct) && isFinite(allMaxPct)
+    ? `${allMinPct.toFixed(1)}-${allMaxPct.toFixed(1)}%`
+    : "No damage range";
+  const primaryHTML = renderPrimaryResult(`${moveName} -> ${defenderName}`, damageSummary, ovHTML, "weighted across usage sets");
+
   // Calc string: overall damage range (min of all tier mins → max of all tier maxes)
   const reprTier = koDist.tiers.average || koDist.tiers.frail || koDist.tiers.bulky;
+  let calcStringHTML = "";
   if (reprTier?.reprRolls) {
-    let allMinPct = Infinity, allMaxPct = -Infinity;
-    for (const name of tierNames) {
-      const t = koDist.tiers[name];
-      if (!t?.reprRolls || !t.reprHP) continue;
-      allMinPct = Math.min(allMinPct, t.reprRolls[0] / t.reprHP * 100);
-      allMaxPct = Math.max(allMaxPct, t.reprRolls[t.reprRolls.length - 1] / t.reprHP * 100);
-    }
     const overridePcts = {
       o1: koDist.koPct || 0,
       o2: (koDist.koPct > 0) ? 0 : (overall2 || 0),
@@ -921,23 +1122,23 @@ function renderForwardResults(koDist, move, attacker, defenderData, field) {
       minPct: isFinite(allMinPct) ? allMinPct.toFixed(1) : null,
       maxPct: isFinite(allMaxPct) ? allMaxPct.toFixed(1) : null,
     };
-    html += buildCalcString(attacker, move, reprTier.reprRolls, reprTier.reprHP, defenderData, field, true, null, overridePcts);
+    calcStringHTML = buildCalcString(attacker, move, reprTier.reprRolls, reprTier.reprHP, defenderData, field, true, null, overridePcts, "calc-string-primary");
   }
-  return html;
+  return primaryHTML + calcStringHTML + html;
 }
 
 // Renders a single-result block (reverse: defender's move vs attacker's single HP pool)
 function renderSingleResult(result, move, atkObj, defObj, field) {
   const hp = defObj.customStats?.hp || 1;
-  let html = `<div class="calc-result-header">${atkObj.name}'s ${move.name} → ${defObj.name}</div>`;
-  html += renderFactorChips(atkObj, move, defObj, field);
+  let detailHTML = renderFactorChips(atkObj, move, defObj, field);
   if (!result || result.immune) {
-    html += `<div style="color:#666;padding:6px 0">No effect / immune</div>`;
-    return html;
+    return renderPrimaryResult(`${atkObj.name}'s ${move.name} -> ${defObj.name}`, "No effect", `<span style="color:#666">Immune</span>`);
   }
   const rolls = result.rolls;
   const minD = rolls[0], maxD = rolls[rolls.length - 1];
-  html += `<div class="calc-tier-row" style="border-left:3px solid #a5d6a7">
+  const damageText = `${minD}-${maxD} (${(minD/hp*100).toFixed(1)}-${(maxD/hp*100).toFixed(1)}%)`;
+  const primaryHTML = renderPrimaryResult(`${atkObj.name}'s ${move.name} -> ${defObj.name}`, damageText, renderBestKOLabelForRolls(rolls, hp));
+  detailHTML += `<div class="calc-tier-row" style="border-left:3px solid #a5d6a7">
     <div class="calc-tier-left">
       <span class="calc-tier-stats">HP ${hp}</span>
     </div>
@@ -951,8 +1152,8 @@ function renderSingleResult(result, move, atkObj, defObj, field) {
   const _hpEV = parseInt(document.getElementById("calc-atk-ev-hp")?.value) || 0;
   const _defEV = parseInt(document.getElementById(`calc-atk-ev-${_isPhys ? "def" : "spd"}`)?.value) || 0;
   const defEvStr = `${_hpEV} HP / ${_defEV} ${_isPhys ? "Def" : "SpD"}`;
-  html += buildCalcString(atkObj, move, rolls, hp, defObj, field, false, defEvStr);
-  return html;
+  const calcStringHTML = buildCalcString(atkObj, move, rolls, hp, defObj, field, false, defEvStr, null, "calc-string-primary");
+  return primaryHTML + calcStringHTML + detailHTML;
 }
 
 // ─── SPEED COMPARISON ────────────────────────────────────────────────────────
@@ -1018,17 +1219,6 @@ function runCalc() {
     }
   }
 
-  // Update move controls bar
-  const ctrlEl = document.getElementById("calc-move-controls");
-  const lblEl  = document.getElementById("calc-selected-move-label");
-  const critEl = document.getElementById("calc-move-crit");
-  if (ctrlEl) ctrlEl.style.display = selectedMove ? "flex" : "none";
-  if (selectedMove && lblEl) {
-    const src = selectedMove.source === "attacker" ? attacker?.name : defender?.name;
-    lblEl.textContent = `${src || "?"}'s ${selectedMove.move.name}`;
-  }
-  if (critEl && selectedMove) critEl.checked = selectedMove.isCrit;
-
   if (!attacker || !defender) {
     resultsEl.innerHTML = `<div style="color:#888;padding:10px 0;">Select both a Pokémon and an opponent to see results.</div>`;
     return;
@@ -1039,24 +1229,28 @@ function runCalc() {
   }
 
   const { source, move, isCrit } = selectedMove;
-  const effectiveField = { ...field, isCritical: isCrit };
+  const effectiveField = getEffectiveFieldForSource(source, isCrit);
 
   let html = "";
   if (source === "attacker") {
-    if (!move.bp || move.category === "Status") {
-      html = `<div class="calc-result-section"><div style="color:#888">${move.name} is a status move — no damage to calculate.</div></div>`;
+    if (!isDamagingMove(move)) {
+      const reason = move.category === "Status" ? "is a status move" : "does not have supported damage data";
+      html = `<div class="calc-result-section"><div style="color:#888">${move.name} ${reason} — no damage to calculate.</div></div>`;
     } else {
       const koDist = calcKODistribution(attacker, move, defender, effectiveField);
       html = `<div class="calc-result-section">${renderForwardResults(koDist, move, attacker, defender, effectiveField)}</div>`;
     }
   } else {
-    if (!move.bp || move.category === "Status") {
-      html = `<div class="calc-result-section"><div style="color:#888">${move.name} is a status move — no damage to calculate.</div></div>`;
+    if (!isDamagingMove(move)) {
+      const reason = move.category === "Status" ? "is a status move" : "does not have supported damage data";
+      html = `<div class="calc-result-section"><div style="color:#888">${move.name} ${reason} — no damage to calculate.</div></div>`;
     } else {
       const defAsAttacker = {
         name: defender.name, types: defender.types, ability: defender.ability,
         item: defender.item, tera: defender.tera, level: defender.level,
         customStats: defender.averageStats, boosts: defender.boosts || {},
+        status: defender.status || "Healthy",
+        weightkg: defender.weightkg,
       };
       const result = calcDamageRolls(defAsAttacker, move, attacker.customStats,
         attacker.types, attacker.tera, attacker.ability, attacker.item, effectiveField, attacker.boosts);
@@ -1073,15 +1267,15 @@ function onMoveClick(moveId, isAttacker) {
     ? [...(calcState.attacker?.topMoves || []), ...(calcState.attacker?.customMoves || [])]
     : [...(calcState.defender?.topMoves || []), ...(calcState.defender?.customMoves || [])];
   const move = pool.find(m => m.id === moveId);
-  const prevCrit = calcState.selectedMove?.isCrit || false;
-  calcState.selectedMove = move ? { source, move, isCrit: prevCrit } : null;
+  calcState.selectedMove = move ? { source, move, isCrit: isMoveCrit(source, move.id) } : null;
   runCalc();
 }
 
-function toggleMoveCrit() {
-  if (!calcState.selectedMove) return;
-  calcState.selectedMove.isCrit = document.getElementById("calc-move-crit")?.checked || false;
-  runCalc();
+function onMoveCritToggle(moveId, isAttacker, checked = null) {
+  const source = isAttacker ? "attacker" : "defender";
+  if (checked === null) checked = !isMoveCrit(source, moveId);
+  setMoveCrit(source, moveId, checked);
+  onMoveClick(moveId, isAttacker);
 }
 
 function applyBoostColor(el) {
@@ -1108,6 +1302,9 @@ function onBoostChange(statKey, isAttacker) {
     if (calcState.defender) {
       calcState.defender.boosts = calcState.defender.boosts || {};
       calcState.defender.boosts[statKey] = val;
+      const finalEl = document.getElementById(`calc-def-final-${statKey}`);
+      const baseStat = parseInt(finalEl?.dataset?.base) || 0;
+      if (finalEl) applyEffectiveStat(finalEl, baseStat, val);
     }
   }
   runCalc();
@@ -1132,7 +1329,7 @@ async function searchMoves(query, isAttacker) {
       `<div class="calc-ac-item" data-moveid="${m.id}" onmousedown="selectSearchedMove('${m.id}',${isAttacker})">
         ${typeBadgeHTML(m.type)}
         <span>${m.name}</span>
-        <span style="color:#555;font-size:10px;margin-left:4px">${m.bp > 0 ? m.bp+"BP " : ""}${m.category}</span>
+        <span style="color:#555;font-size:10px;margin-left:4px">${moveBasePowerLabel(m)} ${m.category}</span>
        </div>`
     ).join("");
     dropdown.style.display = "block";
@@ -1189,10 +1386,13 @@ async function onAttackerChange() {
     calcState.attacker = null;
     return;
   }
+  clearCritStateForSource("attacker");
 
   populateTeraSelect("calc-attacker-tera", "None");
   populateAbilitySelect("calc-attacker-ability", data.allAbilities, data.topAbility);
   populateItemSelect("calc-attacker-item", data.allItems, data.topItem);
+  const attackerStatusSel = document.getElementById("calc-attacker-status");
+  if (attackerStatusSel) attackerStatusSel.value = "Healthy";
   populatePresetSelect(data);
 
   // Update EV/SP column label
@@ -1200,11 +1400,11 @@ async function onAttackerChange() {
   if (evLabel) evLabel.textContent = data.isChampions ? "SP" : "EV";
 
   // Store attacker state (needed by computeStatsFromInputs)
-  const firstDamaging = data.topMoves.find(m => m.bp > 0 && m.category !== "Status");
+  const firstDamaging = data.topMoves.find(isDamagingMove);
   calcState.attacker = {
-    name: data.name, types: data.types, level: data.level,
+    name: data.name, types: data.types, level: data.level, weightkg: data.weightkg || 0,
     isChampions: data.isChampions, baseStats: data.baseStats || {},
-    ability: data.topAbility || "", item: data.topItem || "", tera: "None",
+    ability: data.topAbility || "", item: data.topItem || "", status: "Healthy", tera: "None",
     customStats: {}, spreads: data.spreads, topMoves: data.topMoves,
     boosts: { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, customMoves: [],
   };
@@ -1237,29 +1437,40 @@ async function onAttackerChange() {
 async function onDefenderChange() {
   const input = document.getElementById("calc-defender-input")?.value.trim();
   if (!input) return;
-  const statsEl = document.getElementById("calc-defender-stats");
-  if (statsEl) statsEl.textContent = "Loading…";
+  const noteEl = document.getElementById("calc-defender-spread-note");
+  if (noteEl) noteEl.textContent = "Loading…";
 
   const data = await fetchCalcData(input);
   if (!data) {
-    if (statsEl) statsEl.textContent = "Not found in this format.";
+    if (noteEl) noteEl.textContent = "Not found in this format.";
+    setDefenderStatDisplay({}, {});
+    const presetEl = document.getElementById("calc-defender-preset");
+    if (presetEl) {
+      presetEl.disabled = true;
+      presetEl.innerHTML = '<option value="">— load a Pokémon first —</option>';
+    }
+    const natureEl = document.getElementById("calc-defender-nature");
+    if (natureEl) {
+      natureEl.disabled = true;
+      natureEl.innerHTML = "<option>Average</option>";
+    }
     calcState.defender = null;
     return;
   }
+  clearCritStateForSource("defender");
 
   populateTeraSelect("calc-defender-tera", "None");
   populateAbilitySelect("calc-defender-ability", data.allAbilities, data.topAbility);
   populateItemSelect("calc-defender-item", data.allItems, data.topItem);
-
-  const s = data.averageStats;
-  if (statsEl) statsEl.textContent =
-    `HP ${s.hp} | Atk ${s.atk} | Def ${s.def} | SpA ${s.spa} | SpD ${s.spd} | Spe ${s.spe}`;
+  const defenderStatusSel = document.getElementById("calc-defender-status");
+  if (defenderStatusSel) defenderStatusSel.value = "Healthy";
+  populateDefenderPresetDisplay(data);
 
   calcState.defender = {
-    name: data.name, types: data.types, level: data.level,
+    name: data.name, types: data.types, level: data.level, weightkg: data.weightkg || 0,
     isChampions: data.isChampions || false, baseStats: data.baseStats || {},
     spreads: data.spreads || [],
-    ability: data.topAbility || "", item: data.topItem || "", tera: "None",
+    ability: data.topAbility || "", item: data.topItem || "", status: "Healthy", tera: "None",
     averageStats: data.averageStats,
     defGroups: data.defGroups || [], spdGroups: data.spdGroups || [],
     atkGroups: data.atkGroups || [], spaGroups: data.spaGroups || [],
@@ -1272,6 +1483,7 @@ async function onDefenderChange() {
     const el = document.getElementById(`calc-boost-opp-${k}`);
     if (el) { el.value = "0"; applyBoostColor(el); }
   });
+  setDefenderStatDisplay(data.baseStats || {}, data.averageStats || {});
   runCalc();
 }
 
@@ -1289,32 +1501,167 @@ function _handleCustomSelect(sel, stateProp, subProp) {
 
 function onAttackerAbilityChange() { _handleCustomSelect(document.getElementById("calc-attacker-ability"), "attacker", "ability"); }
 function onAttackerItemChange()    { _handleCustomSelect(document.getElementById("calc-attacker-item"), "attacker", "item"); }
+function onAttackerStatusChange()  { if (calcState.attacker) { calcState.attacker.status = document.getElementById("calc-attacker-status")?.value || "Healthy"; runCalc(); } }
 function onAttackerTeraChange()    { if (calcState.attacker) { calcState.attacker.tera = document.getElementById("calc-attacker-tera")?.value || "None"; runCalc(); } }
 function onDefenderAbilityChange() { _handleCustomSelect(document.getElementById("calc-defender-ability"), "defender", "ability"); }
 function onDefenderItemChange()    { _handleCustomSelect(document.getElementById("calc-defender-item"), "defender", "item"); }
+function onDefenderStatusChange()  { if (calcState.defender) { calcState.defender.status = document.getElementById("calc-defender-status")?.value || "Healthy"; runCalc(); } }
 function onDefenderTeraChange()    { if (calcState.defender) { calcState.defender.tera = document.getElementById("calc-defender-tera")?.value || "None"; runCalc(); } }
 
 function onFieldChange() {
-  calcState.field.format = document.getElementById("calc-field-format")?.value || "Doubles";
-  calcState.field.weather = document.getElementById("calc-field-weather")?.value || "None";
-  calcState.field.terrain = document.getElementById("calc-field-terrain")?.value || "None";
-  calcState.field.isHelpingHand = document.getElementById("calc-helpinghand")?.checked || false;
-  calcState.field.isAtkTailwind = document.getElementById("calc-atk-tailwind")?.checked || false;
+  const checked = id => document.getElementById(id)?.checked || false;
+  calcState.field.format = document.querySelector("input[name='calc-field-format-mode']:checked")?.value
+    || document.getElementById("calc-field-format")?.value || "Doubles";
+  calcState.field.weather = document.querySelector("input[name='calc-field-weather-mode']:checked")?.value
+    || document.getElementById("calc-field-weather")?.value || "None";
+  calcState.field.terrain = document.querySelector("input[name='calc-field-terrain-mode']:checked")?.value
+    || document.getElementById("calc-field-terrain")?.value || "None";
+  calcState.field.yourHelpingHand = checked("calc-your-helpinghand");
+  calcState.field.yourReflect = checked("calc-your-reflect");
+  calcState.field.yourLightScreen = checked("calc-your-lightscreen");
+  calcState.field.yourAuroraVeil = checked("calc-your-auroraveil");
+  calcState.field.yourTailwind = checked("calc-your-tailwind");
+  calcState.field.yourFriendGuard = checked("calc-your-friendguard");
+  calcState.field.oppHelpingHand = checked("calc-opp-helpinghand");
+  calcState.field.oppReflect = checked("calc-opp-reflect");
+  calcState.field.oppLightScreen = checked("calc-opp-lightscreen");
+  calcState.field.oppAuroraVeil = checked("calc-opp-auroraveil");
+  calcState.field.oppTailwind = checked("calc-opp-tailwind");
+  calcState.field.oppFriendGuard = checked("calc-opp-friendguard");
+
+  calcState.field.isAtkTailwind = calcState.field.yourTailwind;
+  calcState.field.isDefTailwind = calcState.field.oppTailwind;
   calcState.field.isBurned = document.getElementById("calc-burned")?.checked || false;
-  calcState.field.isReflect = document.getElementById("calc-reflect")?.checked || false;
-  calcState.field.isLightScreen = document.getElementById("calc-lightscreen")?.checked || false;
-  calcState.field.isAuroraVeil = document.getElementById("calc-auroraveil")?.checked || false;
-  calcState.field.isDefTailwind = document.getElementById("calc-def-tailwind")?.checked || false;
-  calcState.field.isFriendGuard = document.getElementById("calc-friendguard")?.checked || false;
   runCalc();
 }
 
 // ─── TAB SWITCHING ────────────────────────────────────────────────────────────
+function setCalcMessage(text) {
+  const resultsEl = document.getElementById("calc-results");
+  if (resultsEl) resultsEl.innerHTML = `<div style="color:#888;padding:10px 0;">${text}</div>`;
+}
+
+function resetCalcPokemonState() {
+  calcState.attacker = null;
+  calcState.defender = null;
+  calcState.selectedMove = null;
+  calcState.critByMove = {};
+  calcCache = {};
+
+  const atkInput = document.getElementById("calc-attacker-input");
+  const defInput = document.getElementById("calc-defender-input");
+  if (atkInput) atkInput.value = "";
+  if (defInput) defInput.value = "";
+
+  const atkMoves = document.getElementById("calc-atk-movelist");
+  const defMoves = document.getElementById("calc-def-movelist");
+  if (atkMoves) atkMoves.innerHTML = '<div style="color:#444;font-size:11px">Load a Pokémon to see moves</div>';
+  if (defMoves) defMoves.innerHTML = '<div style="color:#444;font-size:11px">Load an opponent to see moves</div>';
+
+  const attackerPreset = document.getElementById("calc-attacker-preset");
+  if (attackerPreset) attackerPreset.innerHTML = '<option value="">— load a Pokémon first —</option>';
+  const attackerNote = document.getElementById("calc-attacker-spread-note");
+  if (attackerNote) attackerNote.textContent = "";
+
+  const defenderPreset = document.getElementById("calc-defender-preset");
+  if (defenderPreset) {
+    defenderPreset.disabled = true;
+    defenderPreset.innerHTML = '<option value="">— load a Pokémon first —</option>';
+  }
+  const defenderNote = document.getElementById("calc-defender-spread-note");
+  if (defenderNote) defenderNote.textContent = "";
+
+  setBaseStatDisplay({});
+  setDefenderStatDisplay({}, {});
+}
+
+function populateCalcRatingSelect(formatCode, selectedRating) {
+  const ratingSel = document.getElementById("calc-rating-select");
+  if (!ratingSel) return selectedRating || "";
+  const ratings = (window.calcFormatRatings && window.calcFormatRatings[formatCode]) || [];
+  const nextRating = ratings.includes(selectedRating) ? selectedRating : (ratings[ratings.length - 1] || selectedRating || "");
+  ratingSel.innerHTML = ratings.map(r => `<option value="${r}"${r === nextRating ? " selected" : ""}>${r}+</option>`).join("");
+  if (!ratings.length && nextRating) ratingSel.innerHTML = `<option value="${nextRating}">${nextRating}+</option>`;
+  ratingSel.value = nextRating;
+  return nextRating;
+}
+
+function initCalcSourceControls() {
+  const formatSel = document.getElementById("calc-format-select");
+  if (formatSel) formatSel.value = window.selectedFormat || formatSel.value;
+  populateCalcRatingSelect(formatSel?.value || window.selectedFormat, window.selectedRating);
+}
+
+async function reloadCalcDataSource(formatCode, ratingValue) {
+  if (!formatCode || !ratingValue) return;
+  window.selectedFormat = formatCode;
+  window.selectedRating = ratingValue;
+  resetCalcPokemonState();
+  setCalcMessage("Loading usage data…");
+
+  const monthParam = window.selectedMonth ? `?month=${encodeURIComponent(window.selectedMonth)}` : "";
+  try {
+    const resp = await fetch(`/api/${encodeURIComponent(formatCode)}/${encodeURIComponent(ratingValue)}/${monthParam}`);
+    if (!resp.ok) throw new Error("No data found");
+    const data = await resp.json();
+    window.calcPokemonOptions = (data.pokemon_names || []).map(p => ({ name: p[0], usage: p[1] }));
+    window.calcPokemonNames = window.calcPokemonOptions.map(p => p.name);
+    window.currentPokemonName = window.calcPokemonNames[0] || data.selected_pokemon || "";
+    window.isChampions = !!data.is_champions;
+    history.replaceState(null, "", `/calc/${encodeURIComponent(formatCode)}/${encodeURIComponent(ratingValue)}/${monthParam}`);
+    await loadDefaultCalcPokemon();
+  } catch (e) {
+    setCalcMessage("No damage calc data found for that format and rating.");
+  }
+}
+
+function onCalcFormatChange() {
+  const formatCode = document.getElementById("calc-format-select")?.value || window.selectedFormat;
+  const ratingValue = populateCalcRatingSelect(formatCode, window.selectedRating);
+  reloadCalcDataSource(formatCode, ratingValue);
+}
+
+function onCalcRatingChange() {
+  const formatCode = document.getElementById("calc-format-select")?.value || window.selectedFormat;
+  const ratingValue = document.getElementById("calc-rating-select")?.value || window.selectedRating;
+  reloadCalcDataSource(formatCode, ratingValue);
+}
+
+function getDefaultCalcPokemonName() {
+  return window.calcPokemonNames?.[0] || window.currentPokemonName || "";
+}
+
+async function loadDefaultCalcPokemon() {
+  const defaultName = getDefaultCalcPokemonName();
+  if (!defaultName) return;
+  const loads = [];
+
+  const atkInput = document.getElementById("calc-attacker-input");
+  if (!calcState.attacker && atkInput && !atkInput.value) {
+    atkInput.value = defaultName;
+    loads.push(onAttackerChange());
+  }
+
+  const defInput = document.getElementById("calc-defender-input");
+  if (!calcState.defender && defInput && !defInput.value) {
+    defInput.value = defaultName;
+    loads.push(onDefenderChange());
+  }
+  await Promise.all(loads);
+}
+
 function switchTab(tab) {
   const usagePanel = document.getElementById("usage-panel");
   const calcPanel = document.getElementById("calc-panel");
   const usageBtn = document.getElementById("tab-usage-btn");
   const calcBtn = document.getElementById("tab-calc-btn");
+  if (!usagePanel || !calcPanel) {
+    if (calcPanel) calcPanel.style.display = "block";
+    if (calcBtn) calcBtn.classList.add("tab-active");
+    if (usageBtn) usageBtn.classList.remove("tab-active");
+    loadDefaultCalcPokemon();
+    return;
+  }
   if (tab === "usage") {
     usagePanel.style.display = "contents";
     calcPanel.style.display = "none";
@@ -1327,13 +1674,7 @@ function switchTab(tab) {
     usageBtn.classList.remove("tab-active");
     calcBtn.classList.add("tab-active");
     sessionStorage.setItem("activeTab", "calc");
-    if (!calcState.attacker && window.currentPokemonName) {
-      const atkInput = document.getElementById("calc-attacker-input");
-      if (atkInput && !atkInput.value) {
-        atkInput.value = window.currentPokemonName;
-        onAttackerChange();
-      }
-    }
+    loadDefaultCalcPokemon();
   }
 }
 
@@ -1350,12 +1691,16 @@ function initBoostSelects() {
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  if (sessionStorage.getItem("activeTab") === "calc") switchTab("calc");
+function setRadioValue(name, value) {
+  const el = document.querySelector(`input[name='${name}'][value='${value}']`);
+  if (el) el.checked = true;
+}
 
+document.addEventListener("DOMContentLoaded", () => {
   initCalcAutocomplete("calc-attacker-input", "calc-attacker-dropdown", () => onAttackerChange());
   initCalcAutocomplete("calc-defender-input", "calc-defender-dropdown", () => onDefenderChange());
   initBoostSelects();
+  initCalcSourceControls();
 
   const fmtIsDoubles = window.selectedFormat && (
     window.selectedFormat.includes("vgc") || window.selectedFormat.includes("doubl") ||
@@ -1364,4 +1709,7 @@ document.addEventListener("DOMContentLoaded", () => {
   calcState.field.format = fmtIsDoubles ? "Doubles" : "Singles";
   const fmtSel = document.getElementById("calc-field-format");
   if (fmtSel) fmtSel.value = calcState.field.format;
+  setRadioValue("calc-field-format-mode", calcState.field.format);
+
+  if (window.isCalcPage || sessionStorage.getItem("activeTab") === "calc") switchTab("calc");
 });
