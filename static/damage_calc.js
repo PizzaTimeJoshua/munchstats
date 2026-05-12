@@ -287,9 +287,30 @@ function calcDamageRolls(attacker, move, defStats, defTypes, defTera, defAbility
   return { rolls, typeEff, immune: false };
 }
 
+// Wrapper that handles multi-hit: regular (multiply) and escalating BP (Triple Axel/Kick)
+function calcMultihitRolls(attacker, move, defStats, defTypes, defTera, defAbility, defItem, field, defBoosts, hits) {
+  if (!move.escalatingBp || hits <= 1) {
+    const result = calcDamageRolls(attacker, move, defStats, defTypes, defTera, defAbility, defItem, field, defBoosts);
+    if (!result || result.immune || hits <= 1) return result;
+    return { ...result, rolls: result.rolls.map(r => r * hits) };
+  }
+  // Escalating BP: each hit has BP = baseBP × hitNumber
+  let totalRolls = new Array(16).fill(0);
+  let lastResult = null;
+  for (let h = 1; h <= hits; h++) {
+    const hitMove = { ...move, bp: move.bp * h };
+    const result = calcDamageRolls(attacker, hitMove, defStats, defTypes, defTera, defAbility, defItem, field, defBoosts);
+    if (!result) return null;
+    if (result.immune) return result;
+    lastResult = result;
+    for (let i = 0; i < 16; i++) totalRolls[i] += result.rolls[i];
+  }
+  return lastResult ? { ...lastResult, rolls: totalRolls } : null;
+}
+
 // ─── TIERED KO DISTRIBUTION ──────────────────────────────────────────────────
 // Returns { koPct, tiers: { frail?, average?, bulky? }, immune }
-function calcKODistribution(attacker, move, defenderData, field) {
+function calcKODistribution(attacker, move, defenderData, field, hits = 1) {
   if (!attacker || !move || !defenderData) return null;
   const isPhys = move.category === "Physical";
   const tierData = isPhys ? defenderData.defTiers : defenderData.spdTiers;
@@ -310,8 +331,8 @@ function calcKODistribution(attacker, move, defenderData, field) {
 
     for (const grp of tier.groups) {
       const defStats = { hp: grp.hp, def: isPhys ? grp.def : 999, spd: isPhys ? 999 : grp.spd };
-      const result = calcDamageRolls(attacker, move, defStats,
-        defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field, defenderData.boosts);
+      const result = calcMultihitRolls(attacker, move, defStats,
+        defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field, defenderData.boosts, hits);
       if (!result) { tierW += grp.weight; continue; }
       if (result.immune) { anyImmune = true; tierW += grp.weight; continue; }
       const koCount = result.rolls.filter(r => r >= grp.hp).length;
@@ -323,8 +344,8 @@ function calcKODistribution(attacker, move, defenderData, field) {
     if (tierW > 0) {
       // Recalculate repr rolls using tier-level HP/def so % matches displayed stats
       const tierReprStats = { hp: tier.hp, def: isPhys ? tier.def : 999, spd: isPhys ? 999 : tier.spd };
-      const tierReprRes = calcDamageRolls(attacker, move, tierReprStats,
-        defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field, defenderData.boosts);
+      const tierReprRes = calcMultihitRolls(attacker, move, tierReprStats,
+        defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field, defenderData.boosts, hits);
       if (tierReprRes && !tierReprRes.immune) { reprRolls = tierReprRes.rolls; reprHP = tier.hp; }
       tierResults[tierName] = {
         koPct: (tierKO / tierW) * 100,
@@ -343,8 +364,8 @@ function calcKODistribution(attacker, move, defenderData, field) {
   if (Object.keys(tierResults).length === 0 && allGroups) {
     for (const grp of allGroups) {
       const defStats = { hp: grp.hp, def: isPhys ? grp.def : 999, spd: isPhys ? 999 : grp.spd };
-      const result = calcDamageRolls(attacker, move, defStats,
-        defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field, defenderData.boosts);
+      const result = calcMultihitRolls(attacker, move, defStats,
+        defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field, defenderData.boosts, hits);
       if (!result || result.immune) { overallW += grp.weight; continue; }
       const koCount = result.rolls.filter(r => r >= grp.hp).length;
       overallKO += grp.weight * (koCount / 16);
@@ -401,13 +422,12 @@ function renderNHKORow(rolls, hp) {
 
 // ─── QUICK DAMAGE SUMMARY (for move list badges) ──────────────────────────────
 // Returns a short string like "54–64%" or "immune" using defender average stats.
-function quickDamageSummary(attacker, move, defenderData, field) {
+function quickDamageSummary(attacker, move, defenderData, field, hits = 1) {
   if (!isDamagingMove(move)) return "—";
-  const isPhys = move.category === "Physical";
   const avgDef = defenderData.averageStats;
   const defStats = { hp: avgDef.hp, def: avgDef.def, spd: avgDef.spd };
-  const result = calcDamageRolls(attacker, move, defStats,
-    defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field);
+  const result = calcMultihitRolls(attacker, move, defStats,
+    defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field, undefined, hits);
   if (!result) return "—";
   if (result.immune) return "immune";
   const hp = avgDef.hp || 1;
@@ -417,7 +437,7 @@ function quickDamageSummary(attacker, move, defenderData, field) {
 }
 
 // Quick damage for reverse (defender attacks user Pokemon using average stats)
-function quickReverseSummary(defenderData, move, attacker, field) {
+function quickReverseSummary(defenderData, move, attacker, field, hits = 1) {
   if (!isDamagingMove(move)) return "—";
   const defAsAttacker = {
     types: defenderData.types, ability: defenderData.ability, item: defenderData.item,
@@ -427,8 +447,8 @@ function quickReverseSummary(defenderData, move, attacker, field) {
     status: defenderData.status || "Healthy",
   };
   const atkHP = attacker.customStats.hp || 1;
-  const result = calcDamageRolls(defAsAttacker, move, attacker.customStats,
-    attacker.types, attacker.tera, attacker.ability, attacker.item, field);
+  const result = calcMultihitRolls(defAsAttacker, move, attacker.customStats,
+    attacker.types, attacker.tera, attacker.ability, attacker.item, field, undefined, hits);
   if (!result) return "—";
   if (result.immune) return "immune";
   const minP = (result.rolls[0] / atkHP * 100).toFixed(0);
@@ -443,6 +463,7 @@ let calcState = {
   defender: null,
   selectedMove: null,  // { source: "attacker"|"defender", move: {...}, isCrit: false }
   critByMove: {},
+  hitsByMove: {},
   field: {
     format: "Doubles",
     weather: "None",
@@ -475,6 +496,27 @@ function setMoveCrit(source, moveId, checked) {
 function clearCritStateForSource(source) {
   Object.keys(calcState.critByMove || {}).forEach(key => {
     if (key.startsWith(`${source}:`)) delete calcState.critByMove[key];
+  });
+}
+
+function moveHitsKey(source, moveId) {
+  return `${source}:${moveId}`;
+}
+
+function getMoveHits(source, moveId, move) {
+  const stored = calcState.hitsByMove?.[moveHitsKey(source, moveId)];
+  if (stored != null) return stored;
+  if (move?.multihit) return move.multihit[1]; // default to max hits
+  return 1;
+}
+
+function setMoveHits(source, moveId, hits) {
+  calcState.hitsByMove[moveHitsKey(source, moveId)] = hits;
+}
+
+function clearHitsStateForSource(source) {
+  Object.keys(calcState.hitsByMove || {}).forEach(key => {
+    if (key.startsWith(`${source}:`)) delete calcState.hitsByMove[key];
   });
 }
 
@@ -777,22 +819,33 @@ function typeBadgeHTML(type) {
 }
 
 // ─── MOVE LIST RENDERING ──────────────────────────────────────────────────────
+function renderHitsDropdown(move, source, isAttacker) {
+  if (!move.multihit) return "";
+  const [min, max] = move.multihit;
+  const current = getMoveHits(source, move.id, move);
+  let opts = "";
+  for (let i = min; i <= max; i++) {
+    opts += `<option value="${i}"${i === current ? " selected" : ""}>${i}×</option>`;
+  }
+  return `<select class="move-hits-select" data-moveid="${escapeHTML(move.id)}" onchange="onMoveHitsChange(this.dataset.moveid, ${isAttacker}, this.value)">${opts}</select>`;
+}
+
 function renderAttackerMoveList() {
   const { attacker, defender, selectedMove } = calcState;
   const container = document.getElementById("calc-atk-movelist");
   if (!container || !attacker) return;
-  const damaging = (attacker.topMoves || []).filter(isDamagingMove).slice(0, 4);
-  const status   = (attacker.topMoves || []).filter(m => !isDamagingMove(m)).slice(0, 2);
+  const top      = (attacker.topMoves || []).slice(0, 6);
   const custom   = attacker.customMoves || [];
-  const allMoves = [...damaging, ...status, ...custom];
+  const allMoves = [...top, ...custom];
 
   container.innerHTML = allMoves.map(m => {
     const isSel = selectedMove?.source === "attacker" && selectedMove?.move?.id === m.id;
     const isCrit = isMoveCrit("attacker", m.id);
     const moveField = getEffectiveFieldForSource("attacker", isCrit);
+    const hits = getMoveHits("attacker", m.id, m);
     let dmgLabel = "";
     if (defender && isDamagingMove(m)) {
-      dmgLabel = `<span class="move-dmg-badge">${quickDamageSummary(attacker, m, defender, moveField)}</span>`;
+      dmgLabel = `<span class="move-dmg-badge">${quickDamageSummary(attacker, m, defender, moveField, hits)}</span>`;
     }
     const catLabel = m.category === "Physical" ? "Phy" : m.category === "Special" ? "Spc" : "Sta";
     return `<div class="calc-move-row">
@@ -802,6 +855,7 @@ function renderAttackerMoveList() {
         <span class="move-meta">${moveBasePowerLabel(m, moveField)} ${catLabel}</span>
         ${dmgLabel}
       </div>
+      ${renderHitsDropdown(m, "attacker", true)}
       <button type="button" class="move-crit-btn${isCrit ? " crit-on" : ""}" data-moveid="${escapeHTML(m.id)}" aria-pressed="${isCrit}" onclick="onMoveCritToggle(this.dataset.moveid, true)">Crit</button>
     </div>`;
   }).join("") || '<div style="color:#555;font-size:12px">No moves</div>';
@@ -811,18 +865,18 @@ function renderDefenderMoveList() {
   const { attacker, defender, selectedMove } = calcState;
   const container = document.getElementById("calc-def-movelist");
   if (!container || !defender) return;
-  const damaging = (defender.topMoves || []).filter(isDamagingMove).slice(0, 4);
-  const status   = (defender.topMoves || []).filter(m => !isDamagingMove(m)).slice(0, 2);
+  const top      = (defender.topMoves || []).slice(0, 6);
   const custom   = defender.customMoves || [];
-  const allMoves = [...damaging, ...status, ...custom];
+  const allMoves = [...top, ...custom];
 
   container.innerHTML = allMoves.map(m => {
     const isSel = selectedMove?.source === "defender" && selectedMove?.move?.id === m.id;
     const isCrit = isMoveCrit("defender", m.id);
     const moveField = getEffectiveFieldForSource("defender", isCrit);
+    const hits = getMoveHits("defender", m.id, m);
     let dmgLabel = "";
     if (attacker && isDamagingMove(m)) {
-      dmgLabel = `<span class="move-dmg-badge">${quickReverseSummary(defender, m, attacker, moveField)}</span>`;
+      dmgLabel = `<span class="move-dmg-badge">${quickReverseSummary(defender, m, attacker, moveField, hits)}</span>`;
     }
     const catLabel = m.category === "Physical" ? "Phy" : m.category === "Special" ? "Spc" : "Sta";
     return `<div class="calc-move-row">
@@ -832,6 +886,7 @@ function renderDefenderMoveList() {
         <span class="move-meta">${moveBasePowerLabel(m, moveField)} ${catLabel}</span>
         ${dmgLabel}
       </div>
+      ${renderHitsDropdown(m, "defender", false)}
       <button type="button" class="move-crit-btn${isCrit ? " crit-on" : ""}" data-moveid="${escapeHTML(m.id)}" aria-pressed="${isCrit}" onclick="onMoveCritToggle(this.dataset.moveid, false)">Crit</button>
     </div>`;
   }).join("") || '<div style="color:#555;font-size:12px">No moves</div>';
@@ -976,7 +1031,7 @@ function doesDefItemReduceDamage(item, move, isPhys, typeEff) {
 // useEVNotation = true           → reads attacker EVs/nature from DOM
 // defEvStr      = "252 HP / 4 SpD" → prepended before defender name (reverse calc)
 // overridePcts  = { o1, o2, o3 } → precomputed weighted KO probabilities (forward calc)
-function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, defEvStr, overridePcts, extraClass = "") {
+function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, defEvStr, overridePcts, extraClass = "", hits = 1) {
   if (!rolls || !rolls.length || !hp) return "";
   const isPhys = move.category === "Physical";
   const statKey = isPhys ? "atk" : "spa";
@@ -1049,11 +1104,12 @@ function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, 
   if (field.weather === "Sand" || field.weather === "Sandstorm") residual = " after sandstorm damage";
   else if (field.weather === "Snow" || field.weather === "Hail") residual = " after hail damage";
 
-  const str = `${boostPart}${evPart}${itemPart}${statusPart}${atkObj.name} ${hhPart}${move.name} vs. ${defEvPart}${defItemPart}${defObj.name}${defBoostPart}${screenPart}: (${minPct} - ${maxPct}%) -- ${koText}${residual}`;
+  const hitsPart = move.multihit ? ` (${hits} ${hits === 1 ? "hit" : "hits"})` : "";
+  const str = `${boostPart}${evPart}${itemPart}${statusPart}${atkObj.name} ${hhPart}${move.name}${hitsPart} vs. ${defEvPart}${defItemPart}${defObj.name}${defBoostPart}${screenPart}: (${minPct} - ${maxPct}%) -- ${koText}${residual}`;
   return `<div class="calc-string${extraClass ? ` ${extraClass}` : ""}"><code>${str}</code><button class="calc-copy-btn" onclick="navigator.clipboard.writeText(${JSON.stringify(str)})">Copy</button></div>`;
 }
 
-function renderForwardResults(koDist, move, attacker, defenderData, field) {
+function renderForwardResults(koDist, move, attacker, defenderData, field, hits = 1) {
   if (!koDist) return `<div style="color:#666;padding:6px 0">No data.</div>`;
   const moveName = move.name, defenderName = defenderData.name;
   if (koDist.immune) return renderPrimaryResult(`${moveName} -> ${defenderName}`, "No effect", `<span style="color:#666">${defenderName} is immune</span>`);
@@ -1123,13 +1179,13 @@ function renderForwardResults(koDist, move, attacker, defenderData, field) {
       minPct: isFinite(allMinPct) ? allMinPct.toFixed(1) : null,
       maxPct: isFinite(allMaxPct) ? allMaxPct.toFixed(1) : null,
     };
-    calcStringHTML = buildCalcString(attacker, move, reprTier.reprRolls, reprTier.reprHP, defenderData, field, true, null, overridePcts, "calc-string-primary");
+    calcStringHTML = buildCalcString(attacker, move, reprTier.reprRolls, reprTier.reprHP, defenderData, field, true, null, overridePcts, "calc-string-primary", hits);
   }
   return primaryHTML + calcStringHTML + html;
 }
 
 // Renders a single-result block (reverse: defender's move vs attacker's single HP pool)
-function renderSingleResult(result, move, atkObj, defObj, field) {
+function renderSingleResult(result, move, atkObj, defObj, field, hits = 1) {
   const hp = defObj.customStats?.hp || 1;
   let detailHTML = renderFactorChips(atkObj, move, defObj, field);
   if (!result || result.immune) {
@@ -1153,7 +1209,7 @@ function renderSingleResult(result, move, atkObj, defObj, field) {
   const _hpEV = parseInt(document.getElementById("calc-atk-ev-hp")?.value) || 0;
   const _defEV = parseInt(document.getElementById(`calc-atk-ev-${_isPhys ? "def" : "spd"}`)?.value) || 0;
   const defEvStr = `${_hpEV} HP / ${_defEV} ${_isPhys ? "Def" : "SpD"}`;
-  const calcStringHTML = buildCalcString(atkObj, move, rolls, hp, defObj, field, false, defEvStr, null, "calc-string-primary");
+  const calcStringHTML = buildCalcString(atkObj, move, rolls, hp, defObj, field, false, defEvStr, null, "calc-string-primary", hits);
   return primaryHTML + calcStringHTML + detailHTML;
 }
 
@@ -1231,6 +1287,7 @@ function runCalc() {
 
   const { source, move, isCrit } = selectedMove;
   const effectiveField = getEffectiveFieldForSource(source, isCrit);
+  const hits = getMoveHits(source, move.id, move);
 
   let html = "";
   if (source === "attacker") {
@@ -1238,8 +1295,8 @@ function runCalc() {
       const reason = move.category === "Status" ? "is a status move" : "does not have supported damage data";
       html = `<div class="calc-result-section"><div style="color:#888">${move.name} ${reason} — no damage to calculate.</div></div>`;
     } else {
-      const koDist = calcKODistribution(attacker, move, defender, effectiveField);
-      html = `<div class="calc-result-section">${renderForwardResults(koDist, move, attacker, defender, effectiveField)}</div>`;
+      const koDist = calcKODistribution(attacker, move, defender, effectiveField, hits);
+      html = `<div class="calc-result-section">${renderForwardResults(koDist, move, attacker, defender, effectiveField, hits)}</div>`;
     }
   } else {
     if (!isDamagingMove(move)) {
@@ -1253,9 +1310,9 @@ function runCalc() {
         status: defender.status || "Healthy",
         weightkg: defender.weightkg,
       };
-      const result = calcDamageRolls(defAsAttacker, move, attacker.customStats,
-        attacker.types, attacker.tera, attacker.ability, attacker.item, effectiveField, attacker.boosts);
-      html = `<div class="calc-result-section">${renderSingleResult(result, move, defAsAttacker, attacker, effectiveField)}</div>`;
+      const result = calcMultihitRolls(defAsAttacker, move, attacker.customStats,
+        attacker.types, attacker.tera, attacker.ability, attacker.item, effectiveField, attacker.boosts, hits);
+      html = `<div class="calc-result-section">${renderSingleResult(result, move, defAsAttacker, attacker, effectiveField, hits)}</div>`;
     }
   }
   resultsEl.innerHTML = html;
@@ -1277,6 +1334,12 @@ function onMoveCritToggle(moveId, isAttacker, checked = null) {
   if (checked === null) checked = !isMoveCrit(source, moveId);
   setMoveCrit(source, moveId, checked);
   onMoveClick(moveId, isAttacker);
+}
+
+function onMoveHitsChange(moveId, isAttacker, value) {
+  const source = isAttacker ? "attacker" : "defender";
+  setMoveHits(source, moveId, parseInt(value));
+  runCalc();
 }
 
 function applyBoostColor(el) {
@@ -1474,6 +1537,7 @@ async function onAttackerChange() {
     return;
   }
   clearCritStateForSource("attacker");
+  clearHitsStateForSource("attacker");
 
   populateTeraSelect("calc-attacker-tera", "None");
   populateAbilitySelect("calc-attacker-ability", data.allAbilities, data.topAbility);
@@ -1548,6 +1612,7 @@ async function onDefenderChange() {
     return;
   }
   clearCritStateForSource("defender");
+  clearHitsStateForSource("defender");
 
   populateTeraSelect("calc-defender-tera", "None");
   populateAbilitySelect("calc-defender-ability", data.allAbilities, data.topAbility);

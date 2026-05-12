@@ -610,8 +610,8 @@
       }
       /* ── Damage Calc Tab styles ── */
       .tab-bar {
-        grid-column: 1 / -1;
         width: 100%;
+        text-align: left;
         border-bottom: 1px solid #444;
         margin-bottom: 10px;
         padding-bottom: 0;
@@ -849,6 +849,15 @@
         margin-left: auto; color: #ffd54f; font-size: 11px;
         font-weight: bold; font-family: monospace; white-space: nowrap;
       }
+      .move-hits-select {
+        background: #171717; border: 1px solid #3a3a3a; color: #90caf9;
+        cursor: pointer; flex: 0 0 38px; font-size: 10px; font-weight: bold;
+        padding: 0 2px; text-align: center; appearance: none;
+        -webkit-appearance: none; -moz-appearance: none;
+      }
+      .move-hits-select:hover {
+        background: #222; border-color: #777; color: #bbdefb;
+      }
       .move-crit-btn {
         background: #171717; border: 1px solid #3a3a3a; color: #888;
         cursor: pointer; flex: 0 0 42px; font-size: 10px; font-weight: bold;
@@ -1029,6 +1038,11 @@
       <a href="https://twitter.com/MunchStats?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large" data-show-screen-name="false" data-dnt="true" data-show-count="false">Follow @MunchStats</a>
       <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
     </div>
+    <!-- Tab bar -->
+    <div class="tab-bar">
+      <a id="tab-usage-btn" class="tab-btn{% if not calc_only %} tab-active{% endif %}" href="{{ url_for('display_pokemon_page', format_code=selected_format[0], rating_threshold=selected_rating, pokemon_name=selected_pokemon) }}">Usage Stats</a>
+      <a id="tab-calc-btn" class="tab-btn{% if calc_only %} tab-active{% endif %}" href="{{ url_for('calc_page', format_code=selected_format[0], rating_threshold=selected_rating) }}">Damage Calc</a>
+    </div>
     <div class="grid-container{% if calc_only %} calc-page{% endif %}">
       {% if not calc_only %}
       <div class="left" style="width: 300px;">
@@ -1087,11 +1101,6 @@
       </div>
       {% endif %}
       <div class="right{% if calc_only %} calc-page{% endif %}" id="right-panel">
-        <!-- Tab bar -->
-        <div class="tab-bar">
-          <a id="tab-usage-btn" class="tab-btn{% if not calc_only %} tab-active{% endif %}" href="{{ url_for('display_pokemon_page', format_code=selected_format[0], rating_threshold=selected_rating, pokemon_name=selected_pokemon) }}">Usage Stats</a>
-          <a id="tab-calc-btn" class="tab-btn{% if calc_only %} tab-active{% endif %}" href="{{ url_for('calc_page', format_code=selected_format[0], rating_threshold=selected_rating) }}">Damage Calc</a>
-        </div>
 
         {% if calc_only %}
         <!-- Damage Calc panel -->

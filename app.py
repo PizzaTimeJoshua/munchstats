@@ -268,6 +268,13 @@ def build_calc_move_payload(move_key, move_info, usage_pct=None):
 
     target = move_info.get("target", "normal")
     flags = move_info.get("flags", {})
+    raw_multihit = move_info.get("multihit")
+    if isinstance(raw_multihit, list) and len(raw_multihit) == 2:
+        multihit = raw_multihit  # [min, max]
+    elif isinstance(raw_multihit, int) and raw_multihit > 1:
+        multihit = [1, raw_multihit]
+    else:
+        multihit = None
     payload = {
         "id": move_key,
         "name": move_info.get("name", move_key.title()),
@@ -281,6 +288,10 @@ def build_calc_move_payload(move_key, move_info, usage_pct=None):
         "hasSecondary": bool(move_info.get("secondary") or move_info.get("secondaries")),
         "hasRecoil": bool(move_info.get("recoil")),
     }
+    if multihit:
+        payload["multihit"] = multihit
+        if move_id in ("tripleaxel", "triplekick"):
+            payload["escalatingBp"] = True
     if usage_pct is not None:
         payload["usagePct"] = usage_pct
     return payload
