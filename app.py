@@ -31,6 +31,8 @@ championsMoveDetails = {}
 championsAbilityDetails = {}
 pokedexEntries = {}
 
+STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"]
+
 
 def load_data_file(filepath, mode="r", encoding="utf8"):
     """Load and return data from a JSON/JSON5 file if it exists."""
@@ -275,12 +277,33 @@ def build_calc_move_payload(move_key, move_info, usage_pct=None):
         multihit = [1, raw_multihit]
     else:
         multihit = None
+    calc_overrides = {
+        "name": move_info.get("name", move_key.title()),
+        "basePower": bp,
+        "type": move_info.get("type", "Normal"),
+        "category": category,
+        "target": target,
+        "flags": flags,
+    }
+    if move_info.get("priority") is not None:
+        calc_overrides["priority"] = move_info.get("priority")
+    if move_info.get("recoil"):
+        calc_overrides["recoil"] = move_info.get("recoil")
+    if move_info.get("secondary"):
+        calc_overrides["secondaries"] = [move_info.get("secondary")]
+    elif move_info.get("secondaries"):
+        calc_overrides["secondaries"] = move_info.get("secondaries")
+    if raw_multihit:
+        calc_overrides["multihit"] = raw_multihit
+
     payload = {
         "id": move_key,
         "name": move_info.get("name", move_key.title()),
         "type": move_info.get("type", "Normal"),
         "category": category,
         "bp": bp,
+        "calcName": move_info.get("name", move_key.title()),
+        "calcOverrides": calc_overrides,
         "variableBp": bool(variable_bp_type),
         "variableBpType": variable_bp_type,
         "isSpread": target in ("allAdjacentFoes", "allAdjacent"),
@@ -1108,6 +1131,8 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
         multipliers = {}
         for stat, (boosts, nerfs) in stat_mod_lists.items():
             multipliers[stat] = 1.1 if nature in boosts else (0.9 if nature in nerfs else 1.0)
+        ev_table = dict(zip(STAT_KEYS, evs[:6]))
+        iv_table = {stat: 31 for stat in STAT_KEYS}
         if champions:
             stats = {
                 "hp": calculate_champions_hp_value(base_list[0], evs[0]),
@@ -1119,6 +1144,7 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
             }
         else:
             speed_iv = 0 if (multipliers["spe"] == 0.9 and evs[5] == 0) else 31
+            iv_table["spe"] = speed_iv
             stats = {
                 "hp": calculate_hp_value(base_list[0], 31, evs[0], level),
                 "atk": calculate_stat_value(base_list[1], 31, evs[1], level, multipliers["atk"]),
@@ -1127,7 +1153,14 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
                 "spd": calculate_stat_value(base_list[4], 31, evs[4], level, multipliers["spd"]),
                 "spe": calculate_stat_value(base_list[5], speed_iv, evs[5], level, multipliers["spe"]),
             }
-        all_computed.append({"spread": spread_key, "weight": weight / total_raw, "stats": stats})
+        all_computed.append({
+            "spread": spread_key,
+            "nature": nature,
+            "evs": ev_table,
+            "ivs": iv_table,
+            "weight": weight / total_raw,
+            "stats": stats,
+        })
 
     # Top-30 preset list for the attacker dropdown
     computed_spreads = all_computed[:30]
@@ -1136,10 +1169,10 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
         total_w = sum(s["weight"] for s in all_computed)
         avg_stats = {
             stat: round(sum(s["stats"][stat] * s["weight"] for s in all_computed) / total_w)
-            for stat in ["hp", "atk", "def", "spa", "spd", "spe"]
+            for stat in STAT_KEYS
         }
     else:
-        avg_stats = {k: 0 for k in ["hp", "atk", "def", "spa", "spd", "spe"]}
+        avg_stats = {k: 0 for k in STAT_KEYS}
 
     # Build stat group distributions from ALL spreads for maximum accuracy
     def_pair_counter = {}
@@ -1237,16 +1270,30 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
             forme_order = pokedexEntries[base_key].get("formeOrder", [])
     pokemon_index_lower = {k.lower() for k in pokemon_index.keys()}
     forme_order = [f for f in forme_order if f.lower() in pokemon_index_lower]
-
-    return {
+    calc_generation = 0 if champions else (extract_generation_from_format(format_code) or 9)
+    species_overrides = {
         "name": matched_pokemon,
         "types": pokemon_types,
         "weightkg": pokemon_weightkg,
         "baseStats": base_stats_dict,
+        "abilities": {"0": all_abilities[0] if all_abilities else ""},
+    }
+    if dex_entry.get("nfe") is not None:
+        species_overrides["nfe"] = dex_entry.get("nfe")
+
+    return {
+        "name": matched_pokemon,
+        "calcSpecies": matched_pokemon,
+        "calcGeneration": calc_generation,
+        "types": pokemon_types,
+        "weightkg": pokemon_weightkg,
+        "baseStats": base_stats_dict,
+        "speciesOverrides": species_overrides,
         "level": level,
         "isChampions": champions,
         "averageStats": avg_stats,
         "spreads": computed_spreads,
+        "allSpreads": all_computed,
         "defGroups": def_groups,
         "spdGroups": spd_groups,
         "atkGroups": atk_groups,

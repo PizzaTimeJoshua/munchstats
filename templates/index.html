@@ -681,7 +681,7 @@
       }
       .calc-field-panel {
         min-width: 0;
-        background: #16201f;
+        background: #1a1a1a;
         border: 1px solid #333;
         border-bottom: 4px solid #005678;
         padding: 10px 12px;
@@ -1772,6 +1772,7 @@
     <script src="{{ url_for('static', filename='tools_2.3.js') }}"></script>
     {% endif %}
     {% if calc_only %}
+    <script src="{{ url_for('static', filename='vendor/smogon-calc.js') }}"></script>
     <script src="{{ url_for('static', filename='damage_calc.js') }}"></script>
     {% endif %}
   </body>

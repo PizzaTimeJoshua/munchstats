@@ -110,6 +110,10 @@ function attackerIsBurned(attacker, field) {
   return attacker?.status === "Burned" || !!field?.isBurned;
 }
 
+function attackerHasMajorStatus(attacker, field) {
+  return !!field?.isBurned || !!(attacker?.status && attacker.status !== "Healthy");
+}
+
 function variableBasePowerType(move) {
   if (!move || move.category === "Status") return "";
   const moveId = (move.id || "").toLowerCase();
@@ -128,10 +132,45 @@ function targetWeightBasePower(weightkg) {
   return 20;
 }
 
+function isWeatherBall(move) {
+  const id = (move?.id || move?.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  return id === "weatherball";
+}
+
+function weatherBallWeather(field = {}, attacker = null) {
+  if (attacker?.ability === "Mega Sol" || field.attackerAbility === "Mega Sol") return "Sun";
+  const weather = field.weather;
+  return weather && weather !== "None" ? weather : "";
+}
+
+function getEffectiveMoveType(move, attacker = null, field = {}) {
+  if (!move) return "Normal";
+  if (isWeatherBall(move)) {
+    const weather = weatherBallWeather(field, attacker);
+    if (weather === "Sun" || weather === "Harsh Sunshine") return "Fire";
+    if (weather === "Rain" || weather === "Heavy Rain") return "Water";
+    if (weather === "Sand" || weather === "Sandstorm") return "Rock";
+    if (weather === "Snow" || weather === "Hail") return "Ice";
+    return "Normal";
+  }
+  const noTypeChange = ["terrainpulse", "struggle", "judgment", "naturalgift", "technoblast", "multiattack", "revelationdance", "terablast"];
+  const moveId = (move.id || move.name || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+  if (move.type === "Normal" && !noTypeChange.includes(moveId)) {
+    if (attacker?.ability === "Pixilate") return "Fairy";
+    if (attacker?.ability === "Aerilate") return "Flying";
+    if (attacker?.ability === "Galvanize") return "Electric";
+    if (attacker?.ability === "Refrigerate") return "Ice";
+  }
+  return move.type || "Normal";
+}
+
 function getMoveBasePower(move, field = {}) {
   if (!move || move.category === "Status") return 0;
   const bp = Number(move.bp) || 0;
-  if (bp > 0) return bp;
+  if (bp > 0) {
+    if (isWeatherBall(move) && weatherBallWeather(field)) return bp * 2;
+    return bp;
+  }
   if (variableBasePowerType(move) === "targetWeight") {
     return targetWeightBasePower(field.targetWeightkg);
   }
@@ -166,26 +205,28 @@ function getSTABMod(attTypes, ability, moveType, atkTera) {
 
 // ─── EFFECTIVE BASE POWER ─────────────────────────────────────────────────────
 function getEffectiveBasePower(move, attacker, field) {
-  let bp = getMoveBasePower(move, field);
+  let bp = getMoveBasePower(move, { ...field, attackerAbility: attacker.ability });
   if (!bp) return 0;
   const ability = attacker.ability;
   const flags = move.flags || {};
+  const moveType = getEffectiveMoveType(move, attacker, field);
   if (ability === "Technician" && bp <= 60) bp = Math.floor(bp * 1.5);
+  if (["Pixilate", "Aerilate", "Galvanize", "Refrigerate"].includes(ability) && move.type === "Normal" && moveType !== "Normal") bp = Math.floor(bp * 1.2);
   if (ability === "Strong Jaw" && flags.bite) bp = Math.floor(bp * 1.5);
   if (ability === "Iron Fist" && flags.punch) bp = Math.floor(bp * 1.2);
   if (ability === "Tough Claws" && flags.contact) bp = Math.floor(bp * 1.3);
   if (ability === "Reckless" && move.hasRecoil) bp = Math.floor(bp * 1.2);
   if (ability === "Punk Rock" && flags.sound) bp = Math.floor(bp * 1.3);
-  if (ability === "Steelworker" && move.type === "Steel") bp = Math.floor(bp * 1.5);
-  if (ability === "Transistor" && move.type === "Electric") bp = Math.floor(bp * 1.5);
-  if (ability === "Dragon's Maw" && move.type === "Dragon") bp = Math.floor(bp * 1.5);
-  if (ability === "Rocky Payload" && move.type === "Rock") bp = Math.floor(bp * 1.5);
+  if (ability === "Steelworker" && moveType === "Steel") bp = Math.floor(bp * 1.5);
+  if (ability === "Transistor" && moveType === "Electric") bp = Math.floor(bp * 1.5);
+  if (ability === "Dragon's Maw" && moveType === "Dragon") bp = Math.floor(bp * 1.5);
+  if (ability === "Rocky Payload" && moveType === "Rock") bp = Math.floor(bp * 1.5);
   if (ability === "Sheer Force" && move.hasSecondary) bp = Math.floor(bp * 1.3);
-  if (ability === "Sand Force" && field.weather === "Sand" && ["Ground","Rock","Steel"].includes(move.type)) bp = Math.floor(bp * 1.3);
-  if (field.terrain === "Electric" && move.type === "Electric") bp = Math.floor(bp * 1.3);
-  if (field.terrain === "Grassy" && move.type === "Grass") bp = Math.floor(bp * 1.3);
-  if (field.terrain === "Psychic" && move.type === "Psychic") bp = Math.floor(bp * 1.3);
-  if (field.terrain === "Misty" && move.type === "Dragon") bp = Math.floor(bp * 0.5);
+  if (ability === "Sand Force" && field.weather === "Sand" && ["Ground","Rock","Steel"].includes(moveType)) bp = Math.floor(bp * 1.3);
+  if (field.terrain === "Electric" && moveType === "Electric") bp = Math.floor(bp * 1.3);
+  if (field.terrain === "Grassy" && moveType === "Grass") bp = Math.floor(bp * 1.3);
+  if (field.terrain === "Psychic" && moveType === "Psychic") bp = Math.floor(bp * 1.3);
+  if (field.terrain === "Misty" && moveType === "Dragon") bp = Math.floor(bp * 0.5);
   return bp;
 }
 
@@ -199,6 +240,7 @@ function getEffectiveAtkStat(attacker, move) {
   if (item === "Choice Band" && isPhys) stat = Math.floor(stat * 1.5);
   if (item === "Choice Specs" && !isPhys) stat = Math.floor(stat * 1.5);
   if ((ability === "Huge Power" || ability === "Pure Power") && isPhys) stat *= 2;
+  if (ability === "Guts" && isPhys && attackerHasMajorStatus(attacker, {})) stat = Math.floor(stat * 1.5);
   if (ability === "Hustle" && isPhys) stat = Math.floor(stat * 1.5);
   if (ability === "Gorilla Tactics" && isPhys) stat = Math.floor(stat * 1.5);
   if (item === "Thick Club" && isPhys) stat *= 2;
@@ -208,11 +250,13 @@ function getEffectiveAtkStat(attacker, move) {
   return stat;
 }
 
-function getEffectiveDefStat(defStats, defItem, atkAbility, move, defBoosts) {
+function getEffectiveDefStat(defStats, defItem, atkAbility, move, defBoosts, field = {}, defTypes = [], defTera = "") {
   const isPhys = move.category === "Physical";
   let stat = isPhys ? defStats.def : defStats.spd;
   if (defItem === "Assault Vest" && !isPhys) stat = Math.floor(stat * 1.5);
   if (defItem === "Eviolite") stat = Math.floor(stat * 1.5);
+  const activeDefTypes = defTera && defTera !== "None" ? [defTera] : defTypes;
+  if (field.weather === "Snow" && isPhys && activeDefTypes.includes("Ice")) stat = Math.floor(stat * 1.5);
   if (atkAbility === "Sword of Ruin" && isPhys) stat = Math.floor(stat * 0.75);
   if (atkAbility === "Beads of Ruin" && !isPhys) stat = Math.floor(stat * 0.75);
   const boost = (defBoosts || {})[isPhys ? "def" : "spd"] || 0;
@@ -223,29 +267,35 @@ function getEffectiveDefStat(defStats, defItem, atkAbility, move, defBoosts) {
 // ─── CORE DAMAGE ROLLS ───────────────────────────────────────────────────────
 // Returns { rolls: number[], typeEff: number, immune: boolean } or null
 function calcDamageRolls(attacker, move, defStats, defTypes, defTera, defAbility, defItem, field, defBoosts) {
-  const bp = getEffectiveBasePower(move, attacker, field);
+  let bp = getEffectiveBasePower(move, attacker, field);
   if (bp === 0) return null;
+  const moveType = getEffectiveMoveType(move, attacker, field);
+  if (moveType === "Fairy" && (attacker.ability === "Fairy Aura" || defAbility === "Fairy Aura")) {
+    bp = (attacker.ability === "Aura Break" || defAbility === "Aura Break")
+      ? Math.floor(bp * 0.75)
+      : Math.floor(bp * 5448 / 4096);
+  }
 
   const atkStat = getEffectiveAtkStat(attacker, move);
-  const defStat = getEffectiveDefStat(defStats, defItem, attacker.ability, move, defBoosts);
+  const defStat = getEffectiveDefStat(defStats, defItem, attacker.ability, move, defBoosts, field, defTypes, defTera);
   const level = attacker.level || 50;
   const isPhys = move.category === "Physical";
 
   if (!atkStat || !defStat) return null;
 
-  const typeEff = getTypeEffectiveness(move.type, defTypes, defTera);
+  const typeEff = getTypeEffectiveness(moveType, defTypes, defTera);
   if (typeEff === 0) return { rolls: [0], typeEff: 0, immune: true };
-  if (checkAbilityImmunity(move.type, defAbility, move.flags)) return { rolls: [0], typeEff: 0, immune: true };
+  if (checkAbilityImmunity(moveType, defAbility, move.flags)) return { rolls: [0], typeEff: 0, immune: true };
   if (defAbility === "Wonder Guard" && typeEff <= 1) return { rolls: [0], typeEff: 0, immune: true };
 
-  const stabMod = getSTABMod(attacker.types, attacker.ability, move.type, attacker.tera);
+  const stabMod = getSTABMod(attacker.types, attacker.ability, moveType, attacker.tera);
   let base = Math.floor(Math.floor((Math.floor(2 * level / 5 + 2) * bp * atkStat) / defStat) / 50 + 2);
 
   if (move.isSpread && field.format !== "Singles") base = pokeRound(base * 0xC00 / 0x1000);
   const sunActive = field.weather === "Sun" || field.weather === "Harsh Sunshine";
   const rainActive = field.weather === "Rain" || field.weather === "Heavy Rain";
-  if ((sunActive && move.type === "Fire") || (rainActive && move.type === "Water")) base = pokeRound(base * 0x1800 / 0x1000);
-  else if ((sunActive && move.type === "Water") || (rainActive && move.type === "Fire")) base = pokeRound(base * 0x800 / 0x1000);
+  if ((sunActive && moveType === "Fire") || (rainActive && moveType === "Water")) base = pokeRound(base * 0x1800 / 0x1000);
+  else if ((sunActive && moveType === "Water") || (rainActive && moveType === "Fire")) base = pokeRound(base * 0x800 / 0x1000);
   if (field.isCritical) base = Math.floor(base * 1.5);
 
   const finalMods = [];
@@ -259,18 +309,18 @@ function calcDamageRolls(attacker, move, defStats, defTypes, defTera, defAbility
   if (field.isFriendGuard) finalMods.push(0xC00);
   if ((defAbility === "Filter" || defAbility === "Solid Rock" || defAbility === "Prism Armor") && typeEff > 1) finalMods.push(0xC00);
   if (defAbility === "Multiscale" || defAbility === "Shadow Shield") finalMods.push(0x800);
-  if (defAbility === "Thick Fat" && (move.type === "Fire" || move.type === "Ice")) finalMods.push(0x800);
+  if (defAbility === "Thick Fat" && (moveType === "Fire" || moveType === "Ice")) finalMods.push(0x800);
   if (defAbility === "Ice Scales" && !isPhys) finalMods.push(0x800);
-  if (defAbility === "Heatproof" && move.type === "Fire") finalMods.push(0x800);
+  if (defAbility === "Heatproof" && moveType === "Fire") finalMods.push(0x800);
   if (defAbility === "Punk Rock" && (move.flags || {}).sound) finalMods.push(0x800);
   if (attacker.item === "Life Orb") finalMods.push(0x14CC);
   if (attacker.item === "Expert Belt" && typeEff > 1) finalMods.push(0x1333);
   if (attacker.item === "Muscle Band" && isPhys) finalMods.push(0x1199);
   if (attacker.item === "Wise Glasses" && !isPhys) finalMods.push(0x1199);
   const typeBoostType = TYPE_BOOST_ITEMS[attacker.item];
-  if (typeBoostType && typeBoostType === move.type) finalMods.push(0x1333);
+  if (typeBoostType && typeBoostType === moveType) finalMods.push(0x1333);
   const berryType = RESIST_BERRIES[defItem];
-  if (berryType && berryType === move.type && typeEff > 1) finalMods.push(0x800);
+  if (berryType && berryType === moveType && typeEff > 1) finalMods.push(0x800);
 
   const finalChain = chainMods(finalMods);
   const isBurned = attackerIsBurned(attacker, field) && isPhys && attacker.ability !== "Guts";
@@ -308,9 +358,322 @@ function calcMultihitRolls(attacker, move, defStats, defTypes, defTera, defAbili
   return lastResult ? { ...lastResult, rolls: totalRolls } : null;
 }
 
+// Official engine adapter for Gen 9 and Champions-format calcs. Champions keeps its
+// local stat formula/data, then runs through Gen 9 damage mechanics with mod overrides.
+function getOfficialCalc() {
+  return window.MunchSmogonCalc || window.calc || null;
+}
+
+function officialCalcGeneration(pokemon) {
+  const gen = Number(pokemon?.calcGeneration);
+  if (gen === 0 || gen === 9) return gen;
+  if (pokemon?.isChampions) return 0;
+  return null;
+}
+
+function officialRuntimeGeneration(pokemon) {
+  const gen = officialCalcGeneration(pokemon);
+  return gen === 0 ? 9 : gen;
+}
+
+function supportsOfficialCalc(attacker, defender) {
+  if (!getOfficialCalc()) return false;
+  const atkGen = officialCalcGeneration(attacker);
+  const defGen = officialCalcGeneration(defender);
+  return (atkGen === 0 || atkGen === 9) && (defGen === 0 || defGen === 9);
+}
+
+function normalizeCalcStatus(status) {
+  switch (status) {
+    case "Burned": return "brn";
+    case "Poisoned": return "psn";
+    case "Badly Poisoned": return "tox";
+    case "Paralyzed": return "par";
+    case "Asleep": return "slp";
+    case "Frozen": return "frz";
+    default: return "";
+  }
+}
+
+function normalizeCalcWeather(weather) {
+  if (!weather || weather === "None") return undefined;
+  if (weather === "Sandstorm") return "Sand";
+  return weather;
+}
+
+function normalizeCalcTerrain(terrain) {
+  if (!terrain || terrain === "None") return undefined;
+  return terrain;
+}
+
+function effectiveWeatherForAttacker(attacker, field) {
+  const weather = normalizeCalcWeather(field?.weather);
+  if (attacker?.ability === "Mega Sol") return "Sun";
+  return weather;
+}
+
+function buildOfficialField(attacker, defender, field) {
+  const calc = getOfficialCalc();
+  return new calc.Field({
+    gameType: field?.format === "Singles" ? "Singles" : "Doubles",
+    weather: effectiveWeatherForAttacker(attacker, field),
+    terrain: normalizeCalcTerrain(field?.terrain),
+    isFairyAura: attacker?.ability === "Fairy Aura" || defender?.ability === "Fairy Aura",
+    isDarkAura: attacker?.ability === "Dark Aura" || defender?.ability === "Dark Aura",
+    isAuraBreak: attacker?.ability === "Aura Break" || defender?.ability === "Aura Break",
+    attackerSide: {
+      isHelpingHand: !!field?.isHelpingHand,
+      isTailwind: !!field?.isAtkTailwind,
+    },
+    defenderSide: {
+      isReflect: !!field?.isReflect,
+      isLightScreen: !!field?.isLightScreen,
+      isAuroraVeil: !!field?.isAuroraVeil,
+      isFriendGuard: !!field?.isFriendGuard,
+      isTailwind: !!field?.isDefTailwind,
+    },
+  });
+}
+
+function calcSpeciesOverrides(pokemon) {
+  const baseStats = pokemon?.baseStats || {};
+  return {
+    ...(pokemon?.speciesOverrides || {}),
+    name: pokemon?.calcSpecies || pokemon?.name,
+    types: pokemon?.types?.length ? pokemon.types : ["Normal"],
+    weightkg: Number(pokemon?.weightkg) || 0,
+    baseStats: {
+      hp: Number(baseStats.hp) || 1,
+      atk: Number(baseStats.atk) || 1,
+      def: Number(baseStats.def) || 1,
+      spa: Number(baseStats.spa) || 1,
+      spd: Number(baseStats.spd) || 1,
+      spe: Number(baseStats.spe) || 1,
+    },
+    abilities: {
+      "0": pokemon?.ability || pokemon?.speciesOverrides?.abilities?.["0"] || "",
+    },
+  };
+}
+
+function exactStatsFromPokemon(pokemon, spreadOrStats) {
+  const source = spreadOrStats?.stats || spreadOrStats || pokemon?.customStats || pokemon?.averageStats || {};
+  const stats = {};
+  for (const k of ["hp", "atk", "def", "spa", "spd", "spe"]) stats[k] = Number(source[k]) || 1;
+  return stats;
+}
+
+function buildOfficialPokemon(pokemon, spreadOrStats) {
+  const calc = getOfficialCalc();
+  const genNum = officialRuntimeGeneration(pokemon);
+  if (!calc || !genNum) return null;
+  const stats = exactStatsFromPokemon(pokemon, spreadOrStats);
+  const spread = spreadOrStats?.stats ? spreadOrStats : null;
+  const speciesName = pokemon?.calcSpecies || pokemon?.name || "Mew";
+  const mon = new calc.Pokemon(genNum, speciesName, {
+    name: pokemon?.name || speciesName,
+    level: Number(pokemon?.level) || 50,
+    ability: pokemon?.ability || undefined,
+    item: pokemon?.item || undefined,
+    status: normalizeCalcStatus(pokemon?.status),
+    teraType: pokemon?.tera && pokemon.tera !== "None" ? pokemon.tera : undefined,
+    nature: spread?.nature || pokemon?.nature || "Serious",
+    evs: spread?.evs || pokemon?.evs || {},
+    ivs: spread?.ivs || pokemon?.ivs || {},
+    boosts: pokemon?.boosts || {},
+    originalCurHP: stats.hp,
+    overrides: calcSpeciesOverrides(pokemon),
+  });
+  for (const k of ["hp", "atk", "def", "spa", "spd", "spe"]) {
+    mon.rawStats[k] = stats[k];
+    mon.stats[k] = stats[k];
+  }
+  mon.originalCurHP = stats.hp;
+  mon.types = pokemon?.types?.length ? pokemon.types : mon.types;
+  mon.weightkg = Number(pokemon?.weightkg) || mon.weightkg || 0;
+  return mon;
+}
+
+function buildOfficialMove(attacker, move, field, hits) {
+  const calc = getOfficialCalc();
+  const genNum = officialRuntimeGeneration(attacker);
+  if (!calc || !genNum) return null;
+  const overrides = { ...(move?.calcOverrides || {}) };
+  if (!overrides.name) overrides.name = move?.calcName || move?.name;
+  if (move?.variableBp) delete overrides.basePower;
+  if (!move?.variableBp && Number(move?.bp) > 0) overrides.basePower = Number(move.bp);
+  if (move?.type) overrides.type = move.type;
+  if (move?.category) overrides.category = move.category;
+  if (move?.flags) overrides.flags = move.flags;
+  if (move?.isSpread) overrides.target = field?.format === "Singles" ? "normal" : "allAdjacentFoes";
+  if (move?.multihit) overrides.multihit = move.multihit;
+  return new calc.Move(genNum, move?.calcName || move?.name || move?.id || "Tackle", {
+    ability: attacker?.ability || undefined,
+    item: attacker?.item || undefined,
+    species: attacker?.name || undefined,
+    isCrit: !!field?.isCritical,
+    hits,
+    overrides,
+  });
+}
+
+function rollsFromOfficialDamage(damage) {
+  if (typeof damage === "number") return [damage];
+  if (!Array.isArray(damage)) return [];
+  if (damage.length && Array.isArray(damage[0])) {
+    const rollCount = Math.max(...damage.map(hit => hit.length || 1), 1);
+    const rolls = [];
+    for (let i = 0; i < rollCount; i++) {
+      let total = 0;
+      for (const hit of damage) total += Number(hit[Math.min(i, hit.length - 1)]) || 0;
+      rolls.push(total);
+    }
+    return rolls;
+  }
+  return damage.map(d => Number(d) || 0);
+}
+
+function calcOfficialResult(attacker, move, defender, field, hits = 1, attackerStats = null, defenderStats = null) {
+  try {
+    if (!supportsOfficialCalc(attacker, defender)) return null;
+    const calc = getOfficialCalc();
+    const genNum = officialRuntimeGeneration(attacker);
+    const atkMon = buildOfficialPokemon(attacker, attackerStats || attacker.customStats || attacker.averageStats);
+    const defMon = buildOfficialPokemon(defender, defenderStats || defender.customStats || defender.averageStats);
+    const calcMove = buildOfficialMove(attacker, move, field, hits);
+    const calcField = buildOfficialField(attacker, defender, field);
+    if (!atkMon || !defMon || !calcMove || !calcField) return null;
+    const official = calc.calculate(genNum, atkMon, defMon, calcMove, calcField);
+    const rolls = rollsFromOfficialDamage(official.damage);
+    const immune = !rolls.length || rolls.every(r => r === 0);
+    return { rolls, immune, typeEff: immune ? 0 : 1, calcResult: official };
+  } catch (err) {
+    console.warn("Official calc failed; falling back to legacy damage path.", err);
+    return null;
+  }
+}
+
+function calcWeightedNHKOChance(entries, n) {
+  if (!entries?.length) return 0;
+  let total = 0, weighted = 0;
+  for (const entry of entries) {
+    const w = Number(entry.weight) || 0;
+    if (!w) continue;
+    total += w;
+    weighted += w * calcNHKOChance(entry.rolls, entry.hp, n);
+  }
+  return total ? weighted / total : 0;
+}
+
+function renderWeightedNHKORow(entries) {
+  const o = calcWeightedNHKOChance(entries, 1);
+  const t = o > 0 ? 0 : calcWeightedNHKOChance(entries, 2);
+  const h = o > 0 || t > 0 ? 0 : calcWeightedNHKOChance(entries, 3);
+  let label, pct;
+  if (o > 0)      { label = "OHKO"; pct = o; }
+  else if (t > 0) { label = "2HKO"; pct = t; }
+  else if (h > 0) { label = "3HKO"; pct = h; }
+  else return `<span style="color:#444;font-size:11px">Cannot 3HKO</span>`;
+  const col = pct >= 100 ? "#4caf50" : pct >= 93.75 ? "#66bb6a" : pct >= 50 ? "#ffd54f" : "#ff9800";
+  const txt = pct >= 100 ? `${label}: Guaranteed` : `${label}: ${pct.toFixed(1)}%`;
+  return `<span class="calc-nhko-badge" style="color:${col}">${txt}</span>`;
+}
+
+function summarizeOfficialTier(entries, isPhys) {
+  if (!entries?.length) return null;
+  const weight = entries.reduce((sum, e) => sum + (Number(e.weight) || 0), 0) || 1;
+  const minDamage = Math.min(...entries.flatMap(e => e.rolls));
+  const maxDamage = Math.max(...entries.flatMap(e => e.rolls));
+  const minPct = Math.min(...entries.map(e => Math.min(...e.rolls) / e.hp * 100));
+  const maxPct = Math.max(...entries.map(e => Math.max(...e.rolls) / e.hp * 100));
+  const avgHP = Math.round(entries.reduce((sum, e) => sum + e.hp * e.weight, 0) / weight);
+  const avgDef = Math.round(entries.reduce((sum, e) => sum + e.defStat * e.weight, 0) / weight);
+  const repr = entries[Math.floor(entries.length / 2)] || entries[0];
+  return {
+    koPct: calcWeightedNHKOChance(entries, 1),
+    weight,
+    hp: avgHP,
+    defStat: avgDef,
+    reprRolls: repr.rolls,
+    reprHP: repr.hp,
+    rollResults: entries,
+    minDamage,
+    maxDamage,
+    minPct,
+    maxPct,
+    isPhys,
+  };
+}
+
+function buildOfficialTierResults(entries, isPhys) {
+  const total = entries.reduce((sum, e) => sum + (Number(e.weight) || 0), 0) || 1;
+  const buckets = { frail: [], average: [], bulky: [] };
+  let cumulative = 0;
+  for (const entry of [...entries].sort((a, b) => a.defStat - b.defStat)) {
+    const frac = cumulative / total;
+    if (frac < 0.33) buckets.frail.push(entry);
+    else if (frac < 0.67) buckets.average.push(entry);
+    else buckets.bulky.push(entry);
+    cumulative += Number(entry.weight) || 0;
+  }
+  return {
+    frail: summarizeOfficialTier(buckets.frail, isPhys),
+    average: summarizeOfficialTier(buckets.average, isPhys),
+    bulky: summarizeOfficialTier(buckets.bulky, isPhys),
+  };
+}
+
+function collapseEquivalentSpreads(spreads) {
+  const byStats = new Map();
+  for (const spread of spreads || []) {
+    const key = JSON.stringify(spread.stats || {});
+    const existing = byStats.get(key);
+    if (existing) {
+      existing.weight += Number(spread.weight) || 0;
+    } else {
+      byStats.set(key, { ...spread, weight: Number(spread.weight) || 0 });
+    }
+  }
+  return [...byStats.values()];
+}
+
+function calcKODistributionOfficial(attacker, move, defenderData, field, hits = 1) {
+  const rawSpreads = defenderData?.allSpreads?.length ? defenderData.allSpreads : defenderData?.spreads;
+  const spreads = collapseEquivalentSpreads(rawSpreads);
+  if (!spreads?.length || !supportsOfficialCalc(attacker, defenderData)) return null;
+  const isPhys = move.category === "Physical";
+  const entries = [];
+  let anyImmune = false;
+  for (const spread of spreads) {
+    const result = calcOfficialResult(attacker, move, defenderData, field, hits, attacker.customStats, spread);
+    const stats = spread.stats || {};
+    const hp = Number(stats.hp) || 1;
+    const defStat = Number(isPhys ? stats.def : stats.spd) || 1;
+    const weight = Number(spread.weight) || 0;
+    if (!result || result.immune) {
+      anyImmune = true;
+      if (weight) entries.push({ weight, hp, defStat, rolls: [0], spread, immune: true });
+      continue;
+    }
+    entries.push({ weight, hp, defStat, rolls: result.rolls, spread, calcResult: result.calcResult });
+  }
+  if (!entries.length) return null;
+  const nonImmune = entries.filter(e => !e.immune);
+  const tiers = buildOfficialTierResults(entries, isPhys);
+  return {
+    koPct: calcWeightedNHKOChance(entries, 1),
+    tiers,
+    isPhys,
+    immune: anyImmune && !nonImmune.length,
+    usedOfficial: true,
+  };
+}
+
 // ─── TIERED KO DISTRIBUTION ──────────────────────────────────────────────────
 // Returns { koPct, tiers: { frail?, average?, bulky? }, immune }
 function calcKODistribution(attacker, move, defenderData, field, hits = 1) {
+  const official = calcKODistributionOfficial(attacker, move, defenderData, field, hits);
+  if (official) return official;
   if (!attacker || !move || !defenderData) return null;
   const isPhys = move.category === "Physical";
   const tierData = isPhys ? defenderData.defTiers : defenderData.spdTiers;
@@ -389,7 +752,8 @@ function calcSingleKOChance(rolls, atkHP) {
 // nHKO: probability sum of n independent random rolls >= hp
 function calcNHKOChance(rolls, hp, n) {
   if (!rolls || !rolls.length || !hp) return 0;
-  if (n === 1) return (rolls.filter(r => r >= hp).length / 16) * 100;
+  const rollCount = rolls.length;
+  if (n === 1) return (rolls.filter(r => r >= hp).length / rollCount) * 100;
   const maxRoll = rolls[rolls.length - 1];
   const minRoll = rolls[0];
   if (maxRoll * n < hp) return 0;
@@ -401,7 +765,7 @@ function calcNHKOChance(rolls, hp, n) {
     for (const r of rolls) recurse(depth - 1, sum + r);
   }
   recurse(n, 0);
-  return (count / Math.pow(16, n)) * 100;
+  return (count / Math.pow(rollCount, n)) * 100;
 }
 
 // Render the single best applicable nHKO label (cascade: OHKO → 2HKO → 3HKO)
@@ -426,7 +790,8 @@ function quickDamageSummary(attacker, move, defenderData, field, hits = 1) {
   if (!isDamagingMove(move)) return "—";
   const avgDef = defenderData.averageStats;
   const defStats = { hp: avgDef.hp, def: avgDef.def, spd: avgDef.spd };
-  const result = calcMultihitRolls(attacker, move, defStats,
+  const official = calcOfficialResult(attacker, move, defenderData, field, hits, attacker.customStats, avgDef);
+  const result = official || calcMultihitRolls(attacker, move, defStats,
     defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field, undefined, hits);
   if (!result) return "—";
   if (result.immune) return "immune";
@@ -445,9 +810,16 @@ function quickReverseSummary(defenderData, move, attacker, field, hits = 1) {
     customStats: defenderData.averageStats,
     boosts: defenderData.boosts || {},
     status: defenderData.status || "Healthy",
+    name: defenderData.name,
+    weightkg: defenderData.weightkg,
+    baseStats: defenderData.baseStats || {},
+    calcSpecies: defenderData.calcSpecies,
+    calcGeneration: defenderData.calcGeneration,
+    speciesOverrides: defenderData.speciesOverrides,
   };
   const atkHP = attacker.customStats.hp || 1;
-  const result = calcMultihitRolls(defAsAttacker, move, attacker.customStats,
+  const official = calcOfficialResult(defAsAttacker, move, attacker, field, hits, defenderData.averageStats, attacker.customStats);
+  const result = official || calcMultihitRolls(defAsAttacker, move, attacker.customStats,
     attacker.types, attacker.tera, attacker.ability, attacker.item, field, undefined, hits);
   if (!result) return "—";
   if (result.immune) return "immune";
@@ -530,6 +902,7 @@ function getEffectiveFieldForSource(source, isCritical = false) {
     isCritical,
     attackerWeightkg: sourcePokemon?.weightkg ?? null,
     targetWeightkg: target?.weightkg ?? null,
+    attackerAbility: sourcePokemon?.ability || "",
     isHelpingHand: userAttacking ? field.yourHelpingHand : field.oppHelpingHand,
     isReflect: userAttacking ? field.oppReflect : field.yourReflect,
     isLightScreen: userAttacking ? field.oppLightScreen : field.yourLightScreen,
@@ -585,8 +958,10 @@ function computeStatsFromInputs() {
   const level = atk.level || 50;
   const isChamp = atk.isChampions;
   const stats = {};
+  const evTable = {};
   for (const k of STAT_KEYS) {
     const ev = parseInt(document.getElementById(`calc-atk-ev-${k}`)?.value) || 0;
+    evTable[k] = ev;
     const base = atk.baseStats[k] || 0;
     const isHP = k === "hp";
     const mult = isHP ? 1 : (mods[k] || 1);
@@ -609,6 +984,9 @@ function computeStatsFromInputs() {
       }
     }
   }
+  atk.nature = nature;
+  atk.evs = evTable;
+  atk.ivs = { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
   updateEVTotal();
   return stats;
 }
@@ -903,21 +1281,26 @@ const TIER_CONFIG = {
 function renderFactorChips(atkObj, move, defObj, field) {
   const chips = [];
   const isPhys = move.category === "Physical";
-  const basePower = getMoveBasePower(move, field);
-  const typeEff = getTypeEffectiveness(move.type, defObj.types || [], defObj.tera);
+  const moveType = getEffectiveMoveType(move, atkObj, field);
+  const basePower = getMoveBasePower(move, { ...field, attackerAbility: atkObj.ability });
+  const typeEff = getTypeEffectiveness(moveType, defObj.types || [], defObj.tera);
 
   if (typeEff === 4) chips.push(["4× effective", "#4caf50"]);
   else if (typeEff === 2) chips.push(["2× effective", "#66bb6a"]);
   else if (typeEff === 0.5) chips.push(["½× effective", "#ef9a9a"]);
   else if (typeEff === 0.25) chips.push(["¼× effective", "#ef5350"]);
 
-  const stabMod = getSTABMod(atkObj.types || [], atkObj.ability, move.type, atkObj.tera);
+  const stabMod = getSTABMod(atkObj.types || [], atkObj.ability, moveType, atkObj.tera);
   if (stabMod === 0x2400) chips.push(["Adaptability STAB ×2.25", "#ffd54f"]);
   else if (stabMod === 0x2000) chips.push(["STAB ×2", "#ffd54f"]);
   else if (stabMod === 0x1800) chips.push(["STAB ×1.5", "#ffd54f"]);
   else if (stabMod > 0x1000) chips.push(["STAB", "#ffd54f"]);
 
   if (basePower <= 60 && atkObj.ability === "Technician") chips.push(["Technician ×1.5 BP", "#b0bec5"]);
+  if (["Pixilate", "Aerilate", "Galvanize", "Refrigerate"].includes(atkObj.ability) && move.type === "Normal" && moveType !== "Normal") chips.push([`${atkObj.ability} ${moveType}`, "#b0bec5"]);
+  if (atkObj.ability === "Fairy Aura" && moveType === "Fairy") chips.push(["Fairy Aura x1.33", "#b0bec5"]);
+  if (defObj.ability === "Fairy Aura" && moveType === "Fairy") chips.push(["Opp Fairy Aura x1.33", "#b0bec5"]);
+  if (atkObj.ability === "Guts" && isPhys && attackerHasMajorStatus(atkObj, field)) chips.push(["Guts x1.5 Atk", "#b0bec5"]);
   if ((move.flags||{}).bite && atkObj.ability === "Strong Jaw") chips.push(["Strong Jaw ×1.5 BP", "#b0bec5"]);
   if ((move.flags||{}).punch && atkObj.ability === "Iron Fist") chips.push(["Iron Fist ×1.2 BP", "#b0bec5"]);
   if (atkObj.ability === "Huge Power" || atkObj.ability === "Pure Power") chips.push([`${atkObj.ability} ×2 Atk`, "#b0bec5"]);
@@ -931,29 +1314,30 @@ function renderFactorChips(atkObj, move, defObj, field) {
   if (atkObj.item === "Muscle Band" && isPhys) chips.push(["Muscle Band ×1.1", "#ccc"]);
   if (atkObj.item === "Wise Glasses" && !isPhys) chips.push(["Wise Glasses ×1.1", "#ccc"]);
   const tboost = TYPE_BOOST_ITEMS[atkObj.item];
-  if (tboost && tboost === move.type) chips.push([`${atkObj.item} ×1.2`, "#ccc"]);
+  if (tboost && tboost === moveType) chips.push([`${atkObj.item} ×1.2`, "#ccc"]);
 
   const da = defObj.ability || "";
   if ((da === "Filter" || da === "Solid Rock" || da === "Prism Armor") && typeEff > 1) chips.push([`${da} ×0.75`, "#ef9a9a"]);
   if (da === "Multiscale" || da === "Shadow Shield") chips.push([`${da} ×0.5`, "#ef9a9a"]);
-  if (da === "Thick Fat" && (move.type === "Fire" || move.type === "Ice")) chips.push(["Thick Fat ×0.5", "#ef9a9a"]);
+  if (da === "Thick Fat" && (moveType === "Fire" || moveType === "Ice")) chips.push(["Thick Fat ×0.5", "#ef9a9a"]);
   if (da === "Ice Scales" && !isPhys) chips.push(["Ice Scales ×0.5", "#ef9a9a"]);
-  if (da === "Heatproof" && move.type === "Fire") chips.push(["Heatproof ×0.5", "#ef9a9a"]);
+  if (da === "Heatproof" && moveType === "Fire") chips.push(["Heatproof ×0.5", "#ef9a9a"]);
   const berry = RESIST_BERRIES[defObj.item || ""];
-  if (berry && berry === move.type && typeEff > 1) chips.push([`${defObj.item} ×0.5`, "#ef9a9a"]);
+  if (berry && berry === moveType && typeEff > 1) chips.push([`${defObj.item} ×0.5`, "#ef9a9a"]);
   if ((defObj.item || "") === "Assault Vest" && !isPhys) chips.push(["Assault Vest ×1.5 SpD", "#ef9a9a"]);
 
-  const sun = field.weather === "Sun" || field.weather === "Harsh Sunshine";
-  const rain = field.weather === "Rain" || field.weather === "Heavy Rain";
-  if (sun && move.type === "Fire") chips.push(["Sun ×1.5", "#f08030"]);
-  if (sun && move.type === "Water") chips.push(["Sun ×0.5", "#f08030"]);
-  if (rain && move.type === "Water") chips.push(["Rain ×1.5", "#6890f0"]);
-  if (rain && move.type === "Fire") chips.push(["Rain ×0.5", "#6890f0"]);
-  if (field.weather === "Sand" && atkObj.ability === "Sand Force" && ["Ground","Rock","Steel"].includes(move.type)) chips.push(["Sand Force ×1.3 BP", "#b0a070"]);
-  if (field.terrain === "Electric" && move.type === "Electric") chips.push(["Elec Terrain ×1.3 BP", "#f8d030"]);
-  if (field.terrain === "Grassy" && move.type === "Grass") chips.push(["Grassy Terrain ×1.3 BP", "#78c850"]);
-  if (field.terrain === "Psychic" && move.type === "Psychic") chips.push(["Psychic Terrain ×1.3 BP", "#f85888"]);
-  if (field.terrain === "Misty" && move.type === "Dragon") chips.push(["Misty Terrain ×0.5 BP", "#98d8d8"]);
+  const activeWeather = weatherBallWeather(field, atkObj) || field.weather;
+  const sun = activeWeather === "Sun" || activeWeather === "Harsh Sunshine";
+  const rain = activeWeather === "Rain" || activeWeather === "Heavy Rain";
+  if (sun && moveType === "Fire") chips.push(["Sun ×1.5", "#f08030"]);
+  if (sun && moveType === "Water") chips.push(["Sun ×0.5", "#f08030"]);
+  if (rain && moveType === "Water") chips.push(["Rain ×1.5", "#6890f0"]);
+  if (rain && moveType === "Fire") chips.push(["Rain ×0.5", "#6890f0"]);
+  if (field.weather === "Sand" && atkObj.ability === "Sand Force" && ["Ground","Rock","Steel"].includes(moveType)) chips.push(["Sand Force ×1.3 BP", "#b0a070"]);
+  if (field.terrain === "Electric" && moveType === "Electric") chips.push(["Elec Terrain ×1.3 BP", "#f8d030"]);
+  if (field.terrain === "Grassy" && moveType === "Grass") chips.push(["Grassy Terrain ×1.3 BP", "#78c850"]);
+  if (field.terrain === "Psychic" && moveType === "Psychic") chips.push(["Psychic Terrain ×1.3 BP", "#f85888"]);
+  if (field.terrain === "Misty" && moveType === "Dragon") chips.push(["Misty Terrain ×0.5 BP", "#98d8d8"]);
 
   if (!field.isCritical) {
     if (field.isAuroraVeil) chips.push(["Aurora Veil ÷2", "#90caf9"]);
@@ -1036,7 +1420,9 @@ function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, 
   const isPhys = move.category === "Physical";
   const statKey = isPhys ? "atk" : "spa";
   const statLabel = isPhys ? "Atk" : "SpA";
-  const typeEff = getTypeEffectiveness(move.type, defObj.types || [], defObj.tera);
+  const moveType = getEffectiveMoveType(move, atkObj, field);
+  const displayMove = { ...move, type: moveType };
+  const typeEff = getTypeEffectiveness(moveType, defObj.types || [], defObj.tera);
 
   // Boost stage prefix
   const atkBoost = (atkObj.boosts || {})[statKey] || 0;
@@ -1055,7 +1441,7 @@ function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, 
   const hhPart = field.isHelpingHand ? "Helping Hand " : "";
 
   // Attacker item: only show if it boosts damage
-  const itemPart = doesAtkItemBoostDamage(atkObj.item, move, isPhys, typeEff) ? `${atkObj.item} ` : "";
+  const itemPart = doesAtkItemBoostDamage(atkObj.item, displayMove, isPhys, typeEff) ? `${atkObj.item} ` : "";
   const statusPart = attackerIsBurned(atkObj, field) && isPhys && atkObj.ability !== "Guts" ? "burned " : "";
 
   // Defender boost on defense stat
@@ -1068,7 +1454,7 @@ function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, 
   const defEvPart = defEvStr ? `${defEvStr} ` : "";
 
   // Defender item: only show if it reduces incoming damage
-  const defItemPart = doesDefItemReduceDamage(defObj.item, move, isPhys, typeEff) ? `${defObj.item} ` : "";
+  const defItemPart = doesDefItemReduceDamage(defObj.item, displayMove, isPhys, typeEff) ? `${defObj.item} ` : "";
 
   // Screen
   let screenPart = "";
@@ -1102,7 +1488,7 @@ function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, 
   // Weather residual note
   let residual = "";
   if (field.weather === "Sand" || field.weather === "Sandstorm") residual = " after sandstorm damage";
-  else if (field.weather === "Snow" || field.weather === "Hail") residual = " after hail damage";
+  else if (field.weather === "Hail") residual = " after hail damage";
 
   const hitsPart = move.multihit ? ` (${hits} ${hits === 1 ? "hit" : "hits"})` : "";
   const str = `${boostPart}${evPart}${itemPart}${statusPart}${atkObj.name} ${hhPart}${move.name}${hitsPart} vs. ${defEvPart}${defItemPart}${defObj.name}${defBoostPart}${screenPart}: (${minPct} - ${maxPct}%) -- ${koText}${residual}`;
@@ -1128,14 +1514,17 @@ function renderForwardResults(koDist, move, attacker, defenderData, field, hits 
     hasTiers = true;
     const cfg = TIER_CONFIG[name];
     const rolls = tier.reprRolls, hp = tier.reprHP;
-    const minD = rolls[0], maxD = rolls[rolls.length - 1];
-    const minP = (minD / hp * 100).toFixed(1);
-    const maxP = (maxD / hp * 100).toFixed(1);
-    allMinPct = Math.min(allMinPct, minD / hp * 100);
-    allMaxPct = Math.max(allMaxPct, maxD / hp * 100);
+    const minD = tier.minDamage ?? rolls[0];
+    const maxD = tier.maxDamage ?? rolls[rolls.length - 1];
+    const minPctVal = tier.minPct ?? (minD / hp * 100);
+    const maxPctVal = tier.maxPct ?? (maxD / hp * 100);
+    const minP = minPctVal.toFixed(1);
+    const maxP = maxPctVal.toFixed(1);
+    allMinPct = Math.min(allMinPct, minPctVal);
+    allMaxPct = Math.max(allMaxPct, maxPctVal);
     const pct = (tier.weight * 100).toFixed(0);
-    const p2 = calcNHKOChance(rolls, hp, 2);
-    const p3 = calcNHKOChance(rolls, hp, 3);
+    const p2 = tier.rollResults ? calcWeightedNHKOChance(tier.rollResults, 2) : calcNHKOChance(rolls, hp, 2);
+    const p3 = tier.rollResults ? calcWeightedNHKOChance(tier.rollResults, 3) : calcNHKOChance(rolls, hp, 3);
     w2 += tier.weight * p2; w3 += tier.weight * p3; wTotal += tier.weight;
     html += `<div class="calc-tier-row" style="border-left:3px solid ${cfg.color}">
       <div class="calc-tier-left">
@@ -1145,7 +1534,7 @@ function renderForwardResults(koDist, move, attacker, defenderData, field, hits 
       </div>
       <div class="calc-tier-right">
         <span class="calc-tier-dmg">${minD}–${maxD} <strong>(${minP}–${maxP}%)</strong></span>
-        ${renderNHKORow(rolls, hp)}
+        ${tier.rollResults ? renderWeightedNHKORow(tier.rollResults) : renderNHKORow(rolls, hp)}
       </div>
     </div>`;
   }
@@ -1309,8 +1698,13 @@ function runCalc() {
         customStats: defender.averageStats, boosts: defender.boosts || {},
         status: defender.status || "Healthy",
         weightkg: defender.weightkg,
+        baseStats: defender.baseStats || {},
+        calcSpecies: defender.calcSpecies,
+        calcGeneration: defender.calcGeneration,
+        speciesOverrides: defender.speciesOverrides,
       };
-      const result = calcMultihitRolls(defAsAttacker, move, attacker.customStats,
+      const official = calcOfficialResult(defAsAttacker, move, attacker, effectiveField, hits, defender.averageStats, attacker.customStats);
+      const result = official || calcMultihitRolls(defAsAttacker, move, attacker.customStats,
         attacker.types, attacker.tera, attacker.ability, attacker.item, effectiveField, attacker.boosts, hits);
       html = `<div class="calc-result-section">${renderSingleResult(result, move, defAsAttacker, attacker, effectiveField, hits)}</div>`;
     }
@@ -1557,9 +1951,10 @@ async function onAttackerChange() {
   const firstDamaging = data.topMoves.find(isDamagingMove);
   calcState.attacker = {
     name: data.name, types: data.types, level: data.level, weightkg: data.weightkg || 0,
-    isChampions: data.isChampions, baseStats: data.baseStats || {},
+    isChampions: data.isChampions, calcGeneration: data.calcGeneration, calcSpecies: data.calcSpecies,
+    speciesOverrides: data.speciesOverrides || {}, baseStats: data.baseStats || {},
     ability: data.topAbility || "", item: data.topItem || "", status: "Healthy", tera: "None",
-    customStats: {}, spreads: data.spreads, topMoves: data.topMoves,
+    customStats: {}, spreads: data.spreads, allSpreads: data.allSpreads || data.spreads || [], topMoves: data.topMoves,
     boosts: { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, customMoves: [],
   };
   // Reset boost selects
@@ -1625,8 +2020,9 @@ async function onDefenderChange() {
 
   calcState.defender = {
     name: data.name, types: data.types, level: data.level, weightkg: data.weightkg || 0,
-    isChampions: data.isChampions || false, baseStats: data.baseStats || {},
-    spreads: data.spreads || [],
+    isChampions: data.isChampions || false, calcGeneration: data.calcGeneration, calcSpecies: data.calcSpecies,
+    speciesOverrides: data.speciesOverrides || {}, baseStats: data.baseStats || {},
+    spreads: data.spreads || [], allSpreads: data.allSpreads || data.spreads || [],
     ability: data.topAbility || "", item: data.topItem || "", status: "Healthy", tera: "None",
     averageStats: data.averageStats,
     defGroups: data.defGroups || [], spdGroups: data.spdGroups || [],
