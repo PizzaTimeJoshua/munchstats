@@ -295,6 +295,9 @@ def build_calc_move_payload(move_key, move_info, usage_pct=None):
         calc_overrides["secondaries"] = move_info.get("secondaries")
     if raw_multihit:
         calc_overrides["multihit"] = raw_multihit
+    for override_key in ("overrideOffensiveStat", "overrideDefensiveStat", "overrideOffensivePokemon"):
+        if move_info.get(override_key):
+            calc_overrides[override_key] = move_info[override_key]
 
     payload = {
         "id": move_key,
@@ -315,6 +318,9 @@ def build_calc_move_payload(move_key, move_info, usage_pct=None):
         payload["multihit"] = multihit
         if move_id in ("tripleaxel", "triplekick"):
             payload["escalatingBp"] = True
+    for override_key in ("overrideOffensiveStat", "overrideDefensiveStat", "overrideOffensivePokemon"):
+        if move_info.get(override_key):
+            payload[override_key] = move_info[override_key]
     if usage_pct is not None:
         payload["usagePct"] = usage_pct
     return payload

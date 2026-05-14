@@ -707,6 +707,17 @@
         box-sizing: border-box;
         margin-bottom: 5px;
       }
+      .calc-preset-wrap { position: relative; margin-bottom: 5px; }
+      .calc-preset-selected {
+        width: 100%; background: #252525; color: #e0e0e0; border: 1px solid #444;
+        padding: 4px 7px; font-size: 12px; box-sizing: border-box; cursor: pointer;
+        white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+      }
+      .calc-preset-selected:focus { border-color: #666; outline: none; }
+      .calc-preset-dropdown { max-height: 240px; }
+      .calc-preset-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+      .calc-preset-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .calc-preset-usage { flex: 0 0 auto; color: #ffd54f; font-family: monospace; font-size: 11px; }
       .calc-poke-panel label { font-size: 11px; color: #888; display: block; margin-bottom: 2px; }
       .calc-type-row {
         display: grid;
@@ -717,6 +728,22 @@
       }
       .calc-type-row label { margin: 0; color: #d6f6ff; font-size: 12px; }
       .calc-type-row select { margin-bottom: 0 !important; width: 100%; }
+      .calc-tera-row {
+        display: grid;
+        grid-template-columns: 64px 1fr auto;
+        align-items: center;
+        gap: 7px;
+        margin: 0 0 8px;
+      }
+      .calc-tera-row label { margin: 0; color: #888; font-size: 11px; }
+      .calc-tera-row select { margin-bottom: 0 !important; width: 100%; }
+      .tera-toggle-btn {
+        background: #171717; border: 1px solid #3a3a3a; color: #888;
+        cursor: pointer; font-size: 10px; font-weight: bold;
+        padding: 3px 8px; text-transform: uppercase; white-space: nowrap;
+      }
+      .tera-toggle-btn:hover { background: #222; border-color: #777; color: #ddd; }
+      .tera-toggle-btn.tera-on { background: #1a2a3a; border-color: #90caf9; color: #bbdefb; }
       .calc-control-stack { margin: 5px 0 8px; }
       .calc-control-row {
         display: grid;
@@ -1159,11 +1186,17 @@
                 <select id="calc-attacker-type1" onchange="onAttackerTypeChange()"><option value="">—</option></select>
                 <select id="calc-attacker-type2" onchange="onAttackerTypeChange()"><option value="None">None</option></select>
               </div>
+              <div class="calc-tera-row">
+                <label>Tera</label>
+                <select id="calc-attacker-tera" onchange="onAttackerTeraChange()"><option value="None">None</option></select>
+                <button type="button" class="tera-toggle-btn" id="calc-attacker-tera-btn" onclick="onTeraToggle(true)" aria-pressed="false">Tera</button>
+              </div>
 
               <label>Common Set</label>
-              <select id="calc-attacker-preset" onchange="onAttackerPresetChange()">
-                <option value="">— load a Pokémon first —</option>
-              </select>
+              <div class="calc-preset-wrap" id="calc-attacker-preset-wrap">
+                <div class="calc-preset-selected" id="calc-attacker-preset-display" tabindex="0">— load a Pokémon first —</div>
+                <div class="calc-ac-dropdown calc-preset-dropdown" id="calc-attacker-preset-dropdown"></div>
+              </div>
               <div class="calc-spread-note" id="calc-attacker-spread-note"></div>
 
               <div class="calc-control-stack">
@@ -1216,10 +1249,6 @@
                     <option value="Asleep">Asleep</option>
                     <option value="Frozen">Frozen</option>
                   </select>
-                </div>
-                <div class="calc-control-row">
-                  <label for="calc-attacker-tera">Tera Type</label>
-                  <select id="calc-attacker-tera" onchange="onAttackerTeraChange()"><option value="None">None</option></select>
                 </div>
               </div>
 
@@ -1278,6 +1307,13 @@
               </div>
 
               <div class="calc-field-section">
+                <div class="calc-field-label">Global</div>
+                <div class="calc-field-buttons">
+                  <label class="calc-field-toggle"><input type="checkbox" id="calc-field-gravity" onchange="onFieldChange()"><span>Gravity</span></label>
+                </div>
+              </div>
+
+              <div class="calc-field-section">
                 <div class="calc-field-sides">
                   <div class="calc-field-side">
                     <div class="calc-field-side-head">Your Side</div>
@@ -1287,6 +1323,10 @@
                     <label class="calc-field-toggle"><input type="checkbox" id="calc-your-auroraveil" onchange="onFieldChange()"><span>Aurora Veil</span></label>
                     <label class="calc-field-toggle"><input type="checkbox" id="calc-your-tailwind" onchange="onFieldChange()"><span>Tailwind</span></label>
                     <label class="calc-field-toggle"><input type="checkbox" id="calc-your-friendguard" onchange="onFieldChange()"><span>Friend Guard</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-your-protect" onchange="onFieldChange()"><span>Protect</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-your-battery" onchange="onFieldChange()"><span>Battery</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-your-powerspot" onchange="onFieldChange()"><span>Power Spot</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-your-steelyspirit" onchange="onFieldChange()"><span>Steely Spirit</span></label>
                   </div>
                   <div class="calc-field-side">
                     <div class="calc-field-side-head">Opponent Side</div>
@@ -1296,14 +1336,18 @@
                     <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-auroraveil" onchange="onFieldChange()"><span>Aurora Veil</span></label>
                     <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-tailwind" onchange="onFieldChange()"><span>Tailwind</span></label>
                     <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-friendguard" onchange="onFieldChange()"><span>Friend Guard</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-protect" onchange="onFieldChange()"><span>Protect</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-battery" onchange="onFieldChange()"><span>Battery</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-powerspot" onchange="onFieldChange()"><span>Power Spot</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-steelyspirit" onchange="onFieldChange()"><span>Steely Spirit</span></label>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- AVERAGE OPPONENT (defender — stats from usage data) -->
+            <!-- OPPONENT (defender — stats from usage data or manual) -->
             <div class="calc-poke-panel">
-              <h4 class="avg-pokemon">Average Opponent</h4>
+              <h4 id="calc-defender-header" class="avg-pokemon">Average Opponent</h4>
 
               <label>Pokémon</label>
               <div class="calc-autocomplete-wrap">
@@ -1325,17 +1369,23 @@
                 <select id="calc-defender-type1" onchange="onDefenderTypeChange()"><option value="">—</option></select>
                 <select id="calc-defender-type2" onchange="onDefenderTypeChange()"><option value="None">None</option></select>
               </div>
+              <div class="calc-tera-row">
+                <label>Tera</label>
+                <select id="calc-defender-tera" onchange="onDefenderTeraChange()"><option value="None">None</option></select>
+                <button type="button" class="tera-toggle-btn" id="calc-defender-tera-btn" onclick="onTeraToggle(false)" aria-pressed="false">Tera</button>
+              </div>
 
               <label>Common Set</label>
-              <select id="calc-defender-preset" disabled>
-                <option value="">— load a Pokémon first —</option>
-              </select>
+              <div class="calc-preset-wrap" id="calc-defender-preset-wrap">
+                <div class="calc-preset-selected" id="calc-defender-preset-display" tabindex="0">— load a Pokémon first —</div>
+                <div class="calc-ac-dropdown calc-preset-dropdown" id="calc-defender-preset-dropdown"></div>
+              </div>
               <div class="calc-spread-note" id="calc-defender-spread-note"></div>
 
               <div class="calc-control-stack">
                 <div class="calc-control-row">
                   <label>Nature</label>
-                  <select id="calc-defender-nature" disabled>
+                  <select id="calc-defender-nature" disabled onchange="onDefenderStatChange()">
                     <option>Average</option>
                   </select>
                 </div>
@@ -1344,18 +1394,25 @@
               <table class="calc-ev-table">
                 <thead>
                   <tr class="calc-ev-header">
-                    <th></th><th>Base</th><th>Avg</th><th>Mod</th><th>Final</th>
+                    <th></th><th>Base</th><th><span id="calc-def-ev-col-label">Avg</span></th><th>Mod</th><th>Final</th>
                   </tr>
                 </thead>
                 <tbody>
-                  <tr class="calc-ev-row"><td>HP</td><td class="ev-base"><span id="calc-def-base-hp">—</span></td><td class="ev-base"><span id="calc-def-avg-hp">—</span></td><td></td><td class="ev-final"><span id="calc-def-final-hp">—</span></td></tr>
-                  <tr class="calc-ev-row"><td>Atk</td><td class="ev-base"><span id="calc-def-base-atk">—</span></td><td class="ev-base"><span id="calc-def-avg-atk">—</span></td><td><select id="calc-boost-opp-atk" class="calc-boost-sel" onchange="onBoostChange('atk',false)"></select></td><td class="ev-final"><span id="calc-def-final-atk">—</span></td></tr>
-                  <tr class="calc-ev-row"><td>Def</td><td class="ev-base"><span id="calc-def-base-def">—</span></td><td class="ev-base"><span id="calc-def-avg-def">—</span></td><td><select id="calc-boost-opp-def" class="calc-boost-sel" onchange="onBoostChange('def',false)"></select></td><td class="ev-final"><span id="calc-def-final-def">—</span></td></tr>
-                  <tr class="calc-ev-row"><td>SpA</td><td class="ev-base"><span id="calc-def-base-spa">—</span></td><td class="ev-base"><span id="calc-def-avg-spa">—</span></td><td><select id="calc-boost-opp-spa" class="calc-boost-sel" onchange="onBoostChange('spa',false)"></select></td><td class="ev-final"><span id="calc-def-final-spa">—</span></td></tr>
-                  <tr class="calc-ev-row"><td>SpD</td><td class="ev-base"><span id="calc-def-base-spd">—</span></td><td class="ev-base"><span id="calc-def-avg-spd">—</span></td><td><select id="calc-boost-opp-spd" class="calc-boost-sel" onchange="onBoostChange('spd',false)"></select></td><td class="ev-final"><span id="calc-def-final-spd">—</span></td></tr>
-                  <tr class="calc-ev-row"><td>Spe</td><td class="ev-base"><span id="calc-def-base-spe">—</span></td><td class="ev-base"><span id="calc-def-avg-spe">—</span></td><td><select id="calc-boost-opp-spe" class="calc-boost-sel" onchange="onBoostChange('spe',false)"></select></td><td class="ev-final"><span id="calc-def-final-spe">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>HP</td><td class="ev-base"><span id="calc-def-base-hp">—</span></td><td class="ev-base"><span id="calc-def-avg-hp" class="def-avg-cell">—</span><input type="number" id="calc-def-ev-hp" class="calc-ev-input def-ev-cell" min="0" max="252" value="0" oninput="onDefenderStatChange()" style="display:none"></td><td></td><td class="ev-final"><span id="calc-def-final-hp">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>Atk</td><td class="ev-base"><span id="calc-def-base-atk">—</span></td><td class="ev-base"><span id="calc-def-avg-atk" class="def-avg-cell">—</span><input type="number" id="calc-def-ev-atk" class="calc-ev-input def-ev-cell" min="0" max="252" value="0" oninput="onDefenderStatChange()" style="display:none"></td><td><select id="calc-boost-opp-atk" class="calc-boost-sel" onchange="onBoostChange('atk',false)"></select></td><td class="ev-final"><span id="calc-def-final-atk">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>Def</td><td class="ev-base"><span id="calc-def-base-def">—</span></td><td class="ev-base"><span id="calc-def-avg-def" class="def-avg-cell">—</span><input type="number" id="calc-def-ev-def" class="calc-ev-input def-ev-cell" min="0" max="252" value="0" oninput="onDefenderStatChange()" style="display:none"></td><td><select id="calc-boost-opp-def" class="calc-boost-sel" onchange="onBoostChange('def',false)"></select></td><td class="ev-final"><span id="calc-def-final-def">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>SpA</td><td class="ev-base"><span id="calc-def-base-spa">—</span></td><td class="ev-base"><span id="calc-def-avg-spa" class="def-avg-cell">—</span><input type="number" id="calc-def-ev-spa" class="calc-ev-input def-ev-cell" min="0" max="252" value="0" oninput="onDefenderStatChange()" style="display:none"></td><td><select id="calc-boost-opp-spa" class="calc-boost-sel" onchange="onBoostChange('spa',false)"></select></td><td class="ev-final"><span id="calc-def-final-spa">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>SpD</td><td class="ev-base"><span id="calc-def-base-spd">—</span></td><td class="ev-base"><span id="calc-def-avg-spd" class="def-avg-cell">—</span><input type="number" id="calc-def-ev-spd" class="calc-ev-input def-ev-cell" min="0" max="252" value="0" oninput="onDefenderStatChange()" style="display:none"></td><td><select id="calc-boost-opp-spd" class="calc-boost-sel" onchange="onBoostChange('spd',false)"></select></td><td class="ev-final"><span id="calc-def-final-spd">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>Spe</td><td class="ev-base"><span id="calc-def-base-spe">—</span></td><td class="ev-base"><span id="calc-def-avg-spe" class="def-avg-cell">—</span><input type="number" id="calc-def-ev-spe" class="calc-ev-input def-ev-cell" min="0" max="252" value="0" oninput="onDefenderStatChange()" style="display:none"></td><td><select id="calc-boost-opp-spe" class="calc-boost-sel" onchange="onBoostChange('spe',false)"></select></td><td class="ev-final"><span id="calc-def-final-spe">—</span></td></tr>
                 </tbody>
+                <tfoot id="calc-def-ev-total-row" style="display:none">
+                  <tr class="calc-ev-row calc-ev-total-row">
+                    <td>Total</td><td></td><td><span id="calc-def-ev-total">0</span><span id="calc-def-ev-max" style="color:#666;font-size:10px"> / 510</span></td><td></td><td></td>
+                  </tr>
+                </tfoot>
               </table>
+
+              <div id="calc-speed-comp-opp" class="calc-speed-comp"></div>
 
               <div class="calc-control-stack">
                 <div class="calc-control-row">
@@ -1377,10 +1434,6 @@
                     <option value="Asleep">Asleep</option>
                     <option value="Frozen">Frozen</option>
                   </select>
-                </div>
-                <div class="calc-control-row">
-                  <label for="calc-defender-tera">Tera Type</label>
-                  <select id="calc-defender-tera" onchange="onDefenderTeraChange()"><option value="None">None</option></select>
                 </div>
               </div>
 

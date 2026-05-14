@@ -89,29 +89,36 @@ function chainMods(mods) {
   return M;
 }
 
-function getTypeEffectiveness(moveType, defTypes, defTera) {
+function getTypeEffectiveness(moveType, defTypes, defTera, field) {
   const effectiveTypes = (defTera && defTera !== "None" && defTera !== "") ? [defTera] : defTypes;
   const chart = TYPE_CHART[moveType];
   if (!chart) return 1;
   let eff = 1;
-  for (const dt of effectiveTypes) eff *= (chart[dt] !== undefined ? chart[dt] : 1);
+  for (const dt of effectiveTypes) {
+    let mult = chart[dt] !== undefined ? chart[dt] : 1;
+    // Gravity: Ground moves hit Flying types (override immunity)
+    if (field?.isGravity && moveType === "Ground" && dt === "Flying" && mult === 0) mult = 1;
+    eff *= mult;
+  }
   return eff;
 }
 
-function checkAbilityImmunity(moveType, defAbility, moveFlags) {
+function checkAbilityImmunity(moveType, defAbility, moveFlags, field) {
   const abilImm = TYPE_IMMUNITY_ABILITIES[defAbility];
   if (!abilImm) return false;
   if (abilImm === "_sound") return !!(moveFlags && moveFlags.sound);
   if (abilImm === "_ball") return !!(moveFlags && (moveFlags.bullet || moveFlags.bomb));
+  // Gravity: Ground-immunity abilities (Levitate, Earth Eater) are bypassed
+  if (field?.isGravity && abilImm === "Ground") return false;
   return abilImm === moveType;
 }
 
 function attackerIsBurned(attacker, field) {
-  return attacker?.status === "Burned" || !!field?.isBurned;
+  return attacker?.status === "Burned";
 }
 
 function attackerHasMajorStatus(attacker, field) {
-  return !!field?.isBurned || !!(attacker?.status && attacker.status !== "Healthy");
+  return !!(attacker?.status && attacker.status !== "Healthy");
 }
 
 function variableBasePowerType(move) {
@@ -231,10 +238,25 @@ function getEffectiveBasePower(move, attacker, field) {
 }
 
 // ─── EFFECTIVE ATTACK / DEFENSE STATS ────────────────────────────────────────
-function getEffectiveAtkStat(attacker, move) {
+function getEffectiveAtkStat(attacker, move, defAbility = "", defStats = null, defBoosts = null) {
   const isPhys = move.category === "Physical";
   const stats = attacker.customStats;
-  let stat = isPhys ? stats.atk : stats.spa;
+  let stat;
+  // Foul Play: uses target's Atk stat and boosts
+  if (move.overrideOffensivePokemon === "target" && defStats) {
+    stat = isPhys ? (defStats.atk || 1) : (defStats.spa || 1);
+    const boost = (defBoosts || {})[isPhys ? "atk" : "spa"] || 0;
+    if (boost !== 0) stat = Math.floor(stat * (boost >= 0 ? (2 + boost) / 2 : 2 / (2 + Math.abs(boost))));
+    if (defAbility === "Tablets of Ruin" && isPhys) stat = Math.floor(stat * 0.75);
+    if (defAbility === "Vessel of Ruin" && !isPhys) stat = Math.floor(stat * 0.75);
+    return stat;
+  }
+  // Body Press: uses attacker's Def stat
+  if (move.overrideOffensiveStat) {
+    stat = stats[move.overrideOffensiveStat] || (isPhys ? stats.atk : stats.spa);
+  } else {
+    stat = isPhys ? stats.atk : stats.spa;
+  }
   const ability = attacker.ability;
   const item = attacker.item;
   if (item === "Choice Band" && isPhys) stat = Math.floor(stat * 1.5);
@@ -245,21 +267,27 @@ function getEffectiveAtkStat(attacker, move) {
   if (ability === "Gorilla Tactics" && isPhys) stat = Math.floor(stat * 1.5);
   if (item === "Thick Club" && isPhys) stat *= 2;
   if (item === "Light Ball") stat *= 2;
-  const boost = (attacker.boosts || {})[isPhys ? "atk" : "spa"] || 0;
+  if (defAbility === "Tablets of Ruin" && isPhys) stat = Math.floor(stat * 0.75);
+  if (defAbility === "Vessel of Ruin" && !isPhys) stat = Math.floor(stat * 0.75);
+  const boostKey = move.overrideOffensiveStat || (isPhys ? "atk" : "spa");
+  const boost = (attacker.boosts || {})[boostKey] || 0;
   if (boost !== 0) stat = Math.floor(stat * (boost >= 0 ? (2 + boost) / 2 : 2 / (2 + Math.abs(boost))));
   return stat;
 }
 
 function getEffectiveDefStat(defStats, defItem, atkAbility, move, defBoosts, field = {}, defTypes = [], defTera = "") {
-  const isPhys = move.category === "Physical";
-  let stat = isPhys ? defStats.def : defStats.spd;
-  if (defItem === "Assault Vest" && !isPhys) stat = Math.floor(stat * 1.5);
+  // Psyshock/Psystrike/Secret Sword: Special moves that target Def
+  const hitsPhysical = move.overrideDefensiveStat === "def"
+    || (move.category === "Physical" && !move.overrideDefensiveStat);
+  let stat = hitsPhysical ? defStats.def : defStats.spd;
+  if (defItem === "Assault Vest" && !hitsPhysical) stat = Math.floor(stat * 1.5);
   if (defItem === "Eviolite") stat = Math.floor(stat * 1.5);
   const activeDefTypes = defTera && defTera !== "None" ? [defTera] : defTypes;
-  if (field.weather === "Snow" && isPhys && activeDefTypes.includes("Ice")) stat = Math.floor(stat * 1.5);
-  if (atkAbility === "Sword of Ruin" && isPhys) stat = Math.floor(stat * 0.75);
-  if (atkAbility === "Beads of Ruin" && !isPhys) stat = Math.floor(stat * 0.75);
-  const boost = (defBoosts || {})[isPhys ? "def" : "spd"] || 0;
+  if (field.weather === "Snow" && hitsPhysical && activeDefTypes.includes("Ice")) stat = Math.floor(stat * 1.5);
+  if (atkAbility === "Sword of Ruin" && hitsPhysical) stat = Math.floor(stat * 0.75);
+  if (atkAbility === "Beads of Ruin" && !hitsPhysical) stat = Math.floor(stat * 0.75);
+  const boostKey = move.overrideDefensiveStat || (move.category === "Physical" ? "def" : "spd");
+  const boost = (defBoosts || {})[boostKey] || 0;
   if (boost !== 0) stat = Math.floor(stat * (boost >= 0 ? (2 + boost) / 2 : 2 / (2 + Math.abs(boost))));
   return stat;
 }
@@ -267,6 +295,12 @@ function getEffectiveDefStat(defStats, defItem, atkAbility, move, defBoosts, fie
 // ─── CORE DAMAGE ROLLS ───────────────────────────────────────────────────────
 // Returns { rolls: number[], typeEff: number, immune: boolean } or null
 function calcDamageRolls(attacker, move, defStats, defTypes, defTera, defAbility, defItem, field, defBoosts) {
+  // Protect: blocks all damage in Gen 9 VGC (no Max/Z-moves)
+  if (field.isProtected) {
+    const moveType = getEffectiveMoveType(move, attacker, field);
+    const typeEff = getTypeEffectiveness(moveType, defTypes, defTera, field);
+    return { rolls: [0], typeEff, immune: false, isProtected: true };
+  }
   let bp = getEffectiveBasePower(move, attacker, field);
   if (bp === 0) return null;
   const moveType = getEffectiveMoveType(move, attacker, field);
@@ -275,17 +309,22 @@ function calcDamageRolls(attacker, move, defStats, defTypes, defTera, defAbility
       ? Math.floor(bp * 0.75)
       : Math.floor(bp * 5448 / 4096);
   }
+  if (moveType === "Dark" && (attacker.ability === "Dark Aura" || defAbility === "Dark Aura")) {
+    bp = (attacker.ability === "Aura Break" || defAbility === "Aura Break")
+      ? Math.floor(bp * 0.75)
+      : Math.floor(bp * 5448 / 4096);
+  }
 
-  const atkStat = getEffectiveAtkStat(attacker, move);
+  const atkStat = getEffectiveAtkStat(attacker, move, defAbility, defStats, defBoosts);
   const defStat = getEffectiveDefStat(defStats, defItem, attacker.ability, move, defBoosts, field, defTypes, defTera);
   const level = attacker.level || 50;
   const isPhys = move.category === "Physical";
 
   if (!atkStat || !defStat) return null;
 
-  const typeEff = getTypeEffectiveness(moveType, defTypes, defTera);
+  const typeEff = getTypeEffectiveness(moveType, defTypes, defTera, field);
   if (typeEff === 0) return { rolls: [0], typeEff: 0, immune: true };
-  if (checkAbilityImmunity(moveType, defAbility, move.flags)) return { rolls: [0], typeEff: 0, immune: true };
+  if (checkAbilityImmunity(moveType, defAbility, move.flags, field)) return { rolls: [0], typeEff: 0, immune: true };
   if (defAbility === "Wonder Guard" && typeEff <= 1) return { rolls: [0], typeEff: 0, immune: true };
 
   const stabMod = getSTABMod(attacker.types, attacker.ability, moveType, attacker.tera);
@@ -300,6 +339,9 @@ function calcDamageRolls(attacker, move, defStats, defTypes, defTera, defAbility
 
   const finalMods = [];
   if (field.isHelpingHand) finalMods.push(0x1800);
+  if (field.isBattery && !isPhys) finalMods.push(0x14CD);
+  if (field.isPowerSpot) finalMods.push(0x14CD);
+  if (field.isSteelySpirit && moveType === "Steel") finalMods.push(0x1800);
   if (!field.isCritical) {
     const screenMod = field.format !== "Singles" ? 0xAAC : 0x800;
     if (field.isAuroraVeil) finalMods.push(screenMod);
@@ -418,18 +460,27 @@ function buildOfficialField(attacker, defender, field) {
     gameType: field?.format === "Singles" ? "Singles" : "Doubles",
     weather: effectiveWeatherForAttacker(attacker, field),
     terrain: normalizeCalcTerrain(field?.terrain),
+    isGravity: !!field?.isGravity,
     isFairyAura: attacker?.ability === "Fairy Aura" || defender?.ability === "Fairy Aura",
     isDarkAura: attacker?.ability === "Dark Aura" || defender?.ability === "Dark Aura",
     isAuraBreak: attacker?.ability === "Aura Break" || defender?.ability === "Aura Break",
+    isBeadsOfRuin: attacker?.ability === "Beads of Ruin" || defender?.ability === "Beads of Ruin",
+    isSwordOfRuin: attacker?.ability === "Sword of Ruin" || defender?.ability === "Sword of Ruin",
+    isTabletsOfRuin: attacker?.ability === "Tablets of Ruin" || defender?.ability === "Tablets of Ruin",
+    isVesselOfRuin: attacker?.ability === "Vessel of Ruin" || defender?.ability === "Vessel of Ruin",
     attackerSide: {
       isHelpingHand: !!field?.isHelpingHand,
       isTailwind: !!field?.isAtkTailwind,
+      isBattery: !!field?.isBattery,
+      isPowerSpot: !!field?.isPowerSpot,
+      isSteelySpirit: !!field?.isSteelySpirit,
     },
     defenderSide: {
       isReflect: !!field?.isReflect,
       isLightScreen: !!field?.isLightScreen,
       isAuroraVeil: !!field?.isAuroraVeil,
       isFriendGuard: !!field?.isFriendGuard,
+      isProtected: !!field?.isProtected,
       isTailwind: !!field?.isDefTailwind,
     },
   });
@@ -788,14 +839,15 @@ function renderNHKORow(rolls, hp) {
 // Returns a short string like "54–64%" or "immune" using defender average stats.
 function quickDamageSummary(attacker, move, defenderData, field, hits = 1) {
   if (!isDamagingMove(move)) return "—";
-  const avgDef = defenderData.averageStats;
-  const defStats = { hp: avgDef.hp, def: avgDef.def, spd: avgDef.spd };
-  const official = calcOfficialResult(attacker, move, defenderData, field, hits, attacker.customStats, avgDef);
+  const useManual = defenderData.defenderMode === "manual" && defenderData.customStats;
+  const defStats = useManual ? defenderData.customStats : defenderData.averageStats;
+  if (!defStats) return "—";
+  const official = calcOfficialResult(attacker, move, defenderData, field, hits, attacker.customStats, defStats);
   const result = official || calcMultihitRolls(attacker, move, defStats,
     defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field, undefined, hits);
   if (!result) return "—";
   if (result.immune) return "immune";
-  const hp = avgDef.hp || 1;
+  const hp = defStats.hp || 1;
   const minP = (result.rolls[0] / hp * 100).toFixed(0);
   const maxP = (result.rolls[result.rolls.length - 1] / hp * 100).toFixed(0);
   return `${minP}–${maxP}%`;
@@ -804,10 +856,12 @@ function quickDamageSummary(attacker, move, defenderData, field, hits = 1) {
 // Quick damage for reverse (defender attacks user Pokemon using average stats)
 function quickReverseSummary(defenderData, move, attacker, field, hits = 1) {
   if (!isDamagingMove(move)) return "—";
+  const defStats = (defenderData.defenderMode === "manual" && defenderData.customStats)
+    ? defenderData.customStats : defenderData.averageStats;
   const defAsAttacker = {
     types: defenderData.types, ability: defenderData.ability, item: defenderData.item,
     tera: defenderData.tera, level: defenderData.level,
-    customStats: defenderData.averageStats,
+    customStats: defStats,
     boosts: defenderData.boosts || {},
     status: defenderData.status || "Healthy",
     name: defenderData.name,
@@ -818,7 +872,7 @@ function quickReverseSummary(defenderData, move, attacker, field, hits = 1) {
     speciesOverrides: defenderData.speciesOverrides,
   };
   const atkHP = attacker.customStats.hp || 1;
-  const official = calcOfficialResult(defAsAttacker, move, attacker, field, hits, defenderData.averageStats, attacker.customStats);
+  const official = calcOfficialResult(defAsAttacker, move, attacker, field, hits, defStats, attacker.customStats);
   const result = official || calcMultihitRolls(defAsAttacker, move, attacker.customStats,
     attacker.types, attacker.tera, attacker.ability, attacker.item, field, undefined, hits);
   if (!result) return "—";
@@ -841,13 +895,16 @@ let calcState = {
     weather: "None",
     terrain: "None",
     yourReflect: false, yourLightScreen: false, yourAuroraVeil: false,
-    yourHelpingHand: false, yourTailwind: false, yourFriendGuard: false,
+    yourHelpingHand: false, yourTailwind: false, yourFriendGuard: false, yourProtect: false,
+    yourBattery: false, yourPowerSpot: false, yourSteelySpirit: false,
     oppReflect: false, oppLightScreen: false, oppAuroraVeil: false,
-    oppHelpingHand: false, oppTailwind: false, oppFriendGuard: false,
+    oppHelpingHand: false, oppTailwind: false, oppFriendGuard: false, oppProtect: false,
+    oppBattery: false, oppPowerSpot: false, oppSteelySpirit: false,
     isReflect: false, isLightScreen: false, isAuroraVeil: false,
     isHelpingHand: false, isAtkTailwind: false,
     isDefTailwind: false, isFriendGuard: false,
-    isCritical: false, isBurned: false,
+    isGravity: false,
+    isCritical: false,
   },
 };
 
@@ -908,6 +965,10 @@ function getEffectiveFieldForSource(source, isCritical = false) {
     isLightScreen: userAttacking ? field.oppLightScreen : field.yourLightScreen,
     isAuroraVeil: userAttacking ? field.oppAuroraVeil : field.yourAuroraVeil,
     isFriendGuard: userAttacking ? field.oppFriendGuard : field.yourFriendGuard,
+    isProtected: userAttacking ? field.oppProtect : field.yourProtect,
+    isBattery: userAttacking ? field.yourBattery : field.oppBattery,
+    isPowerSpot: userAttacking ? field.yourPowerSpot : field.oppPowerSpot,
+    isSteelySpirit: userAttacking ? field.yourSteelySpirit : field.oppSteelySpirit,
   };
 }
 
@@ -1023,6 +1084,97 @@ function setBaseStatDisplay(baseStats) {
   });
 }
 
+// ─── DEFENDER STAT HELPERS ───────────────────────────────────────────────────
+function computeDefenderStatsFromInputs() {
+  const def = calcState.defender;
+  if (!def || !def.baseStats) return null;
+  const nature = document.getElementById("calc-defender-nature")?.value || "Hardy";
+  const mods = NATURES[nature] || {};
+  const level = def.level || 50;
+  const isChamp = def.isChampions;
+  const stats = {};
+  const evTable = {};
+  for (const k of STAT_KEYS) {
+    const ev = parseInt(document.getElementById(`calc-def-ev-${k}`)?.value) || 0;
+    evTable[k] = ev;
+    const base = def.baseStats[k] || 0;
+    const isHP = k === "hp";
+    const mult = isHP ? 1 : (mods[k] || 1);
+    stats[k] = isChamp ? calcChampionsStat(base, ev, mult, isHP)
+                       : calcFinalStat(base, ev, mult, isHP, level);
+    const finalEl = document.getElementById(`calc-def-final-${k}`);
+    if (finalEl) {
+      let natColor = "";
+      if (!isHP) {
+        if (mods[k] === 1.1) natColor = "#ef9a9a";
+        else if (mods[k] === 0.9) natColor = "#90caf9";
+      }
+      if (isHP) {
+        finalEl.textContent = stats[k];
+        finalEl.style.color = natColor;
+      } else {
+        finalEl.dataset.base = stats[k];
+        finalEl.dataset.natColor = natColor;
+        applyEffectiveStat(finalEl, stats[k], (def.boosts || {})[k] || 0);
+      }
+    }
+  }
+  def.nature = nature;
+  def.evs = evTable;
+  def.ivs = { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
+  updateDefenderEVTotal();
+  return stats;
+}
+
+function fillDefenderEVTable(nature, evs) {
+  populateNatureSelect("calc-defender-nature", nature);
+  STAT_KEYS.forEach((k, i) => {
+    const el = document.getElementById(`calc-def-ev-${k}`);
+    if (el) el.value = evs[i] ?? 0;
+  });
+  if (calcState.defender?.defenderMode === "manual") {
+    computeDefenderStatsFromInputs();
+  }
+}
+
+function updateDefenderEVTotal() {
+  let total = 0;
+  STAT_KEYS.forEach(k => {
+    total += parseInt(document.getElementById(`calc-def-ev-${k}`)?.value) || 0;
+  });
+  const el = document.getElementById("calc-def-ev-total");
+  if (el) el.textContent = total;
+}
+
+function updateDefenderEVInputLimits(isChampions) {
+  const max = isChampions ? 32 : 252;
+  STAT_KEYS.forEach(k => {
+    const el = document.getElementById(`calc-def-ev-${k}`);
+    if (el) {
+      el.max = max;
+      if (parseInt(el.value) > max) el.value = max;
+    }
+  });
+  const maxLabel = document.getElementById("calc-def-ev-max");
+  if (maxLabel) maxLabel.textContent = isChampions ? "" : " / 510";
+  updateDefenderEVTotal();
+}
+
+function onDefenderStatChange() {
+  if (!calcState.defender || calcState.defender.defenderMode !== "manual") return;
+  const max = calcState.defender.isChampions ? 32 : 252;
+  STAT_KEYS.forEach(k => {
+    const el = document.getElementById(`calc-def-ev-${k}`);
+    if (el) {
+      let v = parseInt(el.value) || 0;
+      if (v > max) { el.value = max; }
+      if (v < 0) { el.value = 0; }
+    }
+  });
+  calcState.defender.customStats = computeDefenderStatsFromInputs();
+  runCalc();
+}
+
 // ─── POPULATE HELPERS ─────────────────────────────────────────────────────────
 function populateTeraSelect(selectId, currentTera) {
   const types = ["None","Normal","Fire","Water","Electric","Grass","Ice","Fighting","Poison","Ground","Flying","Psychic","Bug","Rock","Ghost","Dragon","Dark","Steel","Fairy","Stellar"];
@@ -1048,35 +1200,69 @@ function populateItemSelect(selectId, allItems, top) {
   sel.appendChild(Object.assign(document.createElement("option"), { value: "__custom__", textContent: "Other…" }));
 }
 
-function populatePresetSelect(data) {
-  const sel = document.getElementById("calc-attacker-preset");
-  if (!sel) return;
-  sel.innerHTML = "";
-  data.spreads.forEach((spread, idx) => {
-    const pct = (spread.weight * 100).toFixed(1);
-    sel.appendChild(Object.assign(document.createElement("option"), {
-      value: idx,
-      textContent: `${spread.spread} (${pct}%)`,
-    }));
+function spreadItemHTML(spread, idx, dataAttr = "data-idx") {
+  const pct = (spread.weight * 100).toFixed(1) + "%";
+  return `<div class="calc-ac-item calc-preset-item" ${dataAttr}="${idx}">
+    <span class="calc-preset-name">${escapeHTML(spread.spread)}</span>
+    <span class="calc-preset-usage">${escapeHTML(pct)}</span>
+  </div>`;
+}
+
+function initPresetDropdown(displayId, dropdownId, onSelect) {
+  const display = document.getElementById(displayId);
+  const dropdown = document.getElementById(dropdownId);
+  if (!display || !dropdown) return;
+  display.addEventListener("click", () => {
+    if (dropdown.children.length === 0) return;
+    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
   });
-  if (!data.spreads.length) sel.innerHTML = '<option value="">No spread data</option>';
+  display.addEventListener("keydown", e => {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); display.click(); }
+    if (e.key === "Escape") dropdown.style.display = "none";
+  });
+  display.addEventListener("blur", () => setTimeout(() => { dropdown.style.display = "none"; }, 150));
+  // Delegate click on items
+  dropdown.addEventListener("mousedown", e => {
+    e.preventDefault();
+    const item = e.target.closest(".calc-ac-item");
+    if (!item) return;
+    const val = item.dataset.idx ?? item.dataset.value;
+    if (val != null) { dropdown.style.display = "none"; onSelect(val); }
+  });
+}
+
+function populatePresetSelect(data) {
+  const display = document.getElementById("calc-attacker-preset-display");
+  const dropdown = document.getElementById("calc-attacker-preset-dropdown");
+  if (!display || !dropdown) return;
+  if (!data.spreads?.length) {
+    display.textContent = "No spread data";
+    dropdown.innerHTML = "";
+    return;
+  }
+  dropdown.innerHTML = data.spreads.map((s, i) => spreadItemHTML(s, i)).join("");
+  const first = data.spreads[0];
+  const pct = (first.weight * 100).toFixed(1) + "%";
+  display.textContent = first.spread;
+  display.dataset.value = "0";
 }
 
 function populateDefenderPresetDisplay(data) {
-  const sel = document.getElementById("calc-defender-preset");
-  if (sel) {
-    sel.disabled = false;
-    sel.innerHTML = '<option value="average">Usage-weighted average</option>';
+  const display = document.getElementById("calc-defender-preset-display");
+  const dropdown = document.getElementById("calc-defender-preset-dropdown");
+  if (display && dropdown) {
+    let html = `<div class="calc-ac-item calc-preset-item" data-value="average">
+      <span class="calc-preset-name">Usage-weighted average</span>
+    </div>`;
+    html += (data.spreads || []).map((s, i) => spreadItemHTML(s, i, "data-value")).join("");
+    dropdown.innerHTML = html;
+    display.textContent = "Usage-weighted average";
+    display.dataset.value = "average";
   }
   const noteEl = document.getElementById("calc-defender-spread-note");
   if (noteEl) {
     const firstSpread = data.spreads?.[0];
     noteEl.textContent = firstSpread ? `Most common: ${firstSpread.spread}` : "";
-  }
-  const natureEl = document.getElementById("calc-defender-nature");
-  if (natureEl) {
-    natureEl.disabled = false;
-    natureEl.innerHTML = "<option>Average</option>";
   }
 }
 
@@ -1283,7 +1469,7 @@ function renderFactorChips(atkObj, move, defObj, field) {
   const isPhys = move.category === "Physical";
   const moveType = getEffectiveMoveType(move, atkObj, field);
   const basePower = getMoveBasePower(move, { ...field, attackerAbility: atkObj.ability });
-  const typeEff = getTypeEffectiveness(moveType, defObj.types || [], defObj.tera);
+  const typeEff = getTypeEffectiveness(moveType, defObj.types || [], defObj.tera, field);
 
   if (typeEff === 4) chips.push(["4× effective", "#4caf50"]);
   else if (typeEff === 2) chips.push(["2× effective", "#66bb6a"]);
@@ -1298,8 +1484,10 @@ function renderFactorChips(atkObj, move, defObj, field) {
 
   if (basePower <= 60 && atkObj.ability === "Technician") chips.push(["Technician ×1.5 BP", "#b0bec5"]);
   if (["Pixilate", "Aerilate", "Galvanize", "Refrigerate"].includes(atkObj.ability) && move.type === "Normal" && moveType !== "Normal") chips.push([`${atkObj.ability} ${moveType}`, "#b0bec5"]);
-  if (atkObj.ability === "Fairy Aura" && moveType === "Fairy") chips.push(["Fairy Aura x1.33", "#b0bec5"]);
-  if (defObj.ability === "Fairy Aura" && moveType === "Fairy") chips.push(["Opp Fairy Aura x1.33", "#b0bec5"]);
+  if (atkObj.ability === "Fairy Aura" && moveType === "Fairy") chips.push(["Fairy Aura ×1.33", "#b0bec5"]);
+  if (defObj.ability === "Fairy Aura" && moveType === "Fairy") chips.push(["Opp Fairy Aura ×1.33", "#b0bec5"]);
+  if (atkObj.ability === "Dark Aura" && moveType === "Dark") chips.push(["Dark Aura ×1.33", "#b0bec5"]);
+  if (defObj.ability === "Dark Aura" && moveType === "Dark") chips.push(["Opp Dark Aura ×1.33", "#b0bec5"]);
   if (atkObj.ability === "Guts" && isPhys && attackerHasMajorStatus(atkObj, field)) chips.push(["Guts x1.5 Atk", "#b0bec5"]);
   if ((move.flags||{}).bite && atkObj.ability === "Strong Jaw") chips.push(["Strong Jaw ×1.5 BP", "#b0bec5"]);
   if ((move.flags||{}).punch && atkObj.ability === "Iron Fist") chips.push(["Iron Fist ×1.2 BP", "#b0bec5"]);
@@ -1322,6 +1510,10 @@ function renderFactorChips(atkObj, move, defObj, field) {
   if (da === "Thick Fat" && (moveType === "Fire" || moveType === "Ice")) chips.push(["Thick Fat ×0.5", "#ef9a9a"]);
   if (da === "Ice Scales" && !isPhys) chips.push(["Ice Scales ×0.5", "#ef9a9a"]);
   if (da === "Heatproof" && moveType === "Fire") chips.push(["Heatproof ×0.5", "#ef9a9a"]);
+  if (da === "Tablets of Ruin" && isPhys) chips.push(["Tablets of Ruin ×0.75 Atk", "#ef9a9a"]);
+  if (da === "Vessel of Ruin" && !isPhys) chips.push(["Vessel of Ruin ×0.75 SpA", "#ef9a9a"]);
+  if (atkObj.ability === "Sword of Ruin" && isPhys) chips.push(["Sword of Ruin ×0.75 Def", "#a5d6a7"]);
+  if (atkObj.ability === "Beads of Ruin" && !isPhys) chips.push(["Beads of Ruin ×0.75 SpD", "#a5d6a7"]);
   const berry = RESIST_BERRIES[defObj.item || ""];
   if (berry && berry === moveType && typeEff > 1) chips.push([`${defObj.item} ×0.5`, "#ef9a9a"]);
   if ((defObj.item || "") === "Assault Vest" && !isPhys) chips.push(["Assault Vest ×1.5 SpD", "#ef9a9a"]);
@@ -1346,18 +1538,32 @@ function renderFactorChips(atkObj, move, defObj, field) {
   }
   if (move.isSpread && field.format !== "Singles") chips.push(["Spread ×0.75", "#aaa"]);
   if (field.isHelpingHand) chips.push(["Helping Hand ×1.5", "#a5d6a7"]);
+  if (field.isBattery && !isPhys) chips.push(["Battery ×1.3", "#a5d6a7"]);
+  if (field.isPowerSpot) chips.push(["Power Spot ×1.3", "#a5d6a7"]);
+  if (field.isSteelySpirit && moveType === "Steel") chips.push(["Steely Spirit ×1.5", "#a5d6a7"]);
   if (field.isCritical) chips.push(["Crit ×1.5", "#ef9a9a"]);
   if (attackerIsBurned(atkObj, field) && isPhys && atkObj.ability !== "Guts") chips.push(["Burned ÷2", "#f08030"]);
+  if (field.isGravity) chips.push(["Gravity", "#b0bec5"]);
+  if (field.isProtected) chips.push(["Protected", "#ef9a9a"]);
+  if (move.overrideOffensiveStat === "def") chips.push(["Uses Def as Atk", "#90caf9"]);
+  if (move.overrideOffensivePokemon === "target") chips.push(["Uses target's Atk", "#90caf9"]);
+  if (move.overrideDefensiveStat === "def" && move.category === "Special") chips.push(["Targets Def", "#90caf9"]);
 
-  const atkBoost = (atkObj.boosts || {})[isPhys ? "atk" : "spa"] || 0;
+  const atkBoostKey = move.overrideOffensiveStat || (isPhys ? "atk" : "spa");
+  const atkBoostLabel = { atk: "Atk", spa: "SpA", def: "Def", spd: "SpD", spe: "Spe" }[atkBoostKey] || atkBoostKey;
+  const atkBoost = move.overrideOffensivePokemon === "target"
+    ? ((defObj.boosts || {})[isPhys ? "atk" : "spa"] || 0)
+    : ((atkObj.boosts || {})[atkBoostKey] || 0);
   if (atkBoost) {
     const m = atkBoost >= 0 ? `×${(2+atkBoost)/2}` : `÷${(2+Math.abs(atkBoost))/2}`;
-    chips.push([`${atkBoost>0?"+":""}${atkBoost} ${isPhys?"Atk":"SpA"} ${m}`, atkBoost > 0 ? "#a5d6a7" : "#ef9a9a"]);
+    chips.push([`${atkBoost>0?"+":""}${atkBoost} ${atkBoostLabel} ${m}`, atkBoost > 0 ? "#a5d6a7" : "#ef9a9a"]);
   }
-  const defBoost = (defObj.boosts || {})[isPhys ? "def" : "spd"] || 0;
+  const defBoostKey = move.overrideDefensiveStat || (isPhys ? "def" : "spd");
+  const defBoostLabel = { def: "Def", spd: "SpD", atk: "Atk", spa: "SpA" }[defBoostKey] || defBoostKey;
+  const defBoost = (defObj.boosts || {})[defBoostKey] || 0;
   if (defBoost) {
     const m = defBoost >= 0 ? `×${(2+defBoost)/2}` : `÷${(2+Math.abs(defBoost))/2}`;
-    chips.push([`Opp ${defBoost>0?"+":""}${defBoost} ${isPhys?"Def":"SpD"} ${m}`, defBoost > 0 ? "#ef9a9a" : "#a5d6a7"]);
+    chips.push([`Opp ${defBoost>0?"+":""}${defBoost} ${defBoostLabel} ${m}`, defBoost > 0 ? "#ef9a9a" : "#a5d6a7"]);
   }
 
   if (!chips.length) return "";
@@ -1422,7 +1628,7 @@ function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, 
   const statLabel = isPhys ? "Atk" : "SpA";
   const moveType = getEffectiveMoveType(move, atkObj, field);
   const displayMove = { ...move, type: moveType };
-  const typeEff = getTypeEffectiveness(moveType, defObj.types || [], defObj.tera);
+  const typeEff = getTypeEffectiveness(moveType, defObj.types || [], defObj.tera, field);
 
   // Boost stage prefix
   const atkBoost = (atkObj.boosts || {})[statKey] || 0;
@@ -1602,6 +1808,35 @@ function renderSingleResult(result, move, atkObj, defObj, field, hits = 1) {
   return primaryHTML + calcStringHTML + detailHTML;
 }
 
+// Renders a single-result block (forward: attacker's move vs defender's specific stats in manual mode)
+function renderSingleForwardResult(result, move, attacker, defender, field, hits = 1) {
+  const hp = defender.customStats?.hp || 1;
+  let detailHTML = renderFactorChips(attacker, move, defender, field);
+  if (!result || result.immune) {
+    return renderPrimaryResult(`${move.name} -> ${defender.name}`, "No effect", `<span style="color:#666">Immune</span>`);
+  }
+  const rolls = result.rolls;
+  const minD = rolls[0], maxD = rolls[rolls.length - 1];
+  const damageText = `${minD}-${maxD} (${(minD/hp*100).toFixed(1)}-${(maxD/hp*100).toFixed(1)}%)`;
+  const primaryHTML = renderPrimaryResult(`${move.name} -> ${defender.name}`, damageText, renderBestKOLabelForRolls(rolls, hp));
+  detailHTML += `<div class="calc-tier-row" style="border-left:3px solid #a5d6a7">
+    <div class="calc-tier-left">
+      <span class="calc-tier-stats">HP ${hp}</span>
+    </div>
+    <div class="calc-tier-right">
+      <span class="calc-tier-dmg">${minD}–${maxD} <strong>(${(minD/hp*100).toFixed(1)}–${(maxD/hp*100).toFixed(1)}%)</strong></span>
+      ${renderNHKORow(rolls, hp)}
+    </div>
+  </div>`;
+  // Defender EVs from DOM for the calc string
+  const _isPhys = move.category === "Physical";
+  const _hpEV = parseInt(document.getElementById("calc-def-ev-hp")?.value) || 0;
+  const _defEV = parseInt(document.getElementById(`calc-def-ev-${_isPhys ? "def" : "spd"}`)?.value) || 0;
+  const defEvStr = `${_hpEV} HP / ${_defEV} ${_isPhys ? "Def" : "SpD"}`;
+  const calcStringHTML = buildCalcString(attacker, move, rolls, hp, defender, field, true, defEvStr, null, "calc-string-primary", hits);
+  return primaryHTML + calcStringHTML + detailHTML;
+}
+
 // ─── SPEED COMPARISON ────────────────────────────────────────────────────────
 function defSpeedFromSpread(spreadStr, baseSpe, level, isChampions) {
   const [nature, evStr] = spreadStr.split(":");
@@ -1616,10 +1851,28 @@ function computeSpeedComparison() {
   const baseSpe = parseInt(document.getElementById("calc-atk-final-spe")?.textContent) || 0;
   const userSpe = baseSpe * (field.isAtkTailwind ? 2 : 1);
   const def = calcState.defender;
-  if (!baseSpe || !def?.spreads?.length || !def?.baseStats?.spe) return null;
-  let totalW = 0, outW = 0, tieW = 0;
+  if (!baseSpe || !def) return null;
+
   const defSpeBoost = (def.boosts || {}).spe || 0;
   const defSpeBoostMult = defSpeBoost >= 0 ? (2 + defSpeBoost) / 2 : 2 / (2 + Math.abs(defSpeBoost));
+
+  // Manual mode: single speed value comparison
+  if (def.defenderMode === "manual" && def.customStats?.spe) {
+    const defSpe = Math.floor(def.customStats.spe * defSpeBoostMult) * (field.isDefTailwind ? 2 : 1);
+    return {
+      outPct: userSpe > defSpe ? 100 : 0,
+      tiePct: userSpe === defSpe ? 100 : 0,
+      sloPct: userSpe < defSpe ? 100 : 0,
+      userSpe, baseSpe, defSpe,
+      atkTailwind: field.isAtkTailwind, defTailwind: field.isDefTailwind,
+      defName: def.name,
+      isManual: true,
+    };
+  }
+
+  // Average mode: usage-weighted speed comparison
+  if (!def.spreads?.length || !def.baseStats?.spe) return null;
+  let totalW = 0, outW = 0, tieW = 0;
   for (const s of def.spreads) {
     const defBaseSpe = defSpeedFromSpread(s.spread, def.baseStats.spe, def.level, def.isChampions);
     const defSpe = Math.floor(defBaseSpe * defSpeBoostMult) * (field.isDefTailwind ? 2 : 1);
@@ -1649,19 +1902,35 @@ function runCalc() {
 
   const { attacker, defender, selectedMove, field } = calcState;
 
-  // Speed comparison display
+  // Speed comparison display (attacker panel + opponent panel)
+  const sc = (attacker && defender) ? computeSpeedComparison() : null;
   const scEl = document.getElementById("calc-speed-comp");
-  if (scEl) {
-    const sc = (attacker && defender) ? computeSpeedComparison() : null;
-    if (sc) {
+  const scOppEl = document.getElementById("calc-speed-comp-opp");
+  if (scEl) scEl.innerHTML = "";
+  if (scOppEl) scOppEl.innerHTML = "";
+  if (sc) {
+    const atkTwHtml = sc.atkTailwind ? ` <span style="color:#90caf9">TW</span>` : "";
+    const defTwHtml = sc.defTailwind ? ` <span style="color:#90caf9">TW</span>` : "";
+    const atkName = attacker.name || "You";
+    if (sc.isManual) {
+      const defSpeLabel = sc.defSpe || "?";
+      let atkResult, oppResult;
+      if (sc.outPct === 100) { atkResult = `<span style="color:#a5d6a7">Outspeeds</span>`; oppResult = `<span style="color:#ef9a9a">Slower</span>`; }
+      else if (sc.tiePct === 100) { atkResult = `<span style="color:#ffd54f">Speed tie</span>`; oppResult = `<span style="color:#ffd54f">Speed tie</span>`; }
+      else { atkResult = `<span style="color:#ef9a9a">Slower</span>`; oppResult = `<span style="color:#a5d6a7">Outspeeds</span>`; }
+      if (scEl) scEl.innerHTML = `<span style="color:#666">Spe ${sc.userSpe}${atkTwHtml} vs ${sc.defName} ${defSpeLabel}${defTwHtml} — </span>${atkResult}`;
+      if (scOppEl) scOppEl.innerHTML = `<span style="color:#666">Spe ${defSpeLabel}${defTwHtml} vs ${atkName} ${sc.userSpe}${atkTwHtml} — </span>${oppResult}`;
+    } else {
+      // Attacker panel: your speed vs opponent spreads
       const outColor = sc.outPct >= 75 ? "#a5d6a7" : sc.outPct >= 40 ? "#ffd54f" : "#ef9a9a";
       const tieHtml = sc.tiePct >= 1 ? ` | <span style="color:#ffd54f">Ties ${sc.tiePct.toFixed(0)}%</span>` : "";
       const sloHtml = ` | <span style="color:#ef9a9a">Slower ${sc.sloPct.toFixed(0)}%</span>`;
-      const atkTwHtml = sc.atkTailwind ? ` <span style="color:#90caf9">TW</span>` : "";
-      const defTwHtml = sc.defTailwind ? ` <span style="color:#90caf9">TW</span>` : "";
-      scEl.innerHTML = `<span style="color:#666">Spe ${sc.userSpe}${atkTwHtml} vs ${sc.defName}${defTwHtml} — </span><span style="color:${outColor}">Outspeeds ${sc.outPct.toFixed(0)}%</span>${tieHtml}${sloHtml} <span style="color:#444">of sets</span>`;
-    } else {
-      scEl.innerHTML = "";
+      if (scEl) scEl.innerHTML = `<span style="color:#666">Spe ${sc.userSpe}${atkTwHtml} vs ${sc.defName}${defTwHtml} — </span><span style="color:${outColor}">Outspeeds ${sc.outPct.toFixed(0)}%</span>${tieHtml}${sloHtml} <span style="color:#444">of sets</span>`;
+      // Opponent panel: opponent's perspective (inverted percentages)
+      const oppOutColor = sc.sloPct >= 75 ? "#a5d6a7" : sc.sloPct >= 40 ? "#ffd54f" : "#ef9a9a";
+      const oppTieHtml = sc.tiePct >= 1 ? ` | <span style="color:#ffd54f">Ties ${sc.tiePct.toFixed(0)}%</span>` : "";
+      const oppSloHtml = ` | <span style="color:#ef9a9a">Slower ${sc.outPct.toFixed(0)}%</span>`;
+      if (scOppEl) scOppEl.innerHTML = `<span style="color:#666">${sc.defName}${defTwHtml} vs ${atkName} ${sc.userSpe}${atkTwHtml} — </span><span style="color:${oppOutColor}">Outspeeds ${sc.sloPct.toFixed(0)}%</span>${oppTieHtml}${oppSloHtml} <span style="color:#444">of sets</span>`;
     }
   }
 
@@ -1683,7 +1952,14 @@ function runCalc() {
     if (!isDamagingMove(move)) {
       const reason = move.category === "Status" ? "is a status move" : "does not have supported damage data";
       html = `<div class="calc-result-section"><div style="color:#888">${move.name} ${reason} — no damage to calculate.</div></div>`;
+    } else if (defender.defenderMode === "manual" && defender.customStats) {
+      // Manual mode: single-result calc against specific stats
+      const official = calcOfficialResult(attacker, move, defender, effectiveField, hits, attacker.customStats, defender.customStats);
+      const result = official || calcMultihitRolls(attacker, move, defender.customStats,
+        defender.types, defender.tera, defender.ability, defender.item, effectiveField, defender.boosts, hits);
+      html = `<div class="calc-result-section">${renderSingleForwardResult(result, move, attacker, defender, effectiveField, hits)}</div>`;
     } else {
+      // Average mode: tier-based distribution
       const koDist = calcKODistribution(attacker, move, defender, effectiveField, hits);
       html = `<div class="calc-result-section">${renderForwardResults(koDist, move, attacker, defender, effectiveField, hits)}</div>`;
     }
@@ -1692,10 +1968,12 @@ function runCalc() {
       const reason = move.category === "Status" ? "is a status move" : "does not have supported damage data";
       html = `<div class="calc-result-section"><div style="color:#888">${move.name} ${reason} — no damage to calculate.</div></div>`;
     } else {
+      const defStats = (defender.defenderMode === "manual" && defender.customStats)
+        ? defender.customStats : defender.averageStats;
       const defAsAttacker = {
         name: defender.name, types: defender.types, ability: defender.ability,
         item: defender.item, tera: defender.tera, level: defender.level,
-        customStats: defender.averageStats, boosts: defender.boosts || {},
+        customStats: defStats, boosts: defender.boosts || {},
         status: defender.status || "Healthy",
         weightkg: defender.weightkg,
         baseStats: defender.baseStats || {},
@@ -1703,7 +1981,7 @@ function runCalc() {
         calcGeneration: defender.calcGeneration,
         speciesOverrides: defender.speciesOverrides,
       };
-      const official = calcOfficialResult(defAsAttacker, move, attacker, effectiveField, hits, defender.averageStats, attacker.customStats);
+      const official = calcOfficialResult(defAsAttacker, move, attacker, effectiveField, hits, defStats, attacker.customStats);
       const result = official || calcMultihitRolls(defAsAttacker, move, attacker.customStats,
         attacker.types, attacker.tera, attacker.ability, attacker.item, effectiveField, attacker.boosts, hits);
       html = `<div class="calc-result-section">${renderSingleResult(result, move, defAsAttacker, attacker, effectiveField, hits)}</div>`;
@@ -1810,19 +2088,95 @@ function selectSearchedMove(moveId, isAttacker) {
   onMoveClick(move.id, isAttacker);
 }
 
-function onAttackerPresetChange() {
-  const sel = document.getElementById("calc-attacker-preset");
-  if (!sel || !calcState.attacker) return;
-  const idx = parseInt(sel.value);
+function onAttackerPresetChange(val) {
+  if (!calcState.attacker) return;
+  const idx = parseInt(val);
   if (isNaN(idx)) return;
   const spread = calcState.attacker.spreads?.[idx];
   if (!spread) return;
   const [nature, evStr] = spread.spread.split(":");
   const evs = evStr ? evStr.split("/").map(Number) : Array(6).fill(0);
   fillEVTable(nature, evs);
+  const display = document.getElementById("calc-attacker-preset-display");
+  if (display) { display.textContent = spread.spread; display.dataset.value = val; }
   const noteEl = document.getElementById("calc-attacker-spread-note");
   if (noteEl) noteEl.textContent = spread.spread;
   calcState.attacker.customStats = computeStatsFromInputs();
+  runCalc();
+}
+
+function setDefenderMode(mode) {
+  const isAverage = mode === "average";
+  if (calcState.defender) calcState.defender.defenderMode = mode;
+
+  // Toggle column header
+  const colLabel = document.getElementById("calc-def-ev-col-label");
+  if (colLabel) colLabel.textContent = isAverage ? "Avg" : (calcState.defender?.isChampions ? "SP" : "EV");
+
+  // Toggle avg spans vs EV inputs
+  STAT_KEYS.forEach(k => {
+    const avgSpan = document.getElementById(`calc-def-avg-${k}`);
+    const evInput = document.getElementById(`calc-def-ev-${k}`);
+    if (avgSpan) avgSpan.style.display = isAverage ? "" : "none";
+    if (evInput) evInput.style.display = isAverage ? "none" : "";
+  });
+
+  // Toggle EV total row
+  const totalRow = document.getElementById("calc-def-ev-total-row");
+  if (totalRow) totalRow.style.display = isAverage ? "none" : "";
+
+  // Toggle nature dropdown
+  const natureEl = document.getElementById("calc-defender-nature");
+  if (natureEl) {
+    if (isAverage) {
+      natureEl.disabled = true;
+      natureEl.innerHTML = "<option>Average</option>";
+    } else {
+      natureEl.disabled = false;
+      populateNatureSelect("calc-defender-nature", calcState.defender?.nature || "Hardy");
+    }
+  }
+
+  // Update header text
+  const headerEl = document.getElementById("calc-defender-header");
+  if (headerEl) headerEl.textContent = isAverage ? "Average Opponent" : "Opponent";
+
+  // In manual mode, update EV input limits and compute stats
+  if (!isAverage && calcState.defender) {
+    updateDefenderEVInputLimits(calcState.defender.isChampions);
+    calcState.defender.customStats = computeDefenderStatsFromInputs();
+  }
+}
+
+function onDefenderPresetChange(val) {
+  if (!calcState.defender) return;
+  const display = document.getElementById("calc-defender-preset-display");
+
+  if (val === "average") {
+    if (display) { display.textContent = "Usage-weighted average"; display.dataset.value = "average"; }
+    setDefenderMode("average");
+    setDefenderStatDisplay(calcState.defender.baseStats, calcState.defender.averageStats);
+    runCalc();
+    return;
+  }
+
+  const idx = parseInt(val);
+  if (isNaN(idx)) return;
+  const spread = calcState.defender.spreads?.[idx];
+  if (!spread) return;
+
+  if (display) { display.textContent = spread.spread; display.dataset.value = val; }
+
+  const [nature, evStr] = spread.spread.split(":");
+  const evs = evStr ? evStr.split("/").map(Number) : Array(6).fill(0);
+
+  setDefenderMode("manual");
+  fillDefenderEVTable(nature, evs);
+
+  const noteEl = document.getElementById("calc-defender-spread-note");
+  if (noteEl) noteEl.textContent = spread.spread;
+
+  calcState.defender.customStats = computeDefenderStatsFromInputs();
   runCalc();
 }
 
@@ -1953,7 +2307,8 @@ async function onAttackerChange() {
     name: data.name, types: data.types, level: data.level, weightkg: data.weightkg || 0,
     isChampions: data.isChampions, calcGeneration: data.calcGeneration, calcSpecies: data.calcSpecies,
     speciesOverrides: data.speciesOverrides || {}, baseStats: data.baseStats || {},
-    ability: data.topAbility || "", item: data.topItem || "", status: "Healthy", tera: "None",
+    ability: data.topAbility || "", item: data.topItem || "", status: "Healthy",
+    tera: "None", _selectedTera: "None", teraActive: false,
     customStats: {}, spreads: data.spreads, allSpreads: data.allSpreads || data.spreads || [], topMoves: data.topMoves,
     boosts: { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, customMoves: [],
   };
@@ -1979,6 +2334,7 @@ async function onAttackerChange() {
   }
 
   calcState.attacker.customStats = computeStatsFromInputs() || data.averageStats;
+  syncTeraToggle(true);
   if (firstDamaging) calcState.selectedMove = { source: "attacker", move: firstDamaging, isCrit: false };
   runCalc();
 }
@@ -1993,11 +2349,10 @@ async function onDefenderChange() {
   if (!data) {
     if (noteEl) noteEl.textContent = "Not found in this format.";
     setDefenderStatDisplay({}, {});
-    const presetEl = document.getElementById("calc-defender-preset");
-    if (presetEl) {
-      presetEl.disabled = true;
-      presetEl.innerHTML = '<option value="">— load a Pokémon first —</option>';
-    }
+    const presetDisplay = document.getElementById("calc-defender-preset-display");
+    const presetDrop = document.getElementById("calc-defender-preset-dropdown");
+    if (presetDisplay) { presetDisplay.textContent = "— load a Pokémon first —"; presetDisplay.dataset.value = ""; }
+    if (presetDrop) presetDrop.innerHTML = "";
     const natureEl = document.getElementById("calc-defender-nature");
     if (natureEl) {
       natureEl.disabled = true;
@@ -2023,19 +2378,23 @@ async function onDefenderChange() {
     isChampions: data.isChampions || false, calcGeneration: data.calcGeneration, calcSpecies: data.calcSpecies,
     speciesOverrides: data.speciesOverrides || {}, baseStats: data.baseStats || {},
     spreads: data.spreads || [], allSpreads: data.allSpreads || data.spreads || [],
-    ability: data.topAbility || "", item: data.topItem || "", status: "Healthy", tera: "None",
+    ability: data.topAbility || "", item: data.topItem || "", status: "Healthy",
+    tera: "None", _selectedTera: "None", teraActive: false,
     averageStats: data.averageStats,
     defGroups: data.defGroups || [], spdGroups: data.spdGroups || [],
     atkGroups: data.atkGroups || [], spaGroups: data.spaGroups || [],
     defTiers: data.defTiers || {}, spdTiers: data.spdTiers || {},
     topMoves: data.topMoves,
     boosts: { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, customMoves: [],
+    defenderMode: "average",
   };
   // Reset opponent boost selects
   ["atk","spa","def","spd","spe"].forEach(k => {
     const el = document.getElementById(`calc-boost-opp-${k}`);
     if (el) { el.value = "0"; applyBoostColor(el); }
   });
+  setDefenderMode("average");
+  syncTeraToggle(false);
   setDefenderStatDisplay(data.baseStats || {}, data.averageStats || {});
   runCalc();
 }
@@ -2055,11 +2414,59 @@ function _handleCustomSelect(sel, stateProp, subProp) {
 function onAttackerAbilityChange() { _handleCustomSelect(document.getElementById("calc-attacker-ability"), "attacker", "ability"); }
 function onAttackerItemChange()    { _handleCustomSelect(document.getElementById("calc-attacker-item"), "attacker", "item"); }
 function onAttackerStatusChange()  { if (calcState.attacker) { calcState.attacker.status = document.getElementById("calc-attacker-status")?.value || "Healthy"; runCalc(); } }
-function onAttackerTeraChange()    { if (calcState.attacker) { calcState.attacker.tera = document.getElementById("calc-attacker-tera")?.value || "None"; runCalc(); } }
+function onAttackerTeraChange() {
+  if (!calcState.attacker) return;
+  const val = document.getElementById("calc-attacker-tera")?.value || "None";
+  calcState.attacker._selectedTera = val;
+  calcState.attacker.tera = calcState.attacker.teraActive ? val : "None";
+  syncTeraToggle(true);
+  runCalc();
+}
 function onDefenderAbilityChange() { _handleCustomSelect(document.getElementById("calc-defender-ability"), "defender", "ability"); }
 function onDefenderItemChange()    { _handleCustomSelect(document.getElementById("calc-defender-item"), "defender", "item"); }
 function onDefenderStatusChange()  { if (calcState.defender) { calcState.defender.status = document.getElementById("calc-defender-status")?.value || "Healthy"; runCalc(); } }
-function onDefenderTeraChange()    { if (calcState.defender) { calcState.defender.tera = document.getElementById("calc-defender-tera")?.value || "None"; runCalc(); } }
+function onDefenderTeraChange() {
+  if (!calcState.defender) return;
+  const val = document.getElementById("calc-defender-tera")?.value || "None";
+  calcState.defender._selectedTera = val;
+  calcState.defender.tera = calcState.defender.teraActive ? val : "None";
+  syncTeraToggle(false);
+  runCalc();
+}
+
+function syncTeraToggle(isAttacker) {
+  const prefix = isAttacker ? "calc-attacker" : "calc-defender";
+  const stateKey = isAttacker ? "attacker" : "defender";
+  const btn = document.getElementById(`${prefix}-tera-btn`);
+  if (!btn) return;
+  const st = calcState[stateKey];
+  if (!st) return;
+  const selected = st._selectedTera || "None";
+  const isOn = st.teraActive && selected !== "None";
+  btn.classList.toggle("tera-on", isOn);
+  btn.setAttribute("aria-pressed", isOn);
+  btn.textContent = selected !== "None" ? selected : "Tera";
+}
+
+function onTeraToggle(isAttacker) {
+  const prefix = isAttacker ? "calc-attacker" : "calc-defender";
+  const stateKey = isAttacker ? "attacker" : "defender";
+  const st = calcState[stateKey];
+  if (!st) return;
+  const sel = document.getElementById(`${prefix}-tera`);
+  if (!sel) return;
+  // If no type selected yet, pick the Pokemon's first type
+  if (!st._selectedTera || st._selectedTera === "None") {
+    const fallback = st.types?.[0] || "Normal";
+    st._selectedTera = fallback;
+    sel.value = fallback;
+  }
+  // Toggle active state
+  st.teraActive = !st.teraActive;
+  st.tera = st.teraActive ? st._selectedTera : "None";
+  syncTeraToggle(isAttacker);
+  runCalc();
+}
 
 function onFieldChange() {
   const checked = id => document.getElementById(id)?.checked || false;
@@ -2081,10 +2488,18 @@ function onFieldChange() {
   calcState.field.oppAuroraVeil = checked("calc-opp-auroraveil");
   calcState.field.oppTailwind = checked("calc-opp-tailwind");
   calcState.field.oppFriendGuard = checked("calc-opp-friendguard");
+  calcState.field.yourProtect = checked("calc-your-protect");
+  calcState.field.oppProtect = checked("calc-opp-protect");
+  calcState.field.yourBattery = checked("calc-your-battery");
+  calcState.field.yourPowerSpot = checked("calc-your-powerspot");
+  calcState.field.yourSteelySpirit = checked("calc-your-steelyspirit");
+  calcState.field.oppBattery = checked("calc-opp-battery");
+  calcState.field.oppPowerSpot = checked("calc-opp-powerspot");
+  calcState.field.oppSteelySpirit = checked("calc-opp-steelyspirit");
 
   calcState.field.isAtkTailwind = calcState.field.yourTailwind;
   calcState.field.isDefTailwind = calcState.field.oppTailwind;
-  calcState.field.isBurned = document.getElementById("calc-burned")?.checked || false;
+  calcState.field.isGravity = checked("calc-field-gravity");
   runCalc();
 }
 
@@ -2111,20 +2526,39 @@ function resetCalcPokemonState() {
   if (atkMoves) atkMoves.innerHTML = '<div style="color:#444;font-size:11px">Load a Pokémon to see moves</div>';
   if (defMoves) defMoves.innerHTML = '<div style="color:#444;font-size:11px">Load an opponent to see moves</div>';
 
-  const attackerPreset = document.getElementById("calc-attacker-preset");
-  if (attackerPreset) attackerPreset.innerHTML = '<option value="">— load a Pokémon first —</option>';
+  const atkPresetDisplay = document.getElementById("calc-attacker-preset-display");
+  const atkPresetDrop = document.getElementById("calc-attacker-preset-dropdown");
+  if (atkPresetDisplay) { atkPresetDisplay.textContent = "— load a Pokémon first —"; atkPresetDisplay.dataset.value = ""; }
+  if (atkPresetDrop) atkPresetDrop.innerHTML = "";
   const attackerNote = document.getElementById("calc-attacker-spread-note");
   if (attackerNote) attackerNote.textContent = "";
 
-  const defenderPreset = document.getElementById("calc-defender-preset");
-  if (defenderPreset) {
-    defenderPreset.disabled = true;
-    defenderPreset.innerHTML = '<option value="">— load a Pokémon first —</option>';
-  }
+  const defPresetDisplay = document.getElementById("calc-defender-preset-display");
+  const defPresetDrop = document.getElementById("calc-defender-preset-dropdown");
+  if (defPresetDisplay) { defPresetDisplay.textContent = "— load a Pokémon first —"; defPresetDisplay.dataset.value = ""; }
+  if (defPresetDrop) defPresetDrop.innerHTML = "";
   const defenderNote = document.getElementById("calc-defender-spread-note");
   if (defenderNote) defenderNote.textContent = "";
 
   setBaseStatDisplay({});
+  setDefenderStatDisplay({}, {});
+}
+
+function resetDefenderUI() {
+  const defInput = document.getElementById("calc-defender-input");
+  if (defInput) defInput.value = "";
+
+  const defMoves = document.getElementById("calc-def-movelist");
+  if (defMoves) defMoves.innerHTML = '<div style="color:#444;font-size:11px">Load an opponent to see moves</div>';
+
+  const defPresetDisplay = document.getElementById("calc-defender-preset-display");
+  const defPresetDrop = document.getElementById("calc-defender-preset-dropdown");
+  if (defPresetDisplay) { defPresetDisplay.textContent = "— load a Pokémon first —"; defPresetDisplay.dataset.value = ""; }
+  if (defPresetDrop) defPresetDrop.innerHTML = "";
+  const defenderNote = document.getElementById("calc-defender-spread-note");
+  if (defenderNote) defenderNote.textContent = "";
+
+  setDefenderMode("average");
   setDefenderStatDisplay({}, {});
 }
 
@@ -2149,7 +2583,9 @@ async function reloadCalcDataSource(formatCode, ratingValue) {
   if (!formatCode || !ratingValue) return;
   window.selectedFormat = formatCode;
   window.selectedRating = ratingValue;
-  resetCalcPokemonState();
+
+  // Clear cache only — preserve attacker, field, and (conditionally) defender state
+  calcCache = {};
   setCalcMessage("Loading usage data…");
 
   const monthParam = window.selectedMonth ? `?month=${encodeURIComponent(window.selectedMonth)}` : "";
@@ -2162,7 +2598,58 @@ async function reloadCalcDataSource(formatCode, ratingValue) {
     window.currentPokemonName = window.calcPokemonNames[0] || data.selected_pokemon || "";
     window.isChampions = !!data.is_champions;
     history.replaceState(null, "", `/calc/${encodeURIComponent(formatCode)}/${encodeURIComponent(ratingValue)}/${monthParam}`);
-    await loadDefaultCalcPokemon();
+
+    // Handle defender based on its current mode
+    if (calcState.defender) {
+      if (calcState.defender.defenderMode === "average") {
+        // Re-fetch defender data for new format/rating
+        const defName = document.getElementById("calc-defender-input")?.value.trim() || calcState.defender.name;
+        const defData = await fetchCalcData(defName);
+        if (defData) {
+          const defInput = document.getElementById("calc-defender-input");
+          if (defInput) defInput.value = defName;
+          // Preserve selected move source info before reloading defender
+          const prevSelectedMove = calcState.selectedMove;
+          await onDefenderChange();
+          // Restore the selected move if it was an attacker move
+          if (prevSelectedMove?.source === "attacker") {
+            calcState.selectedMove = prevSelectedMove;
+          }
+        } else {
+          // Pokemon doesn't exist in new format — clear defender
+          calcState.defender = null;
+          calcState.selectedMove = null;
+          resetDefenderUI();
+        }
+      }
+      // If in manual mode: preserve defender as-is (no changes needed)
+    }
+
+    // If no attacker loaded, load default
+    if (!calcState.attacker) {
+      const defaultName = getDefaultCalcPokemonName();
+      if (defaultName) {
+        const atkInput = document.getElementById("calc-attacker-input");
+        if (atkInput && !atkInput.value) {
+          atkInput.value = defaultName;
+          await onAttackerChange();
+        }
+      }
+    }
+
+    // If no defender loaded, load default
+    if (!calcState.defender) {
+      const defaultName = getDefaultCalcPokemonName();
+      if (defaultName) {
+        const defInput = document.getElementById("calc-defender-input");
+        if (defInput && !defInput.value) {
+          defInput.value = defaultName;
+          await onDefenderChange();
+        }
+      }
+    }
+
+    runCalc();
   } catch (e) {
     setCalcMessage("No damage calc data found for that format and rating.");
   }
@@ -2252,6 +2739,8 @@ function setRadioValue(name, value) {
 document.addEventListener("DOMContentLoaded", () => {
   initCalcAutocomplete("calc-attacker-input", "calc-attacker-dropdown", () => onAttackerChange());
   initCalcAutocomplete("calc-defender-input", "calc-defender-dropdown", () => onDefenderChange());
+  initPresetDropdown("calc-attacker-preset-display", "calc-attacker-preset-dropdown", onAttackerPresetChange);
+  initPresetDropdown("calc-defender-preset-display", "calc-defender-preset-dropdown", onDefenderPresetChange);
   initBoostSelects();
   initCalcSourceControls();
 
