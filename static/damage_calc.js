@@ -657,20 +657,21 @@ function summarizeOfficialTier(entries, isPhys) {
 }
 
 function buildOfficialTierResults(entries, isPhys) {
-  const total = entries.reduce((sum, e) => sum + (Number(e.weight) || 0), 0) || 1;
-  const buckets = { frail: [], average: [], bulky: [] };
-  let cumulative = 0;
-  for (const entry of [...entries].sort((a, b) => a.defStat - b.defStat)) {
-    const frac = cumulative / total;
-    if (frac < 0.33) buckets.frail.push(entry);
-    else if (frac < 0.67) buckets.average.push(entry);
-    else buckets.bulky.push(entry);
-    cumulative += Number(entry.weight) || 0;
+  const buckets = { ohko: [], "2hko": [], "3hko": [], survives: [] };
+  for (const entry of entries) {
+    const o = calcNHKOChance(entry.rolls, entry.hp, 1);
+    if (o > 0) { buckets.ohko.push(entry); continue; }
+    const t = calcNHKOChance(entry.rolls, entry.hp, 2);
+    if (t > 0) { buckets["2hko"].push(entry); continue; }
+    const h = calcNHKOChance(entry.rolls, entry.hp, 3);
+    if (h > 0) { buckets["3hko"].push(entry); continue; }
+    buckets.survives.push(entry);
   }
   return {
-    frail: summarizeOfficialTier(buckets.frail, isPhys),
-    average: summarizeOfficialTier(buckets.average, isPhys),
-    bulky: summarizeOfficialTier(buckets.bulky, isPhys),
+    ohko: summarizeOfficialTier(buckets.ohko, isPhys),
+    "2hko": summarizeOfficialTier(buckets["2hko"], isPhys),
+    "3hko": summarizeOfficialTier(buckets["3hko"], isPhys),
+    survives: summarizeOfficialTier(buckets.survives, isPhys),
   };
 }
 
@@ -721,77 +722,37 @@ function calcKODistributionOfficial(attacker, move, defenderData, field, hits = 
 }
 
 // ─── TIERED KO DISTRIBUTION ──────────────────────────────────────────────────
-// Returns { koPct, tiers: { frail?, average?, bulky? }, immune }
+// Returns { koPct, tiers: { ohko?, 2hko?, 3hko?, survives? }, immune }
 function calcKODistribution(attacker, move, defenderData, field, hits = 1) {
   const official = calcKODistributionOfficial(attacker, move, defenderData, field, hits);
   if (official) return official;
   if (!attacker || !move || !defenderData) return null;
   const isPhys = move.category === "Physical";
-  const tierData = isPhys ? defenderData.defTiers : defenderData.spdTiers;
   const allGroups = isPhys ? defenderData.defGroups : defenderData.spdGroups;
-  if (!tierData && !allGroups) return null;
+  if (!allGroups?.length) return null;
 
-  const tierNames = ["frail", "average", "bulky"];
-  const tierResults = {};
-  let overallW = 0, overallKO = 0;
+  const entries = [];
   let anyImmune = false;
 
-  for (const tierName of tierNames) {
-    const tier = tierData?.[tierName];
-    if (!tier) continue;
-
-    let tierW = 0, tierKO = 0;
-    let reprRolls = null, reprHP = 0;
-
-    for (const grp of tier.groups) {
-      const defStats = { hp: grp.hp, def: isPhys ? grp.def : 999, spd: isPhys ? 999 : grp.spd };
-      const result = calcMultihitRolls(attacker, move, defStats,
-        defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field, defenderData.boosts, hits);
-      if (!result) { tierW += grp.weight; continue; }
-      if (result.immune) { anyImmune = true; tierW += grp.weight; continue; }
-      const koCount = result.rolls.filter(r => r >= grp.hp).length;
-      tierKO += grp.weight * (koCount / 16);
-      tierW += grp.weight;
-      if (!reprRolls) { reprRolls = result.rolls; reprHP = grp.hp; }
-    }
-
-    if (tierW > 0) {
-      // Recalculate repr rolls using tier-level HP/def so % matches displayed stats
-      const tierReprStats = { hp: tier.hp, def: isPhys ? tier.def : 999, spd: isPhys ? 999 : tier.spd };
-      const tierReprRes = calcMultihitRolls(attacker, move, tierReprStats,
-        defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field, defenderData.boosts, hits);
-      if (tierReprRes && !tierReprRes.immune) { reprRolls = tierReprRes.rolls; reprHP = tier.hp; }
-      tierResults[tierName] = {
-        koPct: (tierKO / tierW) * 100,
-        weight: tier.weight,
-        hp: tier.hp,
-        defStat: isPhys ? tier.def : tier.spd,
-        reprRolls,
-        reprHP,
-      };
-    }
-    overallKO += tierKO;
-    overallW += tierW;
+  for (const grp of allGroups) {
+    const defStats = { hp: grp.hp, def: isPhys ? grp.def : 999, spd: isPhys ? 999 : grp.spd };
+    const result = calcMultihitRolls(attacker, move, defStats,
+      defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field, defenderData.boosts, hits);
+    const weight = Number(grp.weight) || 0;
+    if (!result) { entries.push({ weight, hp: grp.hp, defStat: isPhys ? grp.def : grp.spd, rolls: [0] }); continue; }
+    if (result.immune) { anyImmune = true; entries.push({ weight, hp: grp.hp, defStat: isPhys ? grp.def : grp.spd, rolls: [0], immune: true }); continue; }
+    entries.push({ weight, hp: grp.hp, defStat: isPhys ? grp.def : grp.spd, rolls: result.rolls });
   }
 
-  // If tiers not available, fall back to raw groups
-  if (Object.keys(tierResults).length === 0 && allGroups) {
-    for (const grp of allGroups) {
-      const defStats = { hp: grp.hp, def: isPhys ? grp.def : 999, spd: isPhys ? 999 : grp.spd };
-      const result = calcMultihitRolls(attacker, move, defStats,
-        defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field, defenderData.boosts, hits);
-      if (!result || result.immune) { overallW += grp.weight; continue; }
-      const koCount = result.rolls.filter(r => r >= grp.hp).length;
-      overallKO += grp.weight * (koCount / 16);
-      overallW += grp.weight;
-    }
-  }
+  if (!entries.length) return null;
+  const nonImmune = entries.filter(e => !e.immune);
+  const tiers = buildOfficialTierResults(entries, isPhys);
 
   return {
-    koPct: overallW > 0 ? (overallKO / overallW) * 100 : (anyImmune ? 0 : null),
-    tiers: tierResults,
+    koPct: calcWeightedNHKOChance(entries, 1),
+    tiers,
     isPhys,
-    immune: anyImmune && Object.keys(tierResults).length === 0,
+    immune: anyImmune && !nonImmune.length,
   };
 }
 
@@ -904,6 +865,7 @@ let calcState = {
     isHelpingHand: false, isAtkTailwind: false,
     isDefTailwind: false, isFriendGuard: false,
     isGravity: false,
+    isTrickRoom: false,
     isCritical: false,
   },
 };
@@ -1001,9 +963,10 @@ function applyEffectiveStat(el, base, boost) {
   }
 }
 
-function calcFinalStat(base, ev, natureMult, isHP, level) {
-  if (isHP) return Math.floor((2 * base + 31 + Math.floor(ev / 4)) * level / 100) + level + 10;
-  return Math.floor((Math.floor((2 * base + 31 + Math.floor(ev / 4)) * level / 100) + 5) * natureMult);
+function calcFinalStat(base, ev, natureMult, isHP, level, iv) {
+  if (iv === undefined) iv = 31;
+  if (isHP) return Math.floor((2 * base + iv + Math.floor(ev / 4)) * level / 100) + level + 10;
+  return Math.floor((Math.floor((2 * base + iv + Math.floor(ev / 4)) * level / 100) + 5) * natureMult);
 }
 function calcChampionsStat(base, sp, alignment, isHP) {
   if (isHP) return base + sp + 75;
@@ -1020,14 +983,18 @@ function computeStatsFromInputs() {
   const isChamp = atk.isChampions;
   const stats = {};
   const evTable = {};
+  const ivTable = {};
   for (const k of STAT_KEYS) {
     const ev = parseInt(document.getElementById(`calc-atk-ev-${k}`)?.value) || 0;
     evTable[k] = ev;
+    const rawIV = parseInt(document.getElementById(`calc-atk-iv-${k}`)?.value);
+    const iv = isChamp ? 31 : (isNaN(rawIV) ? 31 : rawIV);
+    ivTable[k] = iv;
     const base = atk.baseStats[k] || 0;
     const isHP = k === "hp";
     const mult = isHP ? 1 : (mods[k] || 1);
     stats[k] = isChamp ? calcChampionsStat(base, ev, mult, isHP)
-                       : calcFinalStat(base, ev, mult, isHP, level);
+                       : calcFinalStat(base, ev, mult, isHP, level, iv);
     const finalEl = document.getElementById(`calc-atk-final-${k}`);
     if (finalEl) {
       let natColor = "";
@@ -1047,7 +1014,7 @@ function computeStatsFromInputs() {
   }
   atk.nature = nature;
   atk.evs = evTable;
-  atk.ivs = { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
+  atk.ivs = ivTable;
   updateEVTotal();
   return stats;
 }
@@ -1084,6 +1051,13 @@ function setBaseStatDisplay(baseStats) {
   });
 }
 
+function toggleIVColumns(isChampions) {
+  const display = isChampions ? "none" : "";
+  document.querySelectorAll(".calc-atk-iv-col, .calc-def-iv-col").forEach(el => {
+    el.style.display = display;
+  });
+}
+
 // ─── DEFENDER STAT HELPERS ───────────────────────────────────────────────────
 function computeDefenderStatsFromInputs() {
   const def = calcState.defender;
@@ -1094,14 +1068,18 @@ function computeDefenderStatsFromInputs() {
   const isChamp = def.isChampions;
   const stats = {};
   const evTable = {};
+  const ivTable = {};
   for (const k of STAT_KEYS) {
     const ev = parseInt(document.getElementById(`calc-def-ev-${k}`)?.value) || 0;
     evTable[k] = ev;
+    const rawIV = parseInt(document.getElementById(`calc-def-iv-${k}`)?.value);
+    const iv = isChamp ? 31 : (isNaN(rawIV) ? 31 : rawIV);
+    ivTable[k] = iv;
     const base = def.baseStats[k] || 0;
     const isHP = k === "hp";
     const mult = isHP ? 1 : (mods[k] || 1);
     stats[k] = isChamp ? calcChampionsStat(base, ev, mult, isHP)
-                       : calcFinalStat(base, ev, mult, isHP, level);
+                       : calcFinalStat(base, ev, mult, isHP, level, iv);
     const finalEl = document.getElementById(`calc-def-final-${k}`);
     if (finalEl) {
       let natColor = "";
@@ -1121,7 +1099,7 @@ function computeDefenderStatsFromInputs() {
   }
   def.nature = nature;
   def.evs = evTable;
-  def.ivs = { hp: 31, atk: 31, def: 31, spa: 31, spd: 31, spe: 31 };
+  def.ivs = ivTable;
   updateDefenderEVTotal();
   return stats;
 }
@@ -1170,8 +1148,30 @@ function onDefenderStatChange() {
       if (v > max) { el.value = max; }
       if (v < 0) { el.value = 0; }
     }
+    // Clamp IV values (0-31)
+    const ivEl = document.getElementById(`calc-def-iv-${k}`);
+    if (ivEl) {
+      let iv = parseInt(ivEl.value) || 0;
+      if (iv > 31) { ivEl.value = 31; }
+      if (iv < 0) { ivEl.value = 0; }
+    }
   });
   calcState.defender.customStats = computeDefenderStatsFromInputs();
+
+  // Sync preset display to current nature+EVs
+  const nature = document.getElementById("calc-defender-nature")?.value || "Hardy";
+  const evTable = {};
+  STAT_KEYS.forEach(k => { evTable[k] = parseInt(document.getElementById(`calc-def-ev-${k}`)?.value) || 0; });
+  const currentStr = buildSpreadStr(nature, evTable);
+  const match = findMatchingSpread(calcState.defender.spreads, currentStr);
+  const display = document.getElementById("calc-defender-preset-display");
+  if (match) {
+    const readable = formatSpreadReadable(match.spread.spread);
+    if (display) { display.textContent = spreadDisplayText(readable, match.spread.weight); display.dataset.value = String(match.idx); }
+  } else {
+    if (display) { display.textContent = "Custom Spread"; display.dataset.value = ""; }
+  }
+
   runCalc();
 }
 
@@ -1183,27 +1183,148 @@ function populateTeraSelect(selectId, currentTera) {
   sel.innerHTML = types.map(t => `<option value="${t}"${t === currentTera ? " selected" : ""}>${t}</option>`).join("");
 }
 
-function populateAbilitySelect(selectId, allAbilities, top) {
-  const sel = document.getElementById(selectId);
-  if (!sel) return;
-  const options = [...new Set([top, ...allAbilities].filter(Boolean))];
-  sel.innerHTML = options.map(a => `<option value="${a}">${a}</option>`).join("");
-  sel.appendChild(Object.assign(document.createElement("option"), { value: "__custom__", textContent: "Other…" }));
+// Registry for option autocompletes (ability/item fields)
+const _optionACs = {};
+
+// Master lists from smogon-calc (populated on init)
+let _allAbilityNames = [];
+let _allItemNames = [];
+
+function loadSmogonCalcLists() {
+  const calc = getOfficialCalc();
+  if (!calc?.Generations) return;
+  try {
+    const gen = calc.Generations.get(9);
+    if (gen.abilities) _allAbilityNames = [...gen.abilities].map(a => a.name).sort();
+    if (gen.items) _allItemNames = [...gen.items].map(i => i.name).sort();
+  } catch (e) { /* ignore */ }
 }
 
-function populateItemSelect(selectId, allItems, top) {
-  const sel = document.getElementById(selectId);
-  if (!sel) return;
-  const options = ["None", ...new Set([top, ...allItems].filter(a => a && a.toLowerCase() !== "none"))];
-  sel.innerHTML = options.map(a => `<option value="${a}"${a === top ? " selected" : ""}>${a}</option>`).join("");
-  if (!top) sel.value = "None";
-  sel.appendChild(Object.assign(document.createElement("option"), { value: "__custom__", textContent: "Other…" }));
+function initOptionAutocomplete(inputId, dropdownId, onChange) {
+  const input = document.getElementById(inputId);
+  const dropdown = document.getElementById(dropdownId);
+  if (!input || !dropdown) return;
+  let activeIdx = -1;
+  // options: array of { name, usage } — usage may be null for non-usage entries
+  let options = [];
+
+  function setOptions(opts, selected) {
+    options = opts;
+    input.value = selected || "";
+  }
+
+  function filterItems(query) {
+    const val = query.trim().toLowerCase();
+    if (!val) return options;
+    const starts = options.filter(o => o.name.toLowerCase().startsWith(val));
+    const contains = options.filter(o => !o.name.toLowerCase().startsWith(val) && o.name.toLowerCase().includes(val));
+    return [...starts, ...contains];
+  }
+
+  function renderItem(o, i) {
+    const usageHtml = o.usage != null
+      ? `<span class="calc-ac-usage">${escapeHTML(o.usage.toFixed(1) + "%")}</span>`
+      : "";
+    return `<div class="calc-ac-item calc-option-ac-item" data-idx="${i}" data-name="${escapeHTML(o.name)}">
+      <span class="calc-ac-name">${escapeHTML(o.name)}</span>${usageHtml}</div>`;
+  }
+
+  function showItems(items) {
+    activeIdx = -1;
+    if (!items.length) { dropdown.style.display = "none"; return; }
+    dropdown.innerHTML = items.map(renderItem).join("");
+    dropdown.style.display = "block";
+    dropdown.querySelectorAll(".calc-ac-item").forEach(el => {
+      el.addEventListener("mousedown", e => { e.preventDefault(); choose(el.dataset.name); });
+    });
+  }
+
+  function choose(name) {
+    input.value = name;
+    dropdown.style.display = "none";
+    activeIdx = -1;
+    onChange(name);
+  }
+
+  function commit() {
+    const val = input.value.trim();
+    onChange(val);
+  }
+
+  function setActive(idx) {
+    const items = dropdown.querySelectorAll(".calc-ac-item");
+    items.forEach(el => el.classList.remove("active"));
+    activeIdx = Math.max(-1, Math.min(idx, items.length - 1));
+    if (activeIdx >= 0) items[activeIdx]?.classList.add("active");
+  }
+
+  input.addEventListener("input", () => showItems(filterItems(input.value)));
+  input.addEventListener("keydown", e => {
+    const items = dropdown.querySelectorAll(".calc-ac-item");
+    if (e.key === "ArrowDown") { e.preventDefault(); setActive(activeIdx + 1); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); setActive(activeIdx - 1); }
+    else if (e.key === "Enter") {
+      e.preventDefault();
+      if (activeIdx >= 0) choose(items[activeIdx].dataset.name);
+      else commit();
+    }
+    else if (e.key === "Escape") { dropdown.style.display = "none"; }
+  });
+  input.addEventListener("blur", () => setTimeout(() => { dropdown.style.display = "none"; commit(); }, 150));
+  input.addEventListener("focus", () => { setTimeout(() => input.select(), 0); showItems(options); });
+  input.addEventListener("click", () => showItems(options));
+
+  _optionACs[inputId] = { setOptions };
+}
+
+function populateAbilitySelect(inputId, allAbilities, top) {
+  const ac = _optionACs[inputId];
+  if (!ac) return;
+  // allAbilities: [{name, usage}] from API
+  const usageNames = new Set(allAbilities.map(a => a.name));
+  const rest = _allAbilityNames.filter(n => !usageNames.has(n)).map(n => ({ name: n, usage: null }));
+  ac.setOptions([...allAbilities, ...rest], top || (allAbilities[0]?.name) || "");
+}
+
+function populateItemSelect(inputId, allItems, top) {
+  const ac = _optionACs[inputId];
+  if (!ac) return;
+  // allItems: [{name, usage}] from API
+  const usageNames = new Set(allItems.map(a => a.name));
+  const rest = _allItemNames.filter(n => !usageNames.has(n) && n.toLowerCase() !== "none").map(n => ({ name: n, usage: null }));
+  ac.setOptions([{ name: "None", usage: null }, ...allItems, ...rest], top || "None");
+}
+
+function formatSpreadReadable(spreadStr) {
+  const [nature, evStr] = (spreadStr || "").split(":");
+  if (!nature || !evStr) return spreadStr || "";
+  const labels = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"];
+  const evs = evStr.split("/").map(Number);
+  const parts = evs.map((v, i) => v ? `${v} ${labels[i]}` : "").filter(Boolean);
+  return parts.length ? `${nature} ${parts.join(" / ")}` : nature;
+}
+
+function buildSpreadStr(nature, evs) {
+  return nature + ":" + STAT_KEYS.map(k => evs[k] || 0).join("/");
+}
+
+function findMatchingSpread(spreads, spreadStr) {
+  if (!spreads) return null;
+  for (let i = 0; i < spreads.length; i++) {
+    if (spreads[i].spread === spreadStr) return { idx: i, spread: spreads[i] };
+  }
+  return null;
+}
+
+function spreadDisplayText(readableStr, weight) {
+  const pct = (weight * 100).toFixed(1) + "%";
+  return readableStr + "  (" + pct + ")";
 }
 
 function spreadItemHTML(spread, idx, dataAttr = "data-idx") {
   const pct = (spread.weight * 100).toFixed(1) + "%";
   return `<div class="calc-ac-item calc-preset-item" ${dataAttr}="${idx}">
-    <span class="calc-preset-name">${escapeHTML(spread.spread)}</span>
+    <span class="calc-preset-name">${escapeHTML(formatSpreadReadable(spread.spread))}</span>
     <span class="calc-preset-usage">${escapeHTML(pct)}</span>
   </div>`;
 }
@@ -1242,8 +1363,7 @@ function populatePresetSelect(data) {
   }
   dropdown.innerHTML = data.spreads.map((s, i) => spreadItemHTML(s, i)).join("");
   const first = data.spreads[0];
-  const pct = (first.weight * 100).toFixed(1) + "%";
-  display.textContent = first.spread;
+  display.textContent = spreadDisplayText(formatSpreadReadable(first.spread), first.weight);
   display.dataset.value = "0";
 }
 
@@ -1256,13 +1376,8 @@ function populateDefenderPresetDisplay(data) {
     </div>`;
     html += (data.spreads || []).map((s, i) => spreadItemHTML(s, i, "data-value")).join("");
     dropdown.innerHTML = html;
-    display.textContent = "Usage-weighted average";
+    display.innerHTML = `Usage-weighted average${tipHTML("Stats are averaged across all spreads this Pokémon runs on ladder, weighted by usage. Damage is calculated against every individual spread.")}`;
     display.dataset.value = "average";
-  }
-  const noteEl = document.getElementById("calc-defender-spread-note");
-  if (noteEl) {
-    const firstSpread = data.spreads?.[0];
-    noteEl.textContent = firstSpread ? `Most common: ${firstSpread.spread}` : "";
   }
 }
 
@@ -1411,7 +1526,9 @@ function renderAttackerMoveList() {
     if (defender && isDamagingMove(m)) {
       dmgLabel = `<span class="move-dmg-badge">${quickDamageSummary(attacker, m, defender, moveField, hits)}</span>`;
     }
-    const catLabel = m.category === "Physical" ? "Phy" : m.category === "Special" ? "Spc" : "Sta";
+    const isStatus = m.category === "Status";
+    const catLabel = m.category === "Physical" ? "Phy" : m.category === "Special" ? "Spc" : "Status";
+    const critBtn = isStatus ? "" : `<button type="button" class="move-crit-btn${isCrit ? " crit-on" : ""}" data-moveid="${escapeHTML(m.id)}" aria-pressed="${isCrit}" onclick="onMoveCritToggle(this.dataset.moveid, true)">Crit</button>`;
     return `<div class="calc-move-row">
       <div class="calc-move-btn${isSel ? " selected" : ""}" data-moveid="${escapeHTML(m.id)}" onclick="onMoveClick(this.dataset.moveid, true)">
         <span class="move-name">${m.name}</span>${m.id.startsWith("custom") ? " <span style='color:#555;font-size:10px'>(custom)</span>" : ""}
@@ -1420,7 +1537,7 @@ function renderAttackerMoveList() {
         ${dmgLabel}
       </div>
       ${renderHitsDropdown(m, "attacker", true)}
-      <button type="button" class="move-crit-btn${isCrit ? " crit-on" : ""}" data-moveid="${escapeHTML(m.id)}" aria-pressed="${isCrit}" onclick="onMoveCritToggle(this.dataset.moveid, true)">Crit</button>
+      ${critBtn}
     </div>`;
   }).join("") || '<div style="color:#555;font-size:12px">No moves</div>';
 }
@@ -1442,7 +1559,9 @@ function renderDefenderMoveList() {
     if (attacker && isDamagingMove(m)) {
       dmgLabel = `<span class="move-dmg-badge">${quickReverseSummary(defender, m, attacker, moveField, hits)}</span>`;
     }
-    const catLabel = m.category === "Physical" ? "Phy" : m.category === "Special" ? "Spc" : "Sta";
+    const isStatus = m.category === "Status";
+    const catLabel = m.category === "Physical" ? "Phy" : m.category === "Special" ? "Spc" : "Status";
+    const critBtn = isStatus ? "" : `<button type="button" class="move-crit-btn${isCrit ? " crit-on" : ""}" data-moveid="${escapeHTML(m.id)}" aria-pressed="${isCrit}" onclick="onMoveCritToggle(this.dataset.moveid, false)">Crit</button>`;
     return `<div class="calc-move-row">
       <div class="calc-move-btn${isSel ? " selected" : ""}" data-moveid="${escapeHTML(m.id)}" onclick="onMoveClick(this.dataset.moveid, false)">
         <span class="move-name">${m.name}</span>${m.id.startsWith("custom") ? " <span style='color:#555;font-size:10px'>(custom)</span>" : ""}
@@ -1451,16 +1570,17 @@ function renderDefenderMoveList() {
         ${dmgLabel}
       </div>
       ${renderHitsDropdown(m, "defender", false)}
-      <button type="button" class="move-crit-btn${isCrit ? " crit-on" : ""}" data-moveid="${escapeHTML(m.id)}" aria-pressed="${isCrit}" onclick="onMoveCritToggle(this.dataset.moveid, false)">Crit</button>
+      ${critBtn}
     </div>`;
   }).join("") || '<div style="color:#555;font-size:12px">No moves</div>';
 }
 
 // ─── RESULTS RENDERING ────────────────────────────────────────────────────────
 const TIER_CONFIG = {
-  frail:   { label: "Frail",   color: "#ef9a9a", bg: "#ef9a9a20" },
-  average: { label: "Average", color: "#ffd54f", bg: "#ffd54f20" },
-  bulky:   { label: "Bulky",   color: "#a5d6a7", bg: "#a5d6a720" },
+  ohko:     { label: "OHKO range",  color: "#ef5350", bg: "#ef535020", tip: "Sets where at least one damage roll can knock out in a single hit." },
+  "2hko":   { label: "2HKO range",  color: "#ffa726", bg: "#ffa72620", tip: "Sets that require two hits to knock out." },
+  "3hko":   { label: "3HKO range",  color: "#ffd54f", bg: "#ffd54f20", tip: "Sets that require three hits to knock out." },
+  survives: { label: "Survives",    color: "#a5d6a7", bg: "#a5d6a720", tip: "Sets that survive three or more hits." },
 };
 
 // Returns HTML of factor chips affecting the damage calculation
@@ -1709,7 +1829,8 @@ function renderForwardResults(koDist, move, attacker, defenderData, field, hits 
   const defLabel = koDist.isPhys ? "Def" : "SpD";
   let html = renderFactorChips(attacker, move, defenderData, field);
 
-  const tierNames = ["frail", "average", "bulky"];
+  const tierNames = ["ohko", "2hko", "3hko", "survives"];
+  const activeTierCount = tierNames.filter(n => koDist.tiers[n]?.reprRolls).length;
   let hasTiers = false;
   let w2 = 0, w3 = 0, wTotal = 0;
   let allMinPct = Infinity, allMaxPct = -Infinity;
@@ -1732,17 +1853,25 @@ function renderForwardResults(koDist, move, attacker, defenderData, field, hits 
     const p2 = tier.rollResults ? calcWeightedNHKOChance(tier.rollResults, 2) : calcNHKOChance(rolls, hp, 2);
     const p3 = tier.rollResults ? calcWeightedNHKOChance(tier.rollResults, 3) : calcNHKOChance(rolls, hp, 3);
     w2 += tier.weight * p2; w3 += tier.weight * p3; wTotal += tier.weight;
-    html += `<div class="calc-tier-row" style="border-left:3px solid ${cfg.color}">
-      <div class="calc-tier-left">
-        <span class="calc-tier-badge" style="background:${cfg.bg};color:${cfg.color}">${cfg.label}</span>
-        <span class="calc-tier-stats">HP ${tier.hp} / ${defLabel} ${tier.defStat}</span>
-        <span class="calc-tier-freq">${pct}% of sets</span>
-      </div>
-      <div class="calc-tier-right">
-        <span class="calc-tier-dmg">${minD}–${maxD} <strong>(${minP}–${maxP}%)</strong></span>
-        ${tier.rollResults ? renderWeightedNHKORow(tier.rollResults) : renderNHKORow(rolls, hp)}
-      </div>
-    </div>`;
+    // Skip rendering tier rows when there's only 1 tier — the primary result already covers it
+    if (activeTierCount > 1) {
+      // Show KO chance within bucket for context
+      const bucketKO = tier.rollResults ? calcWeightedNHKOChance(tier.rollResults, name === "ohko" ? 1 : name === "2hko" ? 2 : 3) : 0;
+      const koDetail = name !== "survives" && bucketKO > 0
+        ? `<span style="color:#888;font-size:11px">${bucketKO >= 100 ? "guaranteed" : `avg ${bucketKO.toFixed(1)}% chance`}</span>`
+        : "";
+      html += `<div class="calc-tier-row" style="border-left:3px solid ${cfg.color}">
+        <div class="calc-tier-left">
+          <span class="calc-tier-badge" style="background:${cfg.bg};color:${cfg.color}">${cfg.label}${tipHTML(cfg.tip)}</span>
+          <span class="calc-tier-freq">${pct}% of sets</span>
+          ${koDetail}
+        </div>
+        <div class="calc-tier-right">
+          <span class="calc-tier-dmg">${minD}–${maxD} <strong>(${minP}–${maxP}%)</strong></span>
+          ${tier.rollResults ? renderWeightedNHKORow(tier.rollResults) : renderNHKORow(rolls, hp)}
+        </div>
+      </div>`;
+    }
   }
 
   if (!hasTiers) {
@@ -1756,15 +1885,18 @@ function renderForwardResults(koDist, move, attacker, defenderData, field, hits 
   else if (overall2 > 0)  { ovLabel = "2HKO"; ovPct = overall2; }
   else if (overall3 > 0)  { ovLabel = "3HKO"; ovPct = overall3; }
   const ovHTML = ovLabel ? renderKOLabel(ovPct, ovLabel) : `<span style="color:#444">Cannot 3HKO</span>`;
-  html += `<div class="calc-overall-ko"><strong>Weighted overall:</strong> ${ovHTML} <span style="color:#555;font-size:11px">across all usage sets</span></div>`;
+  // Show the weighted overall line only when there are multiple tiers to aggregate
+  if (activeTierCount > 1) {
+    html += `<div class="calc-overall-ko"><strong>Weighted overall:</strong>${tipHTML("KO chance averaged across all opponent spreads, weighted by how often each spread is used on ladder.")} ${ovHTML} <span style="color:#555;font-size:11px">across all usage sets</span></div>`;
+  }
 
   const damageSummary = isFinite(allMinPct) && isFinite(allMaxPct)
     ? `${allMinPct.toFixed(1)}-${allMaxPct.toFixed(1)}%`
     : "No damage range";
-  const primaryHTML = renderPrimaryResult(`${moveName} -> ${defenderName}`, damageSummary, ovHTML, "weighted across usage sets");
+  const primaryHTML = renderPrimaryResult(`${moveName} -> ${defenderName}`, damageSummary, ovHTML, `weighted across usage sets${tipHTML("Damage range and KO chance calculated against every spread your opponent runs, weighted by popularity.")}`);
 
   // Calc string: overall damage range (min of all tier mins → max of all tier maxes)
-  const reprTier = koDist.tiers.average || koDist.tiers.frail || koDist.tiers.bulky;
+  const reprTier = koDist.tiers.ohko || koDist.tiers["2hko"] || koDist.tiers["3hko"] || koDist.tiers.survives;
   let calcStringHTML = "";
   if (reprTier?.reprRolls) {
     const overridePcts = {
@@ -1838,12 +1970,13 @@ function renderSingleForwardResult(result, move, attacker, defender, field, hits
 }
 
 // ─── SPEED COMPARISON ────────────────────────────────────────────────────────
-function defSpeedFromSpread(spreadStr, baseSpe, level, isChampions) {
+function defSpeedFromSpread(spreadStr, baseSpe, level, isChampions, iv) {
+  if (iv === undefined) iv = 31;
   const [nature, evStr] = spreadStr.split(":");
   const speEV = evStr ? (parseInt(evStr.split("/")[5]) || 0) : 0;
   const natMult = (NATURES[nature] || {}).spe || 1;
   if (isChampions) return Math.floor((baseSpe + speEV + 20) * natMult);
-  return Math.floor((Math.floor((2 * baseSpe + 31 + Math.floor(speEV / 4)) * level / 100) + 5) * natMult);
+  return Math.floor((Math.floor((2 * baseSpe + iv + Math.floor(speEV / 4)) * level / 100) + 5) * natMult);
 }
 
 function computeSpeedComparison() {
@@ -1852,6 +1985,7 @@ function computeSpeedComparison() {
   const userSpe = baseSpe * (field.isAtkTailwind ? 2 : 1);
   const def = calcState.defender;
   if (!baseSpe || !def) return null;
+  const isTR = field.isTrickRoom;
 
   const defSpeBoost = (def.boosts || {}).spe || 0;
   const defSpeBoostMult = defSpeBoost >= 0 ? (2 + defSpeBoost) / 2 : 2 / (2 + Math.abs(defSpeBoost));
@@ -1859,12 +1993,15 @@ function computeSpeedComparison() {
   // Manual mode: single speed value comparison
   if (def.defenderMode === "manual" && def.customStats?.spe) {
     const defSpe = Math.floor(def.customStats.spe * defSpeBoostMult) * (field.isDefTailwind ? 2 : 1);
+    const faster = isTR ? (userSpe < defSpe) : (userSpe > defSpe);
+    const slower = isTR ? (userSpe > defSpe) : (userSpe < defSpe);
     return {
-      outPct: userSpe > defSpe ? 100 : 0,
+      outPct: faster ? 100 : 0,
       tiePct: userSpe === defSpe ? 100 : 0,
-      sloPct: userSpe < defSpe ? 100 : 0,
+      sloPct: slower ? 100 : 0,
       userSpe, baseSpe, defSpe,
       atkTailwind: field.isAtkTailwind, defTailwind: field.isDefTailwind,
+      isTrickRoom: isTR,
       defName: def.name,
       isManual: true,
     };
@@ -1878,7 +2015,7 @@ function computeSpeedComparison() {
     const defSpe = Math.floor(defBaseSpe * defSpeBoostMult) * (field.isDefTailwind ? 2 : 1);
     const w = s.usage || 1;
     totalW += w;
-    if (userSpe > defSpe) outW += w;
+    if (isTR ? (userSpe < defSpe) : (userSpe > defSpe)) outW += w;
     else if (userSpe === defSpe) tieW += w;
   }
   if (!totalW) return null;
@@ -1888,6 +2025,7 @@ function computeSpeedComparison() {
     sloPct: ((totalW - outW - tieW) / totalW) * 100,
     userSpe, baseSpe,
     atkTailwind: field.isAtkTailwind, defTailwind: field.isDefTailwind,
+    isTrickRoom: isTR,
     defName: def.name,
   };
 }
@@ -1911,6 +2049,7 @@ function runCalc() {
   if (sc) {
     const atkTwHtml = sc.atkTailwind ? ` <span style="color:#90caf9">TW</span>` : "";
     const defTwHtml = sc.defTailwind ? ` <span style="color:#90caf9">TW</span>` : "";
+    const trHtml = sc.isTrickRoom ? ` <span style="color:#ce93d8">TR</span>` : "";
     const atkName = attacker.name || "You";
     if (sc.isManual) {
       const defSpeLabel = sc.defSpe || "?";
@@ -1918,19 +2057,19 @@ function runCalc() {
       if (sc.outPct === 100) { atkResult = `<span style="color:#a5d6a7">Outspeeds</span>`; oppResult = `<span style="color:#ef9a9a">Slower</span>`; }
       else if (sc.tiePct === 100) { atkResult = `<span style="color:#ffd54f">Speed tie</span>`; oppResult = `<span style="color:#ffd54f">Speed tie</span>`; }
       else { atkResult = `<span style="color:#ef9a9a">Slower</span>`; oppResult = `<span style="color:#a5d6a7">Outspeeds</span>`; }
-      if (scEl) scEl.innerHTML = `<span style="color:#666">Spe ${sc.userSpe}${atkTwHtml} vs ${sc.defName} ${defSpeLabel}${defTwHtml} — </span>${atkResult}`;
-      if (scOppEl) scOppEl.innerHTML = `<span style="color:#666">Spe ${defSpeLabel}${defTwHtml} vs ${atkName} ${sc.userSpe}${atkTwHtml} — </span>${oppResult}`;
+      if (scEl) scEl.innerHTML = `<span style="color:#666">Spe ${sc.userSpe}${atkTwHtml} vs ${sc.defName} ${defSpeLabel}${defTwHtml}${trHtml} — </span>${atkResult}`;
+      if (scOppEl) scOppEl.innerHTML = `<span style="color:#666">Spe ${defSpeLabel}${defTwHtml} vs ${atkName} ${sc.userSpe}${atkTwHtml}${trHtml} — </span>${oppResult}`;
     } else {
       // Attacker panel: your speed vs opponent spreads
       const outColor = sc.outPct >= 75 ? "#a5d6a7" : sc.outPct >= 40 ? "#ffd54f" : "#ef9a9a";
       const tieHtml = sc.tiePct >= 1 ? ` | <span style="color:#ffd54f">Ties ${sc.tiePct.toFixed(0)}%</span>` : "";
       const sloHtml = ` | <span style="color:#ef9a9a">Slower ${sc.sloPct.toFixed(0)}%</span>`;
-      if (scEl) scEl.innerHTML = `<span style="color:#666">Spe ${sc.userSpe}${atkTwHtml} vs ${sc.defName}${defTwHtml} — </span><span style="color:${outColor}">Outspeeds ${sc.outPct.toFixed(0)}%</span>${tieHtml}${sloHtml} <span style="color:#444">of sets</span>`;
+      if (scEl) scEl.innerHTML = `<span style="color:#666">Spe ${sc.userSpe}${atkTwHtml} vs ${sc.defName}${defTwHtml}${trHtml} — </span><span style="color:${outColor}">Outspeeds ${sc.outPct.toFixed(0)}%</span>${tieHtml}${sloHtml} <span style="color:#444">of sets</span>`;
       // Opponent panel: opponent's perspective (inverted percentages)
       const oppOutColor = sc.sloPct >= 75 ? "#a5d6a7" : sc.sloPct >= 40 ? "#ffd54f" : "#ef9a9a";
       const oppTieHtml = sc.tiePct >= 1 ? ` | <span style="color:#ffd54f">Ties ${sc.tiePct.toFixed(0)}%</span>` : "";
       const oppSloHtml = ` | <span style="color:#ef9a9a">Slower ${sc.outPct.toFixed(0)}%</span>`;
-      if (scOppEl) scOppEl.innerHTML = `<span style="color:#666">${sc.defName}${defTwHtml} vs ${atkName} ${sc.userSpe}${atkTwHtml} — </span><span style="color:${oppOutColor}">Outspeeds ${sc.sloPct.toFixed(0)}%</span>${oppTieHtml}${oppSloHtml} <span style="color:#444">of sets</span>`;
+      if (scOppEl) scOppEl.innerHTML = `<span style="color:#666">${sc.defName}${defTwHtml} vs ${atkName} ${sc.userSpe}${atkTwHtml}${trHtml} — </span><span style="color:${oppOutColor}">Outspeeds ${sc.sloPct.toFixed(0)}%</span>${oppTieHtml}${oppSloHtml} <span style="color:#444">of sets</span>`;
     }
   }
 
@@ -2098,9 +2237,7 @@ function onAttackerPresetChange(val) {
   const evs = evStr ? evStr.split("/").map(Number) : Array(6).fill(0);
   fillEVTable(nature, evs);
   const display = document.getElementById("calc-attacker-preset-display");
-  if (display) { display.textContent = spread.spread; display.dataset.value = val; }
-  const noteEl = document.getElementById("calc-attacker-spread-note");
-  if (noteEl) noteEl.textContent = spread.spread;
+  if (display) { display.textContent = spreadDisplayText(formatSpreadReadable(spread.spread), spread.weight); display.dataset.value = val; }
   calcState.attacker.customStats = computeStatsFromInputs();
   runCalc();
 }
@@ -2153,7 +2290,7 @@ function onDefenderPresetChange(val) {
   const display = document.getElementById("calc-defender-preset-display");
 
   if (val === "average") {
-    if (display) { display.textContent = "Usage-weighted average"; display.dataset.value = "average"; }
+    if (display) { display.innerHTML = `Usage-weighted average${tipHTML("Stats are averaged across all spreads this Pokémon runs on ladder, weighted by usage. Damage is calculated against every individual spread.")}`; display.dataset.value = "average"; }
     setDefenderMode("average");
     setDefenderStatDisplay(calcState.defender.baseStats, calcState.defender.averageStats);
     runCalc();
@@ -2165,16 +2302,13 @@ function onDefenderPresetChange(val) {
   const spread = calcState.defender.spreads?.[idx];
   if (!spread) return;
 
-  if (display) { display.textContent = spread.spread; display.dataset.value = val; }
+  if (display) { display.textContent = spreadDisplayText(formatSpreadReadable(spread.spread), spread.weight); display.dataset.value = val; }
 
   const [nature, evStr] = spread.spread.split(":");
   const evs = evStr ? evStr.split("/").map(Number) : Array(6).fill(0);
 
   setDefenderMode("manual");
   fillDefenderEVTable(nature, evs);
-
-  const noteEl = document.getElementById("calc-defender-spread-note");
-  if (noteEl) noteEl.textContent = spread.spread;
 
   calcState.defender.customStats = computeDefenderStatsFromInputs();
   runCalc();
@@ -2267,20 +2401,39 @@ function onAttackerStatChange() {
       if (v > max) { el.value = max; }
       if (v < 0) { el.value = 0; }
     }
+    // Clamp IV values (0-31)
+    const ivEl = document.getElementById(`calc-atk-iv-${k}`);
+    if (ivEl) {
+      let iv = parseInt(ivEl.value) || 0;
+      if (iv > 31) { ivEl.value = 31; }
+      if (iv < 0) { ivEl.value = 0; }
+    }
   });
   calcState.attacker.customStats = computeStatsFromInputs();
+
+  // Sync preset display to current nature+EVs
+  const nature = document.getElementById("calc-atk-nature")?.value || "Hardy";
+  const evTable = {};
+  STAT_KEYS.forEach(k => { evTable[k] = parseInt(document.getElementById(`calc-atk-ev-${k}`)?.value) || 0; });
+  const currentStr = buildSpreadStr(nature, evTable);
+  const match = findMatchingSpread(calcState.attacker.spreads, currentStr);
+  const display = document.getElementById("calc-attacker-preset-display");
+  if (match) {
+    const readable = formatSpreadReadable(match.spread.spread);
+    if (display) { display.textContent = spreadDisplayText(readable, match.spread.weight); display.dataset.value = String(match.idx); }
+  } else {
+    if (display) { display.textContent = "Custom Spread"; display.dataset.value = ""; }
+  }
+
   runCalc();
 }
 
 async function onAttackerChange() {
   const input = document.getElementById("calc-attacker-input")?.value.trim();
   if (!input) return;
-  const noteEl = document.getElementById("calc-attacker-spread-note");
-  if (noteEl) noteEl.textContent = "Loading…";
 
   const data = await fetchCalcData(input);
   if (!data) {
-    if (noteEl) noteEl.textContent = "Not found in this format.";
     calcState.attacker = null;
     return;
   }
@@ -2300,6 +2453,12 @@ async function onAttackerChange() {
   const evLabel = document.getElementById("calc-ev-col-label");
   if (evLabel) evLabel.textContent = data.isChampions ? "SP" : "EV";
   updateEVInputLimits(data.isChampions);
+  toggleIVColumns(data.isChampions);
+  // Reset IV inputs to 31 for new Pokemon
+  STAT_KEYS.forEach(k => {
+    const el = document.getElementById(`calc-atk-iv-${k}`);
+    if (el) el.value = 31;
+  });
 
   // Store attacker state (needed by computeStatsFromInputs)
   const firstDamaging = data.topMoves.find(isDamagingMove);
@@ -2327,10 +2486,8 @@ async function onAttackerChange() {
     const [nature, evStr] = firstSpread.spread.split(":");
     const evs = evStr ? evStr.split("/").map(Number) : Array(6).fill(0);
     fillEVTable(nature, evs);
-    if (noteEl) noteEl.textContent = firstSpread.spread;
   } else {
     fillEVTable("Hardy", Array(6).fill(0));
-    if (noteEl) noteEl.textContent = "";
   }
 
   calcState.attacker.customStats = computeStatsFromInputs() || data.averageStats;
@@ -2342,12 +2499,9 @@ async function onAttackerChange() {
 async function onDefenderChange() {
   const input = document.getElementById("calc-defender-input")?.value.trim();
   if (!input) return;
-  const noteEl = document.getElementById("calc-defender-spread-note");
-  if (noteEl) noteEl.textContent = "Loading…";
 
   const data = await fetchCalcData(input);
   if (!data) {
-    if (noteEl) noteEl.textContent = "Not found in this format.";
     setDefenderStatDisplay({}, {});
     const presetDisplay = document.getElementById("calc-defender-preset-display");
     const presetDrop = document.getElementById("calc-defender-preset-dropdown");
@@ -2393,26 +2547,20 @@ async function onDefenderChange() {
     const el = document.getElementById(`calc-boost-opp-${k}`);
     if (el) { el.value = "0"; applyBoostColor(el); }
   });
+  // Reset IV inputs to 31 for new Pokemon
+  STAT_KEYS.forEach(k => {
+    const el = document.getElementById(`calc-def-iv-${k}`);
+    if (el) el.value = 31;
+  });
   setDefenderMode("average");
   syncTeraToggle(false);
   setDefenderStatDisplay(data.baseStats || {}, data.averageStats || {});
   runCalc();
 }
 
-function _handleCustomSelect(sel, stateProp, subProp) {
-  if (!calcState[stateProp]) return;
-  if (sel.value === "__custom__") {
-    const v = prompt("Enter name:");
-    if (v) calcState[stateProp][subProp] = v;
-    else return;
-  } else {
-    calcState[stateProp][subProp] = sel.value === "None" ? "" : sel.value;
-  }
-  runCalc();
-}
 
-function onAttackerAbilityChange() { _handleCustomSelect(document.getElementById("calc-attacker-ability"), "attacker", "ability"); }
-function onAttackerItemChange()    { _handleCustomSelect(document.getElementById("calc-attacker-item"), "attacker", "item"); }
+function onAttackerAbilityChange(val) { if (calcState.attacker) { calcState.attacker.ability = val || ""; runCalc(); } }
+function onAttackerItemChange(val)    { if (calcState.attacker) { calcState.attacker.item = (!val || val === "None") ? "" : val; runCalc(); } }
 function onAttackerStatusChange()  { if (calcState.attacker) { calcState.attacker.status = document.getElementById("calc-attacker-status")?.value || "Healthy"; runCalc(); } }
 function onAttackerTeraChange() {
   if (!calcState.attacker) return;
@@ -2422,8 +2570,8 @@ function onAttackerTeraChange() {
   syncTeraToggle(true);
   runCalc();
 }
-function onDefenderAbilityChange() { _handleCustomSelect(document.getElementById("calc-defender-ability"), "defender", "ability"); }
-function onDefenderItemChange()    { _handleCustomSelect(document.getElementById("calc-defender-item"), "defender", "item"); }
+function onDefenderAbilityChange(val) { if (calcState.defender) { calcState.defender.ability = val || ""; runCalc(); } }
+function onDefenderItemChange(val)    { if (calcState.defender) { calcState.defender.item = (!val || val === "None") ? "" : val; runCalc(); } }
 function onDefenderStatusChange()  { if (calcState.defender) { calcState.defender.status = document.getElementById("calc-defender-status")?.value || "Healthy"; runCalc(); } }
 function onDefenderTeraChange() {
   if (!calcState.defender) return;
@@ -2468,6 +2616,28 @@ function onTeraToggle(isAttacker) {
   runCalc();
 }
 
+function toggleCalcExplainer() {
+  const body = document.getElementById("calc-explainer-body");
+  const btn = document.getElementById("calc-explainer-btn");
+  if (!body) return;
+  const open = body.style.display === "block";
+  body.style.display = open ? "none" : "block";
+  btn.classList.toggle("open", !open);
+  try { localStorage.setItem("calcExplainerDismissed", open ? "1" : ""); } catch (e) {}
+}
+
+function tipHTML(text) {
+  return `<span class="calc-tip">?<span class="calc-tip-text">${text}</span></span>`;
+}
+
+function toggleFieldMore(id, btn) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const hidden = el.style.display === "none";
+  el.style.display = hidden ? "" : "none";
+  btn.textContent = hidden ? "Less \u25b4" : "More \u25be";
+}
+
 function onFieldChange() {
   const checked = id => document.getElementById(id)?.checked || false;
   calcState.field.format = document.querySelector("input[name='calc-field-format-mode']:checked")?.value
@@ -2500,6 +2670,7 @@ function onFieldChange() {
   calcState.field.isAtkTailwind = calcState.field.yourTailwind;
   calcState.field.isDefTailwind = calcState.field.oppTailwind;
   calcState.field.isGravity = checked("calc-field-gravity");
+  calcState.field.isTrickRoom = checked("calc-field-trickroom");
   runCalc();
 }
 
@@ -2530,15 +2701,11 @@ function resetCalcPokemonState() {
   const atkPresetDrop = document.getElementById("calc-attacker-preset-dropdown");
   if (atkPresetDisplay) { atkPresetDisplay.textContent = "— load a Pokémon first —"; atkPresetDisplay.dataset.value = ""; }
   if (atkPresetDrop) atkPresetDrop.innerHTML = "";
-  const attackerNote = document.getElementById("calc-attacker-spread-note");
-  if (attackerNote) attackerNote.textContent = "";
 
   const defPresetDisplay = document.getElementById("calc-defender-preset-display");
   const defPresetDrop = document.getElementById("calc-defender-preset-dropdown");
   if (defPresetDisplay) { defPresetDisplay.textContent = "— load a Pokémon first —"; defPresetDisplay.dataset.value = ""; }
   if (defPresetDrop) defPresetDrop.innerHTML = "";
-  const defenderNote = document.getElementById("calc-defender-spread-note");
-  if (defenderNote) defenderNote.textContent = "";
 
   setBaseStatDisplay({});
   setDefenderStatDisplay({}, {});
@@ -2555,8 +2722,6 @@ function resetDefenderUI() {
   const defPresetDrop = document.getElementById("calc-defender-preset-dropdown");
   if (defPresetDisplay) { defPresetDisplay.textContent = "— load a Pokémon first —"; defPresetDisplay.dataset.value = ""; }
   if (defPresetDrop) defPresetDrop.innerHTML = "";
-  const defenderNote = document.getElementById("calc-defender-spread-note");
-  if (defenderNote) defenderNote.textContent = "";
 
   setDefenderMode("average");
   setDefenderStatDisplay({}, {});
@@ -2597,6 +2762,7 @@ async function reloadCalcDataSource(formatCode, ratingValue) {
     window.calcPokemonNames = window.calcPokemonOptions.map(p => p.name);
     window.currentPokemonName = window.calcPokemonNames[0] || data.selected_pokemon || "";
     window.isChampions = !!data.is_champions;
+    toggleIVColumns(window.isChampions);
     history.replaceState(null, "", `/calc/${encodeURIComponent(formatCode)}/${encodeURIComponent(ratingValue)}/${monthParam}`);
 
     // Handle defender based on its current mode
@@ -2658,6 +2824,8 @@ async function reloadCalcDataSource(formatCode, ratingValue) {
 function onCalcFormatChange() {
   const formatCode = document.getElementById("calc-format-select")?.value || window.selectedFormat;
   const ratingValue = populateCalcRatingSelect(formatCode, window.selectedRating);
+  // Format changed — reset both Pokémon so defaults load from the new format
+  resetCalcPokemonState();
   reloadCalcDataSource(formatCode, ratingValue);
 }
 
@@ -2737,8 +2905,13 @@ function setRadioValue(name, value) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
+  loadSmogonCalcLists();
   initCalcAutocomplete("calc-attacker-input", "calc-attacker-dropdown", () => onAttackerChange());
   initCalcAutocomplete("calc-defender-input", "calc-defender-dropdown", () => onDefenderChange());
+  initOptionAutocomplete("calc-attacker-ability", "calc-attacker-ability-dropdown", onAttackerAbilityChange);
+  initOptionAutocomplete("calc-attacker-item", "calc-attacker-item-dropdown", onAttackerItemChange);
+  initOptionAutocomplete("calc-defender-ability", "calc-defender-ability-dropdown", onDefenderAbilityChange);
+  initOptionAutocomplete("calc-defender-item", "calc-defender-item-dropdown", onDefenderItemChange);
   initPresetDropdown("calc-attacker-preset-display", "calc-attacker-preset-dropdown", onAttackerPresetChange);
   initPresetDropdown("calc-defender-preset-display", "calc-defender-preset-dropdown", onDefenderPresetChange);
   initBoostSelects();
@@ -2752,6 +2925,18 @@ document.addEventListener("DOMContentLoaded", () => {
   const fmtSel = document.getElementById("calc-field-format");
   if (fmtSel) fmtSel.value = calcState.field.format;
   setRadioValue("calc-field-format-mode", calcState.field.format);
+
+  toggleIVColumns(!!window.isChampions);
+
+  // Show explainer on first visit
+  try {
+    if (!localStorage.getItem("calcExplainerDismissed")) {
+      const body = document.getElementById("calc-explainer-body");
+      const btn = document.getElementById("calc-explainer-btn");
+      if (body) { body.style.display = "block"; }
+      if (btn) { btn.classList.add("open"); }
+    }
+  } catch (e) {}
 
   if (window.isCalcPage || sessionStorage.getItem("activeTab") === "calc") switchTab("calc");
 });

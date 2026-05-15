@@ -1199,34 +1199,6 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
     atk_groups = sorted([{"atk": k, "weight": round(v, 5)} for k, v in atk_counter.items()], key=lambda x: -x["weight"])
     spa_groups = sorted([{"spa": k, "weight": round(v, 5)} for k, v in spa_counter.items()], key=lambda x: -x["weight"])
 
-    def _build_tiers(groups, stat_key):
-        sorted_g = sorted(groups, key=lambda g: g[stat_key])
-        total = sum(g["weight"] for g in sorted_g) or 1
-        buckets = {"frail": [], "average": [], "bulky": []}
-        cumulative = 0
-        for g in sorted_g:
-            frac = cumulative / total
-            if frac < 0.33:
-                buckets["frail"].append(g)
-            elif frac < 0.67:
-                buckets["average"].append(g)
-            else:
-                buckets["bulky"].append(g)
-            cumulative += g["weight"]
-
-        def _tier_info(tier_groups):
-            if not tier_groups:
-                return None
-            tw = sum(g["weight"] for g in tier_groups) or 1
-            avg_hp = round(sum(g["hp"] * g["weight"] for g in tier_groups) / tw)
-            avg_stat = round(sum(g[stat_key] * g["weight"] for g in tier_groups) / tw)
-            return {"hp": avg_hp, stat_key: avg_stat, "weight": round(tw, 5), "groups": tier_groups}
-
-        return {k: _tier_info(v) for k, v in buckets.items()}
-
-    def_tiers = _build_tiers(def_groups, "def") if def_groups else {"frail": None, "average": None, "bulky": None}
-    spd_tiers = _build_tiers(spd_groups, "spd") if spd_groups else {"frail": None, "average": None, "bulky": None}
-
     moves_source = championsMoveDetails if champions else moveDetails
     moves_raw = poke_data.get("Moves", {})
     moves_total = max(sum(poke_data.get("Abilities", {"x": 1}).values()), 1)
@@ -1243,20 +1215,28 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
 
     abilities_source = championsAbilityDetails if champions else abilityDetails
     abilities_raw = poke_data.get("Abilities", {})
+    abilities_total = sum(abilities_raw.values()) if abilities_raw else 1
     all_abilities = []
     if abilities_raw:
-        for ab_key in sorted(abilities_raw.keys(), key=lambda a: abilities_raw[a], reverse=True)[:4]:
+        for ab_key in sorted(abilities_raw.keys(), key=lambda a: abilities_raw[a], reverse=True):
             ab_info = abilities_source.get(ab_key, {})
-            all_abilities.append(ab_info.get("name", ab_key.title()))
+            all_abilities.append({
+                "name": ab_info.get("name", ab_key.title()),
+                "usage": round(abilities_raw[ab_key] / abilities_total * 100, 1),
+            })
 
     items_raw = poke_data.get("Items", {})
+    items_total = sum(items_raw.values()) if items_raw else 1
     all_items = []
     if items_raw:
-        for item_key in sorted(items_raw.keys(), key=lambda i: items_raw[i], reverse=True)[:4]:
+        for item_key in sorted(items_raw.keys(), key=lambda i: items_raw[i], reverse=True):
             item_info = itemDetails.get(item_key, {})
             name = item_info.get("name", item_key.title())
             if name and name.lower() != "nothing":
-                all_items.append(name)
+                all_items.append({
+                    "name": name,
+                    "usage": round(items_raw[item_key] / items_total * 100, 1),
+                })
 
     tera_raw = poke_data.get("Tera Types", {})
     top_tera = ""
@@ -1304,11 +1284,9 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
         "spdGroups": spd_groups,
         "atkGroups": atk_groups,
         "spaGroups": spa_groups,
-        "defTiers": def_tiers,
-        "spdTiers": spd_tiers,
         "topMoves": top_moves,
-        "topAbility": all_abilities[0] if all_abilities else "",
-        "topItem": all_items[0] if all_items else "",
+        "topAbility": all_abilities[0]["name"] if all_abilities else "",
+        "topItem": all_items[0]["name"] if all_items else "",
         "allAbilities": all_abilities,
         "allItems": all_items,
         "topTera": top_tera,

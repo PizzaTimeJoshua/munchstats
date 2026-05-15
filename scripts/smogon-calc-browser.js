@@ -4,4 +4,6 @@ export {
   Generations,
   Move,
   Pokemon,
+  ABILITIES,
+  ITEMS,
 } from "@smogon/calc";

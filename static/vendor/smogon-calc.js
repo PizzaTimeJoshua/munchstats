@@ -24046,8 +24046,10 @@ var MunchSmogonCalc = (() => {
   // scripts/smogon-calc-browser.js
   var smogon_calc_browser_exports = {};
   __export(smogon_calc_browser_exports, {
+    ABILITIES: () => import_calc.ABILITIES,
     Field: () => import_calc.Field,
     Generations: () => import_calc.Generations,
+    ITEMS: () => import_calc.ITEMS,
     Move: () => import_calc.Move,
     Pokemon: () => import_calc.Pokemon,
     calculate: () => import_calc.calculate
