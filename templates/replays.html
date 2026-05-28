@@ -1,0 +1,747 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Replays | MunchStats</title>
+<meta property="og:title" content="Replays | MunchStats">
+<meta name="description" content="Search top public Pokemon Showdown replays and team compositions.">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:image" content="https://www.munchstats.com/static/favicon.png">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+<style>
+  .replay-container *, .replay-container *::before, .replay-container *::after { box-sizing: border-box; }
+  body {
+    background-color: #1e1e1e;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    color: #e0e0e0;
+    font-family: Arial, sans-serif;
+  }
+  h2 { font-weight: 600; letter-spacing: -0.3px; }
+  h3, h4 { font-weight: 500; color: #bbb; }
+  input, select, option {
+    background-color: #222222;
+    accent-color: #ffd54f;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    padding: 10px 14px;
+    margin: 4px 0;
+    border-radius: 8px;
+    font-size: 13px;
+    transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: #ffd54f;
+    box-shadow: 0 0 0 3px rgba(255, 213, 79, 0.15);
+  }
+  input:hover, select:hover { border-color: #666; }
+  input[type="radio"], input[type="checkbox"] {
+    width: auto;
+    margin: 0 6px 0 0;
+    cursor: pointer;
+  }
+  button {
+    background-color: #ffd54f;
+    color: #1e1e1e;
+    border: none;
+    padding: 10px 18px;
+    margin: 4px 0;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+  }
+  button:hover {
+    background-color: #ffca28;
+    box-shadow: 0 4px 12px rgba(255, 213, 79, 0.3);
+  }
+  button:active { transform: scale(0.98); }
+
+  /* Tab bar (matches MunchStats index.html exactly) */
+  .top-bar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid #444;
+    margin-bottom: 10px;
+  }
+  .tab-bar { text-align: left; padding-bottom: 0; }
+  .tab-btn {
+    background: #222;
+    color: #aaa;
+    border: 1px solid #444;
+    border-bottom: none;
+    display: inline-block;
+    padding: 6px 18px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-right: 4px;
+    text-decoration: none;
+    transition: color 0.2s, background 0.2s;
+  }
+  .tab-btn:hover { color: #fff; background: #2a2a2a; }
+  .tab-btn.tab-active { background: #1e1e1e; color: #ffd54f; border-color: #888; }
+  .twitter-follow-div {
+    display: flex;
+    padding: 0 5px 6px 0;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Replay layout */
+  .replay-container {
+    display: grid;
+    grid-template-columns: min-content 1fr;
+    grid-gap: 30px;
+    padding-top: 0px;
+  }
+  .left, .right {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    height: fit-content;
+  }
+  .left {
+    width: 300px;
+    background-color: #222222;
+    border: 1px solid #555;
+    border-radius: 16px;
+    padding: 20px;
+    position: sticky;
+    top: 20px;
+  }
+  .left h2 { margin-top: 0; margin-bottom: 4px; }
+  .left h4 { margin: 0 0 8px 0; }
+  .left label {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    margin: 2px 0;
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+  .left label:hover { background-color: #333; }
+  .right { text-align: left; }
+
+  .sprite {
+    width: 40px;
+    height: 30px;
+    background-image: url("{{ url_for('static', filename='pokemonicons-sheet.png') }}");
+    background-size: 480px auto;
+  }
+  .sprite-container {
+    display: flex;
+    gap: 0px;
+    overflow-x: auto;
+  }
+  ul { list-style-type: none; padding: 0; margin: 0; width: 100%; }
+  ul li { margin-bottom: 4px; }
+  .grid-item { padding: 6px 10px; white-space: nowrap; }
+  .player-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    white-space: normal;
+  }
+  .player-name {
+    font-weight: 500;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .usage-score {
+    font-size: 11px;
+    color: #888;
+  }
+
+  /* Replay table header */
+  .replay-table-header {
+    display: grid;
+    grid-template-columns: 65px minmax(0, 260px) minmax(0, 260px) 70px 85px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid #444;
+    margin-bottom: 8px;
+    position: sticky;
+    top: 0;
+    background: #1e1e1e;
+    z-index: 1;
+    /* match card border space so columns align */
+    padding: 0 1px;
+  }
+  .replay-table-header.has-games {
+    grid-template-columns: 65px minmax(0, 260px) minmax(0, 260px) 70px 85px 180px;
+  }
+  .replay-table-header > div {
+    padding: 6px 10px;
+  }
+  .replay-table-header > div:not(:first-child) {
+    border-left: 1px solid #333;
+  }
+  .team-container {
+    background-color: #222222;
+    border: 1px solid #555;
+    border-radius: 8px;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: 65px minmax(0, 260px) minmax(0, 260px) 70px 85px;
+    align-items: center;
+    text-align: left;
+    line-height: 24px;
+    font-size: 14px;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
+  }
+  .team-container.has-games {
+    grid-template-columns: 65px minmax(0, 260px) minmax(0, 260px) 70px 85px 180px;
+  }
+  .team-container > *:not(:first-child) {
+    border-left: 1px solid #333;
+  }
+  .team-container:hover {
+    border-color: #ffd54f;
+    box-shadow: 0 4px 20px rgba(255, 213, 79, 0.15);
+    transform: translateY(-1px);
+  }
+  button.team-container {
+    width: 100%;
+    cursor: pointer;
+    color: #e0e0e0;
+    text-align: left;
+  }
+  .noHover { pointer-events: none; }
+
+  fieldset {
+    border: 1px solid #555;
+    border-radius: 10px;
+    font-size: 12px;
+    margin: 8px 0;
+    padding: 10px 12px;
+    background-color: #2a2a2a;
+  }
+  legend {
+    font-size: 14px;
+    font-weight: 500;
+    color: #aaa;
+    padding: 0 6px;
+  }
+  #loadButton {
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  .game-btn {
+    background-color: #555;
+    color: #e0e0e0;
+    border: 1px solid #666;
+    padding: 4px 10px;
+    margin: 2px;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+  }
+  .game-btn:hover { background-color: #ffd54f; color: #1e1e1e; border-color: #ffd54f; }
+  .game-btn.disabled { pointer-events: none; opacity: 0.4; }
+
+  /* Replay Modal */
+  .replay-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .replay-modal-overlay.active { display: flex; }
+  .replay-modal {
+    background: #1e1e1e;
+    border: 1px solid #555;
+    border-radius: 12px;
+    width: 95%;
+    max-width: 1200px;
+    height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+  .replay-modal-header {
+    display: flex;
+    align-items: center;
+    padding: 10px 16px;
+    background: #222222;
+    border-bottom: 1px solid #555;
+    flex-shrink: 0;
+  }
+  .replay-modal-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e0e0e0;
+    white-space: nowrap;
+  }
+  .replay-modal-external {
+    color: #ffd54f;
+    text-decoration: none;
+    font-size: 13px;
+    margin-right: 16px;
+    transition: opacity 0.2s;
+  }
+  .replay-modal-external:hover { opacity: 0.8; }
+  .replay-modal-close {
+    background: none;
+    border: 1px solid #555;
+    color: #e0e0e0;
+    font-size: 20px;
+    width: 32px;
+    height: 32px;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    transition: background-color 0.2s;
+  }
+  .replay-modal-close:hover { background: #333; }
+  .replay-modal-games {
+    display: flex;
+    gap: 4px;
+    margin-left: 12px;
+    flex: 1;
+  }
+  .replay-modal-game-btn {
+    background: #333;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    padding: 4px 12px;
+    margin: 0;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: background-color 0.2s, border-color 0.2s;
+  }
+  .replay-modal-game-btn:hover { background: #444; border-color: #ffd54f; }
+  .replay-modal-game-btn.active { background: #ffd54f; border-color: #ffd54f; color: #1e1e1e; }
+  .replay-modal-game-btn.disabled { opacity: 0.35; pointer-events: none; }
+  .replay-modal-iframe { flex: 1; width: 100%; border: none; }
+
+  footer {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-size: 12px;
+  }
+  footer a { color: #ffd54f; text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* View Tabs (Replays / Rankings sub-tabs) */
+  .view-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 0;
+    border-bottom: 1px solid #555;
+  }
+  .view-tab {
+    background: #333;
+    color: #bbb;
+    border: 1px solid #555;
+    border-bottom: none;
+    padding: 8px 20px;
+    border-radius: 8px 8px 0 0;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+    margin-bottom: -1px;
+  }
+  .view-tab:hover { background: #3a3a3a; color: #e0e0e0; }
+  .view-tab.active {
+    background: #1e1e1e;
+    color: #ffd54f;
+    border-color: #ffd54f;
+    border-bottom: 1px solid #1e1e1e;
+  }
+  .view-content { display: none; width: 100%; padding-top: 12px; }
+  .view-content.active { display: block; }
+
+  /* Team Rankings */
+  .team-rank-card {
+    background: #222222;
+    border: 1px solid #555;
+    border-radius: 12px;
+    margin-bottom: 12px;
+    overflow: hidden;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    text-align: left;
+  }
+  .team-rank-card:hover {
+    border-color: #ffd54f;
+    box-shadow: 0 4px 20px rgba(255, 213, 79, 0.15);
+  }
+  .team-rank-header {
+    display: flex;
+    align-items: center;
+    padding: 12px 16px;
+    cursor: pointer;
+    gap: 16px;
+    user-select: none;
+  }
+  .team-rank-number {
+    font-size: 18px;
+    font-weight: 700;
+    color: #ffd54f;
+    min-width: 32px;
+    text-align: center;
+  }
+  .team-rank-sprites { display: flex; gap: 0px; flex-shrink: 0; }
+  .team-rank-stats {
+    display: flex;
+    gap: 20px;
+    align-items: center;
+    flex: 1;
+    flex-wrap: wrap;
+    font-size: 13px;
+  }
+  .team-rank-stat { display: flex; flex-direction: column; align-items: center; }
+  .team-rank-stat-label {
+    color: #888;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .team-rank-stat-value { font-weight: 600; color: #e0e0e0; font-size: 14px; }
+  .team-rank-expand {
+    color: #888;
+    font-size: 18px;
+    transition: transform 0.2s, color 0.2s;
+    flex-shrink: 0;
+  }
+  .team-rank-card.expanded .team-rank-expand {
+    transform: rotate(180deg);
+    color: #ffd54f;
+  }
+  .team-rank-replays {
+    display: none;
+    border-top: 1px solid #555;
+    padding: 0;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .team-rank-card.expanded .team-rank-replays { display: block; }
+  .team-rank-replay-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr 80px 80px 80px;
+    padding: 8px 16px;
+    font-size: 13px;
+    border-bottom: 1px solid #333;
+    cursor: pointer;
+    transition: background-color 0.15s;
+    align-items: center;
+  }
+  .team-rank-replay-row:hover { background: #2a2a2a; }
+  .team-rank-replay-row:last-child { border-bottom: none; }
+  .team-rank-replay-header {
+    display: grid;
+    grid-template-columns: 1fr 1fr 80px 80px 80px;
+    padding: 6px 16px;
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: #2a2a2a;
+  }
+  .replay-won { color: #04AA6D; }
+  .replay-lost { color: #e05555; }
+  .team-rank-names {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: #999;
+    padding: 0 16px 8px 60px;
+    cursor: pointer;
+  }
+  .team-rank-names span::after { content: " /"; color: #555; }
+  .team-rank-names span:last-child::after { content: ""; }
+
+  /* Mobile: stack sidebar above content */
+  @media (max-width: 800px) {
+    .replay-container {
+      grid-template-columns: 1fr;
+      padding: 0 8px;
+    }
+    .left {
+      width: 100%;
+      position: static;
+      border-radius: 10px;
+      padding: 14px;
+    }
+    .right {
+      overflow-x: auto;
+    }
+    ul li {
+      min-width: 700px;
+    }
+    .team-rank-stats { gap: 10px; }
+    .team-rank-header { padding: 10px 12px; gap: 10px; }
+    .team-rank-names { padding-left: 12px; }
+  }
+
+  /* Custom select dropdown */
+  .csel-wrap { position: relative; display: inline-block; width: 100%; }
+  .csel-display {
+    background-color: #222222; color: #e0e0e0; border: 1px solid #555;
+    padding: 10px 32px 10px 14px; margin: 4px 0; border-radius: 8px;
+    font-size: 13px; cursor: pointer; width: 100%; box-sizing: border-box;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+  }
+  .csel-display:hover { border-color: #666; }
+  .csel-display:focus {
+    outline: none; border-color: #ffd54f;
+    box-shadow: 0 0 0 3px rgba(255, 213, 79, 0.15);
+  }
+  .csel-dropdown {
+    display: none; position: absolute; top: 100%; left: 0; right: 0;
+    z-index: 1000; background: #222222; border: 1px solid #555;
+    border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto;
+    margin-top: -4px;
+  }
+  .csel-dropdown::-webkit-scrollbar { width: 12px; }
+  .csel-dropdown::-webkit-scrollbar-track { background: #222222; }
+  .csel-dropdown::-webkit-scrollbar-thumb { background: #333333; border-radius: 6px; }
+  .csel-dropdown::-webkit-scrollbar-thumb:hover { background: #111111; }
+  .csel-item {
+    padding: 8px 14px; font-size: 13px; cursor: pointer; color: #e0e0e0;
+  }
+  .csel-item:hover, .csel-item.active { background: #333; color: #fff; }
+  .csel-item:last-child { border-radius: 0 0 8px 8px; }
+  .csel-wrap select { display: none !important; }
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <div class="tab-bar">
+    <a id="tab-usage-btn" class="tab-btn" href="{{ url_for('display_pokemon_page', format_code=selected_format[0], rating_threshold=selected_rating, pokemon_name=selected_pokemon) }}">Usage Stats</a>
+    <a id="tab-calc-btn" class="tab-btn" href="{{ url_for('calc_page', format_code=selected_format[0], rating_threshold=selected_rating) }}">Damage Calc</a>
+    <a id="tab-replays-btn" class="tab-btn tab-active" href="{{ url_for('replays_page') }}">Replays</a>
+  </div>
+  <div class="twitter-follow-div">
+    <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">
+      <img height="29" style="border:0px;height:29px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=3" border="0" alt="Buy Me a Coffee at ko-fi.com" />
+    </a>
+    <a href="https://twitter.com/MunchStats?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large" data-show-screen-name="false" data-dnt="true" data-show-count="false">Follow @MunchStats</a>
+    <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+  </div>
+</div>
+<div class="replay-container">
+  <div class="left">
+    <h2>Replay Searcher</h2>
+    <h4>Select Format</h4>
+    <select id="formatSelect">
+      {% for format in replay_formats %}
+        <option value="{{ format }}"{% if format == selected_replay_format %} selected{% endif %}>{{ format_display_names.get(format, format) }}</option>
+      {% endfor %}
+    </select>
+    <fieldset>
+      <legend>Filter By Pokemon</legend>
+      <input id="pokemonValue" placeholder='Separate by comma, e.g. "Incineroar, Flutter Mane"' type="text">
+      <label><input checked id="allPokemon" name="pokeFilter" type="radio" value="allPokemon"> Find All Pokemon on a Team</label>
+      <label><input id="anyPokemon" name="pokeFilter" type="radio" value="anyPokemon"> Find Any Pokemon on a Team</label>
+    </fieldset>
+    <fieldset>
+      <legend>Filter By Players</legend>
+      <input id="playerValue" placeholder='Separate by comma, e.g. "Ash, Wolfe"' type="text">
+    </fieldset>
+    <fieldset>
+      <legend>Options</legend>
+      <label><input id="usedToggle" type="checkbox"> Pokemon Participated in Battle</label>
+      <label><input id="winnerToggle" type="checkbox"> Pokemon is on Winning Team</label>
+      <label><input id="ratingToggle" type="checkbox"> Filter By Rating</label>
+      <input id="ratingValue" placeholder="Max Rating (eg. '1500')" style="display: none;" type="text">
+      <label><input id="usageScoreToggle" type="checkbox"> Show Usage Score (Beta)</label>
+      <i id="usageScoreExplained" style="display: none; font-size: 12px; padding: 0px 6px;">Usage Score is the collective percentage usage of a team based on usage statistics.</i>
+      <input id="usageScoreValue" placeholder="Filter By Usage Score" style="display: none;" type="text">
+    </fieldset>
+    <button id="loadButton">Search Replays</button>
+  </div>
+  <div class="right">
+    <div class="view-tabs">
+      <button class="view-tab active" data-view="replays">Top Replays</button>
+      <button class="view-tab" data-view="rankings">Top Teams</button>
+    </div>
+    <div class="view-content active" id="replaysView">
+      <h3 id="loadingText" style="display: none;">Loading...</h3>
+      <h3 id="noReplaysText" style="display: none;">No Replays Found.</h3>
+      <h3 id="errorText" style="display: none;">Error: Unable to get replays.</h3>
+      <div class="replay-table-header" id="replay-header" style="display: none;">
+        <div>Rating</div>
+        <div>Player 1</div>
+        <div>Player 2</div>
+        <div>Score</div>
+        <div>Date</div>
+        <div id="header-games-col"></div>
+      </div>
+      <ul id="replays-list"></ul>
+    </div>
+    <div class="view-content" id="rankingsView">
+      <h2>Top Team Compositions</h2>
+      <h3 id="rankings-format-name"></h3>
+      <h3 id="rankingsLoadingText" style="display: none;">Loading...</h3>
+      <h3 id="rankingsNoDataText" style="display: none;">No team data found.</h3>
+      <h3 id="rankingsErrorText" style="display: none;">Error: Unable to get rankings.</h3>
+      <div id="rankings-list"></div>
+    </div>
+  </div>
+</div>
+<div class="replay-modal-overlay" id="replayModal">
+  <div class="replay-modal">
+    <div class="replay-modal-header">
+      <span class="replay-modal-title" id="replayModalTitle">Replay Viewer</span>
+      <div class="replay-modal-games" id="replayModalGames"></div>
+      <a class="replay-modal-external" href="#" id="replayExternalLink" target="_blank" title="Open on Pokemon Showdown">Open in New Tab</a>
+      <button class="replay-modal-close" id="replayModalClose" title="Close">&times;</button>
+    </div>
+    <iframe class="replay-modal-iframe" id="replayIframe" src="about:blank"></iframe>
+  </div>
+</div>
+<footer>
+  <p><a href="{{ url_for('about') }}">About</a></p>
+  <p>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</p>
+</footer>
+<script src="{{ url_for('static', filename='replay_search.js') }}"></script>
+<script>
+(function() {
+  function customizeSelect(sel) {
+    if (sel._cselInit) return;
+    sel._cselInit = true;
+
+    var wrap = document.createElement('div');
+    wrap.className = 'csel-wrap';
+    sel.parentNode.insertBefore(wrap, sel);
+    wrap.appendChild(sel);
+
+    var display = document.createElement('div');
+    display.className = 'csel-display';
+    display.tabIndex = 0;
+    wrap.insertBefore(display, sel);
+
+    var dropdown = document.createElement('div');
+    dropdown.className = 'csel-dropdown';
+    wrap.appendChild(dropdown);
+
+    function buildItems() {
+      var html = '';
+      var opts = sel.querySelectorAll('option');
+      opts.forEach(function(opt) {
+        html += '<div class="csel-item" data-value="' + opt.value + '">' + opt.textContent + '</div>';
+      });
+      dropdown.innerHTML = html;
+      syncDisplay();
+    }
+
+    function syncDisplay() {
+      var opt = sel.options[sel.selectedIndex];
+      display.textContent = opt ? opt.textContent : '';
+    }
+
+    function openDropdown() {
+      dropdown.style.display = 'block';
+      var active = dropdown.querySelector('.csel-item.active');
+      if (active) active.scrollIntoView({ block: 'nearest' });
+    }
+
+    function closeDropdown() {
+      dropdown.style.display = 'none';
+    }
+
+    function highlightActive() {
+      dropdown.querySelectorAll('.csel-item').forEach(function(el) {
+        el.classList.toggle('active', el.dataset.value === sel.value);
+      });
+    }
+
+    display.addEventListener('click', function(e) {
+      e.stopPropagation();
+      document.querySelectorAll('.csel-dropdown').forEach(function(d) {
+        if (d !== dropdown) d.style.display = 'none';
+      });
+      if (dropdown.style.display === 'block') {
+        closeDropdown();
+      } else {
+        highlightActive();
+        openDropdown();
+      }
+    });
+
+    display.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        display.click();
+      } else if (e.key === 'Escape') {
+        closeDropdown();
+      }
+    });
+
+    dropdown.addEventListener('click', function(e) {
+      var item = e.target.closest('.csel-item');
+      if (!item) return;
+      sel.value = item.dataset.value;
+      closeDropdown();
+      sel.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+
+    document.addEventListener('click', function() {
+      closeDropdown();
+    });
+
+    wrap.addEventListener('click', function(e) {
+      e.stopPropagation();
+    });
+
+    var observer = new MutationObserver(function() { buildItems(); });
+    observer.observe(sel, { childList: true, subtree: true, characterData: true });
+
+    var origValueDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+    var origIdxDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'selectedIndex');
+    Object.defineProperty(sel, 'value', {
+      get: function() { return origValueDesc.get.call(this); },
+      set: function(v) { origValueDesc.set.call(this, v); syncDisplay(); },
+      configurable: true
+    });
+    Object.defineProperty(sel, 'selectedIndex', {
+      get: function() { return origIdxDesc.get.call(this); },
+      set: function(v) { origIdxDesc.set.call(this, v); syncDisplay(); },
+      configurable: true
+    });
+
+    buildItems();
+  }
+
+  var formatSel = document.getElementById('formatSelect');
+  if (formatSel) customizeSelect(formatSel);
+})();
+</script>
+</body>
+</html>

@@ -68,6 +68,58 @@ const TYPE_IMMUNITY_ABILITIES = {
   "Soundproof":"_sound","Bulletproof":"_ball",
 };
 
+// ─── ABILITY ACTIVATIONS ─────────────────────────────────────────────────────
+// Abilities with a toggle checkbox: "activated" means their switch-in or
+// trigger effect has occurred.  Abilities NOT listed here are passive
+// (always-on) and have no checkbox (e.g. Technician, Levitate, Adaptability).
+const ABILITY_ACTIVATIONS = {
+  // ── Default ON (switch-in) ──
+  "Intimidate": {
+    defaultOn: true, target: "opponent", desc: "\u22121 Atk to opponent",
+    boosts: { atk: -1 },
+    immuneAbilities: [
+      "Inner Focus","Scrappy","Oblivious","Own Tempo",
+      "Clear Body","White Smoke","Full Metal Body","Hyper Cutter",
+    ],
+    reactions: {
+      "Contrary":     { replace: { atk: 1 } },
+      "Defiant":      { extra: { atk: 2 } },
+      "Competitive":  { extra: { spa: 2 } },
+      "Mirror Armor": { reflect: true },
+    },
+  },
+  "Intrepid Sword":  { defaultOn: true, target: "self", desc: "+1 Atk",  boosts: { atk: 1 } },
+  "Dauntless Shield": { defaultOn: true, target: "self", desc: "+1 Def",  boosts: { def: 1 } },
+  "Embody Aspect (Teal Mask)":        { defaultOn: true, target: "self", desc: "+1 Spe", boosts: { spe: 1 } },
+  "Embody Aspect (Wellspring Mask)":  { defaultOn: true, target: "self", desc: "+1 SpD", boosts: { spd: 1 } },
+  "Embody Aspect (Hearthflame Mask)": { defaultOn: true, target: "self", desc: "+1 Atk", boosts: { atk: 1 } },
+  "Embody Aspect (Cornerstone Mask)": { defaultOn: true, target: "self", desc: "+1 Def", boosts: { def: 1 } },
+
+  // ── Default OFF (conditional triggers) ──
+  "Electromorphosis": { defaultOn: false, target: "self", desc: "Charge (2\u00d7 Elec)", effect: "charge" },
+  "Wind Power":       { defaultOn: false, target: "self", desc: "Charge (2\u00d7 Elec)", effect: "charge" },
+  "Unburden":         { defaultOn: false, target: "self", desc: "2\u00d7 Speed", effect: "unburden" },
+  "Flash Fire":       { defaultOn: false, target: "self", desc: "+50% Fire",  effect: "flashfire" },
+  "Justified":        { defaultOn: false, target: "self", desc: "+1 Atk",  boosts: { atk: 1 } },
+  "Moxie":            { defaultOn: false, target: "self", desc: "+1 Atk",  boosts: { atk: 1 } },
+  "Chilling Neigh":   { defaultOn: false, target: "self", desc: "+1 Atk",  boosts: { atk: 1 } },
+  "Grim Neigh":       { defaultOn: false, target: "self", desc: "+1 SpA",  boosts: { spa: 1 } },
+  "Beast Boost":      { defaultOn: false, target: "self", desc: "+1 highest stat", boosts: { atk: 1 } },
+  "Weak Armor":       { defaultOn: false, target: "self", desc: "\u22121 Def +2 Spe", boosts: { def: -1, spe: 2 } },
+  "Steam Engine":     { defaultOn: false, target: "self", desc: "+6 Spe",  boosts: { spe: 6 } },
+  "Wind Rider":       { defaultOn: false, target: "self", desc: "+1 Atk",  boosts: { atk: 1 } },
+  "Thermal Exchange": { defaultOn: false, target: "self", desc: "+1 Atk",  boosts: { atk: 1 } },
+  "Stamina":          { defaultOn: false, target: "self", desc: "+1 Def",  boosts: { def: 1 } },
+  "Seed Sower":       { defaultOn: false, target: "self", desc: "Grassy Terrain", effect: "grassyterrain" },
+  "Berserk":          { defaultOn: false, target: "self", desc: "+1 SpA",  boosts: { spa: 1 } },
+  "Soul-Heart":       { defaultOn: false, target: "self", desc: "+1 SpA",  boosts: { spa: 1 } },
+  "Anger Point":      { defaultOn: false, target: "self", desc: "+6 Atk",  boosts: { atk: 6 } },
+  "Water Compaction":  { defaultOn: false, target: "self", desc: "+2 Def",  boosts: { def: 2 } },
+  "Anger Shell":      { defaultOn: false, target: "self", desc: "\u22121 Def/SpD +1 Atk/SpA/Spe", boosts: { def:-1, spd:-1, atk:1, spa:1, spe:1 } },
+  "Rattled":          { defaultOn: false, target: "self", desc: "+1 Spe",  boosts: { spe: 1 } },
+  "Cotton Down":      { defaultOn: false, target: "opponent", desc: "\u22121 Spe to opponent", boosts: { spe: -1 } },
+};
+
 // ─── UTILITY ─────────────────────────────────────────────────────────────────
 function escapeHTML(value) {
   return String(value ?? "").replace(/[&<>"']/g, ch => ({
@@ -230,6 +282,9 @@ function getEffectiveBasePower(move, attacker, field) {
   if (ability === "Rocky Payload" && moveType === "Rock") bp = Math.floor(bp * 1.5);
   if (ability === "Sheer Force" && move.hasSecondary) bp = Math.floor(bp * 1.3);
   if (ability === "Sand Force" && field.weather === "Sand" && ["Ground","Rock","Steel"].includes(moveType)) bp = Math.floor(bp * 1.3);
+  // Ability activation effects (legacy path)
+  if (attacker._abilityFlags?.charge && moveType === "Electric") bp = Math.floor(bp * 2);
+  if (attacker._abilityFlags?.flashfire && moveType === "Fire") bp = Math.floor(bp * 1.5);
   if (field.terrain === "Electric" && moveType === "Electric") bp = Math.floor(bp * 1.3);
   if (field.terrain === "Grassy" && moveType === "Grass") bp = Math.floor(bp * 1.3);
   if (field.terrain === "Psychic" && moveType === "Psychic") bp = Math.floor(bp * 1.3);
@@ -270,7 +325,7 @@ function getEffectiveAtkStat(attacker, move, defAbility = "", defStats = null, d
   if (defAbility === "Tablets of Ruin" && isPhys) stat = Math.floor(stat * 0.75);
   if (defAbility === "Vessel of Ruin" && !isPhys) stat = Math.floor(stat * 0.75);
   const boostKey = move.overrideOffensiveStat || (isPhys ? "atk" : "spa");
-  const boost = (attacker.boosts || {})[boostKey] || 0;
+  const boost = Math.max(-6, Math.min(6, ((attacker.boosts || {})[boostKey] || 0) + ((attacker._abilityBoosts || {})[boostKey] || 0)));
   if (boost !== 0) stat = Math.floor(stat * (boost >= 0 ? (2 + boost) / 2 : 2 / (2 + Math.abs(boost))));
   return stat;
 }
@@ -531,13 +586,19 @@ function buildOfficialPokemon(pokemon, spreadOrStats) {
     nature: spread?.nature || pokemon?.nature || "Serious",
     evs: spread?.evs || pokemon?.evs || {},
     ivs: spread?.ivs || pokemon?.ivs || {},
-    boosts: pokemon?.boosts || {},
+    boosts: getMergedBoosts(pokemon),
     originalCurHP: stats.hp,
     overrides: calcSpeciesOverrides(pokemon),
+    abilityOn: (pokemon?.ability === "Flash Fire" && pokemon?._abilityFlags?.flashfire) || undefined,
   });
   for (const k of ["hp", "atk", "def", "spa", "spd", "spe"]) {
     mon.rawStats[k] = stats[k];
     mon.stats[k] = stats[k];
+  }
+  // Unburden: double speed stat
+  if (pokemon?._abilityFlags?.unburden) {
+    mon.rawStats.spe = mon.rawStats.spe * 2;
+    mon.stats.spe = mon.stats.spe * 2;
   }
   mon.originalCurHP = stats.hp;
   mon.types = pokemon?.types?.length ? pokemon.types : mon.types;
@@ -558,6 +619,10 @@ function buildOfficialMove(attacker, move, field, hits) {
   if (move?.flags) overrides.flags = move.flags;
   if (move?.isSpread) overrides.target = field?.format === "Singles" ? "normal" : "allAdjacentFoes";
   if (move?.multihit) overrides.multihit = move.multihit;
+  // Charge: double Electric move base power (Electromorphosis / Wind Power)
+  if (attacker?._abilityFlags?.charge && (overrides.type || move?.type) === "Electric" && overrides.basePower) {
+    overrides.basePower = overrides.basePower * 2;
+  }
   return new calc.Move(genNum, move?.calcName || move?.name || move?.id || "Tackle", {
     ability: attacker?.ability || undefined,
     item: attacker?.item || undefined,
@@ -737,7 +802,7 @@ function calcKODistribution(attacker, move, defenderData, field, hits = 1) {
   for (const grp of allGroups) {
     const defStats = { hp: grp.hp, def: isPhys ? grp.def : 999, spd: isPhys ? 999 : grp.spd };
     const result = calcMultihitRolls(attacker, move, defStats,
-      defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field, defenderData.boosts, hits);
+      defenderData.types, defenderData.tera, defenderData.ability, defenderData.item, field, getMergedBoosts(defenderData), hits);
     const weight = Number(grp.weight) || 0;
     if (!result) { entries.push({ weight, hp: grp.hp, defStat: isPhys ? grp.def : grp.spd, rolls: [0] }); continue; }
     if (result.immune) { anyImmune = true; entries.push({ weight, hp: grp.hp, defStat: isPhys ? grp.def : grp.spd, rolls: [0], immune: true }); continue; }
@@ -831,6 +896,9 @@ function quickReverseSummary(defenderData, move, attacker, field, hits = 1) {
     calcSpecies: defenderData.calcSpecies,
     calcGeneration: defenderData.calcGeneration,
     speciesOverrides: defenderData.speciesOverrides,
+    _abilityBoosts: defenderData._abilityBoosts,
+    _abilityFlags: defenderData._abilityFlags,
+    abilityActivated: defenderData.abilityActivated,
   };
   const atkHP = attacker.customStats.hp || 1;
   const official = calcOfficialResult(defAsAttacker, move, attacker, field, hits, defStats, attacker.customStats);
@@ -916,8 +984,11 @@ function getEffectiveFieldForSource(source, isCritical = false) {
   const userAttacking = source === "attacker";
   const target = userAttacking ? calcState.defender : calcState.attacker;
   const sourcePokemon = userAttacking ? calcState.attacker : calcState.defender;
+  // Seed Sower: override terrain to Grassy when activated on either side
+  const seedSowerTerrain = (sourcePokemon?._abilityFlags?.grassyterrain || target?._abilityFlags?.grassyterrain);
   return {
     ...field,
+    terrain: seedSowerTerrain ? "Grassy" : field.terrain,
     isCritical,
     attackerWeightkg: sourcePokemon?.weightkg ?? null,
     targetWeightkg: target?.weightkg ?? null,
@@ -932,6 +1003,98 @@ function getEffectiveFieldForSource(source, isCritical = false) {
     isPowerSpot: userAttacking ? field.yourPowerSpot : field.oppPowerSpot,
     isSteelySpirit: userAttacking ? field.yourSteelySpirit : field.oppSteelySpirit,
   };
+}
+
+// ─── ABILITY ACTIVATION ──────────────────────────────────────────────────────
+function _mergeBoosts(target, source) {
+  for (const [k, v] of Object.entries(source || {})) {
+    target[k] = Math.max(-6, Math.min(6, (target[k] || 0) + v));
+  }
+}
+
+function _applyTargetedAbility(activation, source, target, sourceBoosts, targetBoosts) {
+  const targetAbility = target?.ability || "";
+  if (activation.immuneAbilities?.includes(targetAbility)) return;
+  const reaction = activation.reactions?.[targetAbility];
+  if (reaction) {
+    if (reaction.reflect) { _mergeBoosts(sourceBoosts, activation.boosts); return; }
+    if (reaction.replace) { _mergeBoosts(targetBoosts, reaction.replace); return; }
+    if (reaction.extra)   { _mergeBoosts(targetBoosts, activation.boosts); _mergeBoosts(targetBoosts, reaction.extra); return; }
+  }
+  _mergeBoosts(targetBoosts, activation.boosts);
+}
+
+// Recompute _abilityBoosts / _abilityFlags on both sides before every calc.
+function recomputeAbilityEffects() {
+  const atk = calcState.attacker;
+  const def = calcState.defender;
+  if (atk) { atk._abilityBoosts = {}; atk._abilityFlags = {}; }
+  if (def) { def._abilityBoosts = {}; def._abilityFlags = {}; }
+  if (!atk || !def) return;
+
+  if (atk.abilityActivated) {
+    const act = ABILITY_ACTIVATIONS[atk.ability];
+    if (act) {
+      if (act.target === "self") {
+        if (act.boosts) _mergeBoosts(atk._abilityBoosts, act.boosts);
+        if (act.effect) atk._abilityFlags[act.effect] = true;
+      } else if (act.target === "opponent") {
+        _applyTargetedAbility(act, atk, def, atk._abilityBoosts, def._abilityBoosts);
+      }
+    }
+  }
+
+  if (def.abilityActivated) {
+    const act = ABILITY_ACTIVATIONS[def.ability];
+    if (act) {
+      if (act.target === "self") {
+        if (act.boosts) _mergeBoosts(def._abilityBoosts, act.boosts);
+        if (act.effect) def._abilityFlags[act.effect] = true;
+      } else if (act.target === "opponent") {
+        _applyTargetedAbility(act, def, atk, def._abilityBoosts, atk._abilityBoosts);
+      }
+    }
+  }
+}
+
+function getMergedBoosts(pokemon) {
+  const base = { ...(pokemon?.boosts || {}) };
+  for (const [k, v] of Object.entries(pokemon?._abilityBoosts || {})) {
+    base[k] = Math.max(-6, Math.min(6, (base[k] || 0) + v));
+  }
+  return base;
+}
+
+function updateAbilityCheckbox(isAttacker) {
+  const prefix = isAttacker ? "calc-attacker" : "calc-defender";
+  const stateKey = isAttacker ? "attacker" : "defender";
+  const wrapEl = document.getElementById(`${prefix}-ability-activate`);
+  const cbEl   = document.getElementById(`${prefix}-ability-activate-cb`);
+  if (!wrapEl || !cbEl) return;
+
+  const pokemon = calcState[stateKey];
+  const ability = pokemon?.ability || "";
+  const activation = ABILITY_ACTIVATIONS[ability];
+
+  if (!activation) {
+    wrapEl.style.display = "none";
+    if (pokemon) pokemon.abilityActivated = false;
+    return;
+  }
+
+  wrapEl.style.display = "";
+  wrapEl.title = `${ability}: ${activation.desc}`;
+  cbEl.checked = activation.defaultOn;
+  if (pokemon) pokemon.abilityActivated = activation.defaultOn;
+}
+
+function onAbilityActivationToggle(isAttacker) {
+  const prefix = isAttacker ? "calc-attacker" : "calc-defender";
+  const stateKey = isAttacker ? "attacker" : "defender";
+  const cbEl = document.getElementById(`${prefix}-ability-activate-cb`);
+  const pokemon = calcState[stateKey];
+  if (pokemon) pokemon.abilityActivated = cbEl?.checked || false;
+  runCalc();
 }
 
 // ─── API FETCH ────────────────────────────────────────────────────────────────
@@ -1686,6 +1849,41 @@ function renderFactorChips(atkObj, move, defObj, field) {
     chips.push([`Opp ${defBoost>0?"+":""}${defBoost} ${defBoostLabel} ${m}`, defBoost > 0 ? "#ef9a9a" : "#a5d6a7"]);
   }
 
+  // ── Ability activation chips ──
+  const _statLabel = { atk:"Atk", def:"Def", spa:"SpA", spd:"SpD", spe:"Spe" };
+  function _abilityChips(pokemon, opponent, isOpp) {
+    const pfx = isOpp ? "Opp " : "";
+    const act = ABILITY_ACTIVATIONS[pokemon?.ability];
+    if (!act || !pokemon?.abilityActivated) return;
+    // Effect-based
+    if (act.effect === "charge") chips.push([`${pfx}Charge 2\u00d7 Elec BP`, "#f8d030"]);
+    if (act.effect === "flashfire") chips.push([`${pfx}Flash Fire +50% Fire`, "#f08030"]);
+    if (act.effect === "unburden") chips.push([`${pfx}Unburden 2\u00d7 Spe`, "#b0bec5"]);
+    if (act.effect === "grassyterrain") chips.push([`${pfx}Seed Sower \u2192 Grassy`, "#78c850"]);
+    // Self-targeting boosts
+    if (act.target === "self" && act.boosts) {
+      const desc = Object.entries(act.boosts).map(([k,v]) => `${v>0?"+":""}${v} ${_statLabel[k]||k}`).join(", ");
+      chips.push([`${pfx}${pokemon.ability}: ${desc}`, isOpp ? "#ef9a9a" : "#b0bec5"]);
+    }
+    // Opponent-targeting (Intimidate, Cotton Down)
+    if (act.target === "opponent") {
+      const ta = opponent?.ability || "";
+      if (act.immuneAbilities?.includes(ta)) {
+        chips.push([`${pfx}${pokemon.ability} blocked (${ta})`, "#666"]);
+      } else {
+        const rx = act.reactions?.[ta];
+        if (rx?.reflect)  { chips.push([`${pfx}${pokemon.ability} \u2192 Mirror Armor`, isOpp ? "#a5d6a7" : "#ef9a9a"]); }
+        else if (rx?.replace || rx?.extra) { chips.push([`${pfx}${pokemon.ability} \u2192 ${ta}`, "#ffd54f"]); }
+        else {
+          const desc = Object.entries(act.boosts).map(([k,v]) => `${v>0?"+":""}${v} ${_statLabel[k]||k}`).join(", ");
+          chips.push([`${pfx}${pokemon.ability}: ${desc} opp`, isOpp ? "#a5d6a7" : "#ef9a9a"]);
+        }
+      }
+    }
+  }
+  _abilityChips(atkObj, defObj, false);
+  _abilityChips(defObj, atkObj, true);
+
   if (!chips.length) return "";
   return `<div class="calc-factors">${chips.map(([t,c]) => `<span class="calc-factor-chip" style="color:${c}">${t}</span>`).join("")}</div>`;
 }
@@ -1750,8 +1948,8 @@ function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, 
   const displayMove = { ...move, type: moveType };
   const typeEff = getTypeEffectiveness(moveType, defObj.types || [], defObj.tera, field);
 
-  // Boost stage prefix
-  const atkBoost = (atkObj.boosts || {})[statKey] || 0;
+  // Boost stage prefix (includes ability activation boosts)
+  const atkBoost = Math.max(-6, Math.min(6, ((atkObj.boosts || {})[statKey] || 0) + ((atkObj._abilityBoosts || {})[statKey] || 0)));
   const boostPart = atkBoost !== 0 ? `${atkBoost > 0 ? "+" : ""}${atkBoost} ` : "";
 
   // EV / nature notation (attacker side, reads from DOM)
@@ -1770,10 +1968,10 @@ function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, 
   const itemPart = doesAtkItemBoostDamage(atkObj.item, displayMove, isPhys, typeEff) ? `${atkObj.item} ` : "";
   const statusPart = attackerIsBurned(atkObj, field) && isPhys && atkObj.ability !== "Guts" ? "burned " : "";
 
-  // Defender boost on defense stat
+  // Defender boost on defense stat (includes ability activation boosts)
   const defBoostKey = isPhys ? "def" : "spd";
   const defBoostLabel = isPhys ? "Def" : "SpD";
-  const defBoost = (defObj.boosts || {})[defBoostKey] || 0;
+  const defBoost = Math.max(-6, Math.min(6, ((defObj.boosts || {})[defBoostKey] || 0) + ((defObj._abilityBoosts || {})[defBoostKey] || 0)));
   const defBoostPart = defBoost !== 0 ? ` (${defBoost > 0 ? "+" : ""}${defBoost} ${defBoostLabel})` : "";
 
   // Defender EVs (only in reverse calc where user's Pokemon is the defender)
@@ -1979,20 +2177,37 @@ function defSpeedFromSpread(spreadStr, baseSpe, level, isChampions, iv) {
   return Math.floor((Math.floor((2 * baseSpe + iv + Math.floor(speEV / 4)) * level / 100) + 5) * natMult);
 }
 
+function _weatherSpeedMultiplier(ability, weather) {
+  if (!ability || !weather || weather === "None") return 1;
+  const sun = weather === "Sun" || weather === "Harsh Sunshine";
+  const rain = weather === "Rain" || weather === "Heavy Rain";
+  const sand = weather === "Sand" || weather === "Sandstorm";
+  const snow = weather === "Snow" || weather === "Hail";
+  if (ability === "Swift Swim" && rain) return 2;
+  if (ability === "Chlorophyll" && sun) return 2;
+  if (ability === "Sand Rush" && sand) return 2;
+  if (ability === "Slush Rush" && snow) return 2;
+  return 1;
+}
+
 function computeSpeedComparison() {
   const field = calcState.field;
   const baseSpe = parseInt(document.getElementById("calc-atk-final-spe")?.textContent) || 0;
-  const userSpe = baseSpe * (field.isAtkTailwind ? 2 : 1);
+  const atkUnburden = calcState.attacker?._abilityFlags?.unburden ? 2 : 1;
+  const atkWeatherSpe = _weatherSpeedMultiplier(calcState.attacker?.ability, field.weather);
+  const userSpe = baseSpe * atkUnburden * atkWeatherSpe * (field.isAtkTailwind ? 2 : 1);
   const def = calcState.defender;
   if (!baseSpe || !def) return null;
   const isTR = field.isTrickRoom;
 
-  const defSpeBoost = (def.boosts || {}).spe || 0;
+  const defSpeBoost = Math.max(-6, Math.min(6, ((def.boosts || {}).spe || 0) + ((def._abilityBoosts || {}).spe || 0)));
   const defSpeBoostMult = defSpeBoost >= 0 ? (2 + defSpeBoost) / 2 : 2 / (2 + Math.abs(defSpeBoost));
+  const defUnburden = def._abilityFlags?.unburden ? 2 : 1;
+  const defWeatherSpe = _weatherSpeedMultiplier(def.ability, field.weather);
 
   // Manual mode: single speed value comparison
   if (def.defenderMode === "manual" && def.customStats?.spe) {
-    const defSpe = Math.floor(def.customStats.spe * defSpeBoostMult) * (field.isDefTailwind ? 2 : 1);
+    const defSpe = Math.floor(def.customStats.spe * defSpeBoostMult * defUnburden * defWeatherSpe) * (field.isDefTailwind ? 2 : 1);
     const faster = isTR ? (userSpe < defSpe) : (userSpe > defSpe);
     const slower = isTR ? (userSpe > defSpe) : (userSpe < defSpe);
     return {
@@ -2012,7 +2227,7 @@ function computeSpeedComparison() {
   let totalW = 0, outW = 0, tieW = 0;
   for (const s of def.spreads) {
     const defBaseSpe = defSpeedFromSpread(s.spread, def.baseStats.spe, def.level, def.isChampions);
-    const defSpe = Math.floor(defBaseSpe * defSpeBoostMult) * (field.isDefTailwind ? 2 : 1);
+    const defSpe = Math.floor(defBaseSpe * defSpeBoostMult * defUnburden * defWeatherSpe) * (field.isDefTailwind ? 2 : 1);
     const w = s.usage || 1;
     totalW += w;
     if (isTR ? (userSpe < defSpe) : (userSpe > defSpe)) outW += w;
@@ -2034,6 +2249,8 @@ function computeSpeedComparison() {
 function runCalc() {
   const resultsEl = document.getElementById("calc-results");
   if (!resultsEl) return;
+
+  recomputeAbilityEffects();
 
   renderAttackerMoveList();
   renderDefenderMoveList();
@@ -2095,7 +2312,7 @@ function runCalc() {
       // Manual mode: single-result calc against specific stats
       const official = calcOfficialResult(attacker, move, defender, effectiveField, hits, attacker.customStats, defender.customStats);
       const result = official || calcMultihitRolls(attacker, move, defender.customStats,
-        defender.types, defender.tera, defender.ability, defender.item, effectiveField, defender.boosts, hits);
+        defender.types, defender.tera, defender.ability, defender.item, effectiveField, getMergedBoosts(defender), hits);
       html = `<div class="calc-result-section">${renderSingleForwardResult(result, move, attacker, defender, effectiveField, hits)}</div>`;
     } else {
       // Average mode: tier-based distribution
@@ -2119,10 +2336,13 @@ function runCalc() {
         calcSpecies: defender.calcSpecies,
         calcGeneration: defender.calcGeneration,
         speciesOverrides: defender.speciesOverrides,
+        _abilityBoosts: defender._abilityBoosts,
+        _abilityFlags: defender._abilityFlags,
+        abilityActivated: defender.abilityActivated,
       };
       const official = calcOfficialResult(defAsAttacker, move, attacker, effectiveField, hits, defStats, attacker.customStats);
       const result = official || calcMultihitRolls(defAsAttacker, move, attacker.customStats,
-        attacker.types, attacker.tera, attacker.ability, attacker.item, effectiveField, attacker.boosts, hits);
+        attacker.types, attacker.tera, attacker.ability, attacker.item, effectiveField, getMergedBoosts(attacker), hits);
       html = `<div class="calc-result-section">${renderSingleResult(result, move, defAsAttacker, attacker, effectiveField, hits)}</div>`;
     }
   }
@@ -2379,7 +2599,7 @@ function onAttackerFormChange() {
   if (!sel) return;
   const input = document.getElementById("calc-attacker-input");
   if (input) input.value = sel.value;
-  onAttackerChange();
+  onAttackerChange({ formSwap: true });
 }
 
 function onDefenderFormChange() {
@@ -2387,7 +2607,7 @@ function onDefenderFormChange() {
   if (!sel) return;
   const input = document.getElementById("calc-defender-input");
   if (input) input.value = sel.value;
-  onDefenderChange();
+  onDefenderChange({ formSwap: true });
 }
 
 function onAttackerStatChange() {
@@ -2428,7 +2648,7 @@ function onAttackerStatChange() {
   runCalc();
 }
 
-async function onAttackerChange() {
+async function onAttackerChange(opts = {}) {
   const input = document.getElementById("calc-attacker-input")?.value.trim();
   if (!input) return;
 
@@ -2437,16 +2657,17 @@ async function onAttackerChange() {
     calcState.attacker = null;
     return;
   }
+  const isFormSwap = opts.formSwap && calcState.attacker;
   clearCritStateForSource("attacker");
   clearHitsStateForSource("attacker");
 
-  populateTeraSelect("calc-attacker-tera", "None");
+  populateTeraSelect("calc-attacker-tera", isFormSwap ? (calcState.attacker._selectedTera || "None") : "None");
   populateAbilitySelect("calc-attacker-ability", data.allAbilities, data.topAbility);
-  populateItemSelect("calc-attacker-item", data.allItems, data.topItem);
+  populateItemSelect("calc-attacker-item", data.allItems, isFormSwap ? calcState.attacker.item : data.topItem);
   populateTypeSelects("attacker", data.types || ["Normal"]);
   populateFormSelect("attacker", data.formeOrder || [], data.name);
   const attackerStatusSel = document.getElementById("calc-attacker-status");
-  if (attackerStatusSel) attackerStatusSel.value = "Healthy";
+  if (attackerStatusSel && !isFormSwap) attackerStatusSel.value = "Healthy";
   populatePresetSelect(data);
 
   // Update EV/SP column label and input limits
@@ -2454,11 +2675,21 @@ async function onAttackerChange() {
   if (evLabel) evLabel.textContent = data.isChampions ? "SP" : "EV";
   updateEVInputLimits(data.isChampions);
   toggleIVColumns(data.isChampions);
-  // Reset IV inputs to 31 for new Pokemon
-  STAT_KEYS.forEach(k => {
-    const el = document.getElementById(`calc-atk-iv-${k}`);
-    if (el) el.value = 31;
-  });
+  if (!isFormSwap) {
+    // Reset IV inputs to 31 for new Pokemon
+    STAT_KEYS.forEach(k => {
+      const el = document.getElementById(`calc-atk-iv-${k}`);
+      if (el) el.value = 31;
+    });
+  }
+
+  // Preserve prior state on form swap
+  const prevAbility = isFormSwap ? calcState.attacker.ability : null;
+  const prevItem = isFormSwap ? calcState.attacker.item : null;
+  const prevStatus = isFormSwap ? calcState.attacker.status : "Healthy";
+  const prevBoosts = isFormSwap ? { ...calcState.attacker.boosts } : { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+  const prevTera = isFormSwap ? calcState.attacker._selectedTera : "None";
+  const prevTeraActive = isFormSwap ? calcState.attacker.teraActive : false;
 
   // Store attacker state (needed by computeStatsFromInputs)
   const firstDamaging = data.topMoves.find(isDamagingMove);
@@ -2466,37 +2697,43 @@ async function onAttackerChange() {
     name: data.name, types: data.types, level: data.level, weightkg: data.weightkg || 0,
     isChampions: data.isChampions, calcGeneration: data.calcGeneration, calcSpecies: data.calcSpecies,
     speciesOverrides: data.speciesOverrides || {}, baseStats: data.baseStats || {},
-    ability: data.topAbility || "", item: data.topItem || "", status: "Healthy",
-    tera: "None", _selectedTera: "None", teraActive: false,
+    ability: prevAbility || data.topAbility || "", item: prevItem || data.topItem || "",
+    status: prevStatus,
+    tera: prevTeraActive ? prevTera : "None", _selectedTera: prevTera, teraActive: prevTeraActive,
     customStats: {}, spreads: data.spreads, allSpreads: data.allSpreads || data.spreads || [], topMoves: data.topMoves,
-    boosts: { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, customMoves: [],
+    boosts: prevBoosts, customMoves: [],
   };
-  // Reset boost selects
-  ["atk","def","spa","spd","spe"].forEach(k => {
-    const el = document.getElementById(`calc-boost-${k}`);
-    if (el) { el.value = "0"; applyBoostColor(el); }
-  });
+  updateAbilityCheckbox(true);
+  if (!isFormSwap) {
+    // Reset boost selects
+    ["atk","def","spa","spd","spe"].forEach(k => {
+      const el = document.getElementById(`calc-boost-${k}`);
+      if (el) { el.value = "0"; applyBoostColor(el); }
+    });
+  }
 
   // Populate base stat column
   setBaseStatDisplay(data.baseStats || {});
 
-  // Load top spread into EV table
-  const firstSpread = data.spreads[0];
-  if (firstSpread) {
-    const [nature, evStr] = firstSpread.spread.split(":");
-    const evs = evStr ? evStr.split("/").map(Number) : Array(6).fill(0);
-    fillEVTable(nature, evs);
-  } else {
-    fillEVTable("Hardy", Array(6).fill(0));
+  // Load top spread into EV table — on form swap, keep current EVs/nature
+  if (!isFormSwap) {
+    const firstSpread = data.spreads[0];
+    if (firstSpread) {
+      const [nature, evStr] = firstSpread.spread.split(":");
+      const evs = evStr ? evStr.split("/").map(Number) : Array(6).fill(0);
+      fillEVTable(nature, evs);
+    } else {
+      fillEVTable("Hardy", Array(6).fill(0));
+    }
   }
 
   calcState.attacker.customStats = computeStatsFromInputs() || data.averageStats;
   syncTeraToggle(true);
-  if (firstDamaging) calcState.selectedMove = { source: "attacker", move: firstDamaging, isCrit: false };
+  if (!isFormSwap && firstDamaging) calcState.selectedMove = { source: "attacker", move: firstDamaging, isCrit: false };
   runCalc();
 }
 
-async function onDefenderChange() {
+async function onDefenderChange(opts = {}) {
   const input = document.getElementById("calc-defender-input")?.value.trim();
   if (!input) return;
 
@@ -2515,51 +2752,74 @@ async function onDefenderChange() {
     calcState.defender = null;
     return;
   }
+  const isFormSwap = opts.formSwap && calcState.defender;
   clearCritStateForSource("defender");
   clearHitsStateForSource("defender");
 
-  populateTeraSelect("calc-defender-tera", "None");
+  populateTeraSelect("calc-defender-tera", isFormSwap ? (calcState.defender._selectedTera || "None") : "None");
   populateAbilitySelect("calc-defender-ability", data.allAbilities, data.topAbility);
-  populateItemSelect("calc-defender-item", data.allItems, data.topItem);
+  populateItemSelect("calc-defender-item", data.allItems, isFormSwap ? calcState.defender.item : data.topItem);
   populateTypeSelects("defender", data.types || ["Normal"]);
   populateFormSelect("defender", data.formeOrder || [], data.name);
   const defenderStatusSel = document.getElementById("calc-defender-status");
-  if (defenderStatusSel) defenderStatusSel.value = "Healthy";
+  if (defenderStatusSel && !isFormSwap) defenderStatusSel.value = "Healthy";
   populateDefenderPresetDisplay(data);
+
+  // Preserve prior state on form swap
+  const prevAbility = isFormSwap ? calcState.defender.ability : null;
+  const prevItem = isFormSwap ? calcState.defender.item : null;
+  const prevStatus = isFormSwap ? calcState.defender.status : "Healthy";
+  const prevBoosts = isFormSwap ? { ...calcState.defender.boosts } : { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
+  const prevTera = isFormSwap ? calcState.defender._selectedTera : "None";
+  const prevTeraActive = isFormSwap ? calcState.defender.teraActive : false;
+  const prevMode = isFormSwap ? calcState.defender.defenderMode : "average";
+  const prevCustomStats = isFormSwap ? calcState.defender.customStats : null;
+  // On form swap with no new spread data, inherit spreads from previous form
+  const hasSpreads = data.spreads && data.spreads.length > 0;
+  const prevSpreads = isFormSwap && !hasSpreads ? calcState.defender.spreads : (data.spreads || []);
+  const prevAllSpreads = isFormSwap && !hasSpreads ? calcState.defender.allSpreads : (data.allSpreads || data.spreads || []);
+  const prevAvgStats = isFormSwap && !hasSpreads ? calcState.defender.averageStats : data.averageStats;
 
   calcState.defender = {
     name: data.name, types: data.types, level: data.level, weightkg: data.weightkg || 0,
     isChampions: data.isChampions || false, calcGeneration: data.calcGeneration, calcSpecies: data.calcSpecies,
     speciesOverrides: data.speciesOverrides || {}, baseStats: data.baseStats || {},
-    spreads: data.spreads || [], allSpreads: data.allSpreads || data.spreads || [],
-    ability: data.topAbility || "", item: data.topItem || "", status: "Healthy",
-    tera: "None", _selectedTera: "None", teraActive: false,
-    averageStats: data.averageStats,
+    spreads: prevSpreads, allSpreads: prevAllSpreads,
+    ability: prevAbility || data.topAbility || "", item: prevItem || data.topItem || "",
+    status: prevStatus,
+    tera: prevTeraActive ? prevTera : "None", _selectedTera: prevTera, teraActive: prevTeraActive,
+    averageStats: prevAvgStats,
     defGroups: data.defGroups || [], spdGroups: data.spdGroups || [],
     atkGroups: data.atkGroups || [], spaGroups: data.spaGroups || [],
     defTiers: data.defTiers || {}, spdTiers: data.spdTiers || {},
     topMoves: data.topMoves,
-    boosts: { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 }, customMoves: [],
-    defenderMode: "average",
+    boosts: prevBoosts, customMoves: [],
+    defenderMode: prevMode,
   };
-  // Reset opponent boost selects
-  ["atk","spa","def","spd","spe"].forEach(k => {
-    const el = document.getElementById(`calc-boost-opp-${k}`);
-    if (el) { el.value = "0"; applyBoostColor(el); }
-  });
-  // Reset IV inputs to 31 for new Pokemon
-  STAT_KEYS.forEach(k => {
-    const el = document.getElementById(`calc-def-iv-${k}`);
-    if (el) el.value = 31;
-  });
-  setDefenderMode("average");
+  updateAbilityCheckbox(false);
+  if (!isFormSwap) {
+    // Reset opponent boost selects
+    ["atk","spa","def","spd","spe"].forEach(k => {
+      const el = document.getElementById(`calc-boost-opp-${k}`);
+      if (el) { el.value = "0"; applyBoostColor(el); }
+    });
+    // Reset IV inputs to 31 for new Pokemon
+    STAT_KEYS.forEach(k => {
+      const el = document.getElementById(`calc-def-iv-${k}`);
+      if (el) el.value = 31;
+    });
+  }
+  setDefenderMode(prevMode);
+  if (isFormSwap && prevMode === "manual" && prevCustomStats) {
+    calcState.defender.customStats = computeDefenderStatsFromInputs() || prevCustomStats;
+  }
   syncTeraToggle(false);
-  setDefenderStatDisplay(data.baseStats || {}, data.averageStats || {});
+  setDefenderStatDisplay(data.baseStats || {}, prevAvgStats || {});
   runCalc();
 }
 
 
-function onAttackerAbilityChange(val) { if (calcState.attacker) { calcState.attacker.ability = val || ""; runCalc(); } }
+function onAttackerAbilityChange(val) { if (calcState.attacker) { calcState.attacker.ability = val || ""; updateAbilityCheckbox(true); runCalc(); } }
 function onAttackerItemChange(val)    { if (calcState.attacker) { calcState.attacker.item = (!val || val === "None") ? "" : val; runCalc(); } }
 function onAttackerStatusChange()  { if (calcState.attacker) { calcState.attacker.status = document.getElementById("calc-attacker-status")?.value || "Healthy"; runCalc(); } }
 function onAttackerTeraChange() {
@@ -2570,7 +2830,7 @@ function onAttackerTeraChange() {
   syncTeraToggle(true);
   runCalc();
 }
-function onDefenderAbilityChange(val) { if (calcState.defender) { calcState.defender.ability = val || ""; runCalc(); } }
+function onDefenderAbilityChange(val) { if (calcState.defender) { calcState.defender.ability = val || ""; updateAbilityCheckbox(false); runCalc(); } }
 function onDefenderItemChange(val)    { if (calcState.defender) { calcState.defender.item = (!val || val === "None") ? "" : val; runCalc(); } }
 function onDefenderStatusChange()  { if (calcState.defender) { calcState.defender.status = document.getElementById("calc-defender-status")?.value || "Healthy"; runCalc(); } }
 function onDefenderTeraChange() {

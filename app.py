@@ -7,6 +7,7 @@ import re
 from datetime import datetime
 from functools import lru_cache
 
+import ijson
 import requests
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 import pyjson5
@@ -32,6 +33,26 @@ championsAbilityDetails = {}
 pokedexEntries = {}
 
 STAT_KEYS = ["hp", "atk", "def", "spa", "spd", "spe"]
+
+# Replay/Teams integration
+REPLAY_DATA_DIR = os.path.join(DATA_DIRECTORY, "replays")
+os.makedirs(REPLAY_DATA_DIR, exist_ok=True)
+
+REPLAY_FORMATS = [
+    "gen9championsvgc2026regmabo3",
+    "gen9championsvgc2026regma",
+    "gen9championsou",
+    "gen9championsbssregma",
+    "gen9vgc2026regibo3",
+    "gen9vgc2026regi",
+    "gen9nationaldex",
+    "gen9ou",
+    "gen9nationaldexubers",
+    "gen9anythinggoes",
+    "gen9doublesou",
+    "gen9ubers",
+    "gen9nationaldexdoubles",
+]
 
 
 def load_data_file(filepath, mode="r", encoding="utf8"):
@@ -109,7 +130,7 @@ def is_local_month(month):
     return os.path.isdir(os.path.join(DATA_DIRECTORY, month))
 
 
-@lru_cache(maxsize=8)
+@lru_cache(maxsize=4)
 def fetch_remote_format_data(month, format_code, rating):
     """Fetch a full format JSON from Smogon and return its data dict. Cached."""
     # Try variants: base, DLC1, DLC2, H1, H2
@@ -136,7 +157,7 @@ def fetch_remote_format_data(month, format_code, rating):
     return None
 
 
-@lru_cache(maxsize=12)
+@lru_cache(maxsize=6)
 def get_remote_formats_for_month(month):
     """Fetch the list of available formats and ratings for a remote month. Returns dict {format_code: [ratings]}."""
     from bs4 import BeautifulSoup as BS
@@ -211,7 +232,7 @@ def fetch_pokemon_data(format_code, rating, pokemon_name, month=None):
     return {}
 
 
-@lru_cache(maxsize=32)
+@lru_cache(maxsize=16)
 def load_trend_data(format_code, rating):
     """Load pre-computed trend data for a format/rating. Returns dict or None."""
     trend_path = os.path.join(DATA_DIRECTORY, "trends", format_code, f"{rating}.json")
@@ -1079,6 +1100,26 @@ def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
     return render_template("index.html", **data, availableFormats=data["month_formats"])
 
 
+def _filter_forme_order(forme_order_raw, base_stats, pokemon_index_lower, champions=False):
+    """Keep forms that have usage data OR different base stats from the base form.
+    Exclude Illegal-tier forms (unreleased) unless in Champions format."""
+    result = []
+    for f in forme_order_raw:
+        if f.lower() in pokemon_index_lower:
+            result.append(f)
+            continue
+        dex_key = f.lower().replace(" ", "").replace("-", "")
+        entry = pokedexEntries.get(dex_key, {})
+        if not entry:
+            continue
+        if not champions and entry.get("tier") == "Illegal":
+            continue
+        form_stats = entry.get("baseStats")
+        if form_stats and form_stats != base_stats:
+            result.append(f)
+    return result
+
+
 def compile_calc_data(format_code, rating, pokemon_name, month=None):
     """Return base stats, spread distribution, and top moves/ability/item for damage calc."""
     if month is None:
@@ -1092,8 +1133,76 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
         return None
 
     matched_pokemon = fuzzy_match(pokemon_name, pokemon_index.keys())
-    if not matched_pokemon:
-        return None
+
+    # Detect if fuzzy_match returned a different form (e.g. "Aegislash" for "Aegislash-Blade").
+    # If the requested name has an exact pokedex entry but differs from the usage match,
+    # treat it as a battle-only form and use the pokedex fallback.
+    exact_dex_key = pokemon_name.lower().replace(" ", "").replace("-", "")
+    is_different_form = (
+        matched_pokemon
+        and exact_dex_key in pokedexEntries
+        and matched_pokemon.lower().replace(" ", "").replace("-", "") != exact_dex_key
+    )
+
+    # Battle-only forms (e.g. Aegislash-Blade) may not have usage data.
+    # Fall back to pokedex data so the calc still works with correct base stats.
+    if not matched_pokemon or is_different_form:
+        dex_key = exact_dex_key if exact_dex_key in pokedexEntries else None
+        if not dex_key:
+            if not matched_pokemon:
+                return None
+            # Fall through to normal path if the name just isn't in the pokedex
+        else:
+            dex_entry = pokedexEntries[dex_key]
+            display_name = dex_entry.get("name", pokemon_name)
+            base_stats_dict = dex_entry.get("baseStats", {})
+            pokemon_types = dex_entry.get("types", ["Normal"])
+            pokemon_weightkg = dex_entry.get("weightkg", 0)
+            dex_abilities = dex_entry.get("abilities", {})
+            all_abilities = [{"name": v, "usage": 0} for v in dex_abilities.values() if v]
+            champions = is_champions_format(format_code)
+            fmt_lower = format_code.lower()
+            level = 50 if any(k in fmt_lower for k in ("vgc", "bss", "champions", "doubl")) else 100
+            calc_generation = 0 if champions else (extract_generation_from_format(format_code) or 9)
+            # Build formeOrder from base species, filtered to mechanically distinct forms
+            base_species = dex_entry.get("baseSpecies", "")
+            base_dex_key = base_species.lower().replace(" ", "").replace("-", "") if base_species else None
+            base_dex = pokedexEntries.get(base_dex_key, {}) if base_dex_key else {}
+            base_stats = base_dex.get("baseStats") or dex_entry.get("baseStats")
+            forme_order_raw = base_dex.get("formeOrder", []) or dex_entry.get("formeOrder", [])
+            pokemon_index_lower = {k.lower() for k in pokemon_index.keys()}
+            forme_order = _filter_forme_order(forme_order_raw, base_stats, pokemon_index_lower, champions)
+            return {
+                "name": display_name,
+                "calcSpecies": display_name,
+                "calcGeneration": calc_generation,
+                "types": pokemon_types,
+                "weightkg": pokemon_weightkg,
+                "baseStats": base_stats_dict,
+                "speciesOverrides": {
+                    "name": display_name,
+                    "types": pokemon_types,
+                    "weightkg": pokemon_weightkg,
+                    "baseStats": base_stats_dict,
+                    "abilities": {"0": all_abilities[0]["name"] if all_abilities else ""},
+                },
+                "level": level,
+                "isChampions": champions,
+                "averageStats": {k: 0 for k in STAT_KEYS},
+                "spreads": [],
+                "allSpreads": [],
+                "defGroups": [],
+                "spdGroups": [],
+                "atkGroups": [],
+                "spaGroups": [],
+                "topMoves": [],
+                "topAbility": all_abilities[0]["name"] if all_abilities else "",
+                "topItem": "",
+                "allAbilities": all_abilities,
+                "allItems": [],
+                "topTera": "",
+                "formeOrder": forme_order,
+            }
 
     poke_data = fetch_pokemon_data(format_code, rating, matched_pokemon, month)
     if not poke_data:
@@ -1245,17 +1354,19 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
         if top_tera_key.lower() != "nothing":
             top_tera = top_tera_key.capitalize()
 
-    # Get form data from pokedex, filtered to forms present in usage stats
-    forme_order = dex_entry.get("formeOrder", [])
-    if not forme_order and dex_entry.get("baseSpecies"):
+    # Get form data from pokedex, filtered to forms with usage data or different stats
+    forme_order_raw = dex_entry.get("formeOrder", [])
+    forme_base_stats = base_stats_dict
+    if not forme_order_raw and dex_entry.get("baseSpecies"):
         base_key = fuzzy_match(
             dex_entry["baseSpecies"].lower().replace(" ", "").replace("-", ""),
             pokedexEntries.keys(),
         )
         if base_key:
-            forme_order = pokedexEntries[base_key].get("formeOrder", [])
+            forme_order_raw = pokedexEntries[base_key].get("formeOrder", [])
+            forme_base_stats = pokedexEntries[base_key].get("baseStats", base_stats_dict)
     pokemon_index_lower = {k.lower() for k in pokemon_index.keys()}
-    forme_order = [f for f in forme_order if f.lower() in pokemon_index_lower]
+    forme_order = _filter_forme_order(forme_order_raw, forme_base_stats, pokemon_index_lower, champions)
     calc_generation = 0 if champions else (extract_generation_from_format(format_code) or 9)
     species_overrides = {
         "name": matched_pokemon,
@@ -1386,6 +1497,264 @@ def search_pokemon_route():
             pokemon_name=default_pokemon,
         )
     )
+
+
+# ─── Replay/Teams Integration ────��───────────────────────────────────────────
+
+
+def get_pokemon_sprite_num(pokemon_name):
+    """Return sprite index number for a given Pokemon name (for JS-side divmod)."""
+    word = pokemon_name.lower()
+    word = re.sub(r"[^a-z0-9]+", "", word)
+    if word in spriteIndex:
+        return spriteIndex[word]
+    elif word in pokedexEntries:
+        return pokedexEntries[word].get("num", 0)
+    return 0
+
+
+def find_replays(poke_search, meta, replay_total=100, filters=None):
+    """Stream through replay JSON and return matching replays. Uses ijson for low memory."""
+    if filters is None:
+        filters = {
+            "teamused": False,
+            "rating": 0,
+            "winner": False,
+            "usage_score": 0,
+            "player_search": [],
+            "filter_all_pokemon": True,
+        }
+
+    filepath = os.path.join(REPLAY_DATA_DIR, f"search-replays-list-{meta}.json")
+    if not os.path.exists(filepath):
+        return []
+
+    search_replays = []
+    with open(filepath, "rb") as file:
+        replay_data = ijson.items(file, "item")
+        for replay in replay_data:
+            # Apply Pokemon search filter
+            if poke_search:
+                if filters.get("filter_all_pokemon"):
+                    if not (
+                        set(poke_search).issubset(replay["teams"][0])
+                        or set(poke_search).issubset(replay["teams"][1])
+                    ):
+                        continue
+                else:
+                    if (
+                        len(set(poke_search).intersection(replay["teams"][0]))
+                        + len(set(poke_search).intersection(replay["teams"][1]))
+                    ) == 0:
+                        continue
+
+            # Apply Player Search
+            if len(filters.get("player_search", [])) > 0 and filters.get("player_search")[0] != "":
+                players = set(
+                    p.lower().replace(" ", "") for p in filters.get("player_search")
+                )
+                replay_players = set(
+                    p.lower().replace(" ", "") for p in replay["players"]
+                )
+                if not (players & replay_players):
+                    continue
+
+            # Apply teamused filter
+            if filters.get("teamused"):
+                if filters.get("filter_all_pokemon"):
+                    if not (
+                        set(poke_search).issubset(replay["teamused"][0])
+                        or set(poke_search).issubset(replay["teamused"][1])
+                    ):
+                        continue
+                else:
+                    if (
+                        len(set(poke_search).intersection(replay["teamused"][0]))
+                        + len(set(poke_search).intersection(replay["teamused"][1]))
+                    ) == 0:
+                        continue
+
+            # Apply rating filter
+            if filters.get("rating", 0) > 0 and replay.get("rating", 0) > filters["rating"]:
+                continue
+
+            # Apply usage score filter
+            if filters.get("usage_score", 0) > 0 and min(
+                replay.get("usage_score", [600, 600])
+            ) > filters["usage_score"]:
+                continue
+
+            # Apply winner filter
+            if filters.get("winner"):
+                if filters.get("filter_all_pokemon"):
+                    if not (
+                        (set(poke_search).issubset(replay["teams"][0]) and replay["winner_index"] == 1)
+                        or (set(poke_search).issubset(replay["teams"][1]) and replay["winner_index"] == 2)
+                    ):
+                        continue
+                else:
+                    if not (
+                        (len(set(poke_search).intersection(replay["teams"][0])) > 0 and replay["winner_index"] == 1)
+                        or (len(set(poke_search).intersection(replay["teams"][1])) > 0 and replay["winner_index"] == 2)
+                    ):
+                        continue
+
+            sprite_index_team = [
+                [get_pokemon_sprite_num(p) for p in replay["teams"][0]],
+                [get_pokemon_sprite_num(p) for p in replay["teams"][1]],
+            ]
+            search_replays.append([
+                replay["id"],
+                replay["rating"],
+                replay["winner"],
+                replay["players"],
+                sprite_index_team,
+                replay["score"],
+                replay["uploadtime"],
+                replay["usage_score"],
+                replay["bo3_matches"],
+                replay["format"],
+            ])
+
+            if len(search_replays) >= replay_total:
+                break
+
+    return search_replays
+
+
+def stream_team_rankings(format_name, poke_filter=None, filter_all_pokemon=True, limit=50):
+    """Stream team rankings JSON with ijson for low memory usage."""
+    filepath = os.path.join(REPLAY_DATA_DIR, f"team-rankings-{format_name}.json")
+    if not os.path.exists(filepath):
+        return []
+
+    results = []
+    with open(filepath, "rb") as f:
+        for team in ijson.items(f, "item"):
+            if poke_filter:
+                team_names = set(team["team"])
+                if filter_all_pokemon:
+                    if not set(poke_filter).issubset(team_names):
+                        continue
+                else:
+                    if not set(poke_filter) & team_names:
+                        continue
+
+            results.append({
+                "team": team["team"],
+                "sprites": [get_pokemon_sprite_num(p) for p in team["team"]],
+                "wins": team["wins"],
+                "losses": team["losses"],
+                "total_battles": team["total_battles"],
+                "avg_rating": round(team["avg_rating"]),
+                "max_rating": team["max_rating"],
+                "win_rate": round(team["win_rate"] * 100, 1),
+                "rank_score": round(team["rank_score"], 1),
+                "replays": team["replays"][:20],
+            })
+            if len(results) >= limit:
+                break
+
+    return results
+
+
+# Cache default replays at startup
+_default_replay_path = os.path.join(REPLAY_DATA_DIR, f"search-replays-list-{REPLAY_FORMATS[0]}.json")
+DEFAULT_REPLAYS = find_replays("", REPLAY_FORMATS[0]) if os.path.exists(_default_replay_path) else []
+
+
+@app.route("/replays/")
+@app.route("/replays/<format_code>/")
+def replays_page(format_code=None):
+    chosen_format = format_code if format_code in REPLAY_FORMATS else REPLAY_FORMATS[0]
+    return render_template(
+        "replays.html",
+        replay_formats=REPLAY_FORMATS,
+        selected_replay_format=chosen_format,
+        format_display_names=formatDisplayNames,
+        selected_format=[DEFAULT_META, formatDisplayNames.get(DEFAULT_META, DEFAULT_META)],
+        selected_rating="0",
+        selected_pokemon="",
+    )
+
+
+@app.route("/replays/api/search")
+def replay_search():
+    filter_battleused = request.args.get("filter_battleused") == "true"
+    filter_rating_enabled = request.args.get("filter_rating_enabled") == "true"
+    filter_usage_score_enabled = request.args.get("filter_usage_score_enabled") == "true"
+    filter_winner = request.args.get("filter_winner") == "true"
+    filter_all_pokemon = request.args.get("filter_all_pokemon") == "true"
+
+    pokemon_search = request.args.get("pokemon_search", "")
+    filter_players = request.args.get("filter_players", "")
+    filter_format = request.args.get("filter_format", REPLAY_FORMATS[0])
+    filter_rating = request.args.get("filter_rating", "0")
+    filter_usage_score = request.args.get("filter_usage_score", "0")
+
+    filters = {
+        "teamused": filter_battleused,
+        "rating": 0,
+        "winner": filter_winner,
+        "filter_all_pokemon": filter_all_pokemon,
+        "player_search": filter_players.split(",") if filter_players else [],
+        "usage_score": 0,
+    }
+
+    if filter_rating_enabled and filter_rating.isnumeric():
+        filters["rating"] = int(filter_rating)
+    if filter_usage_score_enabled and filter_usage_score.isnumeric():
+        filters["usage_score"] = int(filter_usage_score)
+
+    poke_search = []
+    for poke in pokemon_search.split(","):
+        word = poke.strip().lower()
+        if not word:
+            continue
+        matched = fuzzy_match(word, pokedexEntries.keys())
+        if matched:
+            poke_name = pokedexEntries[matched].get("name", "")
+            if poke_name:
+                poke_search.append(poke_name)
+
+    top_replays = find_replays(poke_search, filter_format, filters=filters)
+    return jsonify(top_replays)
+
+
+@app.route("/replays/api/default")
+def replay_default():
+    return jsonify(DEFAULT_REPLAYS)
+
+
+@app.route("/replays/api/rankings")
+def replay_rankings():
+    format_name = request.args.get("format", REPLAY_FORMATS[0])
+    limit = min(int(request.args.get("limit", 50)), 200)
+    pokemon_search = request.args.get("pokemon_search", "")
+    filter_all_pokemon = request.args.get("filter_all_pokemon", "true") == "true"
+
+    poke_filter = []
+    if pokemon_search.strip():
+        for poke in pokemon_search.split(","):
+            word = poke.strip().lower()
+            if not word:
+                continue
+            matched = fuzzy_match(word, pokedexEntries.keys())
+            if matched:
+                poke_name = pokedexEntries[matched].get("name", "")
+                if poke_name:
+                    poke_filter.append(poke_name)
+
+    results = stream_team_rankings(format_name, poke_filter or None, filter_all_pokemon, limit)
+    return jsonify(results)
+
+
+@app.route("/replays/watch/<replay_id>")
+def watch_replay(replay_id):
+    return render_template("watch.html", replay_id=replay_id)
+
+
+# ─── Error Handlers & Index ──────────────────────────��──────────────────────
 
 
 @app.errorhandler(404)

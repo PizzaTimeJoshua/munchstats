@@ -1,0 +1,148 @@
+/*
+ * Replay Viewer overrides — loaded LAST to override Showdown defaults.
+ * Dark-themed to match MunchTeams color scheme.
+ */
+
+/* ── Body ── */
+body {
+  background: #1e1e1e !important;
+  color: #ccc !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  overflow-x: hidden !important;
+}
+
+/* ── Wrapper: center the battle, remove excess padding ── */
+.replay-wrapper {
+  padding-top: 456px !important;
+  max-width: none !important;
+  margin: 0 auto !important;
+}
+
+/* ── Battle scene border ── */
+.battle {
+  border-color: #555 !important;
+}
+
+/* ── Battle log panel ── */
+.battle-log {
+  background: #222222 !important;
+  color: #ccc !important;
+  border-color: #555 !important;
+}
+.battle-log .inner {
+  padding: 4px 8px 0 8px;
+}
+.battle-log h2 {
+  background: #1e1e1e !important;
+  border-color: #555 !important;
+  color: #ddd !important;
+}
+.battle-log .battle-history {
+  color: #bbb !important;
+}
+.battle-log .battle-history small {
+  color: #999 !important;
+}
+
+/* ── Replay controls bar ── */
+.replay-controls {
+  text-align: center !important;
+}
+.replay-controls button {
+  background: #333333 !important;
+  color: #ccc !important;
+  border: 1px solid #555 !important;
+  padding: 4px 10px !important;
+  margin: 0 2px !important;
+  border-radius: 4px !important;
+  font-size: 9pt !important;
+  transition: all 0.15s ease !important;
+}
+.replay-controls button:hover {
+  background: #444444 !important;
+  border-color: #04AA6D !important;
+  color: #eee !important;
+}
+.replay-controls button:disabled {
+  opacity: 0.35 !important;
+}
+.replay-controls button i {
+  display: inline !important;
+  margin-right: 3px !important;
+}
+
+/* ── Speed / Color / Sound choosers ── */
+.replay-controls-2 {
+  text-align: center !important;
+}
+.replay-controls-2 .chooser {
+  background: transparent !important;
+}
+.replay-controls-2 .chooser em {
+  background: transparent !important;
+  color: #888 !important;
+}
+.replay-controls-2 .chooser button {
+  background: #2a2a2a !important;
+  color: #999 !important;
+  border: 1px solid #555 !important;
+  padding: 2px 8px !important;
+  margin: 0 1px !important;
+  border-radius: 3px !important;
+  font-size: 8pt !important;
+  transition: all 0.15s ease !important;
+}
+.replay-controls-2 .chooser button:hover {
+  background: #3a3a3a !important;
+  color: #ddd !important;
+  border-color: #666 !important;
+}
+.replay-controls-2 .chooser button.sel,
+.replay-controls-2 .chooser button.sel:hover {
+  background: #04AA6D !important;
+  color: #fff !important;
+  border-color: #04AA6D !important;
+}
+
+/* ── Hide the format/players h1 title ── */
+.replay-wrapper > h1 {
+  display: none !important;
+}
+
+/* ── Stat bars (HP bars on the battle field) ── */
+.statbar strong {
+  color: #bbb !important;
+}
+.statbar .hpbar {
+  background: #1a1a1a !important;
+}
+
+/* ── Side bars (player info panels) ── */
+.leftbar, .rightbar {
+  background: rgba(0, 0, 0, 0.55) !important;
+  color: #ccc !important;
+}
+
+/* ── Message bar overlay ── */
+.messagebar {
+  background: rgba(30, 30, 30, 0.85) !important;
+  color: #ddd !important;
+}
+
+/* ── Tooltip styling ── */
+.tooltip {
+  background: #1e1e1e !important;
+  color: #ccc !important;
+  border-color: #555 !important;
+}
+
+/* ── Team preview open team sheet styling ── */
+.battle-log .infobox {
+  background: #2a2a2a !important;
+  border-color: #555 !important;
+  color: #ccc !important;
+}
+.battle-log .infobox details summary {
+  color: #ccc !important;
+}

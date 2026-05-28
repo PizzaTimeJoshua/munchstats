@@ -416,12 +416,19 @@
         border: 0px;
         text-align: left;
       }
+      .top-bar {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        border-bottom: 1px solid #444;
+        margin-bottom: 10px;
+      }
       .twitter-follow-div {
-        padding-top: 5px;
-        padding-right: 5px;
-        justify-self: right;
+        display: flex;
+        padding: 0 5px 6px 0;
         align-items: center;
-        height: 35px;
+        gap: 8px;
+        flex-shrink: 0;
       }
       h3 {
         margin-top: 5px;
@@ -430,16 +437,70 @@
       .underline {
         text-decoration: underline;
       }
-      .munchteams-button {
-        background-color: #04AA6D;
-        border: none;
-        color: white;
-        padding: 8px 8px;
+      #pokemon-info {
+        background: #222;
+        border: 1px solid #555;
+        padding: 14px 16px;
+        margin-top: 18px;
+        margin-bottom: 8px;
+      }
+      .info-pokemon-header {
         text-align: center;
-        text-decoration: none;
-        display: inline-block;
+        margin-bottom: 10px;
+      }
+      .info-pokemon-center {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+      }
+      .info-pokemon-center .image-pokemon {
+        position: absolute;
+        right: 100%;
+        top: 50%;
+        transform: translateY(-50%);
+        margin-right: 2px;
+      }
+      .info-pokemon-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: #ffd54f;
+        line-height: 1.2;
+      }
+      .info-types {
+        display: flex;
+        gap: 4px;
+        margin-top: 4px;
+      }
+      .info-stats-row {
+        display: flex;
+        justify-content: space-around;
+        padding: 8px 0;
+        border-top: 1px solid #444;
+        border-bottom: 1px solid #444;
+        margin-bottom: 10px;
+      }
+      .info-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .info-stat-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #888;
+      }
+      .info-stat-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: #e0e0e0;
+      }
+      .info-format {
         font-size: 12px;
-        vertical-align: top;
+        color: #ccc;
+        text-align: center;
+        line-height: 1.3;
       }
       .type-Normal,
       .type-Fire,
@@ -610,10 +671,7 @@
       }
       /* ── Damage Calc Tab styles ── */
       .tab-bar {
-        width: 100%;
         text-align: left;
-        border-bottom: 1px solid #444;
-        margin-bottom: 10px;
         padding-bottom: 0;
       }
       .tab-btn {
@@ -661,7 +719,12 @@
         border: 1px solid #444;
         color: #e0e0e0;
         font-size: 12px;
-        padding: 5px 7px;
+        padding: 5px 24px 5px 7px;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
       }
 
       /* Explainer banner */
@@ -779,10 +842,15 @@
         background: #252525;
         color: #e0e0e0;
         border: 1px solid #444;
-        padding: 4px 7px;
+        padding: 4px 24px 4px 7px;
         font-size: 12px;
         box-sizing: border-box;
         margin-bottom: 5px;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
       }
       .calc-preset-wrap { position: relative; margin-bottom: 5px; }
       .calc-preset-selected {
@@ -846,6 +914,30 @@
       }
       .calc-control-row .calc-autocomplete-wrap {
         margin-bottom: 0;
+      }
+      .calc-ability-cell {
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+      }
+      .calc-ability-cell .calc-autocomplete-wrap {
+        flex: 1;
+        min-width: 0;
+        margin-bottom: 0;
+      }
+      .calc-ability-activate {
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        padding-bottom: 2px;
+      }
+      .calc-ability-activate input[type=checkbox] {
+        margin: 0;
+        cursor: pointer;
+        accent-color: #4caf50;
+        width: 14px;
+        height: 14px;
       }
       .calc-field-section {
         border-top: 1px solid rgba(255,255,255,0.12);
@@ -1111,6 +1203,49 @@
         background: #252525; border: 1px solid #555; max-height: 200px;
         overflow-y: auto; display: none;
       }
+      .calc-ac-dropdown::-webkit-scrollbar { width: 12px; }
+      .calc-ac-dropdown::-webkit-scrollbar-track { background: #222222; }
+      .calc-ac-dropdown::-webkit-scrollbar-thumb { background: #333333; }
+      .calc-ac-dropdown::-webkit-scrollbar-thumb:hover { background: #111111; }
+
+      /* Custom select dropdown (dark scrollbar replacement) */
+      .csel-wrap { position: relative; display: inline-block; width: 100%; }
+      .csel-display {
+        background: #252525; color: #e0e0e0; border: 1px solid #444;
+        padding: 5px 24px 5px 7px; font-size: 12px; cursor: pointer;
+        width: 100%; box-sizing: border-box; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 8px center;
+      }
+      .csel-display:focus { outline: 1px solid #ffd54f; }
+      .csel-dropdown {
+        display: none; position: absolute; top: 100%; left: 0; right: 0;
+        z-index: 1000; background: #252525; border: 1px solid #555;
+        max-height: 200px; overflow-y: auto;
+      }
+      .csel-dropdown::-webkit-scrollbar { width: 12px; }
+      .csel-dropdown::-webkit-scrollbar-track { background: #222222; }
+      .csel-dropdown::-webkit-scrollbar-thumb { background: #333333; }
+      .csel-dropdown::-webkit-scrollbar-thumb:hover { background: #111111; }
+      .csel-item {
+        padding: 5px 8px; font-size: 12px; cursor: pointer; color: #e0e0e0;
+      }
+      .csel-item:hover, .csel-item.active { background: #333; color: #fff; }
+      .csel-group-label {
+        padding: 4px 8px; font-size: 10px; color: #888; font-weight: bold;
+        text-transform: uppercase; letter-spacing: 0.3px;
+      }
+      .csel-wrap select { display: none !important; }
+      .calc-poke-panel .csel-wrap { margin-bottom: 5px; }
+      .calc-type-row .csel-wrap,
+      .calc-tera-row .csel-wrap { margin-bottom: 0; }
+      /* Source control custom selects need matching width */
+      .calc-source-control .csel-wrap { width: 100%; }
+      .calc-source-control .csel-display {
+        padding: 5px 24px 5px 7px;
+      }
+
       .calc-ac-item { padding: 5px 8px; font-size: 12px; cursor: pointer; color: #e0e0e0; }
       .calc-ac-item:hover, .calc-ac-item.active { background: #333; color: #fff; }
       .calc-pokemon-ac-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
@@ -1200,36 +1335,51 @@
       You are viewing data from <strong id="banner-month">{{ selected_month }}</strong>.
       <button type="button" onclick="selectMonth('{{ available_months[-1] }}')" id="banner-jump-btn" style="background: none; border: 1px solid #ffd54f; color: #ffd54f; border-radius: 3px; padding: 2px 10px; margin-left: 8px; cursor: pointer; font-size: 12px;">Jump to latest</button>
     </div>
-    <div class="twitter-follow-div">
-      <a href="https://munchteams.com" target="_blank" class="munchteams-button">Check out MunchTeams!</a>
-      <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">
-        <img height="29" style="border:0px;height:29px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=3" border="0" alt="Buy Me a Coffee at ko-fi.com" />
-      </a>
-      <a href="https://twitter.com/MunchStats?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large" data-show-screen-name="false" data-dnt="true" data-show-count="false">Follow @MunchStats</a>
-      <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-    </div>
-    <!-- Tab bar -->
-    <div class="tab-bar">
-      <a id="tab-usage-btn" class="tab-btn{% if not calc_only %} tab-active{% endif %}" href="{{ url_for('display_pokemon_page', format_code=selected_format[0], rating_threshold=selected_rating, pokemon_name=selected_pokemon) }}">Usage Stats</a>
-      <a id="tab-calc-btn" class="tab-btn{% if calc_only %} tab-active{% endif %}" href="{{ url_for('calc_page', format_code=selected_format[0], rating_threshold=selected_rating) }}">Damage Calc</a>
+    <div class="top-bar">
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <a id="tab-usage-btn" class="tab-btn{% if not calc_only %} tab-active{% endif %}" href="{{ url_for('display_pokemon_page', format_code=selected_format[0], rating_threshold=selected_rating, pokemon_name=selected_pokemon) }}">Usage Stats</a>
+        <a id="tab-calc-btn" class="tab-btn{% if calc_only %} tab-active{% endif %}" href="{{ url_for('calc_page', format_code=selected_format[0], rating_threshold=selected_rating) }}">Damage Calc</a>
+        <a id="tab-replays-btn" class="tab-btn" href="{{ url_for('replays_page') }}">Replays</a>
+      </div>
+      <div class="twitter-follow-div">
+        <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">
+          <img height="29" style="border:0px;height:29px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=3" border="0" alt="Buy Me a Coffee at ko-fi.com" />
+        </a>
+        <a href="https://twitter.com/MunchStats?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large" data-show-screen-name="false" data-dnt="true" data-show-count="false">Follow @MunchStats</a>
+        <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+      </div>
     </div>
     <div class="grid-container{% if calc_only %} calc-page{% endif %}">
       {% if not calc_only %}
       <div class="left" style="width: 300px;">
         <div id="pokemon-info">
-          <h3> Current Format:<br><span style="color: yellow;">{{ selected_format[1] }}</span></h3>
-          <h3> Current Glicko Rating Threshold: <span style="color: yellow;">{{ selected_rating }}</span></h3>
-          <h3> Current Pokemon:<br>
-            <div style="color: yellow;">
-              <span>{{ current_pokemon[0] }}</span>
-              <div class="image-pokemon" style="background-position: {{ current_pokemon[3][1] * -40 }}px {{ current_pokemon[3][0] * -30 }}px; position: relative;left: 135px;"></div>
+          <div class="info-pokemon-header">
+            <div class="info-pokemon-center">
+              <div class="image-pokemon" style="background-position: {{ current_pokemon[3][1] * -40 }}px {{ current_pokemon[3][0] * -30 }}px;"></div>
+              <div class="info-pokemon-name">{{ current_pokemon[0] }}</div>
+              <div class="info-types">
+                {% for type in pokemon_types %}
+                  <div class="type-{{ type }}">{{ type }}</div>
+                {% endfor %}
+              </div>
             </div>
-            {% for type in pokemon_types %}
-              <div class="type-{{ type }}">{{ type }}</div>
-            {% endfor %}
-          </h3>
-          <h3> Usage: <span style="color: yellow;">{{ current_pokemon[1] }}%</span></h3>
-          <h3> Monthly Rank: <span style="color: yellow;">{{ current_pokemon[2] }}</span></h3>
+          </div>
+          <div class="info-stats-row">
+            <div class="info-stat">
+              <span class="info-stat-label">Usage</span>
+              <span class="info-stat-value">{{ current_pokemon[1] }}%</span>
+            </div>
+            <div class="info-stat">
+              <span class="info-stat-label">Rank</span>
+              <span class="info-stat-value">#{{ current_pokemon[2] }}</span>
+            </div>
+            <div class="info-stat">
+              <span class="info-stat-label">Rating</span>
+              <span class="info-stat-value">{{ selected_rating }}+</span>
+            </div>
+          </div>
+          <div class="info-format">{{ selected_format[1] }}</div>
         </div>
         <div style="height: 50px;">
           <input type="text" id="metaSearchInput" placeholder="Search for a Format">
@@ -1380,9 +1530,14 @@
               <div class="calc-control-stack">
                 <div class="calc-control-row">
                   <label>Ability</label>
-                  <div class="calc-autocomplete-wrap">
-                    <input type="text" id="calc-attacker-ability" placeholder="—" autocomplete="off">
-                    <div class="calc-ac-dropdown" id="calc-attacker-ability-dropdown"></div>
+                  <div class="calc-ability-cell">
+                    <div class="calc-autocomplete-wrap">
+                      <input type="text" id="calc-attacker-ability" placeholder="—" autocomplete="off">
+                      <div class="calc-ac-dropdown" id="calc-attacker-ability-dropdown"></div>
+                    </div>
+                    <label class="calc-ability-activate" id="calc-attacker-ability-activate" style="display:none" title="">
+                      <input type="checkbox" id="calc-attacker-ability-activate-cb" onchange="onAbilityActivationToggle(true)">
+                    </label>
                   </div>
                 </div>
                 <div class="calc-control-row">
@@ -1580,9 +1735,14 @@
               <div class="calc-control-stack">
                 <div class="calc-control-row">
                   <label>Ability</label>
-                  <div class="calc-autocomplete-wrap">
-                    <input type="text" id="calc-defender-ability" placeholder="—" autocomplete="off">
-                    <div class="calc-ac-dropdown" id="calc-defender-ability-dropdown"></div>
+                  <div class="calc-ability-cell">
+                    <div class="calc-autocomplete-wrap">
+                      <input type="text" id="calc-defender-ability" placeholder="—" autocomplete="off">
+                      <div class="calc-ac-dropdown" id="calc-defender-ability-dropdown"></div>
+                    </div>
+                    <label class="calc-ability-activate" id="calc-defender-ability-activate" style="display:none" title="">
+                      <input type="checkbox" id="calc-defender-ability-activate-cb" onchange="onAbilityActivationToggle(false)">
+                    </label>
                   </div>
                 </div>
                 <div class="calc-control-row">
@@ -1956,10 +2116,10 @@
       </div>
       {% endif %}
     </div>
-    <div style="text-align: center; height: 32px">
-      <h6><a href="/about">About</a></h6>
-      <h6>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</h6>
-    </div>
+    <footer style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
+      <p><a href="/about" style="color: #ffd54f; text-decoration: none;">About</a></p>
+      <p>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</p>
+    </footer>
     <div class="tooltip" id="tooltip"></div>
     <script>
       function decodeHtmlEntities(encodedString) {
@@ -2003,6 +2163,151 @@
     {% if calc_only %}
     <script src="{{ url_for('static', filename='vendor/smogon-calc.js') }}"></script>
     <script src="{{ url_for('static', filename='damage_calc.js') }}"></script>
+    <script>
+    (function() {
+      // Custom select replacement for dark-themed scrollbars
+      var SKIP = '.calc-boost-sel, .move-hits-select';
+
+      function customizeSelect(sel) {
+        if (sel._cselInit || sel.matches(SKIP)) return;
+        sel._cselInit = true;
+
+        var wrap = document.createElement('div');
+        wrap.className = 'csel-wrap';
+        sel.parentNode.insertBefore(wrap, sel);
+        wrap.appendChild(sel);
+
+        var display = document.createElement('div');
+        display.className = 'csel-display';
+        display.tabIndex = 0;
+        wrap.insertBefore(display, sel);
+
+        var dropdown = document.createElement('div');
+        dropdown.className = 'csel-dropdown';
+        wrap.appendChild(dropdown);
+
+        function buildItems() {
+          var html = '';
+          var opts = sel.querySelectorAll('option, optgroup');
+          opts.forEach(function(node) {
+            if (node.tagName === 'OPTGROUP') {
+              html += '<div class="csel-group-label">' + node.label + '</div>';
+              var children = node.querySelectorAll('option');
+              children.forEach(function(opt) {
+                html += '<div class="csel-item" data-value="' + opt.value + '">' + opt.textContent + '</div>';
+              });
+            } else if (node.parentElement === sel) {
+              html += '<div class="csel-item" data-value="' + node.value + '">' + node.textContent + '</div>';
+            }
+          });
+          dropdown.innerHTML = html;
+          syncDisplay();
+        }
+
+        function syncDisplay() {
+          var opt = sel.options[sel.selectedIndex];
+          display.textContent = opt ? opt.textContent : '';
+        }
+
+        function openDropdown() {
+          dropdown.style.display = 'block';
+          // Scroll active item into view
+          var active = dropdown.querySelector('.csel-item.active');
+          if (active) active.scrollIntoView({ block: 'nearest' });
+        }
+
+        function closeDropdown() {
+          dropdown.style.display = 'none';
+        }
+
+        function highlightActive() {
+          dropdown.querySelectorAll('.csel-item').forEach(function(el) {
+            el.classList.toggle('active', el.dataset.value === sel.value);
+          });
+        }
+
+        display.addEventListener('click', function(e) {
+          e.stopPropagation();
+          // Close all other open custom selects
+          document.querySelectorAll('.csel-dropdown').forEach(function(d) {
+            if (d !== dropdown) d.style.display = 'none';
+          });
+          if (dropdown.style.display === 'block') {
+            closeDropdown();
+          } else {
+            highlightActive();
+            openDropdown();
+          }
+        });
+
+        display.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            display.click();
+          } else if (e.key === 'Escape') {
+            closeDropdown();
+          }
+        });
+
+        dropdown.addEventListener('click', function(e) {
+          var item = e.target.closest('.csel-item');
+          if (!item) return;
+          sel.value = item.dataset.value;
+          closeDropdown();
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        document.addEventListener('click', function() {
+          closeDropdown();
+        });
+
+        wrap.addEventListener('click', function(e) {
+          e.stopPropagation();
+        });
+
+        // Watch for innerHTML changes on the select (dynamic option rebuilds)
+        var observer = new MutationObserver(function() {
+          buildItems();
+        });
+        observer.observe(sel, { childList: true, subtree: true, characterData: true });
+
+        // Intercept programmatic .value and .selectedIndex changes
+        var origValueDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+        var origIdxDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'selectedIndex');
+
+        Object.defineProperty(sel, 'value', {
+          get: function() { return origValueDesc.get.call(this); },
+          set: function(v) { origValueDesc.set.call(this, v); syncDisplay(); },
+          configurable: true
+        });
+
+        Object.defineProperty(sel, 'selectedIndex', {
+          get: function() { return origIdxDesc.get.call(this); },
+          set: function(v) { origIdxDesc.set.call(this, v); syncDisplay(); },
+          configurable: true
+        });
+
+        // Handle disabled state
+        if (sel.disabled) {
+          display.style.opacity = '0.5';
+          display.style.pointerEvents = 'none';
+        }
+        var disabledObs = new MutationObserver(function() {
+          display.style.opacity = sel.disabled ? '0.5' : '';
+          display.style.pointerEvents = sel.disabled ? 'none' : '';
+        });
+        disabledObs.observe(sel, { attributes: true, attributeFilter: ['disabled'] });
+
+        buildItems();
+      }
+
+      function initAllCustomSelects() {
+        document.querySelectorAll('#calc-panel select:not(' + SKIP + ')').forEach(customizeSelect);
+      }
+
+      initAllCustomSelects();
+    })();
+    </script>
     {% endif %}
   </body>
 </html>
