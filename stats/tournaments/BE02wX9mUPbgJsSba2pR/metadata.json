@@ -1,0 +1,13 @@
+{
+  "id": "BE02wX9mUPbgJsSba2pR",
+  "name": "2026 Belo Horizonte Pokémon VGC Regional Championships",
+  "date": "2025-10-11",
+  "location": "2026 Belo Horizonte Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 185,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 27,
+  "teams_scraped": 185,
+  "scraped_at": "2026-05-30T12:55:02.048784Z",
+  "day2_source": "pairings"
+}

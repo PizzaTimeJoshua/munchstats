@@ -1603,6 +1603,11 @@ def find_replays(poke_search, meta, replay_total=100, filters=None):
                 [get_pokemon_sprite_num(p) for p in replay["teams"][0]],
                 [get_pokemon_sprite_num(p) for p in replay["teams"][1]],
             ]
+            teamused_raw = replay.get("teamused", [[], []])
+            teamused_brought = [
+                [p in teamused_raw[0] for p in replay["teams"][0]],
+                [p in teamused_raw[1] for p in replay["teams"][1]],
+            ]
             search_replays.append([
                 replay["id"],
                 replay["rating"],
@@ -1614,6 +1619,8 @@ def find_replays(poke_search, meta, replay_total=100, filters=None):
                 replay["usage_score"],
                 replay["bo3_matches"],
                 replay["format"],
+                teamused_brought,
+                replay.get("winner_index", 0),
             ])
 
             if len(search_replays) >= replay_total:
@@ -1754,7 +1761,348 @@ def watch_replay(replay_id):
     return render_template("watch.html", replay_id=replay_id)
 
 
-# ─── Error Handlers & Index ──────────────────────────��──────────────────────
+# ─── Tournament Usage Integration ─────────────────────────────────────────
+
+TOURNAMENT_DATA_DIR = os.path.join(DATA_DIRECTORY, "tournaments")
+os.makedirs(TOURNAMENT_DATA_DIR, exist_ok=True)
+
+
+def load_tournament_list():
+    """Load tournament index, sorted newest first. Filters out tournaments with no team data."""
+    index_path = os.path.join(TOURNAMENT_DATA_DIR, "tournaments_index.json")
+    data = load_data_file(index_path)
+    if not data:
+        # Fallback: scan directories
+        data = []
+        if os.path.isdir(TOURNAMENT_DATA_DIR):
+            for tid in os.listdir(TOURNAMENT_DATA_DIR):
+                meta_path = os.path.join(TOURNAMENT_DATA_DIR, tid, "metadata.json")
+                if os.path.exists(meta_path):
+                    meta = load_data_file(meta_path)
+                    if meta:
+                        data.append(meta)
+    # Only keep tournaments that have team data scraped
+    tournaments = [t for t in data if t.get("teams_scraped", 0) > 0]
+    tournaments.sort(key=lambda t: t.get("date", ""), reverse=True)
+    return tournaments
+
+
+def load_tournament_aggregated(tournament_id):
+    """Load aggregated usage data for a tournament."""
+    path = os.path.join(TOURNAMENT_DATA_DIR, tournament_id, "aggregated.json")
+    return load_data_file(path) or {}
+
+
+def load_tournament_players(tournament_id):
+    """Load player data for a tournament."""
+    path = os.path.join(TOURNAMENT_DATA_DIR, tournament_id, "players.json")
+    return load_data_file(path) or []
+
+
+def build_move_tooltip(move_name):
+    """Build tooltip text for a move from the move database."""
+    move_key = re.sub(r"[^a-z0-9]+", "", move_name.lower())
+    move_info = moveDetails.get(move_key, {})
+    if not move_info:
+        return move_name
+    bp = move_info.get("basePower", "N/A")
+    if bp == 0:
+        bp = "N/A"
+    acc = move_info.get("accuracy", "N/A")
+    if acc is True:
+        acc = "N/A"
+    return (
+        f"{move_info.get('type', '')} ({move_info.get('category', '')})\n"
+        f"Base Power: {bp}\n"
+        f"Accuracy: {acc}\n"
+        f"Priority: {move_info.get('priority', 0)}\n"
+        f"{move_info.get('desc', 'No info.')}"
+    )
+
+
+def compile_tournament_category(poke_data, category, total_count):
+    """Convert tournament aggregated counts into display lists."""
+    data = poke_data.get(category, {})
+    total = max(total_count, 1)
+    sorted_keys = sorted(data.keys(), key=lambda k: data[k], reverse=True)
+
+    if category == "items":
+        result = []
+        for k in sorted_keys:
+            item_key = re.sub(r"[^a-z0-9]+", "", k.lower())
+            info = itemDetails.get(item_key, {"name": k, "desc": "No info.", "spritenum": 0})
+            result.append([
+                info.get("name", k),
+                "{:.1f}".format(round(data[k] / total * 100, 1)),
+                info.get("desc", "No info."),
+                divmod(info.get("spritenum", 0), 16),
+            ])
+        return result
+
+    if category == "abilities":
+        result = []
+        for k in sorted_keys:
+            ability_key = re.sub(r"[^a-z0-9]+", "", k.lower())
+            info = abilityDetails.get(ability_key, {"name": k, "desc": "No info."})
+            result.append([
+                info.get("name", k),
+                "{:.1f}".format(round(data[k] / total * 100, 1)),
+                info.get("desc", "No info."),
+            ])
+        return result
+
+    if category == "moves":
+        result = []
+        for k in sorted_keys:
+            move_key = re.sub(r"[^a-z0-9]+", "", k.lower())
+            info = moveDetails.get(move_key, {"name": k})
+            result.append([
+                info.get("name", k),
+                "{:.1f}".format(round(data[k] / total * 100, 1)),
+                build_move_tooltip(k),
+            ])
+        return result
+
+    if category == "tera_types":
+        return [
+            [k, "{:.1f}".format(round(data[k] / total * 100, 1))]
+            for k in sorted_keys
+        ]
+
+    return [
+        [k, "{:.1f}".format(round(data[k] / total * 100, 1))]
+        for k in sorted_keys
+    ]
+
+
+def compile_tournament_teammates(poke_data, total_count):
+    """Build teammates list with sprites from tournament data."""
+    teammates = poke_data.get("teammates", {})
+    total = max(total_count, 1)
+    sorted_mates = sorted(teammates.keys(), key=lambda k: teammates[k], reverse=True)
+    return [
+        [
+            name,
+            "{:.1f}".format(round(teammates[name] / total * 100, 1)),
+            get_pokemon_sprite(name),
+        ]
+        for name in sorted_mates
+    ]
+
+
+def compile_tournament_page_data(tournament_id="", day_filter="all", pokemon_name=""):
+    """Compile all data needed for the tournament page."""
+    tournaments = load_tournament_list()
+    if not tournaments:
+        return None
+
+    # Resolve tournament
+    chosen = None
+    if tournament_id:
+        chosen = next((t for t in tournaments if t["id"] == tournament_id), None)
+    if not chosen:
+        chosen = tournaments[0]
+
+    # Load aggregated data
+    agg = load_tournament_aggregated(chosen["id"])
+    if not agg:
+        return None
+
+    # Get data for the selected day filter
+    filter_data = agg.get(day_filter, agg.get("all", {}))
+    pokemon_index = filter_data.get("pokemon", {})
+    total_teams = filter_data.get("total_teams", 1)
+
+    if not pokemon_index:
+        return None
+
+    # Sort Pokemon by usage
+    sorted_pokemon = sorted(
+        pokemon_index.keys(),
+        key=lambda n: pokemon_index[n].get("usage_pct", 0),
+        reverse=True,
+    )
+
+    # Resolve selected Pokemon
+    selected_pokemon = sorted_pokemon[0] if sorted_pokemon else ""
+    if pokemon_name:
+        matched = fuzzy_match(pokemon_name, list(pokemon_index.keys()))
+        if matched:
+            selected_pokemon = matched
+
+    if not selected_pokemon or selected_pokemon not in pokemon_index:
+        return None
+
+    poke_data = pokemon_index[selected_pokemon]
+    usage_pct = poke_data.get("usage_pct", 0)
+    usage_count = poke_data.get("usage_count", 0)
+    rank = sorted_pokemon.index(selected_pokemon) + 1
+
+    # Compile data lists
+    moves_list = compile_tournament_category(poke_data, "moves", usage_count)
+    items_list = compile_tournament_category(poke_data, "items", usage_count)
+    abilities_list = compile_tournament_category(poke_data, "abilities", usage_count)
+    tera_types_list = compile_tournament_category(poke_data, "tera_types", usage_count)
+    teammates_list = compile_tournament_teammates(poke_data, usage_count)
+
+    # Base stats and types from pokedex (pass dummy truthy dict so compile_top_data doesn't bail)
+    base_stats = compile_top_data({"_": 1}, selected_pokemon, "Stats") if pokedexEntries else []
+    pokemon_types = compile_top_data({"_": 1}, selected_pokemon, "Types") if pokedexEntries else []
+
+    # Build pokemon list for sidebar
+    pokemon_names = []
+    for name in sorted_pokemon:
+        pct = pokemon_index[name].get("usage_pct", 0)
+        pokemon_names.append([
+            name,
+            "{:.1f}".format(pct),
+            get_pokemon_sprite(name),
+        ])
+
+    return {
+        "tournaments": tournaments,
+        "selected_tournament": chosen,
+        "day_filter": day_filter,
+        "day_options": ["all", "day2", "top16", "top8"],
+        "pokemon_names": pokemon_names,
+        "selected_pokemon": selected_pokemon,
+        "current_pokemon": [selected_pokemon, usage_pct, rank, get_pokemon_sprite(selected_pokemon)],
+        "base_stats": base_stats,
+        "pokemon_types": pokemon_types,
+        "moves_list": moves_list,
+        "items_list": items_list,
+        "abilities_list": abilities_list,
+        "tera_types_list": tera_types_list,
+        "teammates_list": teammates_list,
+        "total_teams": total_teams,
+    }
+
+
+@app.route("/tournaments/")
+@app.route("/tournaments/<tournament_id>/")
+@app.route("/tournaments/<tournament_id>/<day_filter>/")
+@app.route("/tournaments/<tournament_id>/<day_filter>/<pokemon_name>")
+def tournaments_page(tournament_id="", day_filter="all", pokemon_name=""):
+    data = compile_tournament_page_data(tournament_id, day_filter, pokemon_name)
+    tab_kwargs = dict(
+        selected_format=[DEFAULT_META, formatDisplayNames.get(DEFAULT_META, DEFAULT_META)],
+        selected_rating="0",
+    )
+    if data is None:
+        return render_template("tournaments.html", no_data=True, selected_pokemon="", **tab_kwargs)
+    return render_template("tournaments.html", **data, **tab_kwargs)
+
+
+@app.route("/tournaments/api/<tournament_id>/<day_filter>/")
+@app.route("/tournaments/api/<tournament_id>/<day_filter>/<pokemon_name>")
+def api_tournament_data(tournament_id, day_filter="all", pokemon_name=""):
+    data = compile_tournament_page_data(tournament_id, day_filter, pokemon_name)
+    if data is None:
+        return jsonify({"error": "No data found"}), 404
+    # Convert tuple sprites to lists for JSON serialization
+    result = dict(data)
+    result["current_pokemon"] = list(result["current_pokemon"])
+    result["current_pokemon"][3] = list(result["current_pokemon"][3])
+    result["pokemon_names"] = [
+        [p[0], p[1], list(p[2])] for p in result["pokemon_names"]
+    ]
+    result["teammates_list"] = [
+        [t[0], t[1], list(t[2])] for t in result["teammates_list"]
+    ]
+    # Convert item sprite tuples
+    result["items_list"] = [
+        [i[0], i[1], i[2], list(i[3])] if len(i) > 3 else i
+        for i in result["items_list"]
+    ]
+    return jsonify(result)
+
+
+@app.route("/tournaments/api/<tournament_id>/teams/<pokemon_name>")
+def api_tournament_teams(tournament_id, pokemon_name):
+    """Return teams that used a given Pokemon, sorted by placement."""
+    players = load_tournament_players(tournament_id)
+    day_filter = request.args.get("day", "all")
+
+    matching_teams = []
+    for player in players:
+        if not player.get("team"):
+            continue
+        # Day filter - hierarchical: top8 > top16 > day2 > day1
+        day = player.get("day_reached", "day1")
+        day_hierarchy = {"top8": 4, "top16": 3, "day2": 2, "day1": 1}
+        if day_filter != "all":
+            required_level = day_hierarchy.get(day_filter, 0)
+            player_level = day_hierarchy.get(day, 1)
+            if player_level < required_level:
+                continue
+
+        team_names = [slot["pokemon"] for slot in player["team"]]
+        matched = pokemon_name.lower() in [n.lower() for n in team_names]
+        if matched:
+            matching_teams.append({
+                "player": player["name"],
+                "placement": player["placement"],
+                "record": player.get("record", {}),
+                "day_reached": day,
+                "team": [
+                    {
+                        "pokemon": s["pokemon"],
+                        "sprite": list(get_pokemon_sprite(s["pokemon"])),
+                        "item": s.get("item", ""),
+                        "ability": s.get("ability", ""),
+                        "tera_type": s.get("tera_type", ""),
+                        "moves": s.get("moves", []),
+                    }
+                    for s in player["team"]
+                ],
+            })
+
+    matching_teams.sort(key=lambda t: t["placement"])
+    return jsonify(matching_teams[:50])
+
+
+@app.route("/tournaments/api/<tournament_id>/standings")
+def api_tournament_standings(tournament_id):
+    """Return player standings for a tournament, filtered by day."""
+    players = load_tournament_players(tournament_id)
+    day_filter = request.args.get("day", "all")
+
+    standings = []
+    day_hierarchy = {"top8": 4, "top16": 3, "day2": 2, "day1": 1}
+    for player in players:
+        if not player.get("team"):
+            continue
+        day = player.get("day_reached", "day1")
+        if day_filter != "all":
+            required_level = day_hierarchy.get(day_filter, 0)
+            if day_hierarchy.get(day, 1) < required_level:
+                continue
+
+        team_sprites = []
+        for slot in player["team"]:
+            sp = get_pokemon_sprite(slot["pokemon"])
+            team_sprites.append({
+                "pokemon": slot["pokemon"],
+                "sprite": list(sp),
+                "item": slot.get("item", ""),
+                "ability": slot.get("ability", ""),
+                "tera_type": slot.get("tera_type", ""),
+                "moves": slot.get("moves", []),
+            })
+
+        standings.append({
+            "placement": player["placement"],
+            "name": player["name"],
+            "record": player.get("record", {}),
+            "day_reached": day,
+            "team": team_sprites,
+        })
+
+    standings.sort(key=lambda s: s["placement"])
+    return jsonify(standings)
+
+
+# ─── Error Handlers & Index ──────────────────────────────────────────────
 
 
 @app.errorhandler(404)

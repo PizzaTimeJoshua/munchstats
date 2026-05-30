@@ -131,10 +131,29 @@ body {
 }
 
 /* ── Tooltip styling ── */
-.tooltip {
+#tooltipwrapper {
+  color: #ccc !important;
+}
+#tooltipwrapper .tooltip {
   background: #1e1e1e !important;
+  background: rgba(30, 30, 30, 0.95) !important;
   color: #ccc !important;
   border-color: #555 !important;
+  font-family: Arial, sans-serif !important;
+}
+#tooltipwrapper .tooltip h2 {
+  color: #e0e0e0 !important;
+  border-color: #555 !important;
+}
+#tooltipwrapper .tooltip p {
+  color: #ccc !important;
+}
+#tooltipwrapper .tooltip p.tooltip-section {
+  border-color: #555 !important;
+}
+#tooltipwrapper.tooltip-locked .tooltip {
+  border-color: #888 !important;
+  background: #222 !important;
 }
 
 /* ── Team preview open team sheet styling ── */

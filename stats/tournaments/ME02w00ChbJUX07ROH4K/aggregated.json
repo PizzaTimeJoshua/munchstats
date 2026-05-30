@@ -1,0 +1,7343 @@
+{
+  "all": {
+    "total_teams": 234,
+    "pokemon": {
+      "Gholdengo": {
+        "usage_count": 45,
+        "usage_pct": 19.23,
+        "moves": {
+          "Shadow Ball": 39,
+          "Make It Rain": 45,
+          "Nasty Plot": 25,
+          "Protect": 27,
+          "Dazzling Gleam": 18,
+          "Trick": 17,
+          "Power Gem": 5,
+          "Hex": 2,
+          "Thunderbolt": 1,
+          "Thunder Wave": 1
+        },
+        "items": {
+          "Metal Coat": 12,
+          "Choice Specs": 17,
+          "Sitrus Berry": 8,
+          "Life Orb": 3,
+          "Leftovers": 4,
+          "Wise Glasses": 1
+        },
+        "abilities": {
+          "Good as Gold": 45
+        },
+        "tera_types": {
+          "Fairy": 26,
+          "Dragon": 7,
+          "Steel": 3,
+          "Water": 7,
+          "Ghost": 1,
+          "Flying": 1
+        },
+        "teammates": {
+          "Porygon2": 2,
+          "Ursaluna": 1,
+          "Ogerpon-Wellspring": 15,
+          "Tornadus": 14,
+          "Incineroar": 26,
+          "Landorus": 19,
+          "Dragonite": 5,
+          "Gouging Fire": 4,
+          "Flutter Mane": 8,
+          "Roaring Moon": 17,
+          "Amoonguss": 18,
+          "Urshifu-Rapid-Strike": 24,
+          "Rillaboom": 11,
+          "Ogerpon-Hearthflame": 6,
+          "Regidrago": 6,
+          "Entei": 2,
+          "Grimmsnarl": 2,
+          "Okidogi": 2,
+          "Arcanine-Hisui": 4,
+          "Raging Bolt": 10,
+          "Ting-Lu": 2,
+          "Chien-Pao": 7,
+          "Dondozo": 3,
+          "Landorus-Therian": 4,
+          "Zapdos-Galar": 1,
+          "Farigiraf": 3,
+          "Glimmora": 1,
+          "Tatsugiri": 1,
+          "Sneasler": 1,
+          "Whimsicott": 1,
+          "Urshifu": 3,
+          "Weezing-Galar": 1,
+          "Slaking": 1
+        }
+      },
+      "Porygon2": {
+        "usage_count": 12,
+        "usage_pct": 5.13,
+        "moves": {
+          "Tera Blast": 12,
+          "Ice Beam": 12,
+          "Recover": 11,
+          "Trick Room": 11,
+          "Protect": 1,
+          "Shadow Ball": 1
+        },
+        "items": {
+          "Eviolite": 12
+        },
+        "abilities": {
+          "Download": 12
+        },
+        "tera_types": {
+          "Flying": 9,
+          "Fairy": 2,
+          "Poison": 1
+        },
+        "teammates": {
+          "Gholdengo": 2,
+          "Ursaluna": 8,
+          "Ogerpon-Wellspring": 4,
+          "Tornadus": 5,
+          "Incineroar": 11,
+          "Amoonguss": 7,
+          "Urshifu-Rapid-Strike": 4,
+          "Okidogi": 2,
+          "Flutter Mane": 3,
+          "Zapdos-Galar": 1,
+          "Umbreon": 1,
+          "Meowscarada": 1,
+          "Sylveon": 1,
+          "Grimmsnarl": 1,
+          "Annihilape": 1,
+          "Gastrodon": 1,
+          "Urshifu": 1,
+          "Rillaboom": 1,
+          "Raging Bolt": 1,
+          "Dragonite": 1,
+          "Araquanid": 1,
+          "Roaring Moon": 1,
+          "Landorus": 1
+        }
+      },
+      "Ursaluna": {
+        "usage_count": 24,
+        "usage_pct": 10.26,
+        "moves": {
+          "Facade": 24,
+          "Earthquake": 22,
+          "Headlong Rush": 24,
+          "Protect": 24,
+          "Yawn": 1,
+          "Ice Punch": 1
+        },
+        "items": {
+          "Flame Orb": 24
+        },
+        "abilities": {
+          "Guts": 24
+        },
+        "tera_types": {
+          "Ghost": 13,
+          "Dragon": 7,
+          "Fairy": 4
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Porygon2": 8,
+          "Ogerpon-Wellspring": 7,
+          "Tornadus": 13,
+          "Incineroar": 16,
+          "Amoonguss": 9,
+          "Urshifu-Rapid-Strike": 9,
+          "Flutter Mane": 12,
+          "Farigiraf": 4,
+          "Ogerpon-Hearthflame": 3,
+          "Okidogi": 4,
+          "Cresselia": 4,
+          "Iron Crown": 4,
+          "Urshifu": 2,
+          "Indeedee-F": 5,
+          "Roaring Moon": 1,
+          "Bronzong": 1,
+          "Raging Bolt": 2,
+          "Entei": 1,
+          "Torkoal": 2,
+          "Zapdos": 1,
+          "Walking Wake": 1,
+          "Hatterene": 1,
+          "Smeargle": 1,
+          "Rillaboom": 1,
+          "Chi-Yu": 1,
+          "Grimmsnarl": 1,
+          "Goodra-Hisui": 1,
+          "Araquanid": 1,
+          "Regidrago": 2,
+          "Thundurus-Therian": 1
+        }
+      },
+      "Ogerpon-Wellspring": {
+        "usage_count": 67,
+        "usage_pct": 28.63,
+        "moves": {
+          "Ivy Cudgel": 67,
+          "Wood Hammer": 16,
+          "Follow Me": 65,
+          "Spiky Shield": 67,
+          "Horn Leech": 48,
+          "Swords Dance": 2,
+          "Grassy Glide": 1,
+          "U-turn": 1,
+          "Power Whip": 1
+        },
+        "items": {
+          "Wellspring Mask": 67
+        },
+        "abilities": {
+          "Water Absorb": 67
+        },
+        "tera_types": {
+          "Water": 67
+        },
+        "teammates": {
+          "Gholdengo": 15,
+          "Porygon2": 4,
+          "Ursaluna": 7,
+          "Tornadus": 20,
+          "Incineroar": 28,
+          "Landorus": 25,
+          "Dragonite": 4,
+          "Gouging Fire": 2,
+          "Flutter Mane": 39,
+          "Arcanine-Hisui": 17,
+          "Raging Bolt": 32,
+          "Chien-Pao": 6,
+          "Okidogi": 7,
+          "Moltres-Galar": 2,
+          "Rillaboom": 9,
+          "Amoonguss": 5,
+          "Farigiraf": 13,
+          "Ursaluna-Bloodmoon": 11,
+          "Urshifu": 22,
+          "Landorus-Therian": 4,
+          "Heatran": 1,
+          "Entei": 4,
+          "Roaring Moon": 7,
+          "Grimmsnarl": 3,
+          "Iron Crown": 3,
+          "Indeedee-F": 3,
+          "Chi-Yu": 6,
+          "Glimmora": 4,
+          "Ninetales-Alola": 2,
+          "Articuno": 2,
+          "Pikachu": 1,
+          "Iron Jugulis": 1,
+          "Zapdos-Galar": 3,
+          "Umbreon": 1,
+          "Meowscarada": 1,
+          "Sylveon": 2,
+          "Spectrier": 1,
+          "Bronzong": 1,
+          "Smeargle": 1,
+          "Primarina": 1,
+          "Iron Boulder": 1,
+          "Urshifu-Rapid-Strike": 2,
+          "Sneasler": 1,
+          "Regidrago": 2,
+          "Whimsicott": 1,
+          "Indeedee": 1,
+          "Regieleki": 1,
+          "Baxcalibur": 1,
+          "Thundurus-Therian": 1,
+          "Iron Hands": 2,
+          "Metagross": 1,
+          "Archaludon": 1
+        }
+      },
+      "Tornadus": {
+        "usage_count": 72,
+        "usage_pct": 30.77,
+        "moves": {
+          "Bleakwind Storm": 72,
+          "Rain Dance": 47,
+          "Tailwind": 72,
+          "Protect": 51,
+          "Sunny Day": 15,
+          "Icy Wind": 10,
+          "Taunt": 21
+        },
+        "items": {
+          "Rocky Helmet": 6,
+          "Sky Plate": 1,
+          "Covert Cloak": 39,
+          "Focus Sash": 24,
+          "Sharp Beak": 2
+        },
+        "abilities": {
+          "Prankster": 72
+        },
+        "tera_types": {
+          "Steel": 33,
+          "Dragon": 7,
+          "Grass": 3,
+          "Ghost": 12,
+          "Flying": 6,
+          "Dark": 11
+        },
+        "teammates": {
+          "Gholdengo": 14,
+          "Porygon2": 5,
+          "Ursaluna": 13,
+          "Ogerpon-Wellspring": 20,
+          "Incineroar": 27,
+          "Amoonguss": 13,
+          "Urshifu-Rapid-Strike": 44,
+          "Flutter Mane": 31,
+          "Farigiraf": 10,
+          "Ogerpon-Hearthflame": 26,
+          "Landorus": 19,
+          "Rillaboom": 9,
+          "Regidrago": 15,
+          "Urshifu": 13,
+          "Ursaluna-Bloodmoon": 5,
+          "Iron Crown": 19,
+          "Indeedee-F": 19,
+          "Landorus-Therian": 5,
+          "Ogerpon-Cornerstone": 4,
+          "Chi-Yu": 9,
+          "Glimmora": 3,
+          "Chien-Pao": 4,
+          "Raging Bolt": 11,
+          "Arcanine-Hisui": 3,
+          "Zapdos-Galar": 1,
+          "Meowstic": 1,
+          "Sneasler": 1,
+          "Archaludon": 3,
+          "Indeedee": 2,
+          "Entei": 1,
+          "Moltres-Galar": 1,
+          "Smeargle": 1,
+          "Heatran": 1,
+          "Okidogi": 3,
+          "Thundurus-Therian": 1,
+          "Dragonite": 1,
+          "Torkoal": 1,
+          "Sunflora": 1
+        }
+      },
+      "Incineroar": {
+        "usage_count": 108,
+        "usage_pct": 46.15,
+        "moves": {
+          "Fake Out": 108,
+          "Knock Off": 93,
+          "Flare Blitz": 100,
+          "Parting Shot": 81,
+          "U-turn": 23,
+          "Snarl": 5,
+          "Will-O-Wisp": 6,
+          "Helping Hand": 4,
+          "Taunt": 7,
+          "Protect": 2,
+          "Darkest Lariat": 1,
+          "Swords Dance": 1,
+          "Drain Punch": 1
+        },
+        "items": {
+          "Sitrus Berry": 29,
+          "Assault Vest": 23,
+          "Safety Goggles": 28,
+          "Rocky Helmet": 19,
+          "Figy Berry": 1,
+          "Ability Shield": 2,
+          "Clear Amulet": 1,
+          "Shuca Berry": 2,
+          "Covert Cloak": 2,
+          "Leftovers": 1
+        },
+        "abilities": {
+          "Intimidate": 108
+        },
+        "tera_types": {
+          "Grass": 42,
+          "Ghost": 37,
+          "Dragon": 3,
+          "Flying": 19,
+          "Bug": 3,
+          "Water": 4
+        },
+        "teammates": {
+          "Gholdengo": 26,
+          "Porygon2": 11,
+          "Ursaluna": 16,
+          "Ogerpon-Wellspring": 28,
+          "Tornadus": 27,
+          "Amoonguss": 42,
+          "Urshifu-Rapid-Strike": 58,
+          "Flutter Mane": 56,
+          "Farigiraf": 20,
+          "Ogerpon-Hearthflame": 25,
+          "Rillaboom": 35,
+          "Raging Bolt": 44,
+          "Okidogi": 5,
+          "Landorus": 31,
+          "Ursaluna-Bloodmoon": 13,
+          "Cresselia": 4,
+          "Roaring Moon": 19,
+          "Urshifu": 10,
+          "Glimmora": 1,
+          "Scream Tail": 1,
+          "Suicune": 1,
+          "Chien-Pao": 7,
+          "Registeel": 1,
+          "Iron Jugulis": 1,
+          "Indeedee-F": 1,
+          "Iron Crown": 1,
+          "Spectrier": 1,
+          "Grimmsnarl": 3,
+          "Torkoal": 5,
+          "Walking Wake": 3,
+          "Weezing-Galar": 3,
+          "Dondozo": 1,
+          "Brute Bonnet": 1,
+          "Tatsugiri": 1,
+          "Enamorus-Therian": 1,
+          "Annihilape": 3,
+          "Gastrodon": 3,
+          "Ting-Lu": 2,
+          "Bronzong": 1,
+          "Ogerpon-Cornerstone": 1,
+          "Dragonite": 5,
+          "Primarina": 1,
+          "Iron Boulder": 1,
+          "Gouging Fire": 2,
+          "Tsareena": 1,
+          "Landorus-Therian": 1,
+          "Araquanid": 1,
+          "Regidrago": 1,
+          "Regieleki": 1,
+          "Sylveon": 1,
+          "Baxcalibur": 1,
+          "Weezing": 1,
+          "Archaludon": 3,
+          "Whimsicott": 1,
+          "Iron Hands": 1,
+          "Slaking": 1,
+          "Goodra-Hisui": 1,
+          "Pelipper": 1,
+          "Chi-Yu": 1,
+          "Sunflora": 1
+        }
+      },
+      "Landorus": {
+        "usage_count": 67,
+        "usage_pct": 28.63,
+        "moves": {
+          "Protect": 67,
+          "Earth Power": 66,
+          "Sludge Bomb": 67,
+          "Sandsear Storm": 47,
+          "Substitute": 15,
+          "Taunt": 2,
+          "Nasty Plot": 1,
+          "Psychic": 3
+        },
+        "items": {
+          "Life Orb": 67
+        },
+        "abilities": {
+          "Sheer Force": 66,
+          "Sand Force": 1
+        },
+        "tera_types": {
+          "Poison": 24,
+          "Steel": 36,
+          "Ghost": 3,
+          "Water": 4
+        },
+        "teammates": {
+          "Gholdengo": 19,
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Ogerpon-Wellspring": 25,
+          "Flutter Mane": 34,
+          "Arcanine-Hisui": 15,
+          "Raging Bolt": 31,
+          "Chien-Pao": 6,
+          "Amoonguss": 18,
+          "Incineroar": 31,
+          "Tornadus": 19,
+          "Urshifu-Rapid-Strike": 36,
+          "Roaring Moon": 14,
+          "Pelipper": 2,
+          "Archaludon": 2,
+          "Thundurus": 2,
+          "Iron Crown": 7,
+          "Indeedee-F": 7,
+          "Ogerpon-Cornerstone": 2,
+          "Ogerpon-Hearthflame": 13,
+          "Rillaboom": 11,
+          "Ninetales-Alola": 2,
+          "Articuno": 2,
+          "Pikachu": 1,
+          "Urshifu": 9,
+          "Spectrier": 1,
+          "Grimmsnarl": 1,
+          "Whimsicott": 2,
+          "Regidrago": 2,
+          "Farigiraf": 2,
+          "Torkoal": 2,
+          "Entei": 2,
+          "Moltres-Galar": 1,
+          "Smeargle": 1,
+          "Chi-Yu": 3,
+          "Tsareena": 1,
+          "Indeedee": 1,
+          "Regieleki": 1,
+          "Sylveon": 1,
+          "Baxcalibur": 1,
+          "Porygon2": 1,
+          "Walking Wake": 1,
+          "Lilligant-Hisui": 1
+        }
+      },
+      "Dragonite": {
+        "usage_count": 22,
+        "usage_pct": 9.4,
+        "moves": {
+          "Extreme Speed": 19,
+          "Dragon Claw": 2,
+          "Tera Blast": 1,
+          "Ice Spinner": 3,
+          "Scale Shot": 11,
+          "Iron Head": 11,
+          "Protect": 12,
+          "Stomping Tantrum": 4,
+          "Wing Attack": 1,
+          "Outrage": 7,
+          "Tailwind": 2,
+          "Haze": 1,
+          "Aqua Jet": 2,
+          "Thunder Punch": 1,
+          "Low Kick": 2,
+          "Aerial Ace": 3,
+          "Stone Edge": 1,
+          "Earthquake": 1,
+          "Helping Hand": 1,
+          "Breaking Swipe": 1,
+          "Fire Punch": 1,
+          "Dragon Dance": 1
+        },
+        "items": {
+          "Assault Vest": 1,
+          "Loaded Dice": 11,
+          "Choice Band": 8,
+          "Lum Berry": 1,
+          "Weakness Policy": 1
+        },
+        "abilities": {
+          "Multiscale": 7,
+          "Inner Focus": 15
+        },
+        "tera_types": {
+          "Flying": 1,
+          "Steel": 10,
+          "Normal": 10,
+          "Fairy": 1
+        },
+        "teammates": {
+          "Gholdengo": 5,
+          "Landorus": 1,
+          "Gouging Fire": 10,
+          "Ogerpon-Wellspring": 4,
+          "Flutter Mane": 7,
+          "Ting-Lu": 9,
+          "Chien-Pao": 14,
+          "Dondozo": 5,
+          "Corviknight": 1,
+          "Sinistcha": 5,
+          "Zapdos-Galar": 5,
+          "Rillaboom": 3,
+          "Urshifu-Rapid-Strike": 3,
+          "Glimmora": 1,
+          "Okidogi": 1,
+          "Incineroar": 5,
+          "Farigiraf": 2,
+          "Tatsugiri": 1,
+          "Ogerpon-Hearthflame": 2,
+          "Urshifu": 1,
+          "Raging Bolt": 4,
+          "Porygon2": 1,
+          "Entei": 2,
+          "Grimmsnarl": 2,
+          "Chi-Yu": 1,
+          "Weezing-Galar": 1,
+          "Slaking": 1,
+          "Amoonguss": 2,
+          "Archaludon": 1,
+          "Pelipper": 1,
+          "Tornadus": 1,
+          "Arcanine-Hisui": 1,
+          "Iron Crown": 1,
+          "Indeedee-F": 1,
+          "Kilowattrel": 1,
+          "Typhlosion-Hisui": 1,
+          "Gyarados": 1,
+          "Torkoal": 1,
+          "Annihilape": 1
+        }
+      },
+      "Gouging Fire": {
+        "usage_count": 15,
+        "usage_pct": 6.41,
+        "moves": {
+          "Breaking Swipe": 13,
+          "Heat Crash": 15,
+          "Howl": 13,
+          "Snarl": 2,
+          "Burning Bulwark": 11,
+          "Protect": 3,
+          "Dragon Dance": 1,
+          "Dragon Claw": 1,
+          "Dragon Cheer": 1
+        },
+        "items": {
+          "Booster Energy": 15
+        },
+        "abilities": {
+          "Protosynthesis": 15
+        },
+        "tera_types": {
+          "Fairy": 12,
+          "Grass": 2,
+          "Ghost": 1
+        },
+        "teammates": {
+          "Gholdengo": 4,
+          "Landorus": 1,
+          "Dragonite": 10,
+          "Ogerpon-Wellspring": 2,
+          "Flutter Mane": 3,
+          "Ting-Lu": 10,
+          "Chien-Pao": 9,
+          "Dondozo": 4,
+          "Corviknight": 2,
+          "Sinistcha": 5,
+          "Zapdos-Galar": 5,
+          "Rillaboom": 3,
+          "Urshifu-Rapid-Strike": 3,
+          "Glimmora": 2,
+          "Primarina": 1,
+          "Incineroar": 2,
+          "Iron Boulder": 1,
+          "Grimmsnarl": 1,
+          "Amoonguss": 2,
+          "Raging Bolt": 2,
+          "Tinkaton": 1,
+          "Latios": 1,
+          "Garchomp": 1
+        }
+      },
+      "Flutter Mane": {
+        "usage_count": 116,
+        "usage_pct": 49.57,
+        "moves": {
+          "Moonblast": 109,
+          "Taunt": 36,
+          "Thunder Wave": 36,
+          "Icy Wind": 85,
+          "Shadow Ball": 68,
+          "Dazzling Gleam": 55,
+          "Power Gem": 11,
+          "Protect": 47,
+          "Trick Room": 2,
+          "Pain Split": 2,
+          "Perish Song": 4,
+          "Calm Mind": 3,
+          "Imprison": 1,
+          "Mystical Fire": 3,
+          "Sunny Day": 1,
+          "Dark Pulse": 1
+        },
+        "items": {
+          "Sitrus Berry": 1,
+          "Booster Energy": 75,
+          "Choice Specs": 34,
+          "Focus Sash": 4,
+          "Safety Goggles": 1,
+          "Life Orb": 1
+        },
+        "abilities": {
+          "Protosynthesis": 116
+        },
+        "tera_types": {
+          "Grass": 26,
+          "Fairy": 78,
+          "Fire": 2,
+          "Water": 4,
+          "Steel": 2,
+          "Ghost": 2,
+          "Poison": 1,
+          "Stellar": 1
+        },
+        "teammates": {
+          "Gholdengo": 8,
+          "Landorus": 34,
+          "Dragonite": 7,
+          "Gouging Fire": 3,
+          "Ogerpon-Wellspring": 39,
+          "Arcanine-Hisui": 17,
+          "Raging Bolt": 59,
+          "Chien-Pao": 11,
+          "Tornadus": 31,
+          "Incineroar": 56,
+          "Ursaluna": 12,
+          "Farigiraf": 19,
+          "Ogerpon-Hearthflame": 31,
+          "Rillaboom": 30,
+          "Urshifu-Rapid-Strike": 46,
+          "Okidogi": 3,
+          "Porygon2": 3,
+          "Moltres-Galar": 2,
+          "Amoonguss": 22,
+          "Ursaluna-Bloodmoon": 7,
+          "Cresselia": 3,
+          "Urshifu": 17,
+          "Landorus-Therian": 5,
+          "Heatran": 4,
+          "Weezing-Galar": 2,
+          "Dondozo": 5,
+          "Tatsugiri": 4,
+          "Chi-Yu": 18,
+          "Glimmora": 5,
+          "Roaring Moon": 3,
+          "Archaludon": 4,
+          "Pelipper": 3,
+          "Pikachu": 1,
+          "Torkoal": 12,
+          "Walking Wake": 6,
+          "Lilligant-Hisui": 2,
+          "Tatsugiri-Droopy": 1,
+          "Drifblim": 1,
+          "Ogerpon-Cornerstone": 4,
+          "Iron Crown": 3,
+          "Indeedee-F": 4,
+          "Zapdos-Galar": 1,
+          "Ogerpon": 3,
+          "Bronzong": 1,
+          "Meowstic": 1,
+          "Thundurus": 1,
+          "Entei": 3,
+          "Zapdos": 1,
+          "Charizard": 1,
+          "Krookodile": 1,
+          "Sneasler": 1,
+          "Indeedee": 2,
+          "Smeargle": 1,
+          "Milotic": 2,
+          "Iron Hands": 3,
+          "Tsareena": 1,
+          "Grimmsnarl": 1,
+          "Terrakion": 1,
+          "Whimsicott": 4,
+          "Araquanid": 1,
+          "Weezing": 1,
+          "Ting-Lu": 1,
+          "Sunflora": 1
+        }
+      },
+      "Amoonguss": {
+        "usage_count": 51,
+        "usage_pct": 21.79,
+        "moves": {
+          "Spore": 51,
+          "Pollen Puff": 16,
+          "Rage Powder": 51,
+          "Protect": 40,
+          "Sludge Bomb": 39,
+          "Clear Smog": 7
+        },
+        "items": {
+          "Rocky Helmet": 30,
+          "Mental Herb": 6,
+          "Sitrus Berry": 14,
+          "Covert Cloak": 1
+        },
+        "abilities": {
+          "Regenerator": 49,
+          "Effect Spore": 2
+        },
+        "tera_types": {
+          "Fairy": 11,
+          "Water": 33,
+          "Fire": 3,
+          "Dark": 3,
+          "Grass": 1
+        },
+        "teammates": {
+          "Urshifu-Rapid-Strike": 38,
+          "Tornadus": 13,
+          "Porygon2": 7,
+          "Ursaluna": 9,
+          "Incineroar": 42,
+          "Flutter Mane": 22,
+          "Raging Bolt": 10,
+          "Landorus": 18,
+          "Ogerpon-Wellspring": 5,
+          "Farigiraf": 4,
+          "Ursaluna-Bloodmoon": 1,
+          "Cresselia": 4,
+          "Roaring Moon": 15,
+          "Gholdengo": 18,
+          "Ogerpon-Hearthflame": 4,
+          "Pelipper": 3,
+          "Archaludon": 4,
+          "Thundurus": 1,
+          "Chien-Pao": 4,
+          "Landorus-Therian": 3,
+          "Rillaboom": 4,
+          "Grimmsnarl": 4,
+          "Annihilape": 1,
+          "Gastrodon": 2,
+          "Gouging Fire": 2,
+          "Goodra-Hisui": 2,
+          "Araquanid": 1,
+          "Whimsicott": 1,
+          "Chi-Yu": 1,
+          "Urshifu": 1,
+          "Iron Hands": 1,
+          "Weezing-Galar": 1,
+          "Slaking": 1,
+          "Dragonite": 2,
+          "Ting-Lu": 1,
+          "Tinkaton": 1,
+          "Latios": 1,
+          "Garchomp": 1,
+          "Iron Crown": 1,
+          "Indeedee-F": 1
+        }
+      },
+      "Urshifu-Rapid-Strike": {
+        "usage_count": 99,
+        "usage_pct": 42.31,
+        "moves": {
+          "Surging Strikes": 99,
+          "Close Combat": 99,
+          "Aqua Jet": 84,
+          "Detect": 42,
+          "U-turn": 40,
+          "Protect": 18,
+          "Ice Spinner": 5,
+          "Ice Punch": 2,
+          "Coaching": 1,
+          "Rock Tomb": 2,
+          "Taunt": 2,
+          "Iron Head": 1,
+          "Poison Jab": 1
+        },
+        "items": {
+          "Mystic Water": 41,
+          "Choice Scarf": 33,
+          "Life Orb": 3,
+          "Focus Sash": 14,
+          "Splash Plate": 3,
+          "Choice Band": 2,
+          "Assault Vest": 2,
+          "Covert Cloak": 1
+        },
+        "abilities": {
+          "Unseen Fist": 99
+        },
+        "tera_types": {
+          "Steel": 19,
+          "Fire": 20,
+          "Water": 46,
+          "Ghost": 2,
+          "Grass": 6,
+          "Poison": 2,
+          "Stellar": 3,
+          "Electric": 1
+        },
+        "teammates": {
+          "Amoonguss": 38,
+          "Tornadus": 44,
+          "Porygon2": 4,
+          "Ursaluna": 9,
+          "Incineroar": 58,
+          "Rillaboom": 34,
+          "Ogerpon-Hearthflame": 40,
+          "Raging Bolt": 33,
+          "Flutter Mane": 46,
+          "Landorus": 36,
+          "Cresselia": 5,
+          "Roaring Moon": 13,
+          "Gholdengo": 24,
+          "Regidrago": 12,
+          "Iron Crown": 16,
+          "Landorus-Therian": 3,
+          "Indeedee-F": 16,
+          "Pelipper": 4,
+          "Archaludon": 7,
+          "Thundurus": 2,
+          "Ogerpon-Cornerstone": 2,
+          "Chien-Pao": 14,
+          "Registeel": 1,
+          "Dragonite": 3,
+          "Gouging Fire": 3,
+          "Meowstic": 1,
+          "Arcanine-Hisui": 2,
+          "Sneasler": 1,
+          "Indeedee": 1,
+          "Entei": 2,
+          "Moltres-Galar": 1,
+          "Chi-Yu": 1,
+          "Farigiraf": 5,
+          "Heatran": 1,
+          "Ogerpon-Wellspring": 2,
+          "Tsareena": 1,
+          "Grimmsnarl": 2,
+          "Goodra-Hisui": 1,
+          "Weezing": 1,
+          "Thundurus-Therian": 1,
+          "Ting-Lu": 1,
+          "Sinistcha": 1,
+          "Zapdos-Galar": 1,
+          "Weezing-Galar": 1,
+          "Ursaluna-Bloodmoon": 1
+        }
+      },
+      "Arcanine-Hisui": {
+        "usage_count": 21,
+        "usage_pct": 8.97,
+        "moves": {
+          "Extreme Speed": 21,
+          "Head Smash": 13,
+          "Rock Slide": 21,
+          "Flare Blitz": 21,
+          "Psychic Fangs": 1,
+          "Protect": 2,
+          "Close Combat": 1,
+          "Tera Blast": 2,
+          "Wild Charge": 1,
+          "Dragon Pulse": 1
+        },
+        "items": {
+          "Choice Band": 18,
+          "Clear Amulet": 2,
+          "Assault Vest": 1
+        },
+        "abilities": {
+          "Intimidate": 21
+        },
+        "tera_types": {
+          "Ghost": 4,
+          "Grass": 14,
+          "Normal": 1,
+          "Fire": 1,
+          "Fairy": 1
+        },
+        "teammates": {
+          "Flutter Mane": 17,
+          "Landorus": 15,
+          "Ogerpon-Wellspring": 17,
+          "Raging Bolt": 16,
+          "Chien-Pao": 5,
+          "Moltres-Galar": 2,
+          "Rillaboom": 4,
+          "Gholdengo": 4,
+          "Ninetales-Alola": 2,
+          "Articuno": 2,
+          "Pikachu": 1,
+          "Urshifu": 6,
+          "Tornadus": 3,
+          "Zapdos-Galar": 1,
+          "Thundurus": 1,
+          "Urshifu-Rapid-Strike": 2,
+          "Dondozo": 1,
+          "Glimmora": 1,
+          "Tatsugiri": 1,
+          "Roaring Moon": 1,
+          "Zapdos": 1,
+          "Milotic": 1,
+          "Dragonite": 1
+        }
+      },
+      "Raging Bolt": {
+        "usage_count": 85,
+        "usage_pct": 36.32,
+        "moves": {
+          "Snarl": 26,
+          "Thunderclap": 83,
+          "Electroweb": 31,
+          "Dragon Pulse": 50,
+          "Thunderbolt": 41,
+          "Draco Meteor": 35,
+          "Protect": 38,
+          "Calm Mind": 32,
+          "Weather Ball": 1,
+          "Thunderous Kick": 1,
+          "Volt Switch": 1,
+          "Electric Terrain": 1
+        },
+        "items": {
+          "Assault Vest": 44,
+          "Life Orb": 6,
+          "Leftovers": 20,
+          "Booster Energy": 8,
+          "Safety Goggles": 5,
+          "Clear Amulet": 1,
+          "Scope Lens": 1
+        },
+        "abilities": {
+          "Protosynthesis": 85
+        },
+        "tera_types": {
+          "Fairy": 66,
+          "Electric": 13,
+          "Bug": 3,
+          "Fire": 1,
+          "Water": 1,
+          "Flying": 1
+        },
+        "teammates": {
+          "Arcanine-Hisui": 16,
+          "Flutter Mane": 59,
+          "Landorus": 31,
+          "Ogerpon-Wellspring": 32,
+          "Chien-Pao": 12,
+          "Incineroar": 44,
+          "Rillaboom": 33,
+          "Ogerpon-Hearthflame": 24,
+          "Urshifu-Rapid-Strike": 33,
+          "Moltres-Galar": 2,
+          "Amoonguss": 10,
+          "Urshifu": 17,
+          "Landorus-Therian": 5,
+          "Heatran": 1,
+          "Weezing-Galar": 2,
+          "Dondozo": 3,
+          "Tatsugiri": 3,
+          "Chi-Yu": 6,
+          "Gholdengo": 10,
+          "Ninetales-Alola": 2,
+          "Articuno": 2,
+          "Pikachu": 1,
+          "Torkoal": 7,
+          "Walking Wake": 4,
+          "Lilligant-Hisui": 2,
+          "Farigiraf": 6,
+          "Scream Tail": 1,
+          "Suicune": 2,
+          "Cresselia": 1,
+          "Registeel": 1,
+          "Tornadus": 11,
+          "Spectrier": 1,
+          "Grimmsnarl": 1,
+          "Brute Bonnet": 1,
+          "Bronzong": 1,
+          "Ursaluna": 2,
+          "Meowstic": 1,
+          "Ursaluna-Bloodmoon": 3,
+          "Ogerpon-Cornerstone": 3,
+          "Thundurus": 1,
+          "Charizard": 1,
+          "Krookodile": 1,
+          "Tsareena": 1,
+          "Entei": 2,
+          "Dragonite": 4,
+          "Porygon2": 1,
+          "Weezing": 1,
+          "Whimsicott": 2,
+          "Zapdos-Galar": 1,
+          "Iron Crown": 1,
+          "Indeedee-F": 1,
+          "Iron Hands": 1,
+          "Metagross": 1,
+          "Ting-Lu": 1,
+          "Gouging Fire": 2,
+          "Glimmora": 1,
+          "Tinkaton": 1,
+          "Latios": 1,
+          "Garchomp": 1,
+          "Roaring Moon": 2,
+          "Annihilape": 1
+        }
+      },
+      "Chien-Pao": {
+        "usage_count": 31,
+        "usage_pct": 13.25,
+        "moves": {
+          "Protect": 31,
+          "Ice Spinner": 20,
+          "Sucker Punch": 28,
+          "Sacred Sword": 26,
+          "Icicle Crash": 11,
+          "Throat Chop": 2,
+          "Ice Shard": 3,
+          "Haze": 1,
+          "Ruination": 1,
+          "Crunch": 1
+        },
+        "items": {
+          "Focus Sash": 30,
+          "Life Orb": 1
+        },
+        "abilities": {
+          "Sword of Ruin": 31
+        },
+        "tera_types": {
+          "Stellar": 15,
+          "Ghost": 16
+        },
+        "teammates": {
+          "Arcanine-Hisui": 5,
+          "Flutter Mane": 11,
+          "Landorus": 6,
+          "Ogerpon-Wellspring": 6,
+          "Raging Bolt": 12,
+          "Dragonite": 14,
+          "Gouging Fire": 9,
+          "Ting-Lu": 9,
+          "Dondozo": 5,
+          "Corviknight": 1,
+          "Gholdengo": 7,
+          "Sinistcha": 6,
+          "Zapdos-Galar": 6,
+          "Archaludon": 2,
+          "Pelipper": 1,
+          "Urshifu-Rapid-Strike": 14,
+          "Amoonguss": 4,
+          "Incineroar": 7,
+          "Rillaboom": 10,
+          "Tornadus": 4,
+          "Landorus-Therian": 2,
+          "Glimmora": 1,
+          "Ogerpon-Hearthflame": 3,
+          "Heatran": 1,
+          "Farigiraf": 1,
+          "Tatsugiri": 1,
+          "Entei": 2,
+          "Grimmsnarl": 1,
+          "Chi-Yu": 1,
+          "Roaring Moon": 1,
+          "Zapdos": 1,
+          "Milotic": 1
+        }
+      },
+      "Farigiraf": {
+        "usage_count": 37,
+        "usage_pct": 15.81,
+        "moves": {
+          "Psyshock": 7,
+          "Dazzling Gleam": 10,
+          "Trick Room": 37,
+          "Helping Hand": 16,
+          "Psychic": 16,
+          "Hyper Voice": 24,
+          "Protect": 21,
+          "Psychic Noise": 5,
+          "Reflect": 1,
+          "Twin Beam": 2,
+          "Imprison": 1,
+          "Roar": 1,
+          "Night Shade": 2,
+          "Sunny Day": 2,
+          "Shadow Ball": 1,
+          "Psychic Fangs": 1,
+          "Thunderbolt": 1
+        },
+        "items": {
+          "Rocky Helmet": 1,
+          "Throat Spray": 19,
+          "Mental Herb": 6,
+          "Covert Cloak": 1,
+          "Sitrus Berry": 8,
+          "Safety Goggles": 2
+        },
+        "abilities": {
+          "Armor Tail": 36,
+          "Battle Armor": 1
+        },
+        "tera_types": {
+          "Fairy": 28,
+          "Fire": 3,
+          "Normal": 1,
+          "Grass": 4,
+          "Poison": 1
+        },
+        "teammates": {
+          "Tornadus": 10,
+          "Incineroar": 20,
+          "Flutter Mane": 19,
+          "Ursaluna": 4,
+          "Ogerpon-Hearthflame": 6,
+          "Ursaluna-Bloodmoon": 10,
+          "Ogerpon-Wellspring": 13,
+          "Amoonguss": 4,
+          "Torkoal": 11,
+          "Indeedee-F": 5,
+          "Maushold": 1,
+          "Hatterene": 5,
+          "Urshifu": 9,
+          "Glimmora": 1,
+          "Roaring Moon": 1,
+          "Raging Bolt": 6,
+          "Walking Wake": 2,
+          "Lilligant-Hisui": 1,
+          "Smeargle": 3,
+          "Gallade": 1,
+          "Ogerpon-Cornerstone": 1,
+          "Iron Jugulis": 1,
+          "Okidogi": 3,
+          "Chi-Yu": 4,
+          "Ogerpon": 3,
+          "Landorus-Therian": 3,
+          "Enamorus-Therian": 1,
+          "Annihilape": 2,
+          "Gastrodon": 2,
+          "Ting-Lu": 2,
+          "Dragonite": 2,
+          "Landorus": 2,
+          "Urshifu-Rapid-Strike": 5,
+          "Gholdengo": 3,
+          "Rillaboom": 5,
+          "Chien-Pao": 1,
+          "Heatran": 3,
+          "Milotic": 2,
+          "Iron Hands": 3,
+          "Whimsicott": 1,
+          "Regidrago": 1,
+          "Thundurus-Therian": 1,
+          "Metagross": 1,
+          "Goodra-Hisui": 1
+        }
+      },
+      "Ogerpon-Hearthflame": {
+        "usage_count": 56,
+        "usage_pct": 23.93,
+        "moves": {
+          "Ivy Cudgel": 56,
+          "Wood Hammer": 26,
+          "Follow Me": 29,
+          "Spiky Shield": 56,
+          "Grassy Glide": 21,
+          "Swords Dance": 12,
+          "Focus Energy": 5,
+          "Stomping Tantrum": 3,
+          "Horn Leech": 8,
+          "Taunt": 5,
+          "Encore": 2,
+          "Power Whip": 1
+        },
+        "items": {
+          "Hearthflame Mask": 56
+        },
+        "abilities": {
+          "Mold Breaker": 56
+        },
+        "tera_types": {
+          "Fire": 56
+        },
+        "teammates": {
+          "Tornadus": 26,
+          "Incineroar": 25,
+          "Flutter Mane": 31,
+          "Ursaluna": 3,
+          "Farigiraf": 6,
+          "Rillaboom": 22,
+          "Raging Bolt": 24,
+          "Urshifu-Rapid-Strike": 40,
+          "Amoonguss": 4,
+          "Gholdengo": 6,
+          "Regidrago": 14,
+          "Iron Crown": 18,
+          "Landorus-Therian": 2,
+          "Indeedee-F": 18,
+          "Landorus": 13,
+          "Whimsicott": 3,
+          "Meowstic": 1,
+          "Urshifu": 4,
+          "Suicune": 1,
+          "Thundurus": 1,
+          "Torkoal": 2,
+          "Chien-Pao": 3,
+          "Chi-Yu": 2,
+          "Ursaluna-Bloodmoon": 1,
+          "Tatsugiri": 1,
+          "Dondozo": 1,
+          "Dragonite": 2,
+          "Smeargle": 1,
+          "Talonflame": 1,
+          "Walking Wake": 2,
+          "Weezing": 1,
+          "Grimmsnarl": 1
+        }
+      },
+      "Rillaboom": {
+        "usage_count": 55,
+        "usage_pct": 23.5,
+        "moves": {
+          "Wood Hammer": 50,
+          "Grassy Glide": 55,
+          "High Horsepower": 31,
+          "Fake Out": 55,
+          "Drum Beating": 1,
+          "U-turn": 21,
+          "Protect": 3,
+          "Stomping Tantrum": 1,
+          "Acrobatics": 1,
+          "Body Slam": 1,
+          "Brick Break": 1
+        },
+        "items": {
+          "Assault Vest": 47,
+          "Clear Amulet": 2,
+          "Miracle Seed": 5,
+          "Grassy Seed": 1
+        },
+        "abilities": {
+          "Grassy Surge": 55
+        },
+        "tera_types": {
+          "Fire": 47,
+          "Ground": 3,
+          "Rock": 1,
+          "Poison": 2,
+          "Grass": 1,
+          "Fighting": 1
+        },
+        "teammates": {
+          "Incineroar": 35,
+          "Ogerpon-Hearthflame": 22,
+          "Raging Bolt": 33,
+          "Urshifu-Rapid-Strike": 34,
+          "Flutter Mane": 30,
+          "Moltres-Galar": 2,
+          "Arcanine-Hisui": 4,
+          "Ogerpon-Wellspring": 9,
+          "Gholdengo": 11,
+          "Tornadus": 9,
+          "Regidrago": 5,
+          "Landorus": 11,
+          "Scream Tail": 1,
+          "Suicune": 1,
+          "Urshifu": 4,
+          "Chien-Pao": 10,
+          "Cresselia": 1,
+          "Registeel": 1,
+          "Dondozo": 1,
+          "Tatsugiri-Droopy": 1,
+          "Drifblim": 1,
+          "Ogerpon-Cornerstone": 1,
+          "Amoonguss": 4,
+          "Torkoal": 2,
+          "Walking Wake": 2,
+          "Dragonite": 3,
+          "Gouging Fire": 3,
+          "Thundurus": 1,
+          "Farigiraf": 5,
+          "Heatran": 2,
+          "Milotic": 3,
+          "Iron Hands": 2,
+          "Primarina": 1,
+          "Iron Boulder": 1,
+          "Sneasler": 1,
+          "Whimsicott": 1,
+          "Ursaluna": 1,
+          "Chi-Yu": 1,
+          "Porygon2": 1,
+          "Roaring Moon": 2,
+          "Archaludon": 2,
+          "Ursaluna-Bloodmoon": 3,
+          "Ting-Lu": 1,
+          "Zapdos": 1,
+          "Kilowattrel": 1,
+          "Typhlosion-Hisui": 1,
+          "Gyarados": 1,
+          "Entei": 1,
+          "Weezing-Galar": 1
+        }
+      },
+      "Okidogi": {
+        "usage_count": 9,
+        "usage_pct": 3.85,
+        "moves": {
+          "Poison Jab": 2,
+          "Ice Punch": 5,
+          "Drain Punch": 8,
+          "Knock Off": 5,
+          "Gunk Shot": 7,
+          "High Horsepower": 5,
+          "Upper Hand": 3,
+          "Close Combat": 1
+        },
+        "items": {
+          "Assault Vest": 9
+        },
+        "abilities": {
+          "Guard Dog": 9
+        },
+        "tera_types": {
+          "Ghost": 2,
+          "Water": 4,
+          "Dragon": 1,
+          "Dark": 1,
+          "Grass": 1
+        },
+        "teammates": {
+          "Ursaluna": 4,
+          "Incineroar": 5,
+          "Porygon2": 2,
+          "Flutter Mane": 3,
+          "Ogerpon-Wellspring": 7,
+          "Entei": 2,
+          "Roaring Moon": 2,
+          "Grimmsnarl": 2,
+          "Gholdengo": 2,
+          "Ursaluna-Bloodmoon": 2,
+          "Iron Jugulis": 1,
+          "Farigiraf": 3,
+          "Dragonite": 1,
+          "Tornadus": 3,
+          "Iron Crown": 2,
+          "Indeedee-F": 2,
+          "Regidrago": 2
+        }
+      },
+      "Moltres-Galar": {
+        "usage_count": 3,
+        "usage_pct": 1.28,
+        "moves": {
+          "Fiery Wrath": 3,
+          "Air Slash": 3,
+          "Snarl": 3,
+          "Tera Blast": 3
+        },
+        "items": {
+          "Choice Specs": 3
+        },
+        "abilities": {
+          "Berserk": 3
+        },
+        "tera_types": {
+          "Steel": 3
+        },
+        "teammates": {
+          "Rillaboom": 2,
+          "Arcanine-Hisui": 2,
+          "Ogerpon-Wellspring": 2,
+          "Raging Bolt": 2,
+          "Flutter Mane": 2,
+          "Entei": 1,
+          "Landorus": 1,
+          "Ogerpon-Cornerstone": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Tornadus": 1
+        }
+      },
+      "Ursaluna-Bloodmoon": {
+        "usage_count": 14,
+        "usage_pct": 5.98,
+        "moves": {
+          "Hyper Voice": 12,
+          "Earth Power": 14,
+          "Vacuum Wave": 2,
+          "Blood Moon": 14,
+          "Protect": 13,
+          "Yawn": 1
+        },
+        "items": {
+          "Assault Vest": 1,
+          "Life Orb": 12,
+          "Leftovers": 1
+        },
+        "abilities": {
+          "Mind’s Eye": 14
+        },
+        "tera_types": {
+          "Normal": 11,
+          "Grass": 1,
+          "Ghost": 1,
+          "Electric": 1
+        },
+        "teammates": {
+          "Farigiraf": 10,
+          "Flutter Mane": 7,
+          "Ogerpon-Wellspring": 11,
+          "Amoonguss": 1,
+          "Incineroar": 13,
+          "Urshifu": 5,
+          "Tornadus": 5,
+          "Glimmora": 1,
+          "Roaring Moon": 1,
+          "Iron Jugulis": 1,
+          "Okidogi": 2,
+          "Ogerpon-Cornerstone": 1,
+          "Raging Bolt": 3,
+          "Ogerpon-Hearthflame": 1,
+          "Rillaboom": 3,
+          "Iron Hands": 1,
+          "Metagross": 1,
+          "Archaludon": 1,
+          "Weezing-Galar": 1,
+          "Urshifu-Rapid-Strike": 1
+        }
+      },
+      "Ting-Lu": {
+        "usage_count": 13,
+        "usage_pct": 5.56,
+        "moves": {
+          "Sand Tomb": 5,
+          "Taunt": 2,
+          "Ruination": 7,
+          "Protect": 8,
+          "Body Press": 4,
+          "Earthquake": 8,
+          "Tera Blast": 5,
+          "Payback": 1,
+          "Throat Chop": 7,
+          "Snarl": 3,
+          "Heavy Slam": 2
+        },
+        "items": {
+          "Rocky Helmet": 4,
+          "Clear Amulet": 5,
+          "Assault Vest": 4
+        },
+        "abilities": {
+          "Vessel of Ruin": 13
+        },
+        "tera_types": {
+          "Poison": 11,
+          "Fire": 1,
+          "Fairy": 1
+        },
+        "teammates": {
+          "Dragonite": 9,
+          "Gouging Fire": 10,
+          "Chien-Pao": 9,
+          "Dondozo": 4,
+          "Corviknight": 2,
+          "Gholdengo": 2,
+          "Sinistcha": 6,
+          "Zapdos-Galar": 6,
+          "Incineroar": 2,
+          "Farigiraf": 2,
+          "Enamorus-Therian": 1,
+          "Annihilape": 1,
+          "Gastrodon": 2,
+          "Glimmora": 2,
+          "Grimmsnarl": 1,
+          "Rillaboom": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Flutter Mane": 1,
+          "Raging Bolt": 1,
+          "Amoonguss": 1,
+          "Goodra-Hisui": 1
+        }
+      },
+      "Dondozo": {
+        "usage_count": 11,
+        "usage_pct": 4.7,
+        "moves": {
+          "Protect": 11,
+          "Wave Crash": 10,
+          "Fissure": 2,
+          "Yawn": 4,
+          "Earthquake": 7,
+          "Order Up": 7,
+          "Body Press": 1,
+          "Heavy Slam": 2
+        },
+        "items": {
+          "Leftovers": 8,
+          "Rocky Helmet": 2,
+          "Covert Cloak": 1
+        },
+        "abilities": {
+          "Oblivious": 7,
+          "Unaware": 4
+        },
+        "tera_types": {
+          "Grass": 10,
+          "Steel": 1
+        },
+        "teammates": {
+          "Dragonite": 5,
+          "Gouging Fire": 4,
+          "Ting-Lu": 4,
+          "Chien-Pao": 5,
+          "Corviknight": 1,
+          "Weezing-Galar": 2,
+          "Flutter Mane": 5,
+          "Tatsugiri": 6,
+          "Chi-Yu": 2,
+          "Raging Bolt": 3,
+          "Gholdengo": 3,
+          "Tatsugiri-Droopy": 1,
+          "Rillaboom": 1,
+          "Drifblim": 1,
+          "Ogerpon-Cornerstone": 1,
+          "Incineroar": 1,
+          "Brute Bonnet": 1,
+          "Glimmora": 4,
+          "Articuno": 1,
+          "Ninetales-Alola": 1,
+          "Roaring Moon": 1,
+          "Arcanine-Hisui": 1,
+          "Ogerpon-Hearthflame": 1
+        }
+      },
+      "Corviknight": {
+        "usage_count": 2,
+        "usage_pct": 0.85,
+        "moves": {
+          "Brave Bird": 2,
+          "Bulk Up": 1,
+          "Roost": 2,
+          "Iron Head": 1,
+          "Taunt": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Sitrus Berry": 1,
+          "Rocky Helmet": 1
+        },
+        "abilities": {
+          "Mirror Armor": 2
+        },
+        "tera_types": {
+          "Fairy": 1,
+          "Dragon": 1
+        },
+        "teammates": {
+          "Dragonite": 1,
+          "Gouging Fire": 2,
+          "Ting-Lu": 2,
+          "Chien-Pao": 1,
+          "Dondozo": 1,
+          "Glimmora": 1,
+          "Zapdos-Galar": 1,
+          "Sinistcha": 1
+        }
+      },
+      "Cresselia": {
+        "usage_count": 5,
+        "usage_pct": 2.14,
+        "moves": {
+          "Psychic": 4,
+          "Lunar Blessing": 5,
+          "Icy Wind": 4,
+          "Trick Room": 5,
+          "Moonblast": 1,
+          "Skill Swap": 1
+        },
+        "items": {
+          "Safety Goggles": 5
+        },
+        "abilities": {
+          "Levitate": 5
+        },
+        "tera_types": {
+          "Steel": 4,
+          "Fairy": 1
+        },
+        "teammates": {
+          "Urshifu-Rapid-Strike": 5,
+          "Ursaluna": 4,
+          "Amoonguss": 4,
+          "Incineroar": 4,
+          "Flutter Mane": 3,
+          "Raging Bolt": 1,
+          "Registeel": 1,
+          "Rillaboom": 1,
+          "Grimmsnarl": 1,
+          "Goodra-Hisui": 1
+        }
+      },
+      "Urshifu": {
+        "usage_count": 35,
+        "usage_pct": 14.96,
+        "moves": {
+          "Wicked Blow": 35,
+          "Sucker Punch": 34,
+          "Close Combat": 34,
+          "Detect": 22,
+          "Iron Head": 4,
+          "U-turn": 6,
+          "Poison Jab": 3,
+          "Protect": 1,
+          "Taunt": 1
+        },
+        "items": {
+          "Focus Sash": 23,
+          "Choice Band": 9,
+          "Choice Scarf": 2,
+          "Life Orb": 1
+        },
+        "abilities": {
+          "Unseen Fist": 35
+        },
+        "tera_types": {
+          "Dark": 24,
+          "Ghost": 2,
+          "Poison": 1,
+          "Steel": 2,
+          "Grass": 5,
+          "Fire": 1
+        },
+        "teammates": {
+          "Ogerpon-Wellspring": 22,
+          "Landorus-Therian": 4,
+          "Flutter Mane": 17,
+          "Raging Bolt": 17,
+          "Heatran": 1,
+          "Incineroar": 10,
+          "Tornadus": 13,
+          "Ursaluna-Bloodmoon": 5,
+          "Iron Crown": 3,
+          "Indeedee-F": 8,
+          "Ursaluna": 2,
+          "Farigiraf": 9,
+          "Torkoal": 6,
+          "Maushold": 1,
+          "Hatterene": 5,
+          "Chi-Yu": 5,
+          "Glimmora": 3,
+          "Scream Tail": 1,
+          "Rillaboom": 4,
+          "Suicune": 2,
+          "Smeargle": 5,
+          "Arcanine-Hisui": 6,
+          "Landorus": 9,
+          "Ogerpon-Hearthflame": 4,
+          "Thundurus": 1,
+          "Talonflame": 1,
+          "Entei": 1,
+          "Dragonite": 1,
+          "Porygon2": 1,
+          "Walking Wake": 1,
+          "Whimsicott": 1,
+          "Amoonguss": 1,
+          "Gholdengo": 3,
+          "Zapdos-Galar": 1,
+          "Ogerpon-Cornerstone": 1
+        }
+      },
+      "Landorus-Therian": {
+        "usage_count": 11,
+        "usage_pct": 4.7,
+        "moves": {
+          "Stomping Tantrum": 11,
+          "Tera Blast": 5,
+          "Rock Slide": 11,
+          "U-turn": 11,
+          "Earthquake": 6
+        },
+        "items": {
+          "Choice Band": 7,
+          "Choice Scarf": 4
+        },
+        "abilities": {
+          "Intimidate": 11
+        },
+        "tera_types": {
+          "Flying": 5,
+          "Steel": 3,
+          "Ghost": 3
+        },
+        "teammates": {
+          "Urshifu": 4,
+          "Ogerpon-Wellspring": 4,
+          "Flutter Mane": 5,
+          "Raging Bolt": 5,
+          "Heatran": 1,
+          "Urshifu-Rapid-Strike": 3,
+          "Iron Crown": 1,
+          "Tornadus": 5,
+          "Ogerpon-Hearthflame": 2,
+          "Indeedee-F": 1,
+          "Gholdengo": 4,
+          "Amoonguss": 3,
+          "Chien-Pao": 2,
+          "Torkoal": 3,
+          "Chi-Yu": 3,
+          "Farigiraf": 3,
+          "Ogerpon": 3,
+          "Suicune": 1,
+          "Thundurus": 1,
+          "Incineroar": 1
+        }
+      },
+      "Heatran": {
+        "usage_count": 4,
+        "usage_pct": 1.71,
+        "moves": {
+          "Magma Storm": 1,
+          "Heavy Slam": 1,
+          "Earth Power": 4,
+          "Protect": 4,
+          "Flamethrower": 1,
+          "Will-O-Wisp": 1,
+          "Heat Wave": 2,
+          "Flash Cannon": 2
+        },
+        "items": {
+          "Safety Goggles": 1,
+          "Rocky Helmet": 1,
+          "Life Orb": 2
+        },
+        "abilities": {
+          "Flash Fire": 4
+        },
+        "tera_types": {
+          "Bug": 1,
+          "Grass": 3
+        },
+        "teammates": {
+          "Urshifu": 1,
+          "Ogerpon-Wellspring": 1,
+          "Landorus-Therian": 1,
+          "Flutter Mane": 4,
+          "Raging Bolt": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Chien-Pao": 1,
+          "Farigiraf": 3,
+          "Tornadus": 1,
+          "Milotic": 2,
+          "Iron Hands": 2,
+          "Rillaboom": 2
+        }
+      },
+      "Roaring Moon": {
+        "usage_count": 23,
+        "usage_pct": 9.83,
+        "moves": {
+          "Knock Off": 22,
+          "Breaking Swipe": 13,
+          "Tailwind": 18,
+          "Protect": 23,
+          "Acrobatics": 8,
+          "Tera Blast": 1,
+          "U-turn": 1,
+          "Dragon Dance": 4,
+          "Dragon Claw": 1,
+          "Throat Chop": 1
+        },
+        "items": {
+          "Booster Energy": 21,
+          "Clear Amulet": 2
+        },
+        "abilities": {
+          "Protosynthesis": 23
+        },
+        "tera_types": {
+          "Poison": 14,
+          "Flying": 8,
+          "Fairy": 1
+        },
+        "teammates": {
+          "Landorus": 14,
+          "Amoonguss": 15,
+          "Urshifu-Rapid-Strike": 13,
+          "Incineroar": 19,
+          "Gholdengo": 17,
+          "Entei": 2,
+          "Grimmsnarl": 2,
+          "Okidogi": 2,
+          "Ogerpon-Wellspring": 7,
+          "Flutter Mane": 3,
+          "Ursaluna-Bloodmoon": 1,
+          "Glimmora": 2,
+          "Farigiraf": 1,
+          "Indeedee-F": 1,
+          "Ursaluna": 1,
+          "Iron Crown": 1,
+          "Articuno": 1,
+          "Dondozo": 1,
+          "Tatsugiri": 1,
+          "Ninetales-Alola": 1,
+          "Rillaboom": 2,
+          "Porygon2": 1,
+          "Iron Hands": 1,
+          "Chien-Pao": 1,
+          "Zapdos": 1,
+          "Arcanine-Hisui": 1,
+          "Milotic": 1,
+          "Raging Bolt": 2
+        }
+      },
+      "Regidrago": {
+        "usage_count": 18,
+        "usage_pct": 7.69,
+        "moves": {
+          "Protect": 18,
+          "Dragon Energy": 18,
+          "Draco Meteor": 17,
+          "Tera Blast": 4,
+          "Earth Power": 14,
+          "Dragon Pulse": 1
+        },
+        "items": {
+          "Life Orb": 4,
+          "Dragon Fang": 13,
+          "Wise Glasses": 1
+        },
+        "abilities": {
+          "Dragon's Maw": 18
+        },
+        "tera_types": {
+          "Ghost": 4,
+          "Steel": 8,
+          "Fairy": 5,
+          "Dragon": 1
+        },
+        "teammates": {
+          "Rillaboom": 5,
+          "Ogerpon-Hearthflame": 14,
+          "Gholdengo": 6,
+          "Urshifu-Rapid-Strike": 12,
+          "Tornadus": 15,
+          "Iron Crown": 12,
+          "Indeedee-F": 12,
+          "Landorus": 2,
+          "Whimsicott": 3,
+          "Sneasler": 1,
+          "Ogerpon-Wellspring": 2,
+          "Incineroar": 1,
+          "Farigiraf": 1,
+          "Okidogi": 2,
+          "Ursaluna": 2
+        }
+      },
+      "Weezing-Galar": {
+        "usage_count": 4,
+        "usage_pct": 1.71,
+        "moves": {
+          "Strange Steam": 2,
+          "Poison Gas": 2,
+          "Toxic Spikes": 1,
+          "Protect": 4,
+          "Taunt": 1,
+          "Dazzling Gleam": 1,
+          "Will-O-Wisp": 1,
+          "Sludge Bomb": 2,
+          "Clear Smog": 1,
+          "Haze": 1
+        },
+        "items": {
+          "Sitrus Berry": 2,
+          "Rocky Helmet": 2
+        },
+        "abilities": {
+          "Neutralizing Gas": 4
+        },
+        "tera_types": {
+          "Flying": 1,
+          "Ghost": 1,
+          "Water": 1,
+          "Steel": 1
+        },
+        "teammates": {
+          "Flutter Mane": 2,
+          "Dondozo": 2,
+          "Tatsugiri": 2,
+          "Chi-Yu": 1,
+          "Raging Bolt": 2,
+          "Incineroar": 3,
+          "Brute Bonnet": 1,
+          "Slaking": 1,
+          "Gholdengo": 1,
+          "Dragonite": 1,
+          "Amoonguss": 1,
+          "Rillaboom": 1,
+          "Ursaluna-Bloodmoon": 1,
+          "Urshifu-Rapid-Strike": 1
+        }
+      },
+      "Tatsugiri": {
+        "usage_count": 6,
+        "usage_pct": 2.56,
+        "moves": {
+          "Muddy Water": 6,
+          "Draco Meteor": 5,
+          "Taunt": 1,
+          "Protect": 4,
+          "Icy Wind": 3,
+          "Dragon Pulse": 4,
+          "Helping Hand": 1
+        },
+        "items": {
+          "Focus Sash": 3,
+          "Choice Scarf": 2,
+          "Safety Goggles": 1
+        },
+        "abilities": {
+          "Commander": 6
+        },
+        "tera_types": {
+          "Stellar": 2,
+          "Steel": 4
+        },
+        "teammates": {
+          "Weezing-Galar": 2,
+          "Flutter Mane": 4,
+          "Dondozo": 6,
+          "Chi-Yu": 2,
+          "Raging Bolt": 3,
+          "Incineroar": 1,
+          "Brute Bonnet": 1,
+          "Glimmora": 3,
+          "Articuno": 1,
+          "Ninetales-Alola": 1,
+          "Roaring Moon": 1,
+          "Gholdengo": 1,
+          "Arcanine-Hisui": 1,
+          "Chien-Pao": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Dragonite": 1
+        }
+      },
+      "Chi-Yu": {
+        "usage_count": 18,
+        "usage_pct": 7.69,
+        "moves": {
+          "Heat Wave": 18,
+          "Ruination": 2,
+          "Overheat": 17,
+          "Snarl": 15,
+          "Dark Pulse": 15,
+          "Protect": 2,
+          "Tera Blast": 1,
+          "Psychic": 1,
+          "Flamethrower": 1
+        },
+        "items": {
+          "Choice Scarf": 5,
+          "Choice Specs": 11,
+          "Focus Sash": 2
+        },
+        "abilities": {
+          "Beads of Ruin": 18
+        },
+        "tera_types": {
+          "Ghost": 11,
+          "Fire": 6,
+          "Grass": 1
+        },
+        "teammates": {
+          "Weezing-Galar": 1,
+          "Flutter Mane": 18,
+          "Dondozo": 2,
+          "Tatsugiri": 2,
+          "Raging Bolt": 6,
+          "Urshifu": 5,
+          "Glimmora": 4,
+          "Tornadus": 9,
+          "Ogerpon-Wellspring": 6,
+          "Torkoal": 5,
+          "Farigiraf": 4,
+          "Ogerpon": 3,
+          "Landorus-Therian": 3,
+          "Landorus": 3,
+          "Smeargle": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Ogerpon-Hearthflame": 2,
+          "Ursaluna": 1,
+          "Rillaboom": 1,
+          "Indeedee": 1,
+          "Terrakion": 1,
+          "Indeedee-F": 1,
+          "Whimsicott": 3,
+          "Walking Wake": 1,
+          "Amoonguss": 1,
+          "Ogerpon-Cornerstone": 1,
+          "Chien-Pao": 1,
+          "Dragonite": 1,
+          "Sunflora": 1,
+          "Incineroar": 1
+        }
+      },
+      "Entei": {
+        "usage_count": 8,
+        "usage_pct": 3.42,
+        "moves": {
+          "Sacred Fire": 8,
+          "Extreme Speed": 8,
+          "Stone Edge": 2,
+          "Stomping Tantrum": 7,
+          "Snarl": 2,
+          "Protect": 3,
+          "Flare Blitz": 1,
+          "Crunch": 1
+        },
+        "items": {
+          "Choice Band": 3,
+          "Assault Vest": 2,
+          "Safety Goggles": 1,
+          "Life Orb": 1,
+          "Sitrus Berry": 1
+        },
+        "abilities": {
+          "Inner Focus": 8
+        },
+        "tera_types": {
+          "Fairy": 2,
+          "Grass": 2,
+          "Water": 2,
+          "Normal": 1,
+          "Dark": 1
+        },
+        "teammates": {
+          "Roaring Moon": 2,
+          "Grimmsnarl": 2,
+          "Okidogi": 2,
+          "Gholdengo": 2,
+          "Ogerpon-Wellspring": 4,
+          "Torkoal": 1,
+          "Zapdos": 1,
+          "Flutter Mane": 3,
+          "Ursaluna": 1,
+          "Walking Wake": 1,
+          "Landorus": 2,
+          "Ogerpon-Cornerstone": 1,
+          "Moltres-Galar": 1,
+          "Urshifu-Rapid-Strike": 2,
+          "Tornadus": 1,
+          "Raging Bolt": 2,
+          "Urshifu": 1,
+          "Chien-Pao": 2,
+          "Dragonite": 2,
+          "Sinistcha": 1,
+          "Archaludon": 1,
+          "Zapdos-Galar": 1,
+          "Kilowattrel": 1,
+          "Typhlosion-Hisui": 1,
+          "Gyarados": 1,
+          "Rillaboom": 1
+        }
+      },
+      "Grimmsnarl": {
+        "usage_count": 9,
+        "usage_pct": 3.85,
+        "moves": {
+          "Spirit Break": 9,
+          "Reflect": 9,
+          "Light Screen": 9,
+          "Thunder Wave": 7,
+          "Parting Shot": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Light Clay": 9
+        },
+        "abilities": {
+          "Prankster": 9
+        },
+        "tera_types": {
+          "Grass": 3,
+          "Ghost": 3,
+          "Steel": 1,
+          "Fire": 1,
+          "Fairy": 1
+        },
+        "teammates": {
+          "Entei": 2,
+          "Roaring Moon": 2,
+          "Okidogi": 2,
+          "Gholdengo": 2,
+          "Ogerpon-Wellspring": 3,
+          "Spectrier": 1,
+          "Incineroar": 3,
+          "Raging Bolt": 1,
+          "Landorus": 1,
+          "Porygon2": 1,
+          "Annihilape": 1,
+          "Gastrodon": 1,
+          "Amoonguss": 4,
+          "Gouging Fire": 1,
+          "Urshifu-Rapid-Strike": 2,
+          "Flutter Mane": 1,
+          "Ursaluna": 1,
+          "Cresselia": 1,
+          "Goodra-Hisui": 1,
+          "Sinistcha": 1,
+          "Chien-Pao": 1,
+          "Dragonite": 2,
+          "Ting-Lu": 1,
+          "Zapdos-Galar": 1,
+          "Garganacl": 1,
+          "Armarouge": 1,
+          "Torkoal": 1,
+          "Indeedee-F": 2,
+          "Walking Wake": 1,
+          "Iron Crown": 1,
+          "Ogerpon-Hearthflame": 1
+        }
+      },
+      "Iron Crown": {
+        "usage_count": 25,
+        "usage_pct": 10.68,
+        "moves": {
+          "Tera Blast": 24,
+          "Tachyon Cutter": 25,
+          "Expanding Force": 25,
+          "Protect": 25,
+          "Calm Mind": 1
+        },
+        "items": {
+          "Booster Energy": 25
+        },
+        "abilities": {
+          "Quark Drive": 25
+        },
+        "tera_types": {
+          "Water": 22,
+          "Ground": 1,
+          "Psychic": 1,
+          "Fighting": 1
+        },
+        "teammates": {
+          "Urshifu": 3,
+          "Indeedee-F": 25,
+          "Ursaluna": 4,
+          "Ogerpon-Wellspring": 3,
+          "Tornadus": 19,
+          "Urshifu-Rapid-Strike": 16,
+          "Landorus-Therian": 1,
+          "Ogerpon-Hearthflame": 18,
+          "Ogerpon-Cornerstone": 1,
+          "Landorus": 7,
+          "Regidrago": 12,
+          "Roaring Moon": 1,
+          "Incineroar": 1,
+          "Flutter Mane": 3,
+          "Whimsicott": 2,
+          "Smeargle": 1,
+          "Talonflame": 1,
+          "Okidogi": 2,
+          "Zapdos-Galar": 1,
+          "Raging Bolt": 1,
+          "Amoonguss": 1,
+          "Grimmsnarl": 1,
+          "Dragonite": 1
+        }
+      },
+      "Indeedee-F": {
+        "usage_count": 33,
+        "usage_pct": 14.1,
+        "moves": {
+          "Dazzling Gleam": 23,
+          "Follow Me": 33,
+          "Helping Hand": 27,
+          "Trick Room": 32,
+          "Psyshock": 4,
+          "Healing Wish": 4,
+          "Alluring Voice": 1,
+          "Psychic": 3,
+          "Imprison": 3,
+          "Calm Mind": 1,
+          "Baton Pass": 1
+        },
+        "items": {
+          "Psychic Seed": 2,
+          "Rocky Helmet": 26,
+          "Safety Goggles": 4,
+          "Sitrus Berry": 1
+        },
+        "abilities": {
+          "Psychic Surge": 32,
+          "Synchronize": 1
+        },
+        "tera_types": {
+          "Fairy": 21,
+          "Dragon": 3,
+          "Grass": 4,
+          "Water": 2,
+          "Steel": 1,
+          "Fire": 1,
+          "Psychic": 1
+        },
+        "teammates": {
+          "Iron Crown": 25,
+          "Urshifu": 8,
+          "Ursaluna": 5,
+          "Ogerpon-Wellspring": 3,
+          "Tornadus": 19,
+          "Farigiraf": 5,
+          "Torkoal": 8,
+          "Maushold": 1,
+          "Hatterene": 6,
+          "Urshifu-Rapid-Strike": 16,
+          "Landorus-Therian": 1,
+          "Ogerpon-Hearthflame": 18,
+          "Ogerpon-Cornerstone": 2,
+          "Landorus": 7,
+          "Regidrago": 12,
+          "Smeargle": 5,
+          "Gallade": 1,
+          "Roaring Moon": 1,
+          "Incineroar": 1,
+          "Flutter Mane": 4,
+          "Whimsicott": 3,
+          "Talonflame": 1,
+          "Chi-Yu": 1,
+          "Terrakion": 1,
+          "Okidogi": 2,
+          "Zapdos-Galar": 1,
+          "Raging Bolt": 1,
+          "Garganacl": 1,
+          "Armarouge": 1,
+          "Grimmsnarl": 2,
+          "Walking Wake": 1,
+          "Amoonguss": 1,
+          "Dragonite": 1
+        }
+      },
+      "Torkoal": {
+        "usage_count": 21,
+        "usage_pct": 8.97,
+        "moves": {
+          "Eruption": 17,
+          "Weather Ball": 10,
+          "Earth Power": 6,
+          "Heat Wave": 15,
+          "Helping Hand": 10,
+          "Protect": 12,
+          "Flamethrower": 2,
+          "Solar Beam": 2,
+          "Yawn": 5,
+          "Overheat": 2,
+          "Body Press": 1,
+          "Clear Smog": 1,
+          "Will-O-Wisp": 1
+        },
+        "items": {
+          "Choice Specs": 6,
+          "Charcoal": 8,
+          "Heat Rock": 4,
+          "Eject Pack": 2,
+          "Life Orb": 1
+        },
+        "abilities": {
+          "Drought": 21
+        },
+        "tera_types": {
+          "Fire": 16,
+          "Grass": 4,
+          "Dragon": 1
+        },
+        "teammates": {
+          "Farigiraf": 11,
+          "Indeedee-F": 8,
+          "Maushold": 1,
+          "Hatterene": 6,
+          "Urshifu": 6,
+          "Raging Bolt": 7,
+          "Walking Wake": 7,
+          "Lilligant-Hisui": 2,
+          "Flutter Mane": 12,
+          "Smeargle": 4,
+          "Gallade": 1,
+          "Ogerpon-Cornerstone": 2,
+          "Incineroar": 5,
+          "Rillaboom": 2,
+          "Chi-Yu": 5,
+          "Ogerpon": 3,
+          "Landorus-Therian": 3,
+          "Entei": 1,
+          "Zapdos": 1,
+          "Ursaluna": 2,
+          "Charizard": 1,
+          "Krookodile": 1,
+          "Landorus": 2,
+          "Ogerpon-Hearthflame": 2,
+          "Terrakion": 1,
+          "Whimsicott": 2,
+          "Garganacl": 1,
+          "Armarouge": 1,
+          "Grimmsnarl": 1,
+          "Dragonite": 1,
+          "Annihilape": 1,
+          "Tornadus": 1,
+          "Sunflora": 1
+        }
+      },
+      "Maushold": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Follow Me": 1,
+          "Taunt": 1,
+          "Helping Hand": 1,
+          "U-turn": 1
+        },
+        "items": {
+          "Rocky Helmet": 1
+        },
+        "abilities": {
+          "Friend Guard": 1
+        },
+        "tera_types": {
+          "Grass": 1
+        },
+        "teammates": {
+          "Farigiraf": 1,
+          "Torkoal": 1,
+          "Indeedee-F": 1,
+          "Hatterene": 1,
+          "Urshifu": 1
+        }
+      },
+      "Hatterene": {
+        "usage_count": 6,
+        "usage_pct": 2.56,
+        "moves": {
+          "Trick Room": 6,
+          "Expanding Force": 6,
+          "Dazzling Gleam": 6,
+          "Psyshock": 3,
+          "Psychic": 1,
+          "Mystical Fire": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Covert Cloak": 6
+        },
+        "abilities": {
+          "Magic Bounce": 6
+        },
+        "tera_types": {
+          "Fire": 5,
+          "Psychic": 1
+        },
+        "teammates": {
+          "Farigiraf": 5,
+          "Torkoal": 6,
+          "Indeedee-F": 6,
+          "Maushold": 1,
+          "Urshifu": 5,
+          "Smeargle": 4,
+          "Gallade": 1,
+          "Ogerpon-Cornerstone": 1,
+          "Ursaluna": 1
+        }
+      },
+      "Pelipper": {
+        "usage_count": 4,
+        "usage_pct": 1.71,
+        "moves": {
+          "Weather Ball": 4,
+          "Hurricane": 4,
+          "Tailwind": 4,
+          "Wide Guard": 2,
+          "Protect": 2
+        },
+        "items": {
+          "Focus Sash": 2,
+          "Life Orb": 1,
+          "Damp Rock": 1
+        },
+        "abilities": {
+          "Drizzle": 4
+        },
+        "tera_types": {
+          "Stellar": 2,
+          "Steel": 1,
+          "Ground": 1
+        },
+        "teammates": {
+          "Urshifu-Rapid-Strike": 4,
+          "Amoonguss": 3,
+          "Archaludon": 4,
+          "Thundurus": 1,
+          "Landorus": 2,
+          "Chien-Pao": 1,
+          "Flutter Mane": 3,
+          "Incineroar": 1,
+          "Dragonite": 1
+        }
+      },
+      "Archaludon": {
+        "usage_count": 8,
+        "usage_pct": 3.42,
+        "moves": {
+          "Electro Shot": 7,
+          "Dragon Pulse": 4,
+          "Heavy Slam": 1,
+          "Body Press": 8,
+          "Flash Cannon": 5,
+          "Draco Meteor": 1,
+          "Snarl": 4,
+          "Zap Cannon": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Assault Vest": 6,
+          "Leftovers": 1,
+          "Power Herb": 1
+        },
+        "abilities": {
+          "Stamina": 8
+        },
+        "tera_types": {
+          "Bug": 2,
+          "Grass": 3,
+          "Fairy": 2,
+          "Electric": 1
+        },
+        "teammates": {
+          "Pelipper": 4,
+          "Urshifu-Rapid-Strike": 7,
+          "Amoonguss": 4,
+          "Thundurus": 1,
+          "Landorus": 2,
+          "Chien-Pao": 2,
+          "Flutter Mane": 4,
+          "Sneasler": 1,
+          "Indeedee": 1,
+          "Tornadus": 3,
+          "Incineroar": 3,
+          "Rillaboom": 2,
+          "Sinistcha": 1,
+          "Entei": 1,
+          "Zapdos-Galar": 1,
+          "Ursaluna-Bloodmoon": 1,
+          "Ogerpon-Wellspring": 1,
+          "Dragonite": 1
+        }
+      },
+      "Thundurus": {
+        "usage_count": 3,
+        "usage_pct": 1.28,
+        "moves": {
+          "Wildbolt Storm": 3,
+          "Rain Dance": 2,
+          "Eerie Impulse": 3,
+          "Thunder Wave": 2,
+          "Electric Terrain": 1,
+          "Taunt": 1
+        },
+        "items": {
+          "Covert Cloak": 2,
+          "Safety Goggles": 1
+        },
+        "abilities": {
+          "Prankster": 3
+        },
+        "tera_types": {
+          "Steel": 3
+        },
+        "teammates": {
+          "Pelipper": 1,
+          "Urshifu-Rapid-Strike": 2,
+          "Amoonguss": 1,
+          "Archaludon": 1,
+          "Landorus": 2,
+          "Urshifu": 1,
+          "Suicune": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Landorus-Therian": 1,
+          "Raging Bolt": 1,
+          "Arcanine-Hisui": 1,
+          "Flutter Mane": 1,
+          "Rillaboom": 1
+        }
+      },
+      "Ogerpon-Cornerstone": {
+        "usage_count": 7,
+        "usage_pct": 2.99,
+        "moves": {
+          "Spiky Shield": 6,
+          "Ivy Cudgel": 7,
+          "Follow Me": 6,
+          "Wood Hammer": 2,
+          "Power Whip": 4,
+          "Taunt": 1,
+          "Superpower": 1,
+          "Horn Leech": 1
+        },
+        "items": {
+          "Cornerstone Mask": 7
+        },
+        "abilities": {
+          "Sturdy": 7
+        },
+        "tera_types": {
+          "Rock": 7
+        },
+        "teammates": {
+          "Iron Crown": 1,
+          "Indeedee-F": 2,
+          "Tornadus": 4,
+          "Urshifu-Rapid-Strike": 2,
+          "Landorus": 2,
+          "Dondozo": 1,
+          "Tatsugiri-Droopy": 1,
+          "Rillaboom": 1,
+          "Drifblim": 1,
+          "Flutter Mane": 4,
+          "Gallade": 1,
+          "Farigiraf": 1,
+          "Hatterene": 1,
+          "Torkoal": 2,
+          "Ursaluna-Bloodmoon": 1,
+          "Incineroar": 1,
+          "Raging Bolt": 3,
+          "Charizard": 1,
+          "Krookodile": 1,
+          "Entei": 1,
+          "Moltres-Galar": 1,
+          "Chi-Yu": 1,
+          "Urshifu": 1
+        }
+      },
+      "Glimmora": {
+        "usage_count": 9,
+        "usage_pct": 3.85,
+        "moves": {
+          "Meteor Beam": 9,
+          "Sludge Bomb": 9,
+          "Earth Power": 8,
+          "Spiky Shield": 9,
+          "Mortal Spin": 1
+        },
+        "items": {
+          "Power Herb": 9
+        },
+        "abilities": {
+          "Toxic Debris": 9
+        },
+        "tera_types": {
+          "Grass": 9
+        },
+        "teammates": {
+          "Chi-Yu": 4,
+          "Urshifu": 3,
+          "Tornadus": 3,
+          "Ogerpon-Wellspring": 4,
+          "Flutter Mane": 5,
+          "Incineroar": 1,
+          "Ursaluna-Bloodmoon": 1,
+          "Farigiraf": 1,
+          "Roaring Moon": 2,
+          "Articuno": 1,
+          "Dondozo": 4,
+          "Tatsugiri": 3,
+          "Ninetales-Alola": 1,
+          "Ting-Lu": 2,
+          "Dragonite": 1,
+          "Gouging Fire": 2,
+          "Chien-Pao": 1,
+          "Gholdengo": 1,
+          "Arcanine-Hisui": 1,
+          "Zapdos-Galar": 1,
+          "Sinistcha": 1,
+          "Corviknight": 1,
+          "Raging Bolt": 1
+        }
+      },
+      "Sinistcha": {
+        "usage_count": 7,
+        "usage_pct": 2.99,
+        "moves": {
+          "Matcha Gotcha": 7,
+          "Strength Sap": 6,
+          "Rage Powder": 7,
+          "Curse": 1,
+          "Trick Room": 5,
+          "Protect": 1,
+          "Shadow Ball": 1
+        },
+        "items": {
+          "Rocky Helmet": 6,
+          "Mental Herb": 1
+        },
+        "abilities": {
+          "Hospitality": 7
+        },
+        "tera_types": {
+          "Water": 6,
+          "Fairy": 1
+        },
+        "teammates": {
+          "Ting-Lu": 6,
+          "Gouging Fire": 5,
+          "Dragonite": 5,
+          "Chien-Pao": 6,
+          "Zapdos-Galar": 7,
+          "Grimmsnarl": 1,
+          "Glimmora": 1,
+          "Corviknight": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Archaludon": 1,
+          "Entei": 1
+        }
+      },
+      "Zapdos-Galar": {
+        "usage_count": 10,
+        "usage_pct": 4.27,
+        "moves": {
+          "Brave Bird": 9,
+          "Taunt": 1,
+          "Close Combat": 7,
+          "Coaching": 5,
+          "Knock Off": 5,
+          "Thunderous Kick": 4,
+          "Tera Blast": 1,
+          "Dual Wingbeat": 1,
+          "U-turn": 1,
+          "Protect": 2,
+          "Tailwind": 2,
+          "Acrobatics": 1,
+          "Detect": 1
+        },
+        "items": {
+          "Covert Cloak": 1,
+          "Choice Scarf": 6,
+          "Safety Goggles": 2,
+          "Psychic Seed": 1
+        },
+        "abilities": {
+          "Defiant": 10
+        },
+        "tera_types": {
+          "Steel": 3,
+          "Ghost": 6,
+          "Electric": 1
+        },
+        "teammates": {
+          "Ting-Lu": 6,
+          "Gouging Fire": 5,
+          "Dragonite": 5,
+          "Sinistcha": 7,
+          "Chien-Pao": 6,
+          "Umbreon": 1,
+          "Meowscarada": 1,
+          "Porygon2": 1,
+          "Sylveon": 1,
+          "Ogerpon-Wellspring": 3,
+          "Gholdengo": 1,
+          "Tornadus": 1,
+          "Arcanine-Hisui": 1,
+          "Flutter Mane": 1,
+          "Grimmsnarl": 1,
+          "Urshifu": 1,
+          "Raging Bolt": 1,
+          "Iron Crown": 1,
+          "Indeedee-F": 1,
+          "Glimmora": 1,
+          "Corviknight": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Archaludon": 1,
+          "Entei": 1
+        }
+      },
+      "Ninetales-Alola": {
+        "usage_count": 3,
+        "usage_pct": 1.28,
+        "moves": {
+          "Blizzard": 3,
+          "Moonblast": 2,
+          "Aurora Veil": 3,
+          "Helping Hand": 3,
+          "Dazzling Gleam": 1
+        },
+        "items": {
+          "Light Clay": 3
+        },
+        "abilities": {
+          "Snow Warning": 3
+        },
+        "tera_types": {
+          "Fire": 3
+        },
+        "teammates": {
+          "Arcanine-Hisui": 2,
+          "Raging Bolt": 2,
+          "Landorus": 2,
+          "Articuno": 3,
+          "Ogerpon-Wellspring": 2,
+          "Glimmora": 1,
+          "Dondozo": 1,
+          "Tatsugiri": 1,
+          "Roaring Moon": 1
+        }
+      },
+      "Articuno": {
+        "usage_count": 3,
+        "usage_pct": 1.28,
+        "moves": {
+          "Ice Beam": 3,
+          "Freeze-Dry": 3,
+          "Blizzard": 3,
+          "Sheer Cold": 3
+        },
+        "items": {
+          "Choice Specs": 3
+        },
+        "abilities": {
+          "Snow Cloak": 2,
+          "Pressure": 1
+        },
+        "tera_types": {
+          "Ice": 3
+        },
+        "teammates": {
+          "Arcanine-Hisui": 2,
+          "Raging Bolt": 2,
+          "Landorus": 2,
+          "Ninetales-Alola": 3,
+          "Ogerpon-Wellspring": 2,
+          "Glimmora": 1,
+          "Dondozo": 1,
+          "Tatsugiri": 1,
+          "Roaring Moon": 1
+        }
+      },
+      "Pikachu": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Volt Tackle": 1,
+          "Endeavor": 1,
+          "Protect": 1,
+          "Substitute": 1
+        },
+        "items": {
+          "Light Ball": 1
+        },
+        "abilities": {
+          "Lightning Rod": 1
+        },
+        "tera_types": {
+          "Ghost": 1
+        },
+        "teammates": {
+          "Raging Bolt": 1,
+          "Landorus": 1,
+          "Flutter Mane": 1,
+          "Ogerpon-Wellspring": 1,
+          "Arcanine-Hisui": 1
+        }
+      },
+      "Walking Wake": {
+        "usage_count": 8,
+        "usage_pct": 3.42,
+        "moves": {
+          "Hydro Steam": 8,
+          "Draco Meteor": 6,
+          "Flamethrower": 6,
+          "Protect": 7,
+          "Dragon Pulse": 2,
+          "Tera Blast": 2,
+          "Snarl": 1
+        },
+        "items": {
+          "Life Orb": 6,
+          "Covert Cloak": 1,
+          "Booster Energy": 1
+        },
+        "abilities": {
+          "Protosynthesis": 8
+        },
+        "tera_types": {
+          "Fire": 3,
+          "Poison": 1,
+          "Ghost": 1,
+          "Water": 2,
+          "Steel": 1
+        },
+        "teammates": {
+          "Raging Bolt": 4,
+          "Torkoal": 7,
+          "Lilligant-Hisui": 2,
+          "Flutter Mane": 6,
+          "Farigiraf": 2,
+          "Incineroar": 3,
+          "Rillaboom": 2,
+          "Entei": 1,
+          "Zapdos": 1,
+          "Ursaluna": 1,
+          "Whimsicott": 2,
+          "Chi-Yu": 1,
+          "Ogerpon-Hearthflame": 2,
+          "Urshifu": 1,
+          "Landorus": 1,
+          "Garganacl": 1,
+          "Armarouge": 1,
+          "Indeedee-F": 1,
+          "Grimmsnarl": 1
+        }
+      },
+      "Lilligant-Hisui": {
+        "usage_count": 2,
+        "usage_pct": 0.85,
+        "moves": {
+          "Sleep Powder": 2,
+          "Solar Blade": 2,
+          "Close Combat": 2,
+          "After Yo": 1,
+          "Upper Hand": 1
+        },
+        "items": {
+          "Focus Sash": 2
+        },
+        "abilities": {
+          "Chlorophyll": 2
+        },
+        "tera_types": {
+          "Ghost": 1,
+          "Stellar": 1
+        },
+        "teammates": {
+          "Raging Bolt": 2,
+          "Torkoal": 2,
+          "Walking Wake": 2,
+          "Flutter Mane": 2,
+          "Farigiraf": 1,
+          "Landorus": 1
+        }
+      },
+      "Scream Tail": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Protect": 1,
+          "Dazzling Gleam": 1,
+          "Encore": 1,
+          "Disable": 1
+        },
+        "items": {
+          "Booster Energy": 1
+        },
+        "abilities": {
+          "Protosynthesis": 1
+        },
+        "tera_types": {
+          "Dark": 1
+        },
+        "teammates": {
+          "Rillaboom": 1,
+          "Incineroar": 1,
+          "Raging Bolt": 1,
+          "Suicune": 1,
+          "Urshifu": 1
+        }
+      },
+      "Suicune": {
+        "usage_count": 2,
+        "usage_pct": 0.85,
+        "moves": {
+          "Tailwind": 2,
+          "Snarl": 2,
+          "Scald": 2,
+          "Protect": 1,
+          "Helping Hand": 1
+        },
+        "items": {
+          "Rocky Helmet": 2
+        },
+        "abilities": {
+          "Inner Focus": 2
+        },
+        "tera_types": {
+          "Dragon": 1,
+          "Steel": 1
+        },
+        "teammates": {
+          "Scream Tail": 1,
+          "Rillaboom": 1,
+          "Incineroar": 1,
+          "Raging Bolt": 2,
+          "Urshifu": 2,
+          "Ogerpon-Hearthflame": 1,
+          "Landorus-Therian": 1,
+          "Thundurus": 1
+        }
+      },
+      "Smeargle": {
+        "usage_count": 6,
+        "usage_pct": 2.56,
+        "moves": {
+          "Fake Out": 6,
+          "Decorate": 6,
+          "Follow Me": 6,
+          "Spore": 6
+        },
+        "items": {
+          "Focus Sash": 6
+        },
+        "abilities": {
+          "Technician": 3,
+          "Moody": 3
+        },
+        "tera_types": {
+          "Grass": 5,
+          "Ghost": 1
+        },
+        "teammates": {
+          "Indeedee-F": 5,
+          "Torkoal": 4,
+          "Urshifu": 5,
+          "Farigiraf": 3,
+          "Hatterene": 4,
+          "Ogerpon-Wellspring": 1,
+          "Tornadus": 1,
+          "Landorus": 1,
+          "Chi-Yu": 1,
+          "Flutter Mane": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Iron Crown": 1,
+          "Talonflame": 1,
+          "Ursaluna": 1
+        }
+      },
+      "Registeel": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Heavy Slam": 1,
+          "Body Press": 1,
+          "Iron Defense": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Leftovers": 1
+        },
+        "abilities": {
+          "Clear Body": 1
+        },
+        "tera_types": {
+          "Water": 1
+        },
+        "teammates": {
+          "Urshifu-Rapid-Strike": 1,
+          "Raging Bolt": 1,
+          "Cresselia": 1,
+          "Rillaboom": 1,
+          "Incineroar": 1
+        }
+      },
+      "Tatsugiri-Droopy": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Icy Wind": 1,
+          "Muddy Water": 1,
+          "Draco Meteor": 1,
+          "Hydro Pump": 1
+        },
+        "items": {
+          "Choice Scarf": 1
+        },
+        "abilities": {
+          "Commander": 1
+        },
+        "tera_types": {
+          "Fairy": 1
+        },
+        "teammates": {
+          "Dondozo": 1,
+          "Rillaboom": 1,
+          "Drifblim": 1,
+          "Ogerpon-Cornerstone": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Drifblim": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Minimize": 1,
+          "Baton Pass": 1,
+          "Protect": 1,
+          "Shadow Ball": 1
+        },
+        "items": {
+          "Grassy Seed": 1
+        },
+        "abilities": {
+          "Unburden": 1
+        },
+        "tera_types": {
+          "Dark": 1
+        },
+        "teammates": {
+          "Dondozo": 1,
+          "Tatsugiri-Droopy": 1,
+          "Rillaboom": 1,
+          "Ogerpon-Cornerstone": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Gallade": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Psycho Cut": 1,
+          "Wide Guard": 1,
+          "Sacred Sword": 1,
+          "Trick Room": 1
+        },
+        "items": {
+          "Clear Amulet": 1
+        },
+        "abilities": {
+          "Sharpness": 1
+        },
+        "tera_types": {
+          "Fire": 1
+        },
+        "teammates": {
+          "Indeedee-F": 1,
+          "Ogerpon-Cornerstone": 1,
+          "Farigiraf": 1,
+          "Hatterene": 1,
+          "Torkoal": 1
+        }
+      },
+      "Iron Jugulis": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Air Slash": 1,
+          "Snarl": 1,
+          "Tailwind": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Booster Energy": 1
+        },
+        "abilities": {
+          "Quark Drive": 1
+        },
+        "tera_types": {
+          "Steel": 1
+        },
+        "teammates": {
+          "Ursaluna-Bloodmoon": 1,
+          "Farigiraf": 1,
+          "Okidogi": 1,
+          "Ogerpon-Wellspring": 1,
+          "Incineroar": 1
+        }
+      },
+      "Umbreon": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Snarl": 1,
+          "Foul Play": 1,
+          "Yawn": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Leftovers": 1
+        },
+        "abilities": {
+          "Inner Focus": 1
+        },
+        "tera_types": {
+          "Poison": 1
+        },
+        "teammates": {
+          "Zapdos-Galar": 1,
+          "Meowscarada": 1,
+          "Porygon2": 1,
+          "Sylveon": 1,
+          "Ogerpon-Wellspring": 1
+        }
+      },
+      "Meowscarada": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Knock Off": 1,
+          "Flower Trick": 1,
+          "Sucker Punch": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Focus Sash": 1
+        },
+        "abilities": {
+          "Overgrow": 1
+        },
+        "tera_types": {
+          "Stellar": 1
+        },
+        "teammates": {
+          "Zapdos-Galar": 1,
+          "Umbreon": 1,
+          "Porygon2": 1,
+          "Sylveon": 1,
+          "Ogerpon-Wellspring": 1
+        }
+      },
+      "Sylveon": {
+        "usage_count": 2,
+        "usage_pct": 0.85,
+        "moves": {
+          "Protect": 1,
+          "Quick Attack": 2,
+          "Hyper Voice": 2,
+          "Tera Blast": 1,
+          "Misty Terrain": 1,
+          "Detect": 1
+        },
+        "items": {
+          "Fairy Feather": 1,
+          "Throat Spray": 1
+        },
+        "abilities": {
+          "Pixilate": 2
+        },
+        "tera_types": {
+          "Fire": 1,
+          "Water": 1
+        },
+        "teammates": {
+          "Zapdos-Galar": 1,
+          "Umbreon": 1,
+          "Meowscarada": 1,
+          "Porygon2": 1,
+          "Ogerpon-Wellspring": 2,
+          "Regieleki": 1,
+          "Landorus": 1,
+          "Baxcalibur": 1,
+          "Incineroar": 1
+        }
+      },
+      "Spectrier": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Nasty Plot": 1,
+          "Shadow Ball": 1,
+          "Draining Kiss": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Sitrus Berry": 1
+        },
+        "abilities": {
+          "Grim Neigh": 1
+        },
+        "tera_types": {
+          "Fairy": 1
+        },
+        "teammates": {
+          "Ogerpon-Wellspring": 1,
+          "Incineroar": 1,
+          "Raging Bolt": 1,
+          "Landorus": 1,
+          "Grimmsnarl": 1
+        }
+      },
+      "Brute Bonnet": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Spore": 1,
+          "Rage Powder": 1,
+          "Sucker Punch": 1,
+          "Stomping Tantrum": 1
+        },
+        "items": {
+          "Covert Cloak": 1
+        },
+        "abilities": {
+          "Protosynthesis": 1
+        },
+        "tera_types": {
+          "Poison": 1
+        },
+        "teammates": {
+          "Incineroar": 1,
+          "Weezing-Galar": 1,
+          "Raging Bolt": 1,
+          "Dondozo": 1,
+          "Tatsugiri": 1
+        }
+      },
+      "Ogerpon": {
+        "usage_count": 3,
+        "usage_pct": 1.28,
+        "moves": {
+          "Ivy Cudgel": 3,
+          "Stomping Tantrum": 3,
+          "Follow Me": 3,
+          "Spiky Shield": 3
+        },
+        "items": {
+          "Focus Sash": 3
+        },
+        "abilities": {
+          "Defiant": 3
+        },
+        "tera_types": {
+          "Grass": 3
+        },
+        "teammates": {
+          "Torkoal": 3,
+          "Chi-Yu": 3,
+          "Flutter Mane": 3,
+          "Farigiraf": 3,
+          "Landorus-Therian": 3
+        }
+      },
+      "Whimsicott": {
+        "usage_count": 7,
+        "usage_pct": 2.99,
+        "moves": {
+          "Moonblast": 6,
+          "Tailwind": 7,
+          "Fake Tears": 5,
+          "Encore": 3,
+          "Protect": 1,
+          "Beat Up": 1,
+          "Trick Room": 1,
+          "Helping Hand": 1,
+          "Sunny Day": 3
+        },
+        "items": {
+          "Focus Sash": 5,
+          "Covert Cloak": 2
+        },
+        "abilities": {
+          "Prankster": 7
+        },
+        "tera_types": {
+          "Ghost": 4,
+          "Dark": 2,
+          "Water": 1
+        },
+        "teammates": {
+          "Indeedee-F": 3,
+          "Iron Crown": 2,
+          "Landorus": 2,
+          "Regidrago": 3,
+          "Ogerpon-Hearthflame": 3,
+          "Sneasler": 1,
+          "Gholdengo": 1,
+          "Rillaboom": 1,
+          "Ogerpon-Wellspring": 1,
+          "Chi-Yu": 3,
+          "Terrakion": 1,
+          "Flutter Mane": 4,
+          "Torkoal": 2,
+          "Walking Wake": 2,
+          "Farigiraf": 1,
+          "Raging Bolt": 2,
+          "Amoonguss": 1,
+          "Urshifu": 1,
+          "Incineroar": 1
+        }
+      },
+      "Enamorus-Therian": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Tailwind": 1,
+          "Earth Power": 1,
+          "Calm Mind": 1,
+          "Springtide Storm": 1
+        },
+        "items": {
+          "Leftovers": 1
+        },
+        "abilities": {
+          "Overcoat": 1
+        },
+        "tera_types": {
+          "Steel": 1
+        },
+        "teammates": {
+          "Incineroar": 1,
+          "Farigiraf": 1,
+          "Annihilape": 1,
+          "Gastrodon": 1,
+          "Ting-Lu": 1
+        }
+      },
+      "Annihilape": {
+        "usage_count": 3,
+        "usage_pct": 1.28,
+        "moves": {
+          "Rage Fist": 2,
+          "Drain Punch": 2,
+          "Protect": 2,
+          "Bulk Up": 2,
+          "Final Gambit": 1,
+          "Shadow Claw": 1,
+          "Rock Slide": 1,
+          "Close Combat": 1
+        },
+        "items": {
+          "Safety Goggles": 1,
+          "Leftovers": 1,
+          "Choice Scarf": 1
+        },
+        "abilities": {
+          "Defiant": 3
+        },
+        "tera_types": {
+          "Fire": 2,
+          "Rock": 1
+        },
+        "teammates": {
+          "Incineroar": 3,
+          "Farigiraf": 2,
+          "Enamorus-Therian": 1,
+          "Gastrodon": 2,
+          "Ting-Lu": 1,
+          "Grimmsnarl": 1,
+          "Porygon2": 1,
+          "Amoonguss": 1,
+          "Torkoal": 1,
+          "Raging Bolt": 1,
+          "Dragonite": 1
+        }
+      },
+      "Gastrodon": {
+        "usage_count": 3,
+        "usage_pct": 1.28,
+        "moves": {
+          "Earth Power": 3,
+          "Protect": 3,
+          "Ice Beam": 3,
+          "Clear Smog": 1,
+          "Yawn": 1,
+          "Muddy Water": 1
+        },
+        "items": {
+          "Sitrus Berry": 3
+        },
+        "abilities": {
+          "Storm Drain": 3
+        },
+        "tera_types": {
+          "Fire": 1,
+          "Fairy": 1,
+          "Flying": 1
+        },
+        "teammates": {
+          "Incineroar": 3,
+          "Farigiraf": 2,
+          "Enamorus-Therian": 1,
+          "Annihilape": 2,
+          "Ting-Lu": 2,
+          "Grimmsnarl": 1,
+          "Porygon2": 1,
+          "Amoonguss": 2,
+          "Goodra-Hisui": 1
+        }
+      },
+      "Bronzong": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Body Press": 1,
+          "Iron Defense": 1,
+          "Gyro Ball": 1,
+          "Trick Room": 1
+        },
+        "items": {
+          "Leftovers": 1
+        },
+        "abilities": {
+          "Levitate": 1
+        },
+        "tera_types": {
+          "Fire": 1
+        },
+        "teammates": {
+          "Ogerpon-Wellspring": 1,
+          "Flutter Mane": 1,
+          "Ursaluna": 1,
+          "Incineroar": 1,
+          "Raging Bolt": 1
+        }
+      },
+      "Meowstic": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Light Screen": 1,
+          "Reflect": 1,
+          "Quick Guard": 1,
+          "Fake Out": 1
+        },
+        "items": {
+          "Eject Button": 1
+        },
+        "abilities": {
+          "Prankster": 1
+        },
+        "tera_types": {
+          "Poison": 1
+        },
+        "teammates": {
+          "Urshifu-Rapid-Strike": 1,
+          "Flutter Mane": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Tornadus": 1,
+          "Raging Bolt": 1
+        }
+      },
+      "Zapdos": {
+        "usage_count": 2,
+        "usage_pct": 0.85,
+        "moves": {
+          "Thunderbolt": 2,
+          "Helping Hand": 1,
+          "Detect": 1,
+          "Weather Ball": 1,
+          "Hurricane": 1,
+          "Tailwind": 1,
+          "Roost": 1
+        },
+        "items": {
+          "Zap Plate": 1,
+          "Rocky Helmet": 1
+        },
+        "abilities": {
+          "Static": 2
+        },
+        "tera_types": {
+          "Fire": 1,
+          "Steel": 1
+        },
+        "teammates": {
+          "Entei": 1,
+          "Torkoal": 1,
+          "Flutter Mane": 1,
+          "Ursaluna": 1,
+          "Walking Wake": 1,
+          "Roaring Moon": 1,
+          "Chien-Pao": 1,
+          "Arcanine-Hisui": 1,
+          "Rillaboom": 1,
+          "Milotic": 1
+        }
+      },
+      "Charizard": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Heat Wave": 1,
+          "Overheat": 1,
+          "Hurricane": 1,
+          "Scorching Sands": 1
+        },
+        "items": {
+          "Choice Specs": 1
+        },
+        "abilities": {
+          "Solar Power": 1
+        },
+        "tera_types": {
+          "Ghost": 1
+        },
+        "teammates": {
+          "Ogerpon-Cornerstone": 1,
+          "Torkoal": 1,
+          "Krookodile": 1,
+          "Raging Bolt": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Krookodile": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "High Horsepower": 1,
+          "Knock Off": 1,
+          "Gunk Shot": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Clear Amulet": 1
+        },
+        "abilities": {
+          "Intimidate": 1
+        },
+        "tera_types": {
+          "Poison": 1
+        },
+        "teammates": {
+          "Ogerpon-Cornerstone": 1,
+          "Torkoal": 1,
+          "Charizard": 1,
+          "Raging Bolt": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Sneasler": {
+        "usage_count": 2,
+        "usage_pct": 0.85,
+        "moves": {
+          "Dire Claw": 2,
+          "Throat Chop": 2,
+          "Close Combat": 2,
+          "Protect": 1,
+          "Fake Out": 1
+        },
+        "items": {
+          "Psychic Seed": 1,
+          "Grassy Seed": 1
+        },
+        "abilities": {
+          "Unburden": 2
+        },
+        "tera_types": {
+          "Dark": 2
+        },
+        "teammates": {
+          "Flutter Mane": 1,
+          "Archaludon": 1,
+          "Indeedee": 1,
+          "Tornadus": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Regidrago": 1,
+          "Gholdengo": 1,
+          "Rillaboom": 1,
+          "Ogerpon-Wellspring": 1,
+          "Whimsicott": 1
+        }
+      },
+      "Indeedee": {
+        "usage_count": 2,
+        "usage_pct": 0.85,
+        "moves": {
+          "Expanding Force": 2,
+          "Trick": 1,
+          "Tera Blast": 1,
+          "Shadow Ball": 1,
+          "Helping Hand": 1,
+          "Trick Room": 1,
+          "Imprison": 1
+        },
+        "items": {
+          "Choice Scarf": 1,
+          "Focus Sash": 1
+        },
+        "abilities": {
+          "Psychic Surge": 2
+        },
+        "tera_types": {
+          "Fighting": 1,
+          "Grass": 1
+        },
+        "teammates": {
+          "Sneasler": 1,
+          "Flutter Mane": 2,
+          "Archaludon": 1,
+          "Tornadus": 2,
+          "Urshifu-Rapid-Strike": 1,
+          "Chi-Yu": 1,
+          "Landorus": 1,
+          "Ogerpon-Wellspring": 1
+        }
+      },
+      "Milotic": {
+        "usage_count": 3,
+        "usage_pct": 1.28,
+        "moves": {
+          "Scald": 3,
+          "Ice Beam": 2,
+          "Haze": 2,
+          "Protect": 2,
+          "Icy Wind": 1,
+          "Rain Dance": 1,
+          "Recover": 1
+        },
+        "items": {
+          "Leftovers": 2,
+          "Sitrus Berry": 1
+        },
+        "abilities": {
+          "Competitive": 3
+        },
+        "tera_types": {
+          "Dragon": 2,
+          "Grass": 1
+        },
+        "teammates": {
+          "Flutter Mane": 2,
+          "Heatran": 2,
+          "Farigiraf": 2,
+          "Iron Hands": 2,
+          "Rillaboom": 3,
+          "Roaring Moon": 1,
+          "Chien-Pao": 1,
+          "Zapdos": 1,
+          "Arcanine-Hisui": 1
+        }
+      },
+      "Iron Hands": {
+        "usage_count": 4,
+        "usage_pct": 1.71,
+        "moves": {
+          "Drain Punch": 4,
+          "Wild Charge": 4,
+          "Low Kick": 2,
+          "Heavy Slam": 2,
+          "Volt Switch": 1,
+          "Fake Out": 2,
+          "Stomping Tantrum": 1
+        },
+        "items": {
+          "Assault Vest": 3,
+          "Clear Amulet": 1
+        },
+        "abilities": {
+          "Quark Drive": 4
+        },
+        "tera_types": {
+          "Water": 3,
+          "Fairy": 1
+        },
+        "teammates": {
+          "Flutter Mane": 3,
+          "Heatran": 2,
+          "Farigiraf": 3,
+          "Milotic": 2,
+          "Rillaboom": 2,
+          "Ogerpon-Wellspring": 2,
+          "Amoonguss": 1,
+          "Incineroar": 1,
+          "Roaring Moon": 1,
+          "Raging Bolt": 1,
+          "Ursaluna-Bloodmoon": 1,
+          "Metagross": 1
+        }
+      },
+      "Primarina": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Hyper Voice": 1,
+          "Moonblast": 1,
+          "Calm Mind": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Leftovers": 1
+        },
+        "abilities": {
+          "Liquid Voice": 1
+        },
+        "tera_types": {
+          "Grass": 1
+        },
+        "teammates": {
+          "Ogerpon-Wellspring": 1,
+          "Incineroar": 1,
+          "Rillaboom": 1,
+          "Iron Boulder": 1,
+          "Gouging Fire": 1
+        }
+      },
+      "Iron Boulder": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Mighty Cleave": 1,
+          "Zen Headbutt": 1,
+          "Swords Dance": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Clear Amulet": 1
+        },
+        "abilities": {
+          "Quark Drive": 1
+        },
+        "tera_types": {
+          "Dragon": 1
+        },
+        "teammates": {
+          "Primarina": 1,
+          "Ogerpon-Wellspring": 1,
+          "Incineroar": 1,
+          "Rillaboom": 1,
+          "Gouging Fire": 1
+        }
+      },
+      "Talonflame": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Tailwind": 1,
+          "Upper Hand": 1,
+          "Flare Blitz": 1,
+          "Brave Bird": 1
+        },
+        "items": {
+          "Covert Cloak": 1
+        },
+        "abilities": {
+          "Gale Wings": 1
+        },
+        "tera_types": {
+          "Ghost": 1
+        },
+        "teammates": {
+          "Ogerpon-Hearthflame": 1,
+          "Urshifu": 1,
+          "Smeargle": 1,
+          "Iron Crown": 1,
+          "Indeedee-F": 1
+        }
+      },
+      "Tsareena": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Trop Kick": 1,
+          "Triple Axel": 1,
+          "Helping Hand": 1,
+          "Taunt": 1
+        },
+        "items": {
+          "Loaded Dice": 1
+        },
+        "abilities": {
+          "Queenly Majesty": 1
+        },
+        "tera_types": {
+          "Water": 1
+        },
+        "teammates": {
+          "Flutter Mane": 1,
+          "Raging Bolt": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Incineroar": 1,
+          "Landorus": 1
+        }
+      },
+      "Goodra-Hisui": {
+        "usage_count": 2,
+        "usage_pct": 0.85,
+        "moves": {
+          "Protect": 2,
+          "Shelter": 2,
+          "Body Press": 2,
+          "Heavy Slam": 2
+        },
+        "items": {
+          "Leftovers": 2
+        },
+        "abilities": {
+          "Shell Armor": 1,
+          "Sap Sipper": 1
+        },
+        "tera_types": {
+          "Ghost": 1,
+          "Water": 1
+        },
+        "teammates": {
+          "Ursaluna": 1,
+          "Cresselia": 1,
+          "Grimmsnarl": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Amoonguss": 2,
+          "Gastrodon": 1,
+          "Farigiraf": 1,
+          "Ting-Lu": 1,
+          "Incineroar": 1
+        }
+      },
+      "Terrakion": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Rock Slide": 1,
+          "Sacred Sword": 1,
+          "Swords Dance": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Covert Cloak": 1
+        },
+        "abilities": {
+          "Justified": 1
+        },
+        "tera_types": {
+          "Grass": 1
+        },
+        "teammates": {
+          "Chi-Yu": 1,
+          "Flutter Mane": 1,
+          "Indeedee-F": 1,
+          "Whimsicott": 1,
+          "Torkoal": 1
+        }
+      },
+      "Araquanid": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Wide Guard": 1,
+          "Liquidation": 1,
+          "Protect": 1,
+          "Leech Life": 1
+        },
+        "items": {
+          "Clear Amulet": 1
+        },
+        "abilities": {
+          "Water Bubble": 1
+        },
+        "tera_types": {
+          "Grass": 1
+        },
+        "teammates": {
+          "Amoonguss": 1,
+          "Ursaluna": 1,
+          "Flutter Mane": 1,
+          "Porygon2": 1,
+          "Incineroar": 1
+        }
+      },
+      "Regieleki": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Thunderbolt": 1,
+          "Electroweb": 1,
+          "Volt Switch": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Focus Sash": 1
+        },
+        "abilities": {
+          "Transistor": 1
+        },
+        "tera_types": {
+          "Ghost": 1
+        },
+        "teammates": {
+          "Landorus": 1,
+          "Sylveon": 1,
+          "Baxcalibur": 1,
+          "Ogerpon-Wellspring": 1,
+          "Incineroar": 1
+        }
+      },
+      "Baxcalibur": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Glaive Rush": 1,
+          "Icicle Crash": 1,
+          "Ice Shard": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Clear Amulet": 1
+        },
+        "abilities": {
+          "Thermal Exchange": 1
+        },
+        "tera_types": {
+          "Bug": 1
+        },
+        "teammates": {
+          "Regieleki": 1,
+          "Landorus": 1,
+          "Sylveon": 1,
+          "Ogerpon-Wellspring": 1,
+          "Incineroar": 1
+        }
+      },
+      "Weezing": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Taunt": 1,
+          "Will-O-Wisp": 1,
+          "Protect": 1,
+          "Sludge Bomb": 1
+        },
+        "items": {
+          "Sitrus Berry": 1
+        },
+        "abilities": {
+          "Neutralizing Gas": 1
+        },
+        "tera_types": {
+          "Ghost": 1
+        },
+        "teammates": {
+          "Raging Bolt": 1,
+          "Flutter Mane": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Incineroar": 1
+        }
+      },
+      "Thundurus-Therian": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Volt Switch": 1,
+          "Sludge Bomb": 1,
+          "Thunderbolt": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Life Orb": 1
+        },
+        "abilities": {
+          "Volt Absorb": 1
+        },
+        "tera_types": {
+          "Fairy": 1
+        },
+        "teammates": {
+          "Ursaluna": 1,
+          "Ogerpon-Wellspring": 1,
+          "Farigiraf": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Tornadus": 1
+        }
+      },
+      "Metagross": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Stomping Tantrum": 1,
+          "Psychic Fangs": 1,
+          "Heavy Slam": 1,
+          "Bullet Punch": 1
+        },
+        "items": {
+          "Weakness Policy": 1
+        },
+        "abilities": {
+          "Clear Body": 1
+        },
+        "tera_types": {
+          "Grass": 1
+        },
+        "teammates": {
+          "Raging Bolt": 1,
+          "Iron Hands": 1,
+          "Ursaluna-Bloodmoon": 1,
+          "Farigiraf": 1,
+          "Ogerpon-Wellspring": 1
+        }
+      },
+      "Slaking": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Earthquake": 1,
+          "Rock Slide": 1,
+          "Drain Punch": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Clear Amulet": 1
+        },
+        "abilities": {
+          "Truant": 1
+        },
+        "tera_types": {
+          "Ghost": 1
+        },
+        "teammates": {
+          "Incineroar": 1,
+          "Weezing-Galar": 1,
+          "Gholdengo": 1,
+          "Dragonite": 1,
+          "Amoonguss": 1
+        }
+      },
+      "Garganacl": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Salt Cure": 1,
+          "Recover": 1,
+          "Protect": 1,
+          "Wide Guard": 1
+        },
+        "items": {
+          "Leftovers": 1
+        },
+        "abilities": {
+          "Purifying Salt": 1
+        },
+        "tera_types": {
+          "Poison": 1
+        },
+        "teammates": {
+          "Armarouge": 1,
+          "Torkoal": 1,
+          "Indeedee-F": 1,
+          "Grimmsnarl": 1,
+          "Walking Wake": 1
+        }
+      },
+      "Armarouge": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Expanding Force": 1,
+          "Flamethrower": 1,
+          "Solar Beam": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Clear Amulet": 1
+        },
+        "abilities": {
+          "Flash Fire": 1
+        },
+        "tera_types": {
+          "Grass": 1
+        },
+        "teammates": {
+          "Garganacl": 1,
+          "Torkoal": 1,
+          "Indeedee-F": 1,
+          "Grimmsnarl": 1,
+          "Walking Wake": 1
+        }
+      },
+      "Tinkaton": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Fake Out": 1,
+          "Bulldoze": 1,
+          "Knock Off": 1,
+          "Gigaton Hammer": 1
+        },
+        "items": {
+          "Assault Vest": 1
+        },
+        "abilities": {
+          "Own Tempo": 1
+        },
+        "tera_types": {
+          "Water": 1
+        },
+        "teammates": {
+          "Amoonguss": 1,
+          "Raging Bolt": 1,
+          "Gouging Fire": 1,
+          "Latios": 1,
+          "Garchomp": 1
+        }
+      },
+      "Latios": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Icy Wind": 1,
+          "Luster Purge": 1,
+          "Dragon Cheer": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Covert Cloak": 1
+        },
+        "abilities": {
+          "Levitate": 1
+        },
+        "tera_types": {
+          "Steel": 1
+        },
+        "teammates": {
+          "Tinkaton": 1,
+          "Amoonguss": 1,
+          "Raging Bolt": 1,
+          "Gouging Fire": 1,
+          "Garchomp": 1
+        }
+      },
+      "Garchomp": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Protect": 1,
+          "Earthquake": 1,
+          "Rock Slide": 1,
+          "Stomping Tantrum": 1
+        },
+        "items": {
+          "Razor Claw": 1
+        },
+        "abilities": {
+          "Rough Skin": 1
+        },
+        "tera_types": {
+          "Fire": 1
+        },
+        "teammates": {
+          "Tinkaton": 1,
+          "Amoonguss": 1,
+          "Raging Bolt": 1,
+          "Gouging Fire": 1,
+          "Latios": 1
+        }
+      },
+      "Kilowattrel": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Air Slash": 1,
+          "Thunderbolt": 1,
+          "Tailwind": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Focus Sash": 1
+        },
+        "abilities": {
+          "Competitive": 1
+        },
+        "tera_types": {
+          "Electric": 1
+        },
+        "teammates": {
+          "Typhlosion-Hisui": 1,
+          "Gyarados": 1,
+          "Rillaboom": 1,
+          "Dragonite": 1,
+          "Entei": 1
+        }
+      },
+      "Typhlosion-Hisui": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Heat Wave": 1,
+          "Eruption": 1,
+          "Shadow Ball": 1,
+          "Extrasensory": 1
+        },
+        "items": {
+          "Choice Scarf": 1
+        },
+        "abilities": {
+          "Blaze": 1
+        },
+        "tera_types": {
+          "Fire": 1
+        },
+        "teammates": {
+          "Kilowattrel": 1,
+          "Gyarados": 1,
+          "Rillaboom": 1,
+          "Dragonite": 1,
+          "Entei": 1
+        }
+      },
+      "Gyarados": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Iron Head": 1,
+          "Waterfall": 1,
+          "Dragon Dance": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Clear Amulet": 1
+        },
+        "abilities": {
+          "Intimidate": 1
+        },
+        "tera_types": {
+          "Dragon": 1
+        },
+        "teammates": {
+          "Kilowattrel": 1,
+          "Typhlosion-Hisui": 1,
+          "Rillaboom": 1,
+          "Dragonite": 1,
+          "Entei": 1
+        }
+      },
+      "Sunflora": {
+        "usage_count": 1,
+        "usage_pct": 0.43,
+        "moves": {
+          "Solar Beam": 1,
+          "Tera Blast": 1,
+          "Earth Power": 1,
+          "Dazzling Gleam": 1
+        },
+        "items": {
+          "Choice Specs": 1
+        },
+        "abilities": {
+          "Chlorophyll": 1
+        },
+        "tera_types": {
+          "Fire": 1
+        },
+        "teammates": {
+          "Torkoal": 1,
+          "Chi-Yu": 1,
+          "Tornadus": 1,
+          "Flutter Mane": 1,
+          "Incineroar": 1
+        }
+      }
+    }
+  },
+  "day2": {
+    "total_teams": 34,
+    "pokemon": {
+      "Gholdengo": {
+        "usage_count": 9,
+        "usage_pct": 26.47,
+        "moves": {
+          "Shadow Ball": 8,
+          "Make It Rain": 9,
+          "Nasty Plot": 6,
+          "Protect": 6,
+          "Dazzling Gleam": 1,
+          "Trick": 3,
+          "Power Gem": 2,
+          "Hex": 1
+        },
+        "items": {
+          "Metal Coat": 5,
+          "Choice Specs": 3,
+          "Sitrus Berry": 1
+        },
+        "abilities": {
+          "Good as Gold": 9
+        },
+        "tera_types": {
+          "Fairy": 3,
+          "Dragon": 2,
+          "Steel": 2,
+          "Water": 2
+        },
+        "teammates": {
+          "Porygon2": 1,
+          "Ursaluna": 1,
+          "Ogerpon-Wellspring": 4,
+          "Tornadus": 4,
+          "Incineroar": 3,
+          "Landorus": 4,
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Flutter Mane": 2,
+          "Roaring Moon": 3,
+          "Amoonguss": 2,
+          "Urshifu-Rapid-Strike": 5,
+          "Rillaboom": 3,
+          "Ogerpon-Hearthflame": 3,
+          "Regidrago": 3,
+          "Entei": 1,
+          "Grimmsnarl": 1,
+          "Okidogi": 1,
+          "Arcanine-Hisui": 1,
+          "Raging Bolt": 1
+        }
+      },
+      "Porygon2": {
+        "usage_count": 5,
+        "usage_pct": 14.71,
+        "moves": {
+          "Tera Blast": 5,
+          "Ice Beam": 5,
+          "Recover": 5,
+          "Trick Room": 5
+        },
+        "items": {
+          "Eviolite": 5
+        },
+        "abilities": {
+          "Download": 5
+        },
+        "tera_types": {
+          "Flying": 5
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Ursaluna": 5,
+          "Ogerpon-Wellspring": 2,
+          "Tornadus": 4,
+          "Incineroar": 5,
+          "Amoonguss": 3,
+          "Urshifu-Rapid-Strike": 3,
+          "Okidogi": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Ursaluna": {
+        "usage_count": 8,
+        "usage_pct": 23.53,
+        "moves": {
+          "Facade": 8,
+          "Earthquake": 8,
+          "Headlong Rush": 8,
+          "Protect": 8
+        },
+        "items": {
+          "Flame Orb": 8
+        },
+        "abilities": {
+          "Guts": 8
+        },
+        "tera_types": {
+          "Ghost": 5,
+          "Dragon": 1,
+          "Fairy": 2
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Porygon2": 5,
+          "Ogerpon-Wellspring": 3,
+          "Tornadus": 6,
+          "Incineroar": 7,
+          "Amoonguss": 4,
+          "Urshifu-Rapid-Strike": 4,
+          "Flutter Mane": 3,
+          "Farigiraf": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Okidogi": 1,
+          "Cresselia": 1,
+          "Iron Crown": 1,
+          "Urshifu": 1,
+          "Indeedee-F": 1
+        }
+      },
+      "Ogerpon-Wellspring": {
+        "usage_count": 12,
+        "usage_pct": 35.29,
+        "moves": {
+          "Ivy Cudgel": 12,
+          "Wood Hammer": 3,
+          "Follow Me": 11,
+          "Spiky Shield": 12,
+          "Horn Leech": 9,
+          "Swords Dance": 1
+        },
+        "items": {
+          "Wellspring Mask": 12
+        },
+        "abilities": {
+          "Water Absorb": 12
+        },
+        "tera_types": {
+          "Water": 12
+        },
+        "teammates": {
+          "Gholdengo": 4,
+          "Porygon2": 2,
+          "Ursaluna": 3,
+          "Tornadus": 3,
+          "Incineroar": 5,
+          "Landorus": 4,
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Flutter Mane": 9,
+          "Arcanine-Hisui": 3,
+          "Raging Bolt": 5,
+          "Chien-Pao": 1,
+          "Okidogi": 2,
+          "Moltres-Galar": 1,
+          "Rillaboom": 1,
+          "Amoonguss": 2,
+          "Farigiraf": 1,
+          "Ursaluna-Bloodmoon": 2,
+          "Urshifu": 3,
+          "Landorus-Therian": 1,
+          "Heatran": 1,
+          "Entei": 1,
+          "Roaring Moon": 1,
+          "Grimmsnarl": 1,
+          "Iron Crown": 1,
+          "Indeedee-F": 1
+        }
+      },
+      "Tornadus": {
+        "usage_count": 15,
+        "usage_pct": 44.12,
+        "moves": {
+          "Bleakwind Storm": 15,
+          "Rain Dance": 10,
+          "Tailwind": 15,
+          "Protect": 14,
+          "Sunny Day": 1,
+          "Icy Wind": 5
+        },
+        "items": {
+          "Rocky Helmet": 1,
+          "Sky Plate": 1,
+          "Covert Cloak": 4,
+          "Focus Sash": 9
+        },
+        "abilities": {
+          "Prankster": 15
+        },
+        "tera_types": {
+          "Steel": 5,
+          "Dragon": 3,
+          "Grass": 1,
+          "Ghost": 5,
+          "Flying": 1
+        },
+        "teammates": {
+          "Gholdengo": 4,
+          "Porygon2": 4,
+          "Ursaluna": 6,
+          "Ogerpon-Wellspring": 3,
+          "Incineroar": 8,
+          "Amoonguss": 5,
+          "Urshifu-Rapid-Strike": 11,
+          "Flutter Mane": 4,
+          "Farigiraf": 1,
+          "Ogerpon-Hearthflame": 6,
+          "Landorus": 3,
+          "Rillaboom": 3,
+          "Regidrago": 4,
+          "Urshifu": 2,
+          "Ursaluna-Bloodmoon": 1,
+          "Iron Crown": 4,
+          "Indeedee-F": 4,
+          "Landorus-Therian": 1,
+          "Ogerpon-Cornerstone": 1
+        }
+      },
+      "Incineroar": {
+        "usage_count": 17,
+        "usage_pct": 50.0,
+        "moves": {
+          "Fake Out": 17,
+          "Knock Off": 15,
+          "Flare Blitz": 16,
+          "Parting Shot": 11,
+          "U-turn": 6,
+          "Snarl": 2,
+          "Will-O-Wisp": 1
+        },
+        "items": {
+          "Sitrus Berry": 5,
+          "Assault Vest": 6,
+          "Safety Goggles": 4,
+          "Rocky Helmet": 2
+        },
+        "abilities": {
+          "Intimidate": 17
+        },
+        "tera_types": {
+          "Grass": 10,
+          "Ghost": 3,
+          "Dragon": 1,
+          "Flying": 3
+        },
+        "teammates": {
+          "Gholdengo": 3,
+          "Porygon2": 5,
+          "Ursaluna": 7,
+          "Ogerpon-Wellspring": 5,
+          "Tornadus": 8,
+          "Amoonguss": 11,
+          "Urshifu-Rapid-Strike": 11,
+          "Flutter Mane": 11,
+          "Farigiraf": 2,
+          "Ogerpon-Hearthflame": 4,
+          "Rillaboom": 2,
+          "Raging Bolt": 4,
+          "Okidogi": 1,
+          "Landorus": 5,
+          "Ursaluna-Bloodmoon": 2,
+          "Cresselia": 1,
+          "Roaring Moon": 2,
+          "Urshifu": 1
+        }
+      },
+      "Landorus": {
+        "usage_count": 10,
+        "usage_pct": 29.41,
+        "moves": {
+          "Protect": 10,
+          "Earth Power": 10,
+          "Sludge Bomb": 10,
+          "Sandsear Storm": 8,
+          "Substitute": 2
+        },
+        "items": {
+          "Life Orb": 10
+        },
+        "abilities": {
+          "Sheer Force": 10
+        },
+        "tera_types": {
+          "Poison": 3,
+          "Steel": 7
+        },
+        "teammates": {
+          "Gholdengo": 4,
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Ogerpon-Wellspring": 4,
+          "Flutter Mane": 6,
+          "Arcanine-Hisui": 2,
+          "Raging Bolt": 3,
+          "Chien-Pao": 1,
+          "Amoonguss": 6,
+          "Incineroar": 5,
+          "Tornadus": 3,
+          "Urshifu-Rapid-Strike": 6,
+          "Roaring Moon": 2,
+          "Pelipper": 1,
+          "Archaludon": 1,
+          "Thundurus": 1,
+          "Iron Crown": 1,
+          "Indeedee-F": 1,
+          "Ogerpon-Cornerstone": 1
+        }
+      },
+      "Dragonite": {
+        "usage_count": 2,
+        "usage_pct": 5.88,
+        "moves": {
+          "Extreme Speed": 2,
+          "Dragon Claw": 1,
+          "Tera Blast": 1,
+          "Ice Spinner": 1,
+          "Scale Shot": 1,
+          "Iron Head": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Assault Vest": 1,
+          "Loaded Dice": 1
+        },
+        "abilities": {
+          "Multiscale": 1,
+          "Inner Focus": 1
+        },
+        "tera_types": {
+          "Flying": 1,
+          "Steel": 1
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Landorus": 1,
+          "Gouging Fire": 2,
+          "Ogerpon-Wellspring": 1,
+          "Flutter Mane": 1,
+          "Ting-Lu": 1,
+          "Chien-Pao": 1,
+          "Dondozo": 1,
+          "Corviknight": 1
+        }
+      },
+      "Gouging Fire": {
+        "usage_count": 2,
+        "usage_pct": 5.88,
+        "moves": {
+          "Breaking Swipe": 2,
+          "Heat Crash": 2,
+          "Howl": 2,
+          "Snarl": 1,
+          "Burning Bulwark": 1
+        },
+        "items": {
+          "Booster Energy": 2
+        },
+        "abilities": {
+          "Protosynthesis": 2
+        },
+        "tera_types": {
+          "Fairy": 2
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Landorus": 1,
+          "Dragonite": 2,
+          "Ogerpon-Wellspring": 1,
+          "Flutter Mane": 1,
+          "Ting-Lu": 1,
+          "Chien-Pao": 1,
+          "Dondozo": 1,
+          "Corviknight": 1
+        }
+      },
+      "Flutter Mane": {
+        "usage_count": 17,
+        "usage_pct": 50.0,
+        "moves": {
+          "Moonblast": 17,
+          "Taunt": 8,
+          "Thunder Wave": 7,
+          "Icy Wind": 12,
+          "Shadow Ball": 9,
+          "Dazzling Gleam": 8,
+          "Power Gem": 2,
+          "Protect": 4,
+          "Trick Room": 1
+        },
+        "items": {
+          "Sitrus Berry": 1,
+          "Booster Energy": 10,
+          "Choice Specs": 6
+        },
+        "abilities": {
+          "Protosynthesis": 17
+        },
+        "tera_types": {
+          "Grass": 5,
+          "Fairy": 11,
+          "Fire": 1
+        },
+        "teammates": {
+          "Gholdengo": 2,
+          "Landorus": 6,
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Ogerpon-Wellspring": 9,
+          "Arcanine-Hisui": 3,
+          "Raging Bolt": 9,
+          "Chien-Pao": 1,
+          "Tornadus": 4,
+          "Incineroar": 11,
+          "Ursaluna": 3,
+          "Farigiraf": 2,
+          "Ogerpon-Hearthflame": 4,
+          "Rillaboom": 3,
+          "Urshifu-Rapid-Strike": 6,
+          "Okidogi": 1,
+          "Porygon2": 1,
+          "Moltres-Galar": 1,
+          "Amoonguss": 6,
+          "Ursaluna-Bloodmoon": 2,
+          "Cresselia": 1,
+          "Urshifu": 2,
+          "Landorus-Therian": 1,
+          "Heatran": 1,
+          "Weezing-Galar": 1,
+          "Dondozo": 1,
+          "Tatsugiri": 1,
+          "Chi-Yu": 1
+        }
+      },
+      "Amoonguss": {
+        "usage_count": 12,
+        "usage_pct": 35.29,
+        "moves": {
+          "Spore": 12,
+          "Pollen Puff": 4,
+          "Rage Powder": 12,
+          "Protect": 10,
+          "Sludge Bomb": 9,
+          "Clear Smog": 1
+        },
+        "items": {
+          "Rocky Helmet": 7,
+          "Mental Herb": 3,
+          "Sitrus Berry": 2
+        },
+        "abilities": {
+          "Regenerator": 12
+        },
+        "tera_types": {
+          "Fairy": 5,
+          "Water": 5,
+          "Fire": 2
+        },
+        "teammates": {
+          "Urshifu-Rapid-Strike": 10,
+          "Tornadus": 5,
+          "Porygon2": 3,
+          "Ursaluna": 4,
+          "Incineroar": 11,
+          "Flutter Mane": 6,
+          "Raging Bolt": 2,
+          "Landorus": 6,
+          "Ogerpon-Wellspring": 2,
+          "Farigiraf": 1,
+          "Ursaluna-Bloodmoon": 1,
+          "Cresselia": 1,
+          "Roaring Moon": 2,
+          "Gholdengo": 2,
+          "Ogerpon-Hearthflame": 1,
+          "Pelipper": 1,
+          "Archaludon": 1,
+          "Thundurus": 1
+        }
+      },
+      "Urshifu-Rapid-Strike": {
+        "usage_count": 18,
+        "usage_pct": 52.94,
+        "moves": {
+          "Surging Strikes": 18,
+          "Close Combat": 18,
+          "Aqua Jet": 16,
+          "Detect": 8,
+          "U-turn": 8,
+          "Protect": 2,
+          "Ice Spinner": 1,
+          "Ice Punch": 1
+        },
+        "items": {
+          "Mystic Water": 8,
+          "Choice Scarf": 8,
+          "Life Orb": 2
+        },
+        "abilities": {
+          "Unseen Fist": 18
+        },
+        "tera_types": {
+          "Steel": 5,
+          "Fire": 4,
+          "Water": 7,
+          "Ghost": 1,
+          "Grass": 1
+        },
+        "teammates": {
+          "Amoonguss": 10,
+          "Tornadus": 11,
+          "Porygon2": 3,
+          "Ursaluna": 4,
+          "Incineroar": 11,
+          "Rillaboom": 5,
+          "Ogerpon-Hearthflame": 8,
+          "Raging Bolt": 3,
+          "Flutter Mane": 6,
+          "Landorus": 6,
+          "Cresselia": 1,
+          "Roaring Moon": 2,
+          "Gholdengo": 5,
+          "Regidrago": 4,
+          "Iron Crown": 3,
+          "Landorus-Therian": 1,
+          "Indeedee-F": 3,
+          "Pelipper": 1,
+          "Archaludon": 1,
+          "Thundurus": 1,
+          "Ogerpon-Cornerstone": 1
+        }
+      },
+      "Arcanine-Hisui": {
+        "usage_count": 3,
+        "usage_pct": 8.82,
+        "moves": {
+          "Extreme Speed": 3,
+          "Head Smash": 3,
+          "Rock Slide": 3,
+          "Flare Blitz": 3
+        },
+        "items": {
+          "Choice Band": 3
+        },
+        "abilities": {
+          "Intimidate": 3
+        },
+        "tera_types": {
+          "Ghost": 1,
+          "Grass": 2
+        },
+        "teammates": {
+          "Flutter Mane": 3,
+          "Landorus": 2,
+          "Ogerpon-Wellspring": 3,
+          "Raging Bolt": 3,
+          "Chien-Pao": 1,
+          "Moltres-Galar": 1,
+          "Rillaboom": 1,
+          "Gholdengo": 1
+        }
+      },
+      "Raging Bolt": {
+        "usage_count": 9,
+        "usage_pct": 26.47,
+        "moves": {
+          "Snarl": 3,
+          "Thunderclap": 9,
+          "Electroweb": 3,
+          "Dragon Pulse": 6,
+          "Thunderbolt": 5,
+          "Draco Meteor": 3,
+          "Protect": 4,
+          "Calm Mind": 3
+        },
+        "items": {
+          "Assault Vest": 5,
+          "Life Orb": 1,
+          "Leftovers": 3
+        },
+        "abilities": {
+          "Protosynthesis": 9
+        },
+        "tera_types": {
+          "Fairy": 6,
+          "Electric": 2,
+          "Bug": 1
+        },
+        "teammates": {
+          "Arcanine-Hisui": 3,
+          "Flutter Mane": 9,
+          "Landorus": 3,
+          "Ogerpon-Wellspring": 5,
+          "Chien-Pao": 1,
+          "Incineroar": 4,
+          "Rillaboom": 3,
+          "Ogerpon-Hearthflame": 3,
+          "Urshifu-Rapid-Strike": 3,
+          "Moltres-Galar": 1,
+          "Amoonguss": 2,
+          "Urshifu": 1,
+          "Landorus-Therian": 1,
+          "Heatran": 1,
+          "Weezing-Galar": 1,
+          "Dondozo": 1,
+          "Tatsugiri": 1,
+          "Chi-Yu": 1,
+          "Gholdengo": 1
+        }
+      },
+      "Chien-Pao": {
+        "usage_count": 2,
+        "usage_pct": 5.88,
+        "moves": {
+          "Protect": 2,
+          "Ice Spinner": 1,
+          "Sucker Punch": 2,
+          "Sacred Sword": 2,
+          "Icicle Crash": 1
+        },
+        "items": {
+          "Focus Sash": 2
+        },
+        "abilities": {
+          "Sword of Ruin": 2
+        },
+        "tera_types": {
+          "Stellar": 2
+        },
+        "teammates": {
+          "Arcanine-Hisui": 1,
+          "Flutter Mane": 1,
+          "Landorus": 1,
+          "Ogerpon-Wellspring": 1,
+          "Raging Bolt": 1,
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Ting-Lu": 1,
+          "Dondozo": 1,
+          "Corviknight": 1
+        }
+      },
+      "Farigiraf": {
+        "usage_count": 3,
+        "usage_pct": 8.82,
+        "moves": {
+          "Psyshock": 2,
+          "Dazzling Gleam": 1,
+          "Trick Room": 3,
+          "Helping Hand": 2,
+          "Psychic": 1,
+          "Hyper Voice": 2,
+          "Protect": 1
+        },
+        "items": {
+          "Rocky Helmet": 1,
+          "Throat Spray": 2
+        },
+        "abilities": {
+          "Armor Tail": 3
+        },
+        "tera_types": {
+          "Fairy": 3
+        },
+        "teammates": {
+          "Tornadus": 1,
+          "Incineroar": 2,
+          "Flutter Mane": 2,
+          "Ursaluna": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Ursaluna-Bloodmoon": 1,
+          "Ogerpon-Wellspring": 1,
+          "Amoonguss": 1,
+          "Torkoal": 1,
+          "Indeedee-F": 1,
+          "Maushold": 1,
+          "Hatterene": 1,
+          "Urshifu": 1
+        }
+      },
+      "Ogerpon-Hearthflame": {
+        "usage_count": 9,
+        "usage_pct": 26.47,
+        "moves": {
+          "Ivy Cudgel": 9,
+          "Wood Hammer": 5,
+          "Follow Me": 6,
+          "Spiky Shield": 9,
+          "Grassy Glide": 4,
+          "Swords Dance": 2,
+          "Focus Energy": 1
+        },
+        "items": {
+          "Hearthflame Mask": 9
+        },
+        "abilities": {
+          "Mold Breaker": 9
+        },
+        "tera_types": {
+          "Fire": 9
+        },
+        "teammates": {
+          "Tornadus": 6,
+          "Incineroar": 4,
+          "Flutter Mane": 4,
+          "Ursaluna": 1,
+          "Farigiraf": 1,
+          "Rillaboom": 5,
+          "Raging Bolt": 3,
+          "Urshifu-Rapid-Strike": 8,
+          "Amoonguss": 1,
+          "Gholdengo": 3,
+          "Regidrago": 4,
+          "Iron Crown": 2,
+          "Landorus-Therian": 1,
+          "Indeedee-F": 2
+        }
+      },
+      "Rillaboom": {
+        "usage_count": 6,
+        "usage_pct": 17.65,
+        "moves": {
+          "Wood Hammer": 5,
+          "Grassy Glide": 6,
+          "High Horsepower": 6,
+          "Fake Out": 6,
+          "Drum Beating": 1
+        },
+        "items": {
+          "Assault Vest": 5,
+          "Clear Amulet": 1
+        },
+        "abilities": {
+          "Grassy Surge": 6
+        },
+        "tera_types": {
+          "Fire": 5,
+          "Ground": 1
+        },
+        "teammates": {
+          "Incineroar": 2,
+          "Ogerpon-Hearthflame": 5,
+          "Raging Bolt": 3,
+          "Urshifu-Rapid-Strike": 5,
+          "Flutter Mane": 3,
+          "Moltres-Galar": 1,
+          "Arcanine-Hisui": 1,
+          "Ogerpon-Wellspring": 1,
+          "Gholdengo": 3,
+          "Tornadus": 3,
+          "Regidrago": 3
+        }
+      },
+      "Okidogi": {
+        "usage_count": 2,
+        "usage_pct": 5.88,
+        "moves": {
+          "Poison Jab": 1,
+          "Ice Punch": 1,
+          "Drain Punch": 2,
+          "Knock Off": 1,
+          "Gunk Shot": 1,
+          "High Horsepower": 1,
+          "Upper Hand": 1
+        },
+        "items": {
+          "Assault Vest": 2
+        },
+        "abilities": {
+          "Guard Dog": 2
+        },
+        "tera_types": {
+          "Ghost": 1,
+          "Water": 1
+        },
+        "teammates": {
+          "Ursaluna": 1,
+          "Incineroar": 1,
+          "Porygon2": 1,
+          "Flutter Mane": 1,
+          "Ogerpon-Wellspring": 2,
+          "Entei": 1,
+          "Roaring Moon": 1,
+          "Grimmsnarl": 1,
+          "Gholdengo": 1
+        }
+      },
+      "Moltres-Galar": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Fiery Wrath": 1,
+          "Air Slash": 1,
+          "Snarl": 1,
+          "Tera Blast": 1
+        },
+        "items": {
+          "Choice Specs": 1
+        },
+        "abilities": {
+          "Berserk": 1
+        },
+        "tera_types": {
+          "Steel": 1
+        },
+        "teammates": {
+          "Rillaboom": 1,
+          "Arcanine-Hisui": 1,
+          "Ogerpon-Wellspring": 1,
+          "Raging Bolt": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Ursaluna-Bloodmoon": {
+        "usage_count": 2,
+        "usage_pct": 5.88,
+        "moves": {
+          "Hyper Voice": 2,
+          "Earth Power": 2,
+          "Vacuum Wave": 1,
+          "Blood Moon": 2,
+          "Protect": 1
+        },
+        "items": {
+          "Assault Vest": 1,
+          "Life Orb": 1
+        },
+        "abilities": {
+          "Mind’s Eye": 2
+        },
+        "tera_types": {
+          "Normal": 2
+        },
+        "teammates": {
+          "Farigiraf": 1,
+          "Flutter Mane": 2,
+          "Ogerpon-Wellspring": 2,
+          "Amoonguss": 1,
+          "Incineroar": 2,
+          "Urshifu": 1,
+          "Tornadus": 1
+        }
+      },
+      "Ting-Lu": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Sand Tomb": 1,
+          "Taunt": 1,
+          "Ruination": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Rocky Helmet": 1
+        },
+        "abilities": {
+          "Vessel of Ruin": 1
+        },
+        "tera_types": {
+          "Poison": 1
+        },
+        "teammates": {
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Chien-Pao": 1,
+          "Dondozo": 1,
+          "Corviknight": 1
+        }
+      },
+      "Dondozo": {
+        "usage_count": 2,
+        "usage_pct": 5.88,
+        "moves": {
+          "Protect": 2,
+          "Wave Crash": 2,
+          "Fissure": 1,
+          "Yawn": 1,
+          "Earthquake": 1,
+          "Order Up": 1
+        },
+        "items": {
+          "Leftovers": 1,
+          "Rocky Helmet": 1
+        },
+        "abilities": {
+          "Oblivious": 2
+        },
+        "tera_types": {
+          "Grass": 2
+        },
+        "teammates": {
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Ting-Lu": 1,
+          "Chien-Pao": 1,
+          "Corviknight": 1,
+          "Weezing-Galar": 1,
+          "Flutter Mane": 1,
+          "Tatsugiri": 1,
+          "Chi-Yu": 1,
+          "Raging Bolt": 1
+        }
+      },
+      "Corviknight": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Brave Bird": 1,
+          "Bulk Up": 1,
+          "Roost": 1,
+          "Iron Head": 1
+        },
+        "items": {
+          "Sitrus Berry": 1
+        },
+        "abilities": {
+          "Mirror Armor": 1
+        },
+        "tera_types": {
+          "Fairy": 1
+        },
+        "teammates": {
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Ting-Lu": 1,
+          "Chien-Pao": 1,
+          "Dondozo": 1
+        }
+      },
+      "Cresselia": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Psychic": 1,
+          "Lunar Blessing": 1,
+          "Icy Wind": 1,
+          "Trick Room": 1
+        },
+        "items": {
+          "Safety Goggles": 1
+        },
+        "abilities": {
+          "Levitate": 1
+        },
+        "tera_types": {
+          "Steel": 1
+        },
+        "teammates": {
+          "Urshifu-Rapid-Strike": 1,
+          "Ursaluna": 1,
+          "Amoonguss": 1,
+          "Incineroar": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Urshifu": {
+        "usage_count": 4,
+        "usage_pct": 11.76,
+        "moves": {
+          "Wicked Blow": 4,
+          "Sucker Punch": 3,
+          "Close Combat": 4,
+          "Detect": 2,
+          "Iron Head": 1,
+          "U-turn": 1,
+          "Poison Jab": 1
+        },
+        "items": {
+          "Focus Sash": 2,
+          "Choice Band": 2
+        },
+        "abilities": {
+          "Unseen Fist": 4
+        },
+        "tera_types": {
+          "Dark": 2,
+          "Ghost": 1,
+          "Poison": 1
+        },
+        "teammates": {
+          "Ogerpon-Wellspring": 3,
+          "Landorus-Therian": 1,
+          "Flutter Mane": 2,
+          "Raging Bolt": 1,
+          "Heatran": 1,
+          "Incineroar": 1,
+          "Tornadus": 2,
+          "Ursaluna-Bloodmoon": 1,
+          "Iron Crown": 1,
+          "Indeedee-F": 2,
+          "Ursaluna": 1,
+          "Farigiraf": 1,
+          "Torkoal": 1,
+          "Maushold": 1,
+          "Hatterene": 1
+        }
+      },
+      "Landorus-Therian": {
+        "usage_count": 2,
+        "usage_pct": 5.88,
+        "moves": {
+          "Stomping Tantrum": 2,
+          "Tera Blast": 1,
+          "Rock Slide": 2,
+          "U-turn": 2,
+          "Earthquake": 1
+        },
+        "items": {
+          "Choice Band": 2
+        },
+        "abilities": {
+          "Intimidate": 2
+        },
+        "tera_types": {
+          "Flying": 1,
+          "Steel": 1
+        },
+        "teammates": {
+          "Urshifu": 1,
+          "Ogerpon-Wellspring": 1,
+          "Flutter Mane": 1,
+          "Raging Bolt": 1,
+          "Heatran": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Iron Crown": 1,
+          "Tornadus": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Indeedee-F": 1
+        }
+      },
+      "Heatran": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Magma Storm": 1,
+          "Heavy Slam": 1,
+          "Earth Power": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Safety Goggles": 1
+        },
+        "abilities": {
+          "Flash Fire": 1
+        },
+        "tera_types": {
+          "Bug": 1
+        },
+        "teammates": {
+          "Urshifu": 1,
+          "Ogerpon-Wellspring": 1,
+          "Landorus-Therian": 1,
+          "Flutter Mane": 1,
+          "Raging Bolt": 1
+        }
+      },
+      "Roaring Moon": {
+        "usage_count": 3,
+        "usage_pct": 8.82,
+        "moves": {
+          "Knock Off": 3,
+          "Breaking Swipe": 2,
+          "Tailwind": 3,
+          "Protect": 3,
+          "Acrobatics": 1
+        },
+        "items": {
+          "Booster Energy": 3
+        },
+        "abilities": {
+          "Protosynthesis": 3
+        },
+        "tera_types": {
+          "Poison": 2,
+          "Flying": 1
+        },
+        "teammates": {
+          "Landorus": 2,
+          "Amoonguss": 2,
+          "Urshifu-Rapid-Strike": 2,
+          "Incineroar": 2,
+          "Gholdengo": 3,
+          "Entei": 1,
+          "Grimmsnarl": 1,
+          "Okidogi": 1,
+          "Ogerpon-Wellspring": 1
+        }
+      },
+      "Regidrago": {
+        "usage_count": 4,
+        "usage_pct": 11.76,
+        "moves": {
+          "Protect": 4,
+          "Dragon Energy": 4,
+          "Draco Meteor": 4,
+          "Tera Blast": 1,
+          "Earth Power": 3
+        },
+        "items": {
+          "Life Orb": 3,
+          "Dragon Fang": 1
+        },
+        "abilities": {
+          "Dragon's Maw": 4
+        },
+        "tera_types": {
+          "Ghost": 3,
+          "Steel": 1
+        },
+        "teammates": {
+          "Rillaboom": 3,
+          "Ogerpon-Hearthflame": 4,
+          "Gholdengo": 3,
+          "Urshifu-Rapid-Strike": 4,
+          "Tornadus": 4,
+          "Iron Crown": 1,
+          "Indeedee-F": 1
+        }
+      },
+      "Weezing-Galar": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Strange Steam": 1,
+          "Poison Gas": 1,
+          "Toxic Spikes": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Sitrus Berry": 1
+        },
+        "abilities": {
+          "Neutralizing Gas": 1
+        },
+        "tera_types": {
+          "Flying": 1
+        },
+        "teammates": {
+          "Flutter Mane": 1,
+          "Dondozo": 1,
+          "Tatsugiri": 1,
+          "Chi-Yu": 1,
+          "Raging Bolt": 1
+        }
+      },
+      "Tatsugiri": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Muddy Water": 1,
+          "Draco Meteor": 1,
+          "Taunt": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Focus Sash": 1
+        },
+        "abilities": {
+          "Commander": 1
+        },
+        "tera_types": {
+          "Stellar": 1
+        },
+        "teammates": {
+          "Weezing-Galar": 1,
+          "Flutter Mane": 1,
+          "Dondozo": 1,
+          "Chi-Yu": 1,
+          "Raging Bolt": 1
+        }
+      },
+      "Chi-Yu": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Heat Wave": 1,
+          "Ruination": 1,
+          "Overheat": 1,
+          "Snarl": 1
+        },
+        "items": {
+          "Choice Scarf": 1
+        },
+        "abilities": {
+          "Beads of Ruin": 1
+        },
+        "tera_types": {
+          "Ghost": 1
+        },
+        "teammates": {
+          "Weezing-Galar": 1,
+          "Flutter Mane": 1,
+          "Dondozo": 1,
+          "Tatsugiri": 1,
+          "Raging Bolt": 1
+        }
+      },
+      "Entei": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Sacred Fire": 1,
+          "Extreme Speed": 1,
+          "Stone Edge": 1,
+          "Stomping Tantrum": 1
+        },
+        "items": {
+          "Choice Band": 1
+        },
+        "abilities": {
+          "Inner Focus": 1
+        },
+        "tera_types": {
+          "Fairy": 1
+        },
+        "teammates": {
+          "Roaring Moon": 1,
+          "Grimmsnarl": 1,
+          "Okidogi": 1,
+          "Gholdengo": 1,
+          "Ogerpon-Wellspring": 1
+        }
+      },
+      "Grimmsnarl": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Spirit Break": 1,
+          "Reflect": 1,
+          "Light Screen": 1,
+          "Thunder Wave": 1
+        },
+        "items": {
+          "Light Clay": 1
+        },
+        "abilities": {
+          "Prankster": 1
+        },
+        "tera_types": {
+          "Grass": 1
+        },
+        "teammates": {
+          "Entei": 1,
+          "Roaring Moon": 1,
+          "Okidogi": 1,
+          "Gholdengo": 1,
+          "Ogerpon-Wellspring": 1
+        }
+      },
+      "Iron Crown": {
+        "usage_count": 4,
+        "usage_pct": 11.76,
+        "moves": {
+          "Tera Blast": 4,
+          "Tachyon Cutter": 4,
+          "Expanding Force": 4,
+          "Protect": 4
+        },
+        "items": {
+          "Booster Energy": 4
+        },
+        "abilities": {
+          "Quark Drive": 4
+        },
+        "tera_types": {
+          "Water": 4
+        },
+        "teammates": {
+          "Urshifu": 1,
+          "Indeedee-F": 4,
+          "Ursaluna": 1,
+          "Ogerpon-Wellspring": 1,
+          "Tornadus": 4,
+          "Urshifu-Rapid-Strike": 3,
+          "Landorus-Therian": 1,
+          "Ogerpon-Hearthflame": 2,
+          "Ogerpon-Cornerstone": 1,
+          "Landorus": 1,
+          "Regidrago": 1
+        }
+      },
+      "Indeedee-F": {
+        "usage_count": 5,
+        "usage_pct": 14.71,
+        "moves": {
+          "Dazzling Gleam": 4,
+          "Follow Me": 5,
+          "Helping Hand": 4,
+          "Trick Room": 5,
+          "Psyshock": 1,
+          "Healing Wish": 1
+        },
+        "items": {
+          "Psychic Seed": 2,
+          "Rocky Helmet": 3
+        },
+        "abilities": {
+          "Psychic Surge": 5
+        },
+        "tera_types": {
+          "Fairy": 4,
+          "Dragon": 1
+        },
+        "teammates": {
+          "Iron Crown": 4,
+          "Urshifu": 2,
+          "Ursaluna": 1,
+          "Ogerpon-Wellspring": 1,
+          "Tornadus": 4,
+          "Farigiraf": 1,
+          "Torkoal": 1,
+          "Maushold": 1,
+          "Hatterene": 1,
+          "Urshifu-Rapid-Strike": 3,
+          "Landorus-Therian": 1,
+          "Ogerpon-Hearthflame": 2,
+          "Ogerpon-Cornerstone": 1,
+          "Landorus": 1,
+          "Regidrago": 1
+        }
+      },
+      "Torkoal": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Eruption": 1,
+          "Weather Ball": 1,
+          "Earth Power": 1,
+          "Heat Wave": 1
+        },
+        "items": {
+          "Choice Specs": 1
+        },
+        "abilities": {
+          "Drought": 1
+        },
+        "tera_types": {
+          "Fire": 1
+        },
+        "teammates": {
+          "Farigiraf": 1,
+          "Indeedee-F": 1,
+          "Maushold": 1,
+          "Hatterene": 1,
+          "Urshifu": 1
+        }
+      },
+      "Maushold": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Follow Me": 1,
+          "Taunt": 1,
+          "Helping Hand": 1,
+          "U-turn": 1
+        },
+        "items": {
+          "Rocky Helmet": 1
+        },
+        "abilities": {
+          "Friend Guard": 1
+        },
+        "tera_types": {
+          "Grass": 1
+        },
+        "teammates": {
+          "Farigiraf": 1,
+          "Torkoal": 1,
+          "Indeedee-F": 1,
+          "Hatterene": 1,
+          "Urshifu": 1
+        }
+      },
+      "Hatterene": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Trick Room": 1,
+          "Expanding Force": 1,
+          "Dazzling Gleam": 1,
+          "Psyshock": 1
+        },
+        "items": {
+          "Covert Cloak": 1
+        },
+        "abilities": {
+          "Magic Bounce": 1
+        },
+        "tera_types": {
+          "Fire": 1
+        },
+        "teammates": {
+          "Farigiraf": 1,
+          "Torkoal": 1,
+          "Indeedee-F": 1,
+          "Maushold": 1,
+          "Urshifu": 1
+        }
+      },
+      "Pelipper": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Weather Ball": 1,
+          "Hurricane": 1,
+          "Tailwind": 1,
+          "Wide Guard": 1
+        },
+        "items": {
+          "Focus Sash": 1
+        },
+        "abilities": {
+          "Drizzle": 1
+        },
+        "tera_types": {
+          "Stellar": 1
+        },
+        "teammates": {
+          "Urshifu-Rapid-Strike": 1,
+          "Amoonguss": 1,
+          "Archaludon": 1,
+          "Thundurus": 1,
+          "Landorus": 1
+        }
+      },
+      "Archaludon": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Electro Shot": 1,
+          "Dragon Pulse": 1,
+          "Heavy Slam": 1,
+          "Body Press": 1
+        },
+        "items": {
+          "Assault Vest": 1
+        },
+        "abilities": {
+          "Stamina": 1
+        },
+        "tera_types": {
+          "Bug": 1
+        },
+        "teammates": {
+          "Pelipper": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Amoonguss": 1,
+          "Thundurus": 1,
+          "Landorus": 1
+        }
+      },
+      "Thundurus": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Wildbolt Storm": 1,
+          "Rain Dance": 1,
+          "Eerie Impulse": 1,
+          "Thunder Wave": 1
+        },
+        "items": {
+          "Covert Cloak": 1
+        },
+        "abilities": {
+          "Prankster": 1
+        },
+        "tera_types": {
+          "Steel": 1
+        },
+        "teammates": {
+          "Pelipper": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Amoonguss": 1,
+          "Archaludon": 1,
+          "Landorus": 1
+        }
+      },
+      "Ogerpon-Cornerstone": {
+        "usage_count": 1,
+        "usage_pct": 2.94,
+        "moves": {
+          "Spiky Shield": 1,
+          "Ivy Cudgel": 1,
+          "Follow Me": 1,
+          "Wood Hammer": 1
+        },
+        "items": {
+          "Cornerstone Mask": 1
+        },
+        "abilities": {
+          "Sturdy": 1
+        },
+        "tera_types": {
+          "Rock": 1
+        },
+        "teammates": {
+          "Iron Crown": 1,
+          "Indeedee-F": 1,
+          "Tornadus": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Landorus": 1
+        }
+      }
+    }
+  },
+  "top16": {
+    "total_teams": 16,
+    "pokemon": {
+      "Gholdengo": {
+        "usage_count": 3,
+        "usage_pct": 18.75,
+        "moves": {
+          "Shadow Ball": 3,
+          "Make It Rain": 3,
+          "Nasty Plot": 2,
+          "Protect": 2,
+          "Dazzling Gleam": 1,
+          "Trick": 1
+        },
+        "items": {
+          "Metal Coat": 2,
+          "Choice Specs": 1
+        },
+        "abilities": {
+          "Good as Gold": 3
+        },
+        "tera_types": {
+          "Fairy": 2,
+          "Dragon": 1
+        },
+        "teammates": {
+          "Porygon2": 1,
+          "Ursaluna": 1,
+          "Ogerpon-Wellspring": 2,
+          "Tornadus": 1,
+          "Incineroar": 2,
+          "Landorus": 2,
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Flutter Mane": 1,
+          "Roaring Moon": 1,
+          "Amoonguss": 1,
+          "Urshifu-Rapid-Strike": 1
+        }
+      },
+      "Porygon2": {
+        "usage_count": 4,
+        "usage_pct": 25.0,
+        "moves": {
+          "Tera Blast": 4,
+          "Ice Beam": 4,
+          "Recover": 4,
+          "Trick Room": 4
+        },
+        "items": {
+          "Eviolite": 4
+        },
+        "abilities": {
+          "Download": 4
+        },
+        "tera_types": {
+          "Flying": 4
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Ursaluna": 4,
+          "Ogerpon-Wellspring": 2,
+          "Tornadus": 3,
+          "Incineroar": 4,
+          "Amoonguss": 2,
+          "Urshifu-Rapid-Strike": 2,
+          "Okidogi": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Ursaluna": {
+        "usage_count": 6,
+        "usage_pct": 37.5,
+        "moves": {
+          "Facade": 6,
+          "Earthquake": 6,
+          "Headlong Rush": 6,
+          "Protect": 6
+        },
+        "items": {
+          "Flame Orb": 6
+        },
+        "abilities": {
+          "Guts": 6
+        },
+        "tera_types": {
+          "Ghost": 5,
+          "Dragon": 1
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Porygon2": 4,
+          "Ogerpon-Wellspring": 2,
+          "Tornadus": 4,
+          "Incineroar": 6,
+          "Amoonguss": 3,
+          "Urshifu-Rapid-Strike": 3,
+          "Flutter Mane": 3,
+          "Farigiraf": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Okidogi": 1,
+          "Cresselia": 1
+        }
+      },
+      "Ogerpon-Wellspring": {
+        "usage_count": 8,
+        "usage_pct": 50.0,
+        "moves": {
+          "Ivy Cudgel": 8,
+          "Wood Hammer": 3,
+          "Follow Me": 8,
+          "Spiky Shield": 8,
+          "Horn Leech": 5
+        },
+        "items": {
+          "Wellspring Mask": 8
+        },
+        "abilities": {
+          "Water Absorb": 8
+        },
+        "tera_types": {
+          "Water": 8
+        },
+        "teammates": {
+          "Gholdengo": 2,
+          "Porygon2": 2,
+          "Ursaluna": 2,
+          "Tornadus": 1,
+          "Incineroar": 4,
+          "Landorus": 3,
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Flutter Mane": 7,
+          "Arcanine-Hisui": 2,
+          "Raging Bolt": 4,
+          "Chien-Pao": 1,
+          "Okidogi": 1,
+          "Moltres-Galar": 1,
+          "Rillaboom": 1,
+          "Amoonguss": 2,
+          "Farigiraf": 1,
+          "Ursaluna-Bloodmoon": 1,
+          "Urshifu": 1,
+          "Landorus-Therian": 1,
+          "Heatran": 1
+        }
+      },
+      "Tornadus": {
+        "usage_count": 5,
+        "usage_pct": 31.25,
+        "moves": {
+          "Bleakwind Storm": 5,
+          "Rain Dance": 4,
+          "Tailwind": 5,
+          "Protect": 5,
+          "Sunny Day": 1
+        },
+        "items": {
+          "Rocky Helmet": 1,
+          "Sky Plate": 1,
+          "Covert Cloak": 2,
+          "Focus Sash": 1
+        },
+        "abilities": {
+          "Prankster": 5
+        },
+        "tera_types": {
+          "Steel": 4,
+          "Dragon": 1
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Porygon2": 3,
+          "Ursaluna": 4,
+          "Ogerpon-Wellspring": 1,
+          "Incineroar": 5,
+          "Amoonguss": 3,
+          "Urshifu-Rapid-Strike": 3,
+          "Flutter Mane": 2,
+          "Farigiraf": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Landorus": 1
+        }
+      },
+      "Incineroar": {
+        "usage_count": 11,
+        "usage_pct": 68.75,
+        "moves": {
+          "Fake Out": 11,
+          "Knock Off": 9,
+          "Flare Blitz": 11,
+          "Parting Shot": 7,
+          "U-turn": 4,
+          "Snarl": 2
+        },
+        "items": {
+          "Sitrus Berry": 3,
+          "Assault Vest": 4,
+          "Safety Goggles": 3,
+          "Rocky Helmet": 1
+        },
+        "abilities": {
+          "Intimidate": 11
+        },
+        "tera_types": {
+          "Grass": 7,
+          "Ghost": 2,
+          "Dragon": 1,
+          "Flying": 1
+        },
+        "teammates": {
+          "Gholdengo": 2,
+          "Porygon2": 4,
+          "Ursaluna": 6,
+          "Ogerpon-Wellspring": 4,
+          "Tornadus": 5,
+          "Amoonguss": 7,
+          "Urshifu-Rapid-Strike": 6,
+          "Flutter Mane": 7,
+          "Farigiraf": 2,
+          "Ogerpon-Hearthflame": 2,
+          "Rillaboom": 1,
+          "Raging Bolt": 2,
+          "Okidogi": 1,
+          "Landorus": 3,
+          "Ursaluna-Bloodmoon": 1,
+          "Cresselia": 1,
+          "Roaring Moon": 1
+        }
+      },
+      "Landorus": {
+        "usage_count": 5,
+        "usage_pct": 31.25,
+        "moves": {
+          "Protect": 5,
+          "Earth Power": 5,
+          "Sludge Bomb": 5,
+          "Sandsear Storm": 3,
+          "Substitute": 2
+        },
+        "items": {
+          "Life Orb": 5
+        },
+        "abilities": {
+          "Sheer Force": 5
+        },
+        "tera_types": {
+          "Poison": 2,
+          "Steel": 3
+        },
+        "teammates": {
+          "Gholdengo": 2,
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Ogerpon-Wellspring": 3,
+          "Flutter Mane": 4,
+          "Arcanine-Hisui": 1,
+          "Raging Bolt": 2,
+          "Chien-Pao": 1,
+          "Amoonguss": 3,
+          "Incineroar": 3,
+          "Tornadus": 1,
+          "Urshifu-Rapid-Strike": 2,
+          "Roaring Moon": 1
+        }
+      },
+      "Dragonite": {
+        "usage_count": 2,
+        "usage_pct": 12.5,
+        "moves": {
+          "Extreme Speed": 2,
+          "Dragon Claw": 1,
+          "Tera Blast": 1,
+          "Ice Spinner": 1,
+          "Scale Shot": 1,
+          "Iron Head": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Assault Vest": 1,
+          "Loaded Dice": 1
+        },
+        "abilities": {
+          "Multiscale": 1,
+          "Inner Focus": 1
+        },
+        "tera_types": {
+          "Flying": 1,
+          "Steel": 1
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Landorus": 1,
+          "Gouging Fire": 2,
+          "Ogerpon-Wellspring": 1,
+          "Flutter Mane": 1,
+          "Ting-Lu": 1,
+          "Chien-Pao": 1,
+          "Dondozo": 1,
+          "Corviknight": 1
+        }
+      },
+      "Gouging Fire": {
+        "usage_count": 2,
+        "usage_pct": 12.5,
+        "moves": {
+          "Breaking Swipe": 2,
+          "Heat Crash": 2,
+          "Howl": 2,
+          "Snarl": 1,
+          "Burning Bulwark": 1
+        },
+        "items": {
+          "Booster Energy": 2
+        },
+        "abilities": {
+          "Protosynthesis": 2
+        },
+        "tera_types": {
+          "Fairy": 2
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Landorus": 1,
+          "Dragonite": 2,
+          "Ogerpon-Wellspring": 1,
+          "Flutter Mane": 1,
+          "Ting-Lu": 1,
+          "Chien-Pao": 1,
+          "Dondozo": 1,
+          "Corviknight": 1
+        }
+      },
+      "Flutter Mane": {
+        "usage_count": 11,
+        "usage_pct": 68.75,
+        "moves": {
+          "Moonblast": 11,
+          "Taunt": 5,
+          "Thunder Wave": 5,
+          "Icy Wind": 7,
+          "Shadow Ball": 6,
+          "Dazzling Gleam": 5,
+          "Power Gem": 2,
+          "Protect": 2,
+          "Trick Room": 1
+        },
+        "items": {
+          "Sitrus Berry": 1,
+          "Booster Energy": 6,
+          "Choice Specs": 4
+        },
+        "abilities": {
+          "Protosynthesis": 11
+        },
+        "tera_types": {
+          "Grass": 3,
+          "Fairy": 7,
+          "Fire": 1
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Landorus": 4,
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Ogerpon-Wellspring": 7,
+          "Arcanine-Hisui": 2,
+          "Raging Bolt": 5,
+          "Chien-Pao": 1,
+          "Tornadus": 2,
+          "Incineroar": 7,
+          "Ursaluna": 3,
+          "Farigiraf": 2,
+          "Ogerpon-Hearthflame": 2,
+          "Rillaboom": 2,
+          "Urshifu-Rapid-Strike": 3,
+          "Okidogi": 1,
+          "Porygon2": 1,
+          "Moltres-Galar": 1,
+          "Amoonguss": 4,
+          "Ursaluna-Bloodmoon": 1,
+          "Cresselia": 1,
+          "Urshifu": 1,
+          "Landorus-Therian": 1,
+          "Heatran": 1
+        }
+      },
+      "Amoonguss": {
+        "usage_count": 7,
+        "usage_pct": 43.75,
+        "moves": {
+          "Spore": 7,
+          "Pollen Puff": 2,
+          "Rage Powder": 7,
+          "Protect": 6,
+          "Sludge Bomb": 5,
+          "Clear Smog": 1
+        },
+        "items": {
+          "Rocky Helmet": 4,
+          "Mental Herb": 2,
+          "Sitrus Berry": 1
+        },
+        "abilities": {
+          "Regenerator": 7
+        },
+        "tera_types": {
+          "Fairy": 4,
+          "Water": 2,
+          "Fire": 1
+        },
+        "teammates": {
+          "Urshifu-Rapid-Strike": 5,
+          "Tornadus": 3,
+          "Porygon2": 2,
+          "Ursaluna": 3,
+          "Incineroar": 7,
+          "Flutter Mane": 4,
+          "Raging Bolt": 1,
+          "Landorus": 3,
+          "Ogerpon-Wellspring": 2,
+          "Farigiraf": 1,
+          "Ursaluna-Bloodmoon": 1,
+          "Cresselia": 1,
+          "Roaring Moon": 1,
+          "Gholdengo": 1
+        }
+      },
+      "Urshifu-Rapid-Strike": {
+        "usage_count": 6,
+        "usage_pct": 37.5,
+        "moves": {
+          "Surging Strikes": 6,
+          "Close Combat": 6,
+          "Aqua Jet": 6,
+          "Detect": 5,
+          "U-turn": 1
+        },
+        "items": {
+          "Mystic Water": 5,
+          "Choice Scarf": 1
+        },
+        "abilities": {
+          "Unseen Fist": 6
+        },
+        "tera_types": {
+          "Steel": 3,
+          "Fire": 2,
+          "Water": 1
+        },
+        "teammates": {
+          "Amoonguss": 5,
+          "Tornadus": 3,
+          "Porygon2": 2,
+          "Ursaluna": 3,
+          "Incineroar": 6,
+          "Rillaboom": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Raging Bolt": 1,
+          "Flutter Mane": 3,
+          "Landorus": 2,
+          "Cresselia": 1,
+          "Roaring Moon": 1,
+          "Gholdengo": 1
+        }
+      },
+      "Arcanine-Hisui": {
+        "usage_count": 2,
+        "usage_pct": 12.5,
+        "moves": {
+          "Extreme Speed": 2,
+          "Head Smash": 2,
+          "Rock Slide": 2,
+          "Flare Blitz": 2
+        },
+        "items": {
+          "Choice Band": 2
+        },
+        "abilities": {
+          "Intimidate": 2
+        },
+        "tera_types": {
+          "Ghost": 1,
+          "Grass": 1
+        },
+        "teammates": {
+          "Flutter Mane": 2,
+          "Landorus": 1,
+          "Ogerpon-Wellspring": 2,
+          "Raging Bolt": 2,
+          "Chien-Pao": 1,
+          "Moltres-Galar": 1,
+          "Rillaboom": 1
+        }
+      },
+      "Raging Bolt": {
+        "usage_count": 5,
+        "usage_pct": 31.25,
+        "moves": {
+          "Snarl": 2,
+          "Thunderclap": 5,
+          "Electroweb": 2,
+          "Dragon Pulse": 3,
+          "Thunderbolt": 3,
+          "Draco Meteor": 2,
+          "Protect": 2,
+          "Calm Mind": 1
+        },
+        "items": {
+          "Assault Vest": 3,
+          "Life Orb": 1,
+          "Leftovers": 1
+        },
+        "abilities": {
+          "Protosynthesis": 5
+        },
+        "tera_types": {
+          "Fairy": 2,
+          "Electric": 2,
+          "Bug": 1
+        },
+        "teammates": {
+          "Arcanine-Hisui": 2,
+          "Flutter Mane": 5,
+          "Landorus": 2,
+          "Ogerpon-Wellspring": 4,
+          "Chien-Pao": 1,
+          "Incineroar": 2,
+          "Rillaboom": 2,
+          "Ogerpon-Hearthflame": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Moltres-Galar": 1,
+          "Amoonguss": 1,
+          "Urshifu": 1,
+          "Landorus-Therian": 1,
+          "Heatran": 1
+        }
+      },
+      "Chien-Pao": {
+        "usage_count": 2,
+        "usage_pct": 12.5,
+        "moves": {
+          "Protect": 2,
+          "Ice Spinner": 1,
+          "Sucker Punch": 2,
+          "Sacred Sword": 2,
+          "Icicle Crash": 1
+        },
+        "items": {
+          "Focus Sash": 2
+        },
+        "abilities": {
+          "Sword of Ruin": 2
+        },
+        "tera_types": {
+          "Stellar": 2
+        },
+        "teammates": {
+          "Arcanine-Hisui": 1,
+          "Flutter Mane": 1,
+          "Landorus": 1,
+          "Ogerpon-Wellspring": 1,
+          "Raging Bolt": 1,
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Ting-Lu": 1,
+          "Dondozo": 1,
+          "Corviknight": 1
+        }
+      },
+      "Farigiraf": {
+        "usage_count": 2,
+        "usage_pct": 12.5,
+        "moves": {
+          "Psyshock": 1,
+          "Dazzling Gleam": 1,
+          "Trick Room": 2,
+          "Helping Hand": 1,
+          "Psychic": 1,
+          "Hyper Voice": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Rocky Helmet": 1,
+          "Throat Spray": 1
+        },
+        "abilities": {
+          "Armor Tail": 2
+        },
+        "tera_types": {
+          "Fairy": 2
+        },
+        "teammates": {
+          "Tornadus": 1,
+          "Incineroar": 2,
+          "Flutter Mane": 2,
+          "Ursaluna": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Ursaluna-Bloodmoon": 1,
+          "Ogerpon-Wellspring": 1,
+          "Amoonguss": 1
+        }
+      },
+      "Ogerpon-Hearthflame": {
+        "usage_count": 2,
+        "usage_pct": 12.5,
+        "moves": {
+          "Ivy Cudgel": 2,
+          "Wood Hammer": 1,
+          "Follow Me": 1,
+          "Spiky Shield": 2,
+          "Grassy Glide": 1,
+          "Swords Dance": 1
+        },
+        "items": {
+          "Hearthflame Mask": 2
+        },
+        "abilities": {
+          "Mold Breaker": 2
+        },
+        "tera_types": {
+          "Fire": 2
+        },
+        "teammates": {
+          "Tornadus": 1,
+          "Incineroar": 2,
+          "Flutter Mane": 2,
+          "Ursaluna": 1,
+          "Farigiraf": 1,
+          "Rillaboom": 1,
+          "Raging Bolt": 1,
+          "Urshifu-Rapid-Strike": 1
+        }
+      },
+      "Rillaboom": {
+        "usage_count": 2,
+        "usage_pct": 12.5,
+        "moves": {
+          "Wood Hammer": 2,
+          "Grassy Glide": 2,
+          "High Horsepower": 2,
+          "Fake Out": 2
+        },
+        "items": {
+          "Assault Vest": 1,
+          "Clear Amulet": 1
+        },
+        "abilities": {
+          "Grassy Surge": 2
+        },
+        "tera_types": {
+          "Fire": 1,
+          "Ground": 1
+        },
+        "teammates": {
+          "Incineroar": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Raging Bolt": 2,
+          "Urshifu-Rapid-Strike": 1,
+          "Flutter Mane": 2,
+          "Moltres-Galar": 1,
+          "Arcanine-Hisui": 1,
+          "Ogerpon-Wellspring": 1
+        }
+      },
+      "Okidogi": {
+        "usage_count": 1,
+        "usage_pct": 6.25,
+        "moves": {
+          "Poison Jab": 1,
+          "Ice Punch": 1,
+          "Drain Punch": 1,
+          "Knock Off": 1
+        },
+        "items": {
+          "Assault Vest": 1
+        },
+        "abilities": {
+          "Guard Dog": 1
+        },
+        "tera_types": {
+          "Ghost": 1
+        },
+        "teammates": {
+          "Ursaluna": 1,
+          "Incineroar": 1,
+          "Porygon2": 1,
+          "Flutter Mane": 1,
+          "Ogerpon-Wellspring": 1
+        }
+      },
+      "Moltres-Galar": {
+        "usage_count": 1,
+        "usage_pct": 6.25,
+        "moves": {
+          "Fiery Wrath": 1,
+          "Air Slash": 1,
+          "Snarl": 1,
+          "Tera Blast": 1
+        },
+        "items": {
+          "Choice Specs": 1
+        },
+        "abilities": {
+          "Berserk": 1
+        },
+        "tera_types": {
+          "Steel": 1
+        },
+        "teammates": {
+          "Rillaboom": 1,
+          "Arcanine-Hisui": 1,
+          "Ogerpon-Wellspring": 1,
+          "Raging Bolt": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Ursaluna-Bloodmoon": {
+        "usage_count": 1,
+        "usage_pct": 6.25,
+        "moves": {
+          "Hyper Voice": 1,
+          "Earth Power": 1,
+          "Vacuum Wave": 1,
+          "Blood Moon": 1
+        },
+        "items": {
+          "Assault Vest": 1
+        },
+        "abilities": {
+          "Mind’s Eye": 1
+        },
+        "tera_types": {
+          "Normal": 1
+        },
+        "teammates": {
+          "Farigiraf": 1,
+          "Flutter Mane": 1,
+          "Ogerpon-Wellspring": 1,
+          "Amoonguss": 1,
+          "Incineroar": 1
+        }
+      },
+      "Ting-Lu": {
+        "usage_count": 1,
+        "usage_pct": 6.25,
+        "moves": {
+          "Sand Tomb": 1,
+          "Taunt": 1,
+          "Ruination": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Rocky Helmet": 1
+        },
+        "abilities": {
+          "Vessel of Ruin": 1
+        },
+        "tera_types": {
+          "Poison": 1
+        },
+        "teammates": {
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Chien-Pao": 1,
+          "Dondozo": 1,
+          "Corviknight": 1
+        }
+      },
+      "Dondozo": {
+        "usage_count": 1,
+        "usage_pct": 6.25,
+        "moves": {
+          "Protect": 1,
+          "Wave Crash": 1,
+          "Fissure": 1,
+          "Yawn": 1
+        },
+        "items": {
+          "Leftovers": 1
+        },
+        "abilities": {
+          "Oblivious": 1
+        },
+        "tera_types": {
+          "Grass": 1
+        },
+        "teammates": {
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Ting-Lu": 1,
+          "Chien-Pao": 1,
+          "Corviknight": 1
+        }
+      },
+      "Corviknight": {
+        "usage_count": 1,
+        "usage_pct": 6.25,
+        "moves": {
+          "Brave Bird": 1,
+          "Bulk Up": 1,
+          "Roost": 1,
+          "Iron Head": 1
+        },
+        "items": {
+          "Sitrus Berry": 1
+        },
+        "abilities": {
+          "Mirror Armor": 1
+        },
+        "tera_types": {
+          "Fairy": 1
+        },
+        "teammates": {
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Ting-Lu": 1,
+          "Chien-Pao": 1,
+          "Dondozo": 1
+        }
+      },
+      "Cresselia": {
+        "usage_count": 1,
+        "usage_pct": 6.25,
+        "moves": {
+          "Psychic": 1,
+          "Lunar Blessing": 1,
+          "Icy Wind": 1,
+          "Trick Room": 1
+        },
+        "items": {
+          "Safety Goggles": 1
+        },
+        "abilities": {
+          "Levitate": 1
+        },
+        "tera_types": {
+          "Steel": 1
+        },
+        "teammates": {
+          "Urshifu-Rapid-Strike": 1,
+          "Ursaluna": 1,
+          "Amoonguss": 1,
+          "Incineroar": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Urshifu": {
+        "usage_count": 1,
+        "usage_pct": 6.25,
+        "moves": {
+          "Wicked Blow": 1,
+          "Sucker Punch": 1,
+          "Close Combat": 1,
+          "Detect": 1
+        },
+        "items": {
+          "Focus Sash": 1
+        },
+        "abilities": {
+          "Unseen Fist": 1
+        },
+        "tera_types": {
+          "Dark": 1
+        },
+        "teammates": {
+          "Ogerpon-Wellspring": 1,
+          "Landorus-Therian": 1,
+          "Flutter Mane": 1,
+          "Raging Bolt": 1,
+          "Heatran": 1
+        }
+      },
+      "Landorus-Therian": {
+        "usage_count": 1,
+        "usage_pct": 6.25,
+        "moves": {
+          "Stomping Tantrum": 1,
+          "Tera Blast": 1,
+          "Rock Slide": 1,
+          "U-turn": 1
+        },
+        "items": {
+          "Choice Band": 1
+        },
+        "abilities": {
+          "Intimidate": 1
+        },
+        "tera_types": {
+          "Flying": 1
+        },
+        "teammates": {
+          "Urshifu": 1,
+          "Ogerpon-Wellspring": 1,
+          "Flutter Mane": 1,
+          "Raging Bolt": 1,
+          "Heatran": 1
+        }
+      },
+      "Heatran": {
+        "usage_count": 1,
+        "usage_pct": 6.25,
+        "moves": {
+          "Magma Storm": 1,
+          "Heavy Slam": 1,
+          "Earth Power": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Safety Goggles": 1
+        },
+        "abilities": {
+          "Flash Fire": 1
+        },
+        "tera_types": {
+          "Bug": 1
+        },
+        "teammates": {
+          "Urshifu": 1,
+          "Ogerpon-Wellspring": 1,
+          "Landorus-Therian": 1,
+          "Flutter Mane": 1,
+          "Raging Bolt": 1
+        }
+      },
+      "Roaring Moon": {
+        "usage_count": 1,
+        "usage_pct": 6.25,
+        "moves": {
+          "Knock Off": 1,
+          "Breaking Swipe": 1,
+          "Tailwind": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Booster Energy": 1
+        },
+        "abilities": {
+          "Protosynthesis": 1
+        },
+        "tera_types": {
+          "Poison": 1
+        },
+        "teammates": {
+          "Landorus": 1,
+          "Amoonguss": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Incineroar": 1,
+          "Gholdengo": 1
+        }
+      }
+    }
+  },
+  "top8": {
+    "total_teams": 8,
+    "pokemon": {
+      "Gholdengo": {
+        "usage_count": 2,
+        "usage_pct": 25.0,
+        "moves": {
+          "Shadow Ball": 2,
+          "Make It Rain": 2,
+          "Nasty Plot": 2,
+          "Protect": 2
+        },
+        "items": {
+          "Metal Coat": 2
+        },
+        "abilities": {
+          "Good as Gold": 2
+        },
+        "tera_types": {
+          "Fairy": 1,
+          "Dragon": 1
+        },
+        "teammates": {
+          "Porygon2": 1,
+          "Ursaluna": 1,
+          "Ogerpon-Wellspring": 2,
+          "Tornadus": 1,
+          "Incineroar": 1,
+          "Landorus": 1,
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Porygon2": {
+        "usage_count": 4,
+        "usage_pct": 50.0,
+        "moves": {
+          "Tera Blast": 4,
+          "Ice Beam": 4,
+          "Recover": 4,
+          "Trick Room": 4
+        },
+        "items": {
+          "Eviolite": 4
+        },
+        "abilities": {
+          "Download": 4
+        },
+        "tera_types": {
+          "Flying": 4
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Ursaluna": 4,
+          "Ogerpon-Wellspring": 2,
+          "Tornadus": 3,
+          "Incineroar": 4,
+          "Amoonguss": 2,
+          "Urshifu-Rapid-Strike": 2,
+          "Okidogi": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Ursaluna": {
+        "usage_count": 5,
+        "usage_pct": 62.5,
+        "moves": {
+          "Facade": 5,
+          "Earthquake": 5,
+          "Headlong Rush": 5,
+          "Protect": 5
+        },
+        "items": {
+          "Flame Orb": 5
+        },
+        "abilities": {
+          "Guts": 5
+        },
+        "tera_types": {
+          "Ghost": 4,
+          "Dragon": 1
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Porygon2": 4,
+          "Ogerpon-Wellspring": 2,
+          "Tornadus": 4,
+          "Incineroar": 5,
+          "Amoonguss": 2,
+          "Urshifu-Rapid-Strike": 2,
+          "Flutter Mane": 2,
+          "Farigiraf": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Okidogi": 1
+        }
+      },
+      "Ogerpon-Wellspring": {
+        "usage_count": 4,
+        "usage_pct": 50.0,
+        "moves": {
+          "Ivy Cudgel": 4,
+          "Wood Hammer": 2,
+          "Follow Me": 4,
+          "Spiky Shield": 4,
+          "Horn Leech": 2
+        },
+        "items": {
+          "Wellspring Mask": 4
+        },
+        "abilities": {
+          "Water Absorb": 4
+        },
+        "tera_types": {
+          "Water": 4
+        },
+        "teammates": {
+          "Gholdengo": 2,
+          "Porygon2": 2,
+          "Ursaluna": 2,
+          "Tornadus": 1,
+          "Incineroar": 2,
+          "Landorus": 2,
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Flutter Mane": 3,
+          "Arcanine-Hisui": 1,
+          "Raging Bolt": 1,
+          "Chien-Pao": 1,
+          "Okidogi": 1
+        }
+      },
+      "Tornadus": {
+        "usage_count": 4,
+        "usage_pct": 50.0,
+        "moves": {
+          "Bleakwind Storm": 4,
+          "Rain Dance": 3,
+          "Tailwind": 4,
+          "Protect": 4,
+          "Sunny Day": 1
+        },
+        "items": {
+          "Rocky Helmet": 1,
+          "Sky Plate": 1,
+          "Covert Cloak": 2
+        },
+        "abilities": {
+          "Prankster": 4
+        },
+        "tera_types": {
+          "Steel": 4
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Porygon2": 3,
+          "Ursaluna": 4,
+          "Ogerpon-Wellspring": 1,
+          "Incineroar": 4,
+          "Amoonguss": 2,
+          "Urshifu-Rapid-Strike": 2,
+          "Flutter Mane": 1,
+          "Farigiraf": 1,
+          "Ogerpon-Hearthflame": 1
+        }
+      },
+      "Incineroar": {
+        "usage_count": 6,
+        "usage_pct": 75.0,
+        "moves": {
+          "Fake Out": 6,
+          "Knock Off": 5,
+          "Flare Blitz": 6,
+          "Parting Shot": 3,
+          "U-turn": 3,
+          "Snarl": 1
+        },
+        "items": {
+          "Sitrus Berry": 1,
+          "Assault Vest": 3,
+          "Safety Goggles": 2
+        },
+        "abilities": {
+          "Intimidate": 6
+        },
+        "tera_types": {
+          "Grass": 4,
+          "Ghost": 1,
+          "Dragon": 1
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Porygon2": 4,
+          "Ursaluna": 5,
+          "Ogerpon-Wellspring": 2,
+          "Tornadus": 4,
+          "Amoonguss": 2,
+          "Urshifu-Rapid-Strike": 3,
+          "Flutter Mane": 3,
+          "Farigiraf": 1,
+          "Ogerpon-Hearthflame": 2,
+          "Rillaboom": 1,
+          "Raging Bolt": 1,
+          "Okidogi": 1
+        }
+      },
+      "Landorus": {
+        "usage_count": 2,
+        "usage_pct": 25.0,
+        "moves": {
+          "Protect": 2,
+          "Earth Power": 2,
+          "Sludge Bomb": 2,
+          "Sandsear Storm": 2
+        },
+        "items": {
+          "Life Orb": 2
+        },
+        "abilities": {
+          "Sheer Force": 2
+        },
+        "tera_types": {
+          "Poison": 2
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Ogerpon-Wellspring": 2,
+          "Flutter Mane": 2,
+          "Arcanine-Hisui": 1,
+          "Raging Bolt": 1,
+          "Chien-Pao": 1
+        }
+      },
+      "Dragonite": {
+        "usage_count": 1,
+        "usage_pct": 12.5,
+        "moves": {
+          "Extreme Speed": 1,
+          "Dragon Claw": 1,
+          "Tera Blast": 1,
+          "Ice Spinner": 1
+        },
+        "items": {
+          "Assault Vest": 1
+        },
+        "abilities": {
+          "Multiscale": 1
+        },
+        "tera_types": {
+          "Flying": 1
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Landorus": 1,
+          "Gouging Fire": 1,
+          "Ogerpon-Wellspring": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Gouging Fire": {
+        "usage_count": 1,
+        "usage_pct": 12.5,
+        "moves": {
+          "Breaking Swipe": 1,
+          "Heat Crash": 1,
+          "Howl": 1,
+          "Snarl": 1
+        },
+        "items": {
+          "Booster Energy": 1
+        },
+        "abilities": {
+          "Protosynthesis": 1
+        },
+        "tera_types": {
+          "Fairy": 1
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Landorus": 1,
+          "Dragonite": 1,
+          "Ogerpon-Wellspring": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Flutter Mane": {
+        "usage_count": 5,
+        "usage_pct": 62.5,
+        "moves": {
+          "Moonblast": 5,
+          "Taunt": 3,
+          "Thunder Wave": 3,
+          "Icy Wind": 4,
+          "Shadow Ball": 2,
+          "Dazzling Gleam": 1,
+          "Power Gem": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Sitrus Berry": 1,
+          "Booster Energy": 3,
+          "Choice Specs": 1
+        },
+        "abilities": {
+          "Protosynthesis": 5
+        },
+        "tera_types": {
+          "Grass": 2,
+          "Fairy": 3
+        },
+        "teammates": {
+          "Gholdengo": 1,
+          "Landorus": 2,
+          "Dragonite": 1,
+          "Gouging Fire": 1,
+          "Ogerpon-Wellspring": 3,
+          "Arcanine-Hisui": 1,
+          "Raging Bolt": 2,
+          "Chien-Pao": 1,
+          "Tornadus": 1,
+          "Incineroar": 3,
+          "Ursaluna": 2,
+          "Farigiraf": 1,
+          "Ogerpon-Hearthflame": 2,
+          "Rillaboom": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Okidogi": 1,
+          "Porygon2": 1
+        }
+      },
+      "Amoonguss": {
+        "usage_count": 2,
+        "usage_pct": 25.0,
+        "moves": {
+          "Spore": 2,
+          "Pollen Puff": 1,
+          "Rage Powder": 2,
+          "Protect": 2,
+          "Sludge Bomb": 1
+        },
+        "items": {
+          "Rocky Helmet": 1,
+          "Mental Herb": 1
+        },
+        "abilities": {
+          "Regenerator": 2
+        },
+        "tera_types": {
+          "Fairy": 2
+        },
+        "teammates": {
+          "Urshifu-Rapid-Strike": 2,
+          "Tornadus": 2,
+          "Porygon2": 2,
+          "Ursaluna": 2,
+          "Incineroar": 2
+        }
+      },
+      "Urshifu-Rapid-Strike": {
+        "usage_count": 3,
+        "usage_pct": 37.5,
+        "moves": {
+          "Surging Strikes": 3,
+          "Close Combat": 3,
+          "Aqua Jet": 3,
+          "Detect": 3
+        },
+        "items": {
+          "Mystic Water": 3
+        },
+        "abilities": {
+          "Unseen Fist": 3
+        },
+        "tera_types": {
+          "Steel": 2,
+          "Fire": 1
+        },
+        "teammates": {
+          "Amoonguss": 2,
+          "Tornadus": 2,
+          "Porygon2": 2,
+          "Ursaluna": 2,
+          "Incineroar": 3,
+          "Rillaboom": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Raging Bolt": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Arcanine-Hisui": {
+        "usage_count": 1,
+        "usage_pct": 12.5,
+        "moves": {
+          "Extreme Speed": 1,
+          "Head Smash": 1,
+          "Rock Slide": 1,
+          "Flare Blitz": 1
+        },
+        "items": {
+          "Choice Band": 1
+        },
+        "abilities": {
+          "Intimidate": 1
+        },
+        "tera_types": {
+          "Ghost": 1
+        },
+        "teammates": {
+          "Flutter Mane": 1,
+          "Landorus": 1,
+          "Ogerpon-Wellspring": 1,
+          "Raging Bolt": 1,
+          "Chien-Pao": 1
+        }
+      },
+      "Raging Bolt": {
+        "usage_count": 2,
+        "usage_pct": 25.0,
+        "moves": {
+          "Snarl": 1,
+          "Thunderclap": 2,
+          "Electroweb": 1,
+          "Dragon Pulse": 1,
+          "Thunderbolt": 1,
+          "Draco Meteor": 1,
+          "Protect": 1
+        },
+        "items": {
+          "Assault Vest": 1,
+          "Life Orb": 1
+        },
+        "abilities": {
+          "Protosynthesis": 2
+        },
+        "tera_types": {
+          "Fairy": 1,
+          "Electric": 1
+        },
+        "teammates": {
+          "Arcanine-Hisui": 1,
+          "Flutter Mane": 2,
+          "Landorus": 1,
+          "Ogerpon-Wellspring": 1,
+          "Chien-Pao": 1,
+          "Incineroar": 1,
+          "Rillaboom": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Urshifu-Rapid-Strike": 1
+        }
+      },
+      "Chien-Pao": {
+        "usage_count": 1,
+        "usage_pct": 12.5,
+        "moves": {
+          "Protect": 1,
+          "Ice Spinner": 1,
+          "Sucker Punch": 1,
+          "Sacred Sword": 1
+        },
+        "items": {
+          "Focus Sash": 1
+        },
+        "abilities": {
+          "Sword of Ruin": 1
+        },
+        "tera_types": {
+          "Stellar": 1
+        },
+        "teammates": {
+          "Arcanine-Hisui": 1,
+          "Flutter Mane": 1,
+          "Landorus": 1,
+          "Ogerpon-Wellspring": 1,
+          "Raging Bolt": 1
+        }
+      },
+      "Farigiraf": {
+        "usage_count": 1,
+        "usage_pct": 12.5,
+        "moves": {
+          "Psyshock": 1,
+          "Dazzling Gleam": 1,
+          "Trick Room": 1,
+          "Helping Hand": 1
+        },
+        "items": {
+          "Rocky Helmet": 1
+        },
+        "abilities": {
+          "Armor Tail": 1
+        },
+        "tera_types": {
+          "Fairy": 1
+        },
+        "teammates": {
+          "Tornadus": 1,
+          "Incineroar": 1,
+          "Flutter Mane": 1,
+          "Ursaluna": 1,
+          "Ogerpon-Hearthflame": 1
+        }
+      },
+      "Ogerpon-Hearthflame": {
+        "usage_count": 2,
+        "usage_pct": 25.0,
+        "moves": {
+          "Ivy Cudgel": 2,
+          "Wood Hammer": 1,
+          "Follow Me": 1,
+          "Spiky Shield": 2,
+          "Grassy Glide": 1,
+          "Swords Dance": 1
+        },
+        "items": {
+          "Hearthflame Mask": 2
+        },
+        "abilities": {
+          "Mold Breaker": 2
+        },
+        "tera_types": {
+          "Fire": 2
+        },
+        "teammates": {
+          "Tornadus": 1,
+          "Incineroar": 2,
+          "Flutter Mane": 2,
+          "Ursaluna": 1,
+          "Farigiraf": 1,
+          "Rillaboom": 1,
+          "Raging Bolt": 1,
+          "Urshifu-Rapid-Strike": 1
+        }
+      },
+      "Rillaboom": {
+        "usage_count": 1,
+        "usage_pct": 12.5,
+        "moves": {
+          "Wood Hammer": 1,
+          "Grassy Glide": 1,
+          "High Horsepower": 1,
+          "Fake Out": 1
+        },
+        "items": {
+          "Assault Vest": 1
+        },
+        "abilities": {
+          "Grassy Surge": 1
+        },
+        "tera_types": {
+          "Fire": 1
+        },
+        "teammates": {
+          "Incineroar": 1,
+          "Ogerpon-Hearthflame": 1,
+          "Raging Bolt": 1,
+          "Urshifu-Rapid-Strike": 1,
+          "Flutter Mane": 1
+        }
+      },
+      "Okidogi": {
+        "usage_count": 1,
+        "usage_pct": 12.5,
+        "moves": {
+          "Poison Jab": 1,
+          "Ice Punch": 1,
+          "Drain Punch": 1,
+          "Knock Off": 1
+        },
+        "items": {
+          "Assault Vest": 1
+        },
+        "abilities": {
+          "Guard Dog": 1
+        },
+        "tera_types": {
+          "Ghost": 1
+        },
+        "teammates": {
+          "Ursaluna": 1,
+          "Incineroar": 1,
+          "Porygon2": 1,
+          "Flutter Mane": 1,
+          "Ogerpon-Wellspring": 1
+        }
+      }
+    }
+  }
+}

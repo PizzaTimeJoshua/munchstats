@@ -1,0 +1,13 @@
+{
+  "id": "MK02mx9kmM49UZ5g4JxH",
+  "name": "2026 Milwaukee Pokémon VGC Regional Championships",
+  "date": "2025-10-10",
+  "location": "2026 Milwaukee Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 708,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 64,
+  "teams_scraped": 708,
+  "scraped_at": "2026-05-30T13:15:16.400494Z",
+  "day2_source": "pairings"
+}

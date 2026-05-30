@@ -1,0 +1,13 @@
+{
+  "id": "CU02wOcwtjVNH6QdhfNE",
+  "name": "2026 Curitiba Pokémon VGC Regional Championships",
+  "date": "2026-03-14",
+  "location": "2026 Curitiba Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 179,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 26,
+  "teams_scraped": 179,
+  "scraped_at": "2026-05-30T09:10:04.654905Z",
+  "day2_source": "pairings"
+}

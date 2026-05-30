@@ -1,0 +1,13 @@
+{
+  "id": "LA0226md2zDgZtmvexIY",
+  "name": "2026 Latin America Pokémon VGC International Championships",
+  "date": "2025-11-21",
+  "location": "2026 Latin America Pokémon International Championships",
+  "type": "International",
+  "total_players": 517,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 47,
+  "teams_scraped": 517,
+  "scraped_at": "2026-05-30T11:50:55.092664Z",
+  "day2_source": "pairings"
+}

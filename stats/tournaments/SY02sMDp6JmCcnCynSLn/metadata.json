@@ -1,0 +1,13 @@
+{
+  "id": "SY02sMDp6JmCcnCynSLn",
+  "name": "2026 Sydney Pokémon VGC Regional Championships",
+  "date": "2026-02-07",
+  "location": "2026 Sydney Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 277,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 25,
+  "teams_scraped": 277,
+  "scraped_at": "2026-05-30T10:29:18.788173Z",
+  "day2_source": "pairings"
+}

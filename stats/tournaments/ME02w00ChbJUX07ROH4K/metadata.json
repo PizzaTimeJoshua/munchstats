@@ -1,0 +1,13 @@
+{
+  "id": "ME02w00ChbJUX07ROH4K",
+  "name": "2026 Mérida Pokémon VGC Regional Championships",
+  "date": "2026-01-24",
+  "location": "2026 Mérida Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 234,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 34,
+  "teams_scraped": 234,
+  "scraped_at": "2026-05-30T10:55:53.834494Z",
+  "day2_source": "pairings"
+}

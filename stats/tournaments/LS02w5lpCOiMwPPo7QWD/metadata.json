@@ -1,0 +1,13 @@
+{
+  "id": "LS02w5lpCOiMwPPo7QWD",
+  "name": "2026 Los Angeles Pokémon VGC Regional Championships",
+  "date": "2026-05-08",
+  "location": "2026 Los Angeles Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 538,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 49,
+  "teams_scraped": 538,
+  "scraped_at": "2026-05-30T07:46:16.084982Z",
+  "day2_source": "pairings"
+}

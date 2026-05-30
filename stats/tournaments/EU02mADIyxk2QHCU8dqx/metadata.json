@@ -1,0 +1,13 @@
+{
+  "id": "EU02mADIyxk2QHCU8dqx",
+  "name": "2026 Europe Pokémon VGC International Championships",
+  "date": "2026-02-13",
+  "location": "2026 Europe Pokémon International Championships",
+  "type": "International",
+  "total_players": 1455,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 131,
+  "teams_scraped": 1455,
+  "scraped_at": "2026-05-30T10:14:44.525227Z",
+  "day2_source": "pairings"
+}

@@ -141,11 +141,21 @@ $(document).ready(function() {
         replays.forEach(function(replay) {
             var bo3 = replay[9].includes("Bo3");
 
-            // Build sprite HTML inline
+            // Build sprite HTML inline (dim Pokemon not brought to battle)
+            var p1Brought = replay[10] ? replay[10][0] : [];
+            var p2Brought = replay[10] ? replay[10][1] : [];
+            var winnerIdx = replay[11] || 0;
+
             var p1Sprites = '';
-            replay[4][0].forEach(function(idx) { p1Sprites += spriteHTML(idx); });
+            replay[4][0].forEach(function(idx, i) {
+                var brought = p1Brought.length === 0 || p1Brought[i] !== false;
+                p1Sprites += spriteHTML(idx, brought);
+            });
             var p2Sprites = '';
-            replay[4][1].forEach(function(idx) { p2Sprites += spriteHTML(idx); });
+            replay[4][1].forEach(function(idx, i) {
+                var brought = p2Brought.length === 0 || p2Brought[i] !== false;
+                p2Sprites += spriteHTML(idx, brought);
+            });
 
             var li_item = '<li>';
             var gamesClass = hasBo3 ? ' has-games' : '';
@@ -161,8 +171,9 @@ $(document).ready(function() {
             li_item += '<div class="grid-item">' + replay[1] + '</div>';
 
             // Col 2: Player 1
+            var p1Win = winnerIdx === 1;
             li_item += '<div class="grid-item player-cell">';
-            li_item += '<div class="player-name">' + replay[3][0] + '</div>';
+            li_item += '<div class="player-name">' + replay[3][0] + (p1Win ? '<span class="winner-badge">W</span>' : '') + '</div>';
             li_item += '<div class="sprite-container">' + p1Sprites + '</div>';
             if (showUsageScore) {
                 li_item += '<div class="usage-score">Usage: ' + parseFloat(replay[7][0]).toFixed(2) + '</div>';
@@ -170,8 +181,9 @@ $(document).ready(function() {
             li_item += '</div>';
 
             // Col 3: Player 2
+            var p2Win = winnerIdx === 2;
             li_item += '<div class="grid-item player-cell">';
-            li_item += '<div class="player-name">' + replay[3][1] + '</div>';
+            li_item += '<div class="player-name">' + replay[3][1] + (p2Win ? '<span class="winner-badge">W</span>' : '') + '</div>';
             li_item += '<div class="sprite-container">' + p2Sprites + '</div>';
             if (showUsageScore) {
                 li_item += '<div class="usage-score">Usage: ' + parseFloat(replay[7][1]).toFixed(2) + '</div>';
@@ -216,10 +228,11 @@ $(document).ready(function() {
         });
     }
 
-    function spriteHTML(index) {
+    function spriteHTML(index, brought) {
         var columnIndex = index % 12;
         var rowIndex = Math.floor(index / 12);
-        return '<div class="sprite" style="background-position: -' + (columnIndex * 40) + 'px -' + (rowIndex * 30) + 'px"></div>';
+        var cls = 'sprite' + (brought === false ? ' sprite-benched' : '');
+        return '<div class="' + cls + '" style="background-position: -' + (columnIndex * 40) + 'px -' + (rowIndex * 30) + 'px"></div>';
     }
 
     function loadTeamRankings() {

@@ -29,7 +29,7 @@
     border: 1px solid #555;
     padding: 10px 14px;
     margin: 4px 0;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 13px;
     transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
     width: 100%;
@@ -51,7 +51,7 @@
     border: none;
     padding: 10px 18px;
     margin: 4px 0;
-    border-radius: 8px;
+    border-radius: 0;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -112,7 +112,7 @@
     width: 300px;
     background-color: #222222;
     border: 1px solid #555;
-    border-radius: 16px;
+    border-radius: 0;
     padding: 20px;
     position: sticky;
     top: 20px;
@@ -124,7 +124,7 @@
     align-items: center;
     padding: 6px 8px;
     margin: 2px 0;
-    border-radius: 6px;
+    border-radius: 0;
     font-size: 13px;
     cursor: pointer;
     transition: background-color 0.15s;
@@ -138,10 +138,12 @@
     background-image: url("{{ url_for('static', filename='pokemonicons-sheet.png') }}");
     background-size: 480px auto;
   }
+  .sprite-benched { opacity: 0.25; }
   .sprite-container {
     display: flex;
     gap: 0px;
     overflow-x: auto;
+    min-width: 240px;
   }
   ul { list-style-type: none; padding: 0; margin: 0; width: 100%; }
   ul li { margin-bottom: 4px; }
@@ -158,6 +160,18 @@
     text-overflow: ellipsis;
     white-space: nowrap;
   }
+  .winner-badge {
+    display: inline-block;
+    background: #4caf50;
+    color: #fff;
+    font-size: 9px;
+    font-weight: 700;
+    padding: 1px 4px;
+    margin-left: 6px;
+    border-radius: 0;
+    vertical-align: middle;
+    line-height: 14px;
+  }
   .usage-score {
     font-size: 11px;
     color: #888;
@@ -166,7 +180,7 @@
   /* Replay table header */
   .replay-table-header {
     display: grid;
-    grid-template-columns: 65px minmax(0, 260px) minmax(0, 260px) 70px 85px;
+    grid-template-columns: 65px minmax(270px, 300px) minmax(270px, 300px) 70px 85px;
     font-size: 12px;
     font-weight: 600;
     color: #888;
@@ -182,7 +196,7 @@
     padding: 0 1px;
   }
   .replay-table-header.has-games {
-    grid-template-columns: 65px minmax(0, 260px) minmax(0, 260px) 70px 85px 180px;
+    grid-template-columns: 65px minmax(270px, 300px) minmax(270px, 300px) 70px 85px 240px;
   }
   .replay-table-header > div {
     padding: 6px 10px;
@@ -193,11 +207,11 @@
   .team-container {
     background-color: #222222;
     border: 1px solid #555;
-    border-radius: 8px;
+    border-radius: 0;
     padding: 0;
     margin: 0;
     display: grid;
-    grid-template-columns: 65px minmax(0, 260px) minmax(0, 260px) 70px 85px;
+    grid-template-columns: 65px minmax(270px, 300px) minmax(270px, 300px) 70px 85px;
     align-items: center;
     text-align: left;
     line-height: 24px;
@@ -206,7 +220,7 @@
     transition: border-color 0.2s, box-shadow 0.2s, transform 0.15s;
   }
   .team-container.has-games {
-    grid-template-columns: 65px minmax(0, 260px) minmax(0, 260px) 70px 85px 180px;
+    grid-template-columns: 65px minmax(270px, 300px) minmax(270px, 300px) 70px 85px 240px;
   }
   .team-container > *:not(:first-child) {
     border-left: 1px solid #333;
@@ -220,13 +234,23 @@
     width: 100%;
     cursor: pointer;
     color: #e0e0e0;
+    background-color: #222222;
     text-align: left;
+  }
+  button.team-container:hover {
+    background-color: #222222;
+    box-shadow: 0 4px 20px rgba(255, 213, 79, 0.15);
+  }
+  button.team-container:active {
+    background-color: #2a2a2a;
+    transform: none;
+    box-shadow: 0 4px 20px rgba(255, 213, 79, 0.15);
   }
   .noHover { pointer-events: none; }
 
   fieldset {
     border: 1px solid #555;
-    border-radius: 10px;
+    border-radius: 0;
     font-size: 12px;
     margin: 8px 0;
     padding: 10px 12px;
@@ -251,7 +275,7 @@
     border: 1px solid #666;
     padding: 4px 10px;
     margin: 2px;
-    border-radius: 6px;
+    border-radius: 0;
     font-size: 12px;
     cursor: pointer;
     transition: background-color 0.2s;
@@ -274,7 +298,7 @@
   .replay-modal {
     background: #1e1e1e;
     border: 1px solid #555;
-    border-radius: 12px;
+    border-radius: 0;
     width: 95%;
     max-width: 1200px;
     height: 90vh;
@@ -312,7 +336,7 @@
     font-size: 20px;
     width: 32px;
     height: 32px;
-    border-radius: 6px;
+    border-radius: 0;
     cursor: pointer;
     display: flex;
     align-items: center;
@@ -334,7 +358,7 @@
     border: 1px solid #555;
     padding: 4px 12px;
     margin: 0;
-    border-radius: 6px;
+    border-radius: 0;
     font-size: 12px;
     cursor: pointer;
     transition: background-color 0.2s, border-color 0.2s;
@@ -366,7 +390,7 @@
     border: 1px solid #555;
     border-bottom: none;
     padding: 8px 20px;
-    border-radius: 8px 8px 0 0;
+    border-radius: 0;
     font-size: 14px;
     font-weight: 500;
     cursor: pointer;
@@ -387,7 +411,7 @@
   .team-rank-card {
     background: #222222;
     border: 1px solid #555;
-    border-radius: 12px;
+    border-radius: 0;
     margin-bottom: 12px;
     overflow: hidden;
     transition: border-color 0.2s, box-shadow 0.2s;
@@ -483,34 +507,86 @@
   .team-rank-names span::after { content: " /"; color: #555; }
   .team-rank-names span:last-child::after { content: ""; }
 
-  /* Mobile: stack sidebar above content */
+  /* Tablet: stack sidebar, flex table columns */
   @media (max-width: 800px) {
     .replay-container {
       grid-template-columns: 1fr;
+      grid-gap: 15px;
       padding: 0 8px;
     }
     .left {
       width: 100%;
       position: static;
-      border-radius: 10px;
+      border-radius: 0;
       padding: 14px;
     }
     .right {
-      overflow-x: auto;
+      overflow-x: hidden;
     }
     ul li {
-      min-width: 700px;
+      min-width: 0;
     }
+    /* Flex table columns to fit without overflow */
+    .replay-table-header,
+    .team-container {
+      grid-template-columns: 55px minmax(0, 1fr) minmax(0, 1fr) 50px 75px;
+      font-size: 13px;
+    }
+    .replay-table-header.has-games,
+    .team-container.has-games {
+      grid-template-columns: 55px minmax(0, 1fr) minmax(0, 1fr) 50px 75px auto;
+    }
+    .grid-item { padding: 4px 6px; }
+    /* Game buttons: stack vertically to save horizontal space */
+    .grid-item:last-child { display: flex; flex-direction: column; gap: 2px; white-space: nowrap; padding: 4px 3px; }
+    .game-btn { padding: 2px 6px; font-size: 10px; margin: 0; }
     .team-rank-stats { gap: 10px; }
     .team-rank-header { padding: 10px 12px; gap: 10px; }
     .team-rank-names { padding-left: 12px; }
+  }
+  /* Mobile */
+  @media (max-width: 700px) {
+    /* Tab bar */
+    .tab-btn { padding: 6px 10px; font-size: 12px; margin-right: 2px; border-radius: 0; }
+    .twitter-follow-div { display: none; }
+    /* Replay table: card layout instead of grid */
+    .replay-table-header { display: none; }
+    .team-container, .team-container.has-games {
+      grid-template-columns: 1fr;
+      border-radius: 0;
+      padding: 10px;
+      gap: 4px;
+    }
+    .team-container > *:not(:first-child) { border-left: none; }
+    .grid-item { padding: 4px 2px; white-space: normal; }
+    .grid-item:last-child { flex-direction: row; flex-wrap: wrap; }
+    .game-btn { padding: 8px 12px; font-size: 12px; }
+    ul li { min-width: 0; }
+    /* Team rank expanded replays: card layout */
+    .team-rank-replay-header { display: none; }
+    .team-rank-replay-row {
+      grid-template-columns: 1fr 1fr;
+      gap: 4px;
+      padding: 8px 12px;
+    }
+    .team-rank-replay-row > *:nth-child(n+3) {
+      font-size: 11px;
+    }
+    .team-rank-header { flex-wrap: wrap; }
+    .team-rank-names { padding-left: 0; }
+  }
+  @media (max-width: 500px) {
+    .tab-btn { padding: 5px 7px; font-size: 11px; }
+    .team-rank-stats { gap: 6px; }
+    .team-rank-stat-value { font-size: 12px; }
+    .team-rank-number { font-size: 15px; min-width: 24px; }
   }
 
   /* Custom select dropdown */
   .csel-wrap { position: relative; display: inline-block; width: 100%; }
   .csel-display {
     background-color: #222222; color: #e0e0e0; border: 1px solid #555;
-    padding: 10px 32px 10px 14px; margin: 4px 0; border-radius: 8px;
+    padding: 10px 32px 10px 14px; margin: 4px 0; border-radius: 0;
     font-size: 13px; cursor: pointer; width: 100%; box-sizing: border-box;
     white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
     transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
@@ -525,18 +601,18 @@
   .csel-dropdown {
     display: none; position: absolute; top: 100%; left: 0; right: 0;
     z-index: 1000; background: #222222; border: 1px solid #555;
-    border-radius: 0 0 8px 8px; max-height: 200px; overflow-y: auto;
+    border-radius: 0; max-height: 200px; overflow-y: auto;
     margin-top: -4px;
   }
   .csel-dropdown::-webkit-scrollbar { width: 12px; }
   .csel-dropdown::-webkit-scrollbar-track { background: #222222; }
-  .csel-dropdown::-webkit-scrollbar-thumb { background: #333333; border-radius: 6px; }
+  .csel-dropdown::-webkit-scrollbar-thumb { background: #333333; border-radius: 0; }
   .csel-dropdown::-webkit-scrollbar-thumb:hover { background: #111111; }
   .csel-item {
     padding: 8px 14px; font-size: 13px; cursor: pointer; color: #e0e0e0;
   }
   .csel-item:hover, .csel-item.active { background: #333; color: #fff; }
-  .csel-item:last-child { border-radius: 0 0 8px 8px; }
+  .csel-item:last-child { border-radius: 0; }
   .csel-wrap select { display: none !important; }
 </style>
 </head>
@@ -544,6 +620,7 @@
 <div class="top-bar">
   <div class="tab-bar">
     <a id="tab-usage-btn" class="tab-btn" href="{{ url_for('display_pokemon_page', format_code=selected_format[0], rating_threshold=selected_rating, pokemon_name=selected_pokemon) }}">Usage Stats</a>
+    <a id="tab-tournaments-btn" class="tab-btn" href="{{ url_for('tournaments_page') }}">Tournaments</a>
     <a id="tab-calc-btn" class="tab-btn" href="{{ url_for('calc_page', format_code=selected_format[0], rating_threshold=selected_rating) }}">Damage Calc</a>
     <a id="tab-replays-btn" class="tab-btn tab-active" href="{{ url_for('replays_page') }}">Replays</a>
   </div>
@@ -630,7 +707,7 @@
   <p><a href="{{ url_for('about') }}">About</a></p>
   <p>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</p>
 </footer>
-<script src="{{ url_for('static', filename='replay_search.js') }}"></script>
+<script src="{{ url_for('static', filename='replay_search.js') }}?v=2"></script>
 <script>
 (function() {
   function customizeSelect(sel) {

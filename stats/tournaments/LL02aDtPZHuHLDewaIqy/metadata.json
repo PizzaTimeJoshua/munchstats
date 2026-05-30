@@ -1,0 +1,13 @@
+{
+  "id": "LL02aDtPZHuHLDewaIqy",
+  "name": "2026 Lille Pokémon VGC Regional Championships",
+  "date": "2025-10-25",
+  "location": "2026 Lille Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 679,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 62,
+  "teams_scraped": 679,
+  "scraped_at": "2026-05-30T12:49:28.070644Z",
+  "day2_source": "pairings"
+}

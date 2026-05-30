@@ -1,0 +1,13 @@
+{
+  "id": "BR02nX95OUm3tbvzmSPv",
+  "name": "2026 Brisbane Pokémon VGC Regional Championships",
+  "date": "2025-11-01",
+  "location": "2026 Brisbane Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 210,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 31,
+  "teams_scraped": 210,
+  "scraped_at": "2026-05-30T12:17:58.800287Z",
+  "day2_source": "pairings"
+}

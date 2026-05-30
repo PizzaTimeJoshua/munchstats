@@ -1040,7 +1040,29 @@
         border-color: #888;
       }
       /* Medium screens: two Pokémon side-by-side, field full-width above */
-      @media (max-width: 1100px) {
+      /* ── Responsive: Tablet (701–1100px) ── */
+      @media (max-width: 1100px) and (min-width: 701px) {
+        .grid-container:not(.calc-page) { grid-template-columns: 1fr; grid-gap: 15px; }
+        .grid-container:not(.calc-page) > .left {
+          width: 100% !important;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          grid-template-rows: auto auto auto auto;
+          max-width: 700px;
+          justify-self: center;
+          gap: 0 20px;
+        }
+        .grid-container:not(.calc-page) > .left > #pokemon-info { grid-column: 1 / -1; justify-self: center; max-width: 340px; width: 100%; box-sizing: border-box; }
+        .grid-container:not(.calc-page) > .left > :nth-child(2) { grid-column: 1; grid-row: 2; justify-self: stretch; }
+        .grid-container:not(.calc-page) > .left > :nth-child(3) { grid-column: 1; grid-row: 3; justify-self: stretch; width: 100%; }
+        .grid-container:not(.calc-page) > .left > :nth-child(4) { grid-column: 1 / -1; grid-row: 4; justify-self: center; }
+        .grid-container:not(.calc-page) > .left > :nth-child(5) { grid-column: 2; grid-row: 2; justify-self: stretch; }
+        .grid-container:not(.calc-page) > .left > :nth-child(6) { grid-column: 2; grid-row: 3; justify-self: stretch; width: 100%; }
+        .meta-list, .pokemon-list { width: 100%; margin-right: 0; }
+        .meta-button { width: 100%; }
+        .left input[type="text"] { width: 100%; box-sizing: border-box; }
+        .right:not(.calc-page) { justify-self: center; }
+        /* Calc layout */
         .calc-pokemon-row {
           grid-template-columns: 1fr 1fr;
           grid-template-rows: auto auto;
@@ -1049,16 +1071,46 @@
           grid-column: 1 / -1;
           order: -1;
         }
-        /* Collapse field sides into a more compact layout */
         .calc-field-panel .calc-field-sides {
           gap: 12px;
         }
       }
-      /* Small screens: everything single-column, field still on top */
+      /* ── Responsive: Mobile (≤700px) ── */
       @media (max-width: 700px) {
+        /* Stack sidebar on top */
+        .grid-container:not(.calc-page) { grid-template-columns: 1fr; grid-gap: 15px; padding: 0 8px; }
+        /* Right panel: single fluid column */
+        .right:not(.calc-page) { grid-template-columns: 1fr; justify-items: stretch; }
+        /* Tab bar */
+        .tab-btn { padding: 6px 10px; font-size: 12px; margin-right: 2px; }
+        .twitter-follow-div { display: none; }
+        /* Left sidebar: single column, fluid */
+        .left { grid-template-columns: 1fr; width: 100% !important; }
+        .left > #pokemon-info { max-width: 100%; box-sizing: border-box; }
+        .meta-list, .pokemon-list { width: 100%; margin-right: 0; }
+        .meta-button { width: 100%; }
+        .left input[type="text"] { width: 100%; box-sizing: border-box; margin: 5px 0; }
+        /* Rating buttons: allow wrapping */
+        .rating-buttons { max-height: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+        .rating-button { padding: 6px 10px; margin: 0; font-size: 12px; }
+        /* Pokemon list: truncate names */
+        .pokemon-button .left-text { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .pokemon-button .right-text { flex-shrink: 0; }
+        /* Data cards + stats bars: fluid */
+        .Data, .Export { width: 100%; max-width: 100%; box-sizing: border-box; margin-right: 0; }
+        textarea { width: 100%; box-sizing: border-box; }
+        .Stats { width: 100%; max-width: 400px; margin: 0 auto; box-sizing: border-box; }
+        .bar-container { width: 100%; box-sizing: border-box; height: auto; min-height: 28px; padding: 0; }
+        .left-container { width: 100%; height: auto; min-height: 28px; }
+        /* EV/stat buttons */
+        .ev-button, .stat-button { padding: 4px 6px; margin: 2px 0; font-size: 11px; }
+        /* Calc layout */
         .calc-pokemon-row {
           grid-template-columns: 1fr;
         }
+      }
+      @media (max-width: 500px) {
+        .tab-btn { padding: 5px 7px; font-size: 11px; }
       }
 
       .calc-stats-display {
@@ -1339,6 +1391,7 @@
       <!-- Tab bar -->
       <div class="tab-bar">
         <a id="tab-usage-btn" class="tab-btn{% if not calc_only %} tab-active{% endif %}" href="{{ url_for('display_pokemon_page', format_code=selected_format[0], rating_threshold=selected_rating, pokemon_name=selected_pokemon) }}">Usage Stats</a>
+        <a id="tab-tournaments-btn" class="tab-btn" href="{{ url_for('tournaments_page') }}">Tournaments</a>
         <a id="tab-calc-btn" class="tab-btn{% if calc_only %} tab-active{% endif %}" href="{{ url_for('calc_page', format_code=selected_format[0], rating_threshold=selected_rating) }}">Damage Calc</a>
         <a id="tab-replays-btn" class="tab-btn" href="{{ url_for('replays_page') }}">Replays</a>
       </div>
@@ -2096,7 +2149,7 @@
         {% endif %}
       </div><!-- end .right -->
     </div><!-- end .grid-container -->
-    <div style="text-align: center; position: relative; display: inline-block; width: 100%;" id="footer-month-container">
+    <div style="text-align: center; position: relative; display: inline-block; width: 100%; margin-top: 20px;" id="footer-month-container">
       <h6 style="display: inline;">Usage stats data from </h6>
       {% if calc_only %}
       <h6 style="display: inline;" id="month-display">{{ selected_month }}</h6>
@@ -2116,7 +2169,7 @@
       </div>
       {% endif %}
     </div>
-    <footer style="text-align: center; padding: 20px; color: #666; font-size: 12px;">
+    <footer style="text-align: center; padding: 6px 20px 20px; color: #666; font-size: 12px;">
       <p><a href="/about" style="color: #ffd54f; text-decoration: none;">About</a></p>
       <p>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</p>
     </footer>
