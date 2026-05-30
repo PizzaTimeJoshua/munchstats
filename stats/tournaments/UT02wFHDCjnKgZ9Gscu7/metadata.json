@@ -1,0 +1,13 @@
+{
+  "id": "UT02wFHDCjnKgZ9Gscu7",
+  "name": "2026 Utrecht Pokémon VGC Regional Championships",
+  "date": "2026-05-16",
+  "location": "2026 Utrecht Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 415,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 38,
+  "teams_scraped": 415,
+  "scraped_at": "2026-05-30T07:30:45.786612Z",
+  "day2_source": "pairings"
+}

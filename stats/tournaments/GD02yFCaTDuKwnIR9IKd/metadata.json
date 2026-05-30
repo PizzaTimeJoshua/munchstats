@@ -1,0 +1,13 @@
+{
+  "id": "GD02yFCaTDuKwnIR9IKd",
+  "name": "2026 Gdańsk Pokémon VGC Regional Championships",
+  "date": "2025-11-01",
+  "location": "2026 Gdańsk Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 417,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 38,
+  "teams_scraped": 417,
+  "scraped_at": "2026-05-30T12:30:01.617671Z",
+  "day2_source": "pairings"
+}

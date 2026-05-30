@@ -1,0 +1,14 @@
+{
+  "name": "munchstats",
+  "private": true,
+  "scripts": {
+    "build:calc": "esbuild scripts/smogon-calc-browser.js --bundle --format=iife --global-name=MunchSmogonCalc --target=es2018 --outfile=static/vendor/smogon-calc.js",
+    "test:calc": "node tests/calc_adapter.test.js"
+  },
+  "dependencies": {
+    "@smogon/calc": "0.11.0"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.0"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "id": "SV02wtoHf5SDBUM0ntB2",
+  "name": "2026 Seville Pokémon VGC Special Championships",
+  "date": "2026-03-28",
+  "location": "2026 Seville Pokémon Special Championships",
+  "type": "Special",
+  "total_players": 592,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 54,
+  "teams_scraped": 592,
+  "scraped_at": "2026-05-30T08:46:39.146570Z",
+  "day2_source": "pairings"
+}

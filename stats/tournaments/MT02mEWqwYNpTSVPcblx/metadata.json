@@ -1,0 +1,13 @@
+{
+  "id": "MT02mEWqwYNpTSVPcblx",
+  "name": "2026 Monterrey Pokémon VGC Regional Championships",
+  "date": "2025-09-13",
+  "location": "2026 Monterrey Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 281,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 26,
+  "teams_scraped": 281,
+  "scraped_at": "2026-05-30T14:07:26.180309Z",
+  "day2_source": "pairings"
+}

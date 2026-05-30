@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tools | MunchStats</title>
+<meta property="og:title" content="Tools | MunchStats">
+<meta name="description" content="Pokemon Showdown browser extensions and tools by MunchStats.">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:image" content="https://www.munchstats.com/static/favicon.png">
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+<style>
+  body {
+    background-color: #1e1e1e;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    color: #e0e0e0;
+    font-family: Arial, sans-serif;
+  }
+  h2 { font-weight: 600; letter-spacing: -0.3px; }
+
+  /* Tab bar (matches MunchStats index.html exactly) */
+  .top-bar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid #444;
+    margin-bottom: 10px;
+  }
+  .tab-bar { text-align: left; padding-bottom: 0; }
+  .tab-btn {
+    background: #222;
+    color: #aaa;
+    border: 1px solid #444;
+    border-bottom: none;
+    display: inline-block;
+    padding: 6px 18px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-right: 4px;
+    text-decoration: none;
+    transition: color 0.2s, background 0.2s;
+  }
+  .tab-btn:hover { color: #fff; background: #2a2a2a; }
+  .tab-btn.tab-active { background: #1e1e1e; color: #ffd54f; border-color: #888; }
+  .twitter-follow-div {
+    display: flex;
+    padding: 0 5px 6px 0;
+    align-items: center;
+    gap: 8px;
+  }
+
+  /* Tools page content */
+  .tools-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 30px 20px;
+  }
+  .tools-container h2 {
+    margin-bottom: 8px;
+  }
+  .tools-subtitle {
+    color: #888;
+    font-size: 14px;
+    margin-bottom: 30px;
+  }
+  .tool-card {
+    background: #2a2a2a;
+    border: 1px solid #444;
+    padding: 24px;
+    margin-bottom: 16px;
+    transition: border-color 0.2s;
+  }
+  .tool-card:hover {
+    border-color: #ffd54f;
+  }
+  .tool-card h3 {
+    margin: 0 0 8px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #e0e0e0;
+  }
+  .tool-card p {
+    margin: 0 0 16px;
+    font-size: 14px;
+    color: #aaa;
+    line-height: 1.5;
+  }
+  .tool-card a.tool-link {
+    display: inline-block;
+    background: #ffd54f;
+    color: #1e1e1e;
+    padding: 8px 18px;
+    font-size: 13px;
+    font-weight: 700;
+    text-decoration: none;
+    border-radius: 0;
+    transition: background 0.2s;
+  }
+  .tool-card a.tool-link:hover {
+    background: #ffca28;
+  }
+  .chrome-badge {
+    display: inline-block;
+    font-size: 11px;
+    color: #888;
+    border: 1px solid #555;
+    padding: 2px 8px;
+    margin-left: 10px;
+    vertical-align: middle;
+  }
+
+  /* Responsive */
+  @media (max-width: 700px) {
+    .tab-btn { padding: 6px 10px; font-size: 12px; margin-right: 2px; border-radius: 0; }
+    .twitter-follow-div { display: none; }
+    .tools-container { padding: 20px 14px; }
+    .tool-card { padding: 18px; }
+  }
+  @media (max-width: 500px) {
+    .tab-btn { padding: 5px 7px; font-size: 11px; }
+  }
+</style>
+</head>
+<body>
+<div class="top-bar">
+  <div class="tab-bar">
+    <a id="tab-usage-btn" class="tab-btn" href="{{ url_for('display_pokemon_page', format_code=selected_format[0], rating_threshold=selected_rating, pokemon_name=selected_pokemon) }}">Usage Stats</a>
+    <a id="tab-tournaments-btn" class="tab-btn" href="{{ url_for('tournaments_page') }}">Tournaments</a>
+    <a id="tab-calc-btn" class="tab-btn" href="{{ url_for('calc_page', format_code=selected_format[0], rating_threshold=selected_rating) }}">Damage Calc</a>
+    <a id="tab-replays-btn" class="tab-btn" href="{{ url_for('replays_page') }}">Replays</a>
+    <a id="tab-tools-btn" class="tab-btn tab-active" href="{{ url_for('tools_page') }}">Tools</a>
+  </div>
+  <div class="twitter-follow-div">
+    <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">
+      <img height="29" style="border:0px;height:29px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=3" border="0" alt="Buy Me a Coffee at ko-fi.com" />
+    </a>
+    <a href="https://twitter.com/MunchStats?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large" data-show-screen-name="false" data-dnt="true" data-show-count="false">Follow @MunchStats</a>
+    <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+  </div>
+</div>
+
+<div class="tools-container">
+  <h2>Tools</h2>
+  <p class="tools-subtitle">Chrome extensions for Pokemon Showdown</p>
+
+  <div class="tool-card">
+    <h3>VGC Replay Analyzer <span class="chrome-badge">Chrome Extension</span></h3>
+    <p>Save, watch, and analyze Pokemon Showdown VGC replays locally with PASRS-inspired analysis. Automatic replay saving, a local replay library grouped by team, and deep stats including usage/win rates, lead combos, Tera frequency, move usage, matchup breakdowns, and ELO graphs — all fully private in your browser.</p>
+    <a class="tool-link" href="https://chromewebstore.google.com/detail/ikildimeghigegckdcdjbedfapehdimm" target="_blank" rel="noopener">Get Extension</a>
+  </div>
+
+  <div class="tool-card">
+    <h3>VGC Practice Extension <span class="chrome-badge">Chrome Extension</span></h3>
+    <p>Train smarter for VGC on Pokemon Showdown. Toggleable features that simulate real competitive conditions — hide battle info for hardcore mode, lock in moves with no take-backs, force animations, hide Elo/identities, and pin Open Team Sheets. Build practice habits that translate directly to in-person play.</p>
+    <a class="tool-link" href="https://chromewebstore.google.com/detail/jhgkjapmjgajikjoncoehmcgfbpmophc" target="_blank" rel="noopener">Get Extension</a>
+  </div>
+</div>
+
+</body>
+</html>

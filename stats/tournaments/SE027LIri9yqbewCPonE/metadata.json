@@ -1,0 +1,13 @@
+{
+  "id": "SE027LIri9yqbewCPonE",
+  "name": "2026 Seattle Pokémon VGC Regional Championships",
+  "date": "2026-02-27",
+  "location": "2026 Seattle Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 821,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 74,
+  "teams_scraped": 821,
+  "scraped_at": "2026-05-30T09:33:28.882684Z",
+  "day2_source": "pairings"
+}

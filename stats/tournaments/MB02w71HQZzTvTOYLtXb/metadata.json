@@ -1,0 +1,13 @@
+{
+  "id": "MB02w71HQZzTvTOYLtXb",
+  "name": "2026 Melbourne Pokémon VGC Regional Championships",
+  "date": "2026-05-23",
+  "location": "2026 Melbourne Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 290,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 27,
+  "teams_scraped": 290,
+  "scraped_at": "2026-05-30T07:12:09.372589Z",
+  "day2_source": "pairings"
+}

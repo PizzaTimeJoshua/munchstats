@@ -1,0 +1,13 @@
+{
+  "id": "SG02gVKM38QMVGTcAiZN",
+  "name": "2026 Stuttgart Pokémon VGC Regional Championships",
+  "date": "2025-11-29",
+  "location": "2026 Stuttgart Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 661,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 60,
+  "teams_scraped": 661,
+  "scraped_at": "2026-05-30T11:36:02.576187Z",
+  "day2_source": "pairings"
+}

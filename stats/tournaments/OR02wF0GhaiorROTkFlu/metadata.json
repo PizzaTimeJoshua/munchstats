@@ -1,0 +1,13 @@
+{
+  "id": "OR02wF0GhaiorROTkFlu",
+  "name": "2026 Orlando Pokémon VGC Regional Championships",
+  "date": "2026-04-03",
+  "location": "2026 Orlando Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 675,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 61,
+  "teams_scraped": 675,
+  "scraped_at": "2026-05-30T08:29:39.093719Z",
+  "day2_source": "pairings"
+}

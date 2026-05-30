@@ -1048,36 +1048,28 @@ $(document).ready(function () {
     if (data.pokemon_types) {
       data.pokemon_types.forEach(function (type) {
         typesHTML +=
-          '<div class="type-' + esc(type) + '">' + esc(type) + "</div> ";
+          '<div class="type-' + esc(type) + '">' + esc(type) + "</div>";
       });
     }
     var sprite = data.current_pokemon[3];
     return (
-      '<h3> Current Format:<br><span style="color: yellow;">' +
-      esc(data.selected_format[1]) +
-      "</span></h3>" +
-      '<h3> Current Glicko Rating Threshold: <span style="color: yellow;">' +
-      esc(data.selected_rating) +
-      "</span></h3>" +
-      "<h3> Current Pokemon:<br>" +
-      '<div style="color: yellow;">' +
-      "<span>" +
-      esc(data.current_pokemon[0]) +
-      "</span>" +
+      '<div class="info-pokemon-header">' +
+      '<div class="info-pokemon-center">' +
       '<div class="image-pokemon" style="background-position: ' +
-      sprite[1] * -40 +
-      "px " +
-      sprite[0] * -30 +
-      'px; position: relative;left: 135px;"></div>' +
+      sprite[1] * -40 + "px " + sprite[0] * -30 + 'px;"></div>' +
+      '<div class="info-pokemon-name">' + esc(data.current_pokemon[0]) + "</div>" +
+      '<div class="info-types">' + typesHTML + "</div>" +
       "</div>" +
-      typesHTML +
-      "</h3>" +
-      '<h3> Usage: <span style="color: yellow;">' +
-      data.current_pokemon[1] +
-      "%</span></h3>" +
-      '<h3> Monthly Rank: <span style="color: yellow;">' +
-      data.current_pokemon[2] +
-      "</span></h3>"
+      "</div>" +
+      '<div class="info-stats-row">' +
+      '<div class="info-stat"><span class="info-stat-label">Usage</span><span class="info-stat-value">' +
+      data.current_pokemon[1] + "%</span></div>" +
+      '<div class="info-stat"><span class="info-stat-label">Rank</span><span class="info-stat-value">#' +
+      data.current_pokemon[2] + "</span></div>" +
+      '<div class="info-stat"><span class="info-stat-label">Rating</span><span class="info-stat-value">' +
+      esc(data.selected_rating) + "+</span></div>" +
+      "</div>" +
+      '<div class="info-format">' + esc(data.selected_format[1]) + "</div>"
     );
   }
 

@@ -3,7 +3,13 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    {% if request.path|length > 1 %}
+    {% if calc_only %}
+      <title>Damage Calc | MunchStats | {{ selected_format[1] }}</title>
+      <meta property="og:title" content="Damage Calc | MunchStats | {{ selected_format[1] }}">
+      <meta name="og:description" content="Calculate Pokemon damage ranges with MunchStats usage data.">
+      <meta name="description" content="Calculate Pokemon damage ranges using {{ selected_format[1] }} usage data.">
+      <meta name="twitter:description" content="Calculate Pokemon damage ranges using {{ selected_format[1] }} usage data.">
+    {% elif request.path|length > 1 %}
       <title>{{ current_pokemon[0] }} | MunchStats | {{ selected_format[1] }}</title>
       <meta property="og:title" content="{{ current_pokemon[0] }} | MunchStats | {{ selected_format[1] }}">
       <meta name="og:description" content="Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!">
@@ -368,6 +374,16 @@
         grid-gap: 30px;
         padding-top: 0px;
       }
+      .grid-container.calc-page {
+        grid-template-columns: minmax(0, 1fr);
+        max-width: 1400px;
+        margin: 0 auto;
+        width: 100%;
+      }
+      .right.calc-page {
+        display: block;
+        justify-self: stretch;
+      }
       .image-item {
         width: 24px;
         height: 24px;
@@ -400,12 +416,19 @@
         border: 0px;
         text-align: left;
       }
+      .top-bar {
+        display: flex;
+        align-items: flex-end;
+        justify-content: space-between;
+        border-bottom: 1px solid #444;
+        margin-bottom: 10px;
+      }
       .twitter-follow-div {
-        padding-top: 5px;
-        padding-right: 5px;
-        justify-self: right;
+        display: flex;
+        padding: 0 5px 6px 0;
         align-items: center;
-        height: 35px;
+        gap: 8px;
+        flex-shrink: 0;
       }
       h3 {
         margin-top: 5px;
@@ -414,16 +437,70 @@
       .underline {
         text-decoration: underline;
       }
-      .munchteams-button {
-        background-color: #04AA6D;
-        border: none;
-        color: white;
-        padding: 8px 8px;
+      #pokemon-info {
+        background: #222;
+        border: 1px solid #555;
+        padding: 14px 16px;
+        margin-top: 18px;
+        margin-bottom: 8px;
+      }
+      .info-pokemon-header {
         text-align: center;
-        text-decoration: none;
-        display: inline-block;
+        margin-bottom: 10px;
+      }
+      .info-pokemon-center {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        position: relative;
+      }
+      .info-pokemon-center .image-pokemon {
+        position: absolute;
+        right: 100%;
+        top: 50%;
+        transform: translateY(-50%);
+        margin-right: 2px;
+      }
+      .info-pokemon-name {
+        font-size: 18px;
+        font-weight: 700;
+        color: #ffd54f;
+        line-height: 1.2;
+      }
+      .info-types {
+        display: flex;
+        gap: 4px;
+        margin-top: 4px;
+      }
+      .info-stats-row {
+        display: flex;
+        justify-content: space-around;
+        padding: 8px 0;
+        border-top: 1px solid #444;
+        border-bottom: 1px solid #444;
+        margin-bottom: 10px;
+      }
+      .info-stat {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+      .info-stat-label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        color: #888;
+      }
+      .info-stat-value {
+        font-size: 16px;
+        font-weight: 600;
+        color: #e0e0e0;
+      }
+      .info-format {
         font-size: 12px;
-        vertical-align: top;
+        color: #ccc;
+        text-align: center;
+        line-height: 1.3;
       }
       .type-Normal,
       .type-Fire,
@@ -592,6 +669,704 @@
       @keyframes spin {
         to { transform: rotate(360deg); }
       }
+      /* ── Damage Calc Tab styles ── */
+      .tab-bar {
+        text-align: left;
+        padding-bottom: 0;
+      }
+      .tab-btn {
+        background: #222;
+        color: #aaa;
+        border: 1px solid #444;
+        border-bottom: none;
+        display: inline-block;
+        padding: 6px 18px;
+        cursor: pointer;
+        font-size: 13px;
+        margin-right: 4px;
+        text-decoration: none;
+        transition: color 0.2s, background 0.2s;
+      }
+      .tab-btn:hover { color: #fff; background: #2a2a2a; }
+      .tab-btn.tab-active { background: #1e1e1e; color: #ffd54f; border-color: #888; }
+      #calc-panel { grid-column: 1 / -1; width: 100%; }
+      .calc-source-controls {
+        align-items: end;
+        background: #1c1c1c;
+        border: 1px solid #333;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin-bottom: 10px;
+        padding: 10px 12px;
+        text-align: left;
+      }
+      .calc-source-control {
+        display: flex;
+        flex-direction: column;
+        gap: 3px;
+        min-width: 180px;
+      }
+      .calc-source-control:first-child {
+        min-width: 320px;
+      }
+      .calc-source-control label {
+        color: #888;
+        font-size: 11px;
+      }
+      .calc-source-control select {
+        background: #252525;
+        border: 1px solid #444;
+        color: #e0e0e0;
+        font-size: 12px;
+        padding: 5px 24px 5px 7px;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+      }
+
+      /* Explainer banner */
+      .calc-explainer {
+        background: #1a2230;
+        border: 1px solid #2a3a4a;
+        border-radius: 6px;
+        margin-bottom: 10px;
+        overflow: hidden;
+      }
+      .calc-explainer-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 8px 12px;
+        cursor: pointer;
+        color: #81d4fa;
+        font-size: 12px;
+        font-weight: bold;
+        user-select: none;
+        background: none;
+        border: none;
+        width: 100%;
+        text-align: left;
+      }
+      .calc-explainer-toggle:hover { color: #ddd; }
+      .calc-explainer-toggle .chevron { transition: transform 0.2s; font-size: 10px; }
+      .calc-explainer-toggle.open .chevron { transform: rotate(180deg); }
+      .calc-explainer-body {
+        display: none;
+        padding: 0 12px 10px;
+        color: #bbb;
+        font-size: 12px;
+        line-height: 1.6;
+      }
+      .calc-explainer-body p { margin: 0 0 6px; }
+      .calc-explainer-body strong { color: #e0e0e0; }
+
+      /* Info tooltips */
+      .calc-tip {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #333;
+        color: #999;
+        font-size: 9px;
+        font-weight: bold;
+        cursor: help;
+        margin-left: 4px;
+        flex-shrink: 0;
+        vertical-align: middle;
+      }
+      .calc-tip:hover { background: #444; color: #ddd; }
+      .calc-tip-text {
+        display: none;
+        position: absolute;
+        bottom: calc(100% + 6px);
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1a1a1a;
+        border: 1px solid #555;
+        border-radius: 4px;
+        padding: 6px 10px;
+        font-size: 11px;
+        font-weight: normal;
+        color: #ccc;
+        white-space: normal;
+        width: 220px;
+        z-index: 1000;
+        line-height: 1.4;
+        text-align: left;
+        pointer-events: none;
+      }
+      .calc-tip:hover .calc-tip-text { display: block; }
+
+      /* Showdown-style calc layout */
+      .calc-pokemon-row {
+        display: grid;
+        grid-template-columns: minmax(280px, 1fr) minmax(230px, 0.58fr) minmax(280px, 1fr);
+        gap: 12px;
+        margin-bottom: 12px;
+        align-items: start;
+      }
+      .calc-poke-panel {
+        min-width: 0;
+        background: #1c1c1c;
+        border: 1px solid #333;
+        padding: 10px 12px;
+        box-sizing: border-box;
+      }
+      .calc-field-panel {
+        min-width: 0;
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-bottom: 1px solid #333;
+        padding: 10px 12px;
+        box-sizing: border-box;
+      }
+      .calc-field-panel h4 {
+        margin: 0 0 10px;
+        color: #e0e0e0;
+        font-size: 13px;
+        font-weight: bold;
+      }
+      .calc-poke-panel h4 { margin: 0 0 8px; font-size: 13px; font-weight: bold; }
+      .calc-poke-panel h4.your-pokemon { color: #81d4fa; }
+      .calc-poke-panel h4.avg-pokemon  { color: #a5d6a7; }
+      .calc-poke-panel input[type=text],
+      .calc-poke-panel select:not(.calc-boost-sel) {
+        width: 100%;
+        background: #252525;
+        color: #e0e0e0;
+        border: 1px solid #444;
+        padding: 4px 24px 4px 7px;
+        font-size: 12px;
+        box-sizing: border-box;
+        margin-bottom: 5px;
+        appearance: none;
+        -webkit-appearance: none;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 8px center;
+      }
+      .calc-preset-wrap { position: relative; margin-bottom: 5px; }
+      .calc-preset-selected {
+        width: 100%; background: #252525; color: #e0e0e0; border: 1px solid #444;
+        padding: 4px 7px; font-size: 12px; box-sizing: border-box; cursor: pointer;
+        white-space: nowrap; overflow: visible;
+      }
+      .calc-preset-selected:focus { border-color: #666; outline: none; }
+      .calc-preset-dropdown { max-height: 240px; }
+      .calc-preset-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+      .calc-preset-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      .calc-preset-usage { flex: 0 0 auto; color: #ffd54f; font-family: monospace; font-size: 11px; }
+      .calc-poke-panel label { font-size: 11px; color: #888; display: block; margin-bottom: 2px; }
+      .calc-type-row {
+        display: grid;
+        grid-template-columns: 64px 1fr 1fr;
+        align-items: center;
+        gap: 7px;
+        margin: 5px 0 8px;
+        max-width: 290px;
+      }
+      .calc-type-row label { margin: 0; color: #ddd; font-size: 12px; }
+      .calc-type-row select { margin-bottom: 0 !important; width: 100%; }
+      .calc-tera-row {
+        display: grid;
+        grid-template-columns: 64px 1fr min-content;
+        align-items: center;
+        gap: 7px;
+        margin: 0 0 8px;
+        max-width: 290px;
+      }
+      .calc-tera-row label { margin: 0; color: #888; font-size: 11px; }
+      .calc-tera-row select { margin-bottom: 0 !important; width: 100%; }
+      .tera-toggle-btn {
+        background: #171717; border: 1px solid #3a3a3a; color: #888;
+        cursor: pointer; font-size: 10px; font-weight: bold;
+        padding: 3px 5px; text-transform: uppercase; white-space: nowrap;
+      }
+      .tera-toggle-btn:hover { background: #222; border-color: #777; color: #ddd; }
+      .tera-toggle-btn.tera-on { background: #2a2a2a; border-color: #aaa; color: #ddd; }
+      .calc-control-stack { margin: 5px 0 8px; }
+      .calc-control-row {
+        display: grid;
+        grid-template-columns: 64px 1fr;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 4px;
+        max-width: 290px;
+      }
+      .calc-control-row label {
+        margin: 0;
+        color: #ddd;
+        font-size: 12px;
+      }
+      .calc-control-row select,
+      .calc-control-row input[type=text] {
+        margin-bottom: 0 !important;
+      }
+      .calc-control-row > select {
+        margin-left: 5px;
+      }
+      .calc-control-row .calc-autocomplete-wrap {
+        margin-bottom: 0;
+      }
+      .calc-ability-cell {
+        display: flex;
+        align-items: flex-end;
+        gap: 10px;
+      }
+      .calc-ability-cell .calc-autocomplete-wrap {
+        flex: 1;
+        min-width: 0;
+        margin-bottom: 0;
+      }
+      .calc-ability-activate {
+        display: inline-flex;
+        align-items: center;
+        cursor: pointer;
+        flex-shrink: 0;
+        padding-bottom: 2px;
+      }
+      .calc-ability-activate input[type=checkbox] {
+        margin: 0;
+        cursor: pointer;
+        accent-color: #4caf50;
+        width: 14px;
+        height: 14px;
+      }
+      .calc-field-section {
+        border-top: 1px solid rgba(255,255,255,0.12);
+        padding-top: 9px;
+        margin-top: 9px;
+      }
+      .calc-field-section:first-of-type {
+        border-top: none;
+        padding-top: 0;
+        margin-top: 0;
+      }
+      .calc-field-label {
+        color: #ddd;
+        font-size: 11px;
+        font-weight: bold;
+        margin-bottom: 5px;
+      }
+      .calc-field-buttons {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+      }
+      .calc-field-radio,
+      .calc-field-toggle {
+        position: relative;
+        display: inline-flex;
+        cursor: pointer;
+        user-select: none;
+      }
+      .calc-field-radio input,
+      .calc-field-toggle input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+      }
+      .calc-field-radio span,
+      .calc-field-toggle span {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 22px;
+        padding: 3px 9px;
+        background: #2b2b33;
+        border: 1px solid #6a6a78;
+        border-radius: 6px;
+        color: #f0f0f0;
+        font-size: 11px;
+        line-height: 1.1;
+        white-space: nowrap;
+      }
+      .calc-field-radio input:checked + span,
+      .calc-field-toggle input:checked + span {
+        background: #3a3a3a;
+        border-color: #bbb;
+        color: #fff;
+        font-weight: bold;
+      }
+      .calc-field-radio:hover span,
+      .calc-field-toggle:hover span {
+        border-color: #f0f0f0;
+      }
+      .calc-field-sides {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+      }
+      .calc-field-side-head {
+        color: #777;
+        font-size: 10px;
+        font-weight: bold;
+        letter-spacing: 0.4px;
+        margin-bottom: 5px;
+        text-transform: uppercase;
+      }
+      .calc-field-side .calc-field-toggle {
+        display: flex;
+        margin-bottom: 3px;
+      }
+      .calc-field-side .calc-field-toggle span {
+        width: 100%;
+      }
+      .calc-field-more-sides {
+        margin-top: 3px;
+      }
+      .calc-field-expand-btn {
+        background: none;
+        border: 1px solid #444;
+        border-radius: 4px;
+        color: #888;
+        font-size: 10px;
+        padding: 2px 0;
+        margin-top: 3px;
+        cursor: pointer;
+        width: 100%;
+        text-align: center;
+        transition: color 0.15s, border-color 0.15s;
+      }
+      .calc-field-expand-btn:hover {
+        color: #ccc;
+        border-color: #888;
+      }
+      /* Medium screens: two Pokémon side-by-side, field full-width above */
+      /* ── Responsive: Tablet (701–1100px) ── */
+      @media (max-width: 1100px) and (min-width: 701px) {
+        .grid-container:not(.calc-page) { grid-template-columns: 1fr; grid-gap: 15px; }
+        .grid-container:not(.calc-page) > .left {
+          width: 100% !important;
+          display: grid;
+          grid-template-columns: 1fr 1fr;
+          grid-template-rows: auto auto auto auto;
+          max-width: 700px;
+          justify-self: center;
+          gap: 0 20px;
+        }
+        .grid-container:not(.calc-page) > .left > #pokemon-info { grid-column: 1 / -1; justify-self: center; max-width: 340px; width: 100%; box-sizing: border-box; }
+        .grid-container:not(.calc-page) > .left > :nth-child(2) { grid-column: 1; grid-row: 2; justify-self: stretch; }
+        .grid-container:not(.calc-page) > .left > :nth-child(3) { grid-column: 1; grid-row: 3; justify-self: stretch; width: 100%; }
+        .grid-container:not(.calc-page) > .left > :nth-child(4) { grid-column: 1 / -1; grid-row: 4; justify-self: center; }
+        .grid-container:not(.calc-page) > .left > :nth-child(5) { grid-column: 2; grid-row: 2; justify-self: stretch; }
+        .grid-container:not(.calc-page) > .left > :nth-child(6) { grid-column: 2; grid-row: 3; justify-self: stretch; width: 100%; }
+        .meta-list, .pokemon-list { width: 100%; margin-right: 0; }
+        .meta-button { width: 100%; }
+        .left input[type="text"] { width: 100%; box-sizing: border-box; }
+        .right:not(.calc-page) { justify-self: center; }
+        /* Calc layout */
+        .calc-pokemon-row {
+          grid-template-columns: 1fr 1fr;
+          grid-template-rows: auto auto;
+        }
+        .calc-pokemon-row .calc-field-panel {
+          grid-column: 1 / -1;
+          order: -1;
+        }
+        .calc-field-panel .calc-field-sides {
+          gap: 12px;
+        }
+      }
+      /* ── Responsive: Mobile (≤700px) ── */
+      @media (max-width: 700px) {
+        /* Stack sidebar on top */
+        .grid-container:not(.calc-page) { grid-template-columns: 1fr; grid-gap: 15px; padding: 0 8px; }
+        /* Right panel: single fluid column */
+        .right:not(.calc-page) { grid-template-columns: 1fr; justify-items: stretch; }
+        /* Tab bar */
+        .tab-btn { padding: 6px 10px; font-size: 12px; margin-right: 2px; }
+        .twitter-follow-div { display: none; }
+        /* Left sidebar: single column, fluid */
+        .left { grid-template-columns: 1fr; width: 100% !important; }
+        .left > #pokemon-info { max-width: 100%; box-sizing: border-box; }
+        .meta-list, .pokemon-list { width: 100%; margin-right: 0; }
+        .meta-button { width: 100%; }
+        .left input[type="text"] { width: 100%; box-sizing: border-box; margin: 5px 0; }
+        /* Rating buttons: allow wrapping */
+        .rating-buttons { max-height: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
+        .rating-button { padding: 6px 10px; margin: 0; font-size: 12px; }
+        /* Pokemon list: truncate names */
+        .pokemon-button .left-text { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+        .pokemon-button .right-text { flex-shrink: 0; }
+        /* Data cards + stats bars: fluid */
+        .Data, .Export { width: 100%; max-width: 100%; box-sizing: border-box; margin-right: 0; }
+        textarea { width: 100%; box-sizing: border-box; }
+        .Stats { width: 100%; max-width: 400px; margin: 0 auto; box-sizing: border-box; }
+        .bar-container { width: 100%; box-sizing: border-box; height: auto; min-height: 28px; padding: 0; }
+        .left-container { width: 100%; height: auto; min-height: 28px; }
+        /* EV/stat buttons */
+        .ev-button, .stat-button { padding: 4px 6px; margin: 2px 0; font-size: 11px; }
+        /* Calc layout */
+        .calc-pokemon-row {
+          grid-template-columns: 1fr;
+        }
+      }
+      @media (max-width: 500px) {
+        .tab-btn { padding: 5px 7px; font-size: 11px; }
+      }
+
+      .calc-stats-display {
+        font-size: 11px; color: #999; margin: 4px 0 6px;
+        font-family: monospace; line-height: 1.4;
+        background: #141414; border: 1px solid #2a2a2a; padding: 4px 6px;
+      }
+      /* Move list */
+      .calc-moves-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin: 6px 0 3px; }
+      .calc-move-list { display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
+      .calc-move-row {
+        display: flex; align-items: stretch; gap: 4px; min-width: 0;
+      }
+      .calc-move-btn {
+        display: flex; align-items: center; gap: 5px;
+        background: #1a1a1a; border: 1px solid #2e2e2e;
+        padding: 5px 7px; cursor: pointer; font-size: 12px; color: #ccc;
+        transition: border-color 0.15s, background 0.15s;
+        flex: 1 1 auto; flex-wrap: wrap; min-width: 0;
+      }
+      .calc-move-btn:hover { background: #222; border-color: #555; color: #e0e0e0; }
+      .calc-move-btn.selected { background: #252525; border-color: #888; color: #e0e0e0; }
+      .calc-move-btn .move-name { font-weight: bold; min-width: 90px; }
+      .calc-move-btn .move-meta { color: #666; font-size: 11px; }
+      .calc-type-badge {
+        display: inline-block; padding: 1px 5px; border-radius: 2px;
+        font-size: 10px; font-weight: bold; white-space: nowrap;
+      }
+      .move-dmg-badge {
+        margin-left: auto; color: #ffd54f; font-size: 11px;
+        font-weight: bold; font-family: monospace; white-space: nowrap;
+      }
+      .move-hits-select {
+        background: #171717; border: 1px solid #3a3a3a; color: #ccc;
+        cursor: pointer; flex: 0 0 38px; font-size: 10px; font-weight: bold;
+        padding: 0 2px; text-align: center; appearance: none;
+        -webkit-appearance: none; -moz-appearance: none;
+      }
+      .move-hits-select:hover {
+        background: #222; border-color: #777; color: #ddd;
+      }
+      .move-crit-btn {
+        background: #171717; border: 1px solid #3a3a3a; color: #888;
+        cursor: pointer; flex: 0 0 42px; font-size: 10px; font-weight: bold;
+        padding: 0 6px; text-transform: uppercase;
+      }
+      .move-crit-btn:hover {
+        background: #222; border-color: #777; color: #ddd;
+      }
+      .move-crit-btn.crit-on {
+        background: #3a2424; border-color: #ef9a9a; color: #ffd0d0;
+      }
+
+      /* Results */
+      #calc-results { min-height: 80px; font-size: 13px; }
+      .calc-result-section {
+        background: #1c1c1c; border: 1px solid #333; padding: 10px 12px; margin-bottom: 8px;
+      }
+      .calc-result-header {
+        color: #ffd54f; font-weight: bold; font-size: 12px;
+        text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px;
+      }
+      .calc-primary-result {
+        background: #1a1a1a; border: 1px solid #444; border-radius: 4px;
+        margin-bottom: 8px; padding: 10px 12px;
+      }
+      .calc-primary-title {
+        color: #ffd54f; font-size: 12px; font-weight: bold;
+        letter-spacing: 0.4px; margin-bottom: 4px; text-transform: uppercase;
+      }
+      .calc-primary-main {
+        color: #fff; font-family: "Consolas", "Courier New", monospace;
+        font-size: 20px; font-weight: bold; line-height: 1.25;
+      }
+      .calc-primary-ko {
+        color: #aaa; font-size: 13px; margin-top: 4px;
+      }
+
+      /* Tier rows */
+      .calc-tier-row {
+        display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+        padding: 5px 8px; margin-bottom: 4px;
+        background: #141414; border-left: 3px solid #555;
+      }
+      .calc-tier-left { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 160px; }
+      .calc-tier-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+      .calc-tier-badge {
+        display: inline-block; padding: 1px 6px; font-size: 10px; font-weight: bold;
+        border-radius: 2px; white-space: nowrap;
+      }
+      .calc-tier-stats { font-family: monospace; font-size: 12px; color: #bbb; white-space: nowrap; }
+      .calc-tier-freq { font-size: 11px; color: #555; white-space: nowrap; }
+      .calc-tier-dmg { font-family: monospace; font-size: 12px; color: #e0e0e0; white-space: nowrap; }
+      .calc-overall-ko {
+        margin-top: 8px; padding-top: 6px; border-top: 1px solid #2a2a2a;
+        font-size: 12px; color: #aaa;
+      }
+
+      /* Reverse calc rows */
+      .calc-reverse-row {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
+        padding: 4px 0; border-bottom: 1px solid #222; font-size: 12px;
+      }
+      .calc-reverse-row:last-child { border-bottom: none; }
+
+      /* Factor chips */
+      .calc-factors { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 8px; }
+      .calc-factor-chip {
+        font-size: 10px; padding: 1px 6px; background: #1a1a1a;
+        border: 1px solid #333; border-radius: 2px; white-space: nowrap;
+      }
+      /* nHKO row */
+      .calc-nhko-row { display: flex; gap: 8px; font-size: 11px; flex-wrap: wrap; margin-top: 2px; }
+      /* Boost selects (table column + row) */
+      /* .calc-boost-sel consolidated below */
+      .calc-nhko-badge { font-weight: bold; font-size: 11px; }
+      /* Boost row (opponent panel) */
+      .calc-boost-row {
+        display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
+        margin: 4px 0 6px; font-size: 11px;
+      }
+      .calc-boost-label { color: #666; white-space: nowrap; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+      .calc-boost-row label { color: #888; display: flex; align-items: center; gap: 3px; cursor: pointer; }
+      /* Custom move / move search form */
+      .calc-custom-move-form { margin-top: 6px; border-top: 1px solid #222; padding-top: 6px; }
+      .calc-custom-move-form .cm-label {
+        font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px;
+      }
+      .calc-custom-move-form input[type=text],
+      .calc-custom-move-form .calc-ac-dropdown,
+      .calc-custom-move-form .calc-ac-item {
+        text-align: left;
+      }
+      .calc-custom-move-form .calc-ac-item {
+        display: flex; align-items: center; gap: 5px; justify-content: flex-start;
+      }
+      /* Custom autocomplete */
+      .calc-autocomplete-wrap { position: relative; margin-bottom: 5px; }
+      .calc-autocomplete-wrap input[type=text] { margin-bottom: 0; }
+      .calc-ac-dropdown {
+        position: absolute; top: 100%; left: 0; right: 0; z-index: 999;
+        background: #252525; border: 1px solid #555; max-height: 200px;
+        overflow-y: auto; display: none;
+      }
+      .calc-ac-dropdown::-webkit-scrollbar { width: 12px; }
+      .calc-ac-dropdown::-webkit-scrollbar-track { background: #222222; }
+      .calc-ac-dropdown::-webkit-scrollbar-thumb { background: #333333; }
+      .calc-ac-dropdown::-webkit-scrollbar-thumb:hover { background: #111111; }
+
+      /* Custom select dropdown (dark scrollbar replacement) */
+      .csel-wrap { position: relative; display: inline-block; width: 100%; }
+      .csel-display {
+        background: #252525; color: #e0e0e0; border: 1px solid #444;
+        padding: 5px 24px 5px 7px; font-size: 12px; cursor: pointer;
+        width: 100%; box-sizing: border-box; white-space: nowrap;
+        overflow: hidden; text-overflow: ellipsis;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: right 8px center;
+      }
+      .csel-display:focus { outline: 1px solid #ffd54f; }
+      .csel-dropdown {
+        display: none; position: absolute; top: 100%; left: 0; right: 0;
+        z-index: 1000; background: #252525; border: 1px solid #555;
+        max-height: 200px; overflow-y: auto;
+      }
+      .csel-dropdown::-webkit-scrollbar { width: 12px; }
+      .csel-dropdown::-webkit-scrollbar-track { background: #222222; }
+      .csel-dropdown::-webkit-scrollbar-thumb { background: #333333; }
+      .csel-dropdown::-webkit-scrollbar-thumb:hover { background: #111111; }
+      .csel-item {
+        padding: 5px 8px; font-size: 12px; cursor: pointer; color: #e0e0e0;
+      }
+      .csel-item:hover, .csel-item.active { background: #333; color: #fff; }
+      .csel-group-label {
+        padding: 4px 8px; font-size: 10px; color: #888; font-weight: bold;
+        text-transform: uppercase; letter-spacing: 0.3px;
+      }
+      .csel-wrap select { display: none !important; }
+      .calc-poke-panel .csel-wrap { margin-bottom: 5px; }
+      .calc-type-row .csel-wrap,
+      .calc-tera-row .csel-wrap { margin-bottom: 0; }
+      /* Source control custom selects need matching width */
+      .calc-source-control .csel-wrap { width: 100%; }
+      .calc-source-control .csel-display {
+        padding: 5px 24px 5px 7px;
+      }
+
+      .calc-ac-item { padding: 5px 8px; font-size: 12px; cursor: pointer; color: #e0e0e0; }
+      .calc-ac-item:hover, .calc-ac-item.active { background: #333; color: #fff; }
+      .calc-pokemon-ac-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+      .calc-ac-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: bold; }
+      .calc-ac-usage { flex: 0 0 auto; color: #ffd54f; font-family: monospace; font-size: 11px; }
+      .calc-option-ac-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; }
+
+      /* EV / SP table */
+      .calc-ev-table { border-collapse: collapse; margin: 5px 0 8px; font-size: 12px; }
+      .calc-ev-header th { padding: 2px 4px; font-size: 10px; color: #777; font-weight: normal;
+        text-transform: uppercase; letter-spacing: 0.3px; text-align: center; }
+      .calc-ev-header th:nth-child(1) { text-align: left; }
+      .calc-ev-row td { padding: 2px 4px; text-align: center; }
+      .calc-ev-row td:first-child { text-align: left; font-size: 10px; color: #888; }
+      .ev-base { color: #555; font-size: 11px; }
+      .calc-ev-input {
+        background: #1a1a1a; color: #e0e0e0; border: 1px solid #3a3a3a;
+        padding: 2px 4px; font-size: 11px; width: 42px; box-sizing: border-box;
+        -moz-appearance: textfield; text-align: center;
+      }
+      .calc-ev-input::-webkit-outer-spin-button,
+      .calc-ev-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+      .calc-iv-input {
+        background: #1a1a1a; color: #e0e0e0; border: 1px solid #3a3a3a;
+        padding: 2px 2px; font-size: 11px; width: 30px; box-sizing: border-box;
+        -moz-appearance: textfield; text-align: center;
+      }
+      .calc-iv-input::-webkit-outer-spin-button,
+      .calc-iv-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+      .ev-final {
+        text-align: right; font-family: monospace; font-size: 12px;
+      }
+      .calc-ev-total-row td { border-top: 1px solid #3a3a3a; font-size: 11px; color: #aaa; }
+      .ev-boosted { color: #a5d6a7; font-size: 11px; white-space: nowrap; }
+      .calc-boost-sel {
+        background: #1a1a1a; color: #e0e0e0; border: 1px solid #3a3a3a;
+        font-size: 10px; padding: 1px 2px; width: 42px; box-sizing: border-box; cursor: pointer;
+      }
+      .calc-speed-comp {
+        font-size: 11px;
+        margin: 6px 0 8px;
+        line-height: 1.4;
+        background: #1a1a1a;
+        border: 1px solid #333;
+        border-radius: 6px;
+        padding: 5px 8px;
+        text-align: center;
+      }
+      .calc-speed-comp:empty {
+        display: none;
+      }
+      /* Calc string output */
+      .calc-string {
+        display: flex; align-items: flex-start; gap: 8px;
+        margin: 8px 0 2px; padding: 8px 10px; background: #111; border: 1px solid #333; border-radius: 4px;
+      }
+      .calc-string-primary {
+        border-color: #555; margin: 0 0 10px; padding: 9px 10px;
+      }
+      .calc-string code {
+        flex: 1; font-family: "Consolas", "Courier New", monospace; font-size: 11px;
+        color: #bbb; white-space: pre-wrap; word-break: break-all; line-height: 1.5;
+      }
+      .calc-string-primary code { color: #ddd; font-size: 12px; }
+      .calc-copy-btn {
+        flex-shrink: 0; background: #222; border: 1px solid #555; color: #aaa; border-radius: 3px;
+        padding: 3px 8px; font-size: 10px; cursor: pointer; white-space: nowrap;
+      }
+      .calc-copy-btn:hover { background: #2a2a2a; color: #ccc; }
     </style>
   </head>
   <!-- Google tag (gtag.js) -->
@@ -612,30 +1387,53 @@
       You are viewing data from <strong id="banner-month">{{ selected_month }}</strong>.
       <button type="button" onclick="selectMonth('{{ available_months[-1] }}')" id="banner-jump-btn" style="background: none; border: 1px solid #ffd54f; color: #ffd54f; border-radius: 3px; padding: 2px 10px; margin-left: 8px; cursor: pointer; font-size: 12px;">Jump to latest</button>
     </div>
-    <div class="twitter-follow-div">
-      <a href="https://munchteams.com" target="_blank" class="munchteams-button">Check out MunchTeams!</a>
-      <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">
-        <img height="29" style="border:0px;height:29px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=3" border="0" alt="Buy Me a Coffee at ko-fi.com" />
-      </a>
-      <a href="https://twitter.com/MunchStats?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large" data-show-screen-name="false" data-dnt="true" data-show-count="false">Follow @MunchStats</a>
-      <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+    <div class="top-bar">
+      <!-- Tab bar -->
+      <div class="tab-bar">
+        <a id="tab-usage-btn" class="tab-btn{% if not calc_only %} tab-active{% endif %}" href="{{ url_for('display_pokemon_page', format_code=selected_format[0], rating_threshold=selected_rating, pokemon_name=selected_pokemon) }}">Usage Stats</a>
+        <a id="tab-tournaments-btn" class="tab-btn" href="{{ url_for('tournaments_page') }}">Tournaments</a>
+        <a id="tab-calc-btn" class="tab-btn{% if calc_only %} tab-active{% endif %}" href="{{ url_for('calc_page', format_code=selected_format[0], rating_threshold=selected_rating) }}">Damage Calc</a>
+        <a id="tab-replays-btn" class="tab-btn" href="{{ url_for('replays_page') }}">Replays</a>
+        <a id="tab-tools-btn" class="tab-btn" href="{{ url_for('tools_page') }}">Tools</a>
+      </div>
+      <div class="twitter-follow-div">
+        <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">
+          <img height="29" style="border:0px;height:29px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=3" border="0" alt="Buy Me a Coffee at ko-fi.com" />
+        </a>
+        <a href="https://twitter.com/MunchStats?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large" data-show-screen-name="false" data-dnt="true" data-show-count="false">Follow @MunchStats</a>
+        <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+      </div>
     </div>
-    <div class="grid-container">
+    <div class="grid-container{% if calc_only %} calc-page{% endif %}">
+      {% if not calc_only %}
       <div class="left" style="width: 300px;">
         <div id="pokemon-info">
-          <h3> Current Format:<br><span style="color: yellow;">{{ selected_format[1] }}</span></h3>
-          <h3> Current Glicko Rating Threshold: <span style="color: yellow;">{{ selected_rating }}</span></h3>
-          <h3> Current Pokemon:<br>
-            <div style="color: yellow;">
-              <span>{{ current_pokemon[0] }}</span>
-              <div class="image-pokemon" style="background-position: {{ current_pokemon[3][1] * -40 }}px {{ current_pokemon[3][0] * -30 }}px; position: relative;left: 135px;"></div>
+          <div class="info-pokemon-header">
+            <div class="info-pokemon-center">
+              <div class="image-pokemon" style="background-position: {{ current_pokemon[3][1] * -40 }}px {{ current_pokemon[3][0] * -30 }}px;"></div>
+              <div class="info-pokemon-name">{{ current_pokemon[0] }}</div>
+              <div class="info-types">
+                {% for type in pokemon_types %}
+                  <div class="type-{{ type }}">{{ type }}</div>
+                {% endfor %}
+              </div>
             </div>
-            {% for type in pokemon_types %}
-              <div class="type-{{ type }}">{{ type }}</div>
-            {% endfor %}
-          </h3>
-          <h3> Usage: <span style="color: yellow;">{{ current_pokemon[1] }}%</span></h3>
-          <h3> Monthly Rank: <span style="color: yellow;">{{ current_pokemon[2] }}</span></h3>
+          </div>
+          <div class="info-stats-row">
+            <div class="info-stat">
+              <span class="info-stat-label">Usage</span>
+              <span class="info-stat-value">{{ current_pokemon[1] }}%</span>
+            </div>
+            <div class="info-stat">
+              <span class="info-stat-label">Rank</span>
+              <span class="info-stat-value">#{{ current_pokemon[2] }}</span>
+            </div>
+            <div class="info-stat">
+              <span class="info-stat-label">Rating</span>
+              <span class="info-stat-value">{{ selected_rating }}+</span>
+            </div>
+          </div>
+          <div class="info-format">{{ selected_format[1] }}</div>
         </div>
         <div style="height: 50px;">
           <input type="text" id="metaSearchInput" placeholder="Search for a Format">
@@ -675,7 +1473,385 @@
           </ul>
         </div>
       </div>
-      <div class="right" id="right-panel">
+      {% endif %}
+      <div class="right{% if calc_only %} calc-page{% endif %}" id="right-panel">
+
+        {% if calc_only %}
+        <!-- Damage Calc panel -->
+        <div id="calc-panel" style="display:block;">
+
+          <div class="calc-source-controls">
+            <div class="calc-source-control">
+              <label for="calc-format-select">Format</label>
+              <select id="calc-format-select" onchange="onCalcFormatChange()">
+                {% for format in availableFormats %}
+                <option value="{{ format[0] }}" {% if format[0] == selected_format[0] %}selected{% endif %}>{{ format[1] }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="calc-source-control">
+              <label for="calc-rating-select">Rating</label>
+              <select id="calc-rating-select" onchange="onCalcRatingChange()">
+                {% for rate in rating_options %}
+                <option value="{{ rate }}" {% if rate == selected_rating %}selected{% endif %}>{{ rate }}+</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="calc-explainer" id="calc-explainer">
+            <button type="button" class="calc-explainer-toggle" onclick="toggleCalcExplainer()" id="calc-explainer-btn">
+              How does this damage calculator work? <span class="chevron">&#9660;</span>
+            </button>
+            <div class="calc-explainer-body" id="calc-explainer-body">
+              <p><strong>Unlike a standard damage calc,</strong> this calculator runs your move against every spread your opponent actually uses on ladder, weighted by popularity. Instead of guessing one EV spread, you see your real odds of getting the KO.</p>
+              <p><strong>KO breakpoints:</strong> Opponent spreads are grouped by outcome — which sets you can OHKO, which need two hits (2HKO), three hits (3HKO), and which survive. Each group shows what percentage of ladder sets fall into that range.</p>
+              <p><strong>Weighted overall:</strong> The final KO chance is averaged across all spreads by usage weight — giving you a single realistic number for how often you'll get the KO on ladder.</p>
+            </div>
+          </div>
+
+          <!-- Pokemon panels -->
+          <div class="calc-pokemon-row">
+
+            <!-- YOUR Pokemon (attacker — fully editable) -->
+            <div class="calc-poke-panel">
+              <h4 class="your-pokemon">Your Pokémon</h4>
+
+              <div class="calc-control-row">
+                <label>Pokémon</label>
+                <div class="calc-autocomplete-wrap">
+                  <input type="text" id="calc-attacker-input" placeholder="Type a name…" autocomplete="off">
+                  <div class="calc-ac-dropdown" id="calc-attacker-dropdown"></div>
+                </div>
+              </div>
+
+              <div id="calc-attacker-form-wrap" class="calc-control-stack" style="display:none;">
+                <div class="calc-control-row">
+                  <label for="calc-attacker-form">Form</label>
+                  <select id="calc-attacker-form" onchange="onAttackerFormChange()">
+                    <option value="">—</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="calc-type-row">
+                <label>Type</label>
+                <select id="calc-attacker-type1" onchange="onAttackerTypeChange()"><option value="">—</option></select>
+                <select id="calc-attacker-type2" onchange="onAttackerTypeChange()"><option value="None">None</option></select>
+              </div>
+              <div class="calc-tera-row">
+                <label>Tera</label>
+                <select id="calc-attacker-tera" onchange="onAttackerTeraChange()"><option value="None">None</option></select>
+                <button type="button" class="tera-toggle-btn" id="calc-attacker-tera-btn" onclick="onTeraToggle(true)" aria-pressed="false">Tera</button>
+              </div>
+
+              <div class="calc-control-row">
+                <label>Spread</label>
+                <div class="calc-preset-wrap" id="calc-attacker-preset-wrap">
+                  <div class="calc-preset-selected" id="calc-attacker-preset-display" tabindex="0">— load a Pokémon first —</div>
+                  <div class="calc-ac-dropdown calc-preset-dropdown" id="calc-attacker-preset-dropdown"></div>
+                </div>
+              </div>
+
+              <div class="calc-control-row">
+                <label for="calc-atk-nature">Nature</label>
+                <select id="calc-atk-nature" onchange="onAttackerStatChange()"></select>
+              </div>
+
+              <table class="calc-ev-table">
+                <thead>
+                  <tr class="calc-ev-header">
+                    <th></th><th>Base</th><th class="calc-atk-iv-col">IV</th><th><span id="calc-ev-col-label">EV</span></th><th>Mod</th><th>Final</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="calc-ev-row"><td>HP</td><td class="ev-base"><span id="calc-atk-base-hp">—</span></td><td class="calc-atk-iv-col"><input type="number" id="calc-atk-iv-hp" class="calc-iv-input" min="0" max="31" value="31" oninput="onAttackerStatChange()"></td><td><input type="number" id="calc-atk-ev-hp" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td></td><td class="ev-final"><span id="calc-atk-final-hp">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>Atk</td><td class="ev-base"><span id="calc-atk-base-atk">—</span></td><td class="calc-atk-iv-col"><input type="number" id="calc-atk-iv-atk" class="calc-iv-input" min="0" max="31" value="31" oninput="onAttackerStatChange()"></td><td><input type="number" id="calc-atk-ev-atk" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td><select id="calc-boost-atk" class="calc-boost-sel" onchange="onBoostChange('atk',true)"></select></td><td class="ev-final"><span id="calc-atk-final-atk">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>Def</td><td class="ev-base"><span id="calc-atk-base-def">—</span></td><td class="calc-atk-iv-col"><input type="number" id="calc-atk-iv-def" class="calc-iv-input" min="0" max="31" value="31" oninput="onAttackerStatChange()"></td><td><input type="number" id="calc-atk-ev-def" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td><select id="calc-boost-def" class="calc-boost-sel" onchange="onBoostChange('def',true)"></select></td><td class="ev-final"><span id="calc-atk-final-def">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>SpA</td><td class="ev-base"><span id="calc-atk-base-spa">—</span></td><td class="calc-atk-iv-col"><input type="number" id="calc-atk-iv-spa" class="calc-iv-input" min="0" max="31" value="31" oninput="onAttackerStatChange()"></td><td><input type="number" id="calc-atk-ev-spa" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td><select id="calc-boost-spa" class="calc-boost-sel" onchange="onBoostChange('spa',true)"></select></td><td class="ev-final"><span id="calc-atk-final-spa">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>SpD</td><td class="ev-base"><span id="calc-atk-base-spd">—</span></td><td class="calc-atk-iv-col"><input type="number" id="calc-atk-iv-spd" class="calc-iv-input" min="0" max="31" value="31" oninput="onAttackerStatChange()"></td><td><input type="number" id="calc-atk-ev-spd" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td><select id="calc-boost-spd" class="calc-boost-sel" onchange="onBoostChange('spd',true)"></select></td><td class="ev-final"><span id="calc-atk-final-spd">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>Spe</td><td class="ev-base"><span id="calc-atk-base-spe">—</span></td><td class="calc-atk-iv-col"><input type="number" id="calc-atk-iv-spe" class="calc-iv-input" min="0" max="31" value="31" oninput="onAttackerStatChange()"></td><td><input type="number" id="calc-atk-ev-spe" class="calc-ev-input" min="0" max="252" value="0" oninput="onAttackerStatChange()"></td><td><select id="calc-boost-spe" class="calc-boost-sel" onchange="onBoostChange('spe',true)"></select></td><td class="ev-final"><span id="calc-atk-final-spe">—</span></td></tr>
+                </tbody>
+                <tfoot>
+                  <tr class="calc-ev-row calc-ev-total-row">
+                    <td>Total</td><td></td><td class="calc-atk-iv-col"></td><td><span id="calc-atk-ev-total">0</span><span id="calc-atk-ev-max" style="color:#666;font-size:10px"> / 510</span></td><td></td><td></td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              <div id="calc-speed-comp" class="calc-speed-comp"></div>
+
+              <div class="calc-control-stack">
+                <div class="calc-control-row">
+                  <label>Ability</label>
+                  <div class="calc-ability-cell">
+                    <div class="calc-autocomplete-wrap">
+                      <input type="text" id="calc-attacker-ability" placeholder="—" autocomplete="off">
+                      <div class="calc-ac-dropdown" id="calc-attacker-ability-dropdown"></div>
+                    </div>
+                    <label class="calc-ability-activate" id="calc-attacker-ability-activate" style="display:none" title="">
+                      <input type="checkbox" id="calc-attacker-ability-activate-cb" onchange="onAbilityActivationToggle(true)">
+                    </label>
+                  </div>
+                </div>
+                <div class="calc-control-row">
+                  <label>Item</label>
+                  <div class="calc-autocomplete-wrap">
+                    <input type="text" id="calc-attacker-item" placeholder="None" autocomplete="off">
+                    <div class="calc-ac-dropdown" id="calc-attacker-item-dropdown"></div>
+                  </div>
+                </div>
+                <div class="calc-control-row">
+                  <label for="calc-attacker-status">Status</label>
+                  <select id="calc-attacker-status" onchange="onAttackerStatusChange()">
+                    <option value="Healthy">Healthy</option>
+                    <option value="Burned">Burned</option>
+                    <option value="Poisoned">Poisoned</option>
+                    <option value="Badly Poisoned">Badly Poisoned</option>
+                    <option value="Paralyzed">Paralyzed</option>
+                    <option value="Asleep">Asleep</option>
+                    <option value="Frozen">Frozen</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="calc-moves-label">Moves <span style="color:#555">— click to analyze</span></div>
+              <div class="calc-move-list" id="calc-atk-movelist">
+                <div style="color:#444;font-size:11px">Load a Pokémon to see moves</div>
+              </div>
+
+              <div class="calc-custom-move-form">
+                <div class="cm-label">Search any move</div>
+                <div class="calc-autocomplete-wrap">
+                  <input type="text" id="calc-atk-move-search" placeholder="e.g. Close Combat…" autocomplete="off"
+                    oninput="searchMoves(this.value, true)">
+                  <div class="calc-ac-dropdown" id="calc-atk-move-dropdown"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="calc-field-panel">
+              <h4>Field</h4>
+
+              <div class="calc-field-section">
+                <div class="calc-field-label">Format</div>
+                <div class="calc-field-buttons">
+                  <label class="calc-field-radio">
+                    <input type="radio" name="calc-field-format-mode" value="Singles" onchange="onFieldChange()">
+                    <span>Singles</span>
+                  </label>
+                  <label class="calc-field-radio">
+                    <input type="radio" name="calc-field-format-mode" value="Doubles" checked onchange="onFieldChange()">
+                    <span>Doubles</span>
+                  </label>
+                </div>
+              </div>
+
+              <div class="calc-field-section">
+                <div class="calc-field-label">Terrain</div>
+                <div class="calc-field-buttons">
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-terrain-mode" value="None" checked onchange="onFieldChange()"><span>None</span></label>
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-terrain-mode" value="Electric" onchange="onFieldChange()"><span>Electric</span></label>
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-terrain-mode" value="Grassy" onchange="onFieldChange()"><span>Grassy</span></label>
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-terrain-mode" value="Misty" onchange="onFieldChange()"><span>Misty</span></label>
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-terrain-mode" value="Psychic" onchange="onFieldChange()"><span>Psychic</span></label>
+                </div>
+              </div>
+
+              <div class="calc-field-section">
+                <div class="calc-field-label">Weather</div>
+                <div class="calc-field-buttons">
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-weather-mode" value="None" checked onchange="onFieldChange()"><span>None</span></label>
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-weather-mode" value="Sun" onchange="onFieldChange()"><span>Sun</span></label>
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-weather-mode" value="Rain" onchange="onFieldChange()"><span>Rain</span></label>
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-weather-mode" value="Sand" onchange="onFieldChange()"><span>Sand</span></label>
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-weather-mode" value="Snow" onchange="onFieldChange()"><span>Snow</span></label>
+                </div>
+              </div>
+
+              <div class="calc-field-section">
+                <div class="calc-field-label">Global</div>
+                <div class="calc-field-buttons">
+                  <label class="calc-field-toggle"><input type="checkbox" id="calc-field-gravity" onchange="onFieldChange()"><span>Gravity</span></label>
+                  <label class="calc-field-toggle"><input type="checkbox" id="calc-field-trickroom" onchange="onFieldChange()"><span>Trick Room</span></label>
+                </div>
+              </div>
+
+              <div class="calc-field-section">
+                <div class="calc-field-sides">
+                  <div class="calc-field-side">
+                    <div class="calc-field-side-head">Attacker's Side</div>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-your-reflect" onchange="onFieldChange()"><span>Reflect</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-your-lightscreen" onchange="onFieldChange()"><span>Light Screen</span></label>
+                  </div>
+                  <div class="calc-field-side">
+                    <div class="calc-field-side-head">Defender's Side</div>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-reflect" onchange="onFieldChange()"><span>Reflect</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-lightscreen" onchange="onFieldChange()"><span>Light Screen</span></label>
+                  </div>
+                </div>
+                <div class="calc-field-sides calc-field-more-sides" id="calc-sides-more" style="display:none">
+                  <div class="calc-field-side">
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-your-helpinghand" onchange="onFieldChange()"><span>Helping Hand</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-your-tailwind" onchange="onFieldChange()"><span>Tailwind</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-your-auroraveil" onchange="onFieldChange()"><span>Aurora Veil</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-your-friendguard" onchange="onFieldChange()"><span>Friend Guard</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-your-protect" onchange="onFieldChange()"><span>Protect</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-your-battery" onchange="onFieldChange()"><span>Battery</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-your-powerspot" onchange="onFieldChange()"><span>Power Spot</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-your-steelyspirit" onchange="onFieldChange()"><span>Steely Spirit</span></label>
+                  </div>
+                  <div class="calc-field-side">
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-helpinghand" onchange="onFieldChange()"><span>Helping Hand</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-tailwind" onchange="onFieldChange()"><span>Tailwind</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-auroraveil" onchange="onFieldChange()"><span>Aurora Veil</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-friendguard" onchange="onFieldChange()"><span>Friend Guard</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-protect" onchange="onFieldChange()"><span>Protect</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-battery" onchange="onFieldChange()"><span>Battery</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-powerspot" onchange="onFieldChange()"><span>Power Spot</span></label>
+                    <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-steelyspirit" onchange="onFieldChange()"><span>Steely Spirit</span></label>
+                  </div>
+                </div>
+                <button type="button" class="calc-field-expand-btn" id="calc-sides-more-btn" onclick="toggleFieldMore('calc-sides-more', this)">More ▾</button>
+              </div>
+            </div>
+
+            <!-- OPPONENT (defender — stats from usage data or manual) -->
+            <div class="calc-poke-panel">
+              <h4 id="calc-defender-header" class="avg-pokemon">Average Opponent</h4>
+
+              <div class="calc-control-row">
+                <label>Pokémon</label>
+                <div class="calc-autocomplete-wrap">
+                  <input type="text" id="calc-defender-input" placeholder="Type a name…" autocomplete="off">
+                  <div class="calc-ac-dropdown" id="calc-defender-dropdown"></div>
+                </div>
+              </div>
+
+              <div id="calc-defender-form-wrap" class="calc-control-stack" style="display:none;">
+                <div class="calc-control-row">
+                  <label for="calc-defender-form">Form</label>
+                  <select id="calc-defender-form" onchange="onDefenderFormChange()">
+                    <option value="">—</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="calc-type-row">
+                <label>Type</label>
+                <select id="calc-defender-type1" onchange="onDefenderTypeChange()"><option value="">—</option></select>
+                <select id="calc-defender-type2" onchange="onDefenderTypeChange()"><option value="None">None</option></select>
+              </div>
+              <div class="calc-tera-row">
+                <label>Tera</label>
+                <select id="calc-defender-tera" onchange="onDefenderTeraChange()"><option value="None">None</option></select>
+                <button type="button" class="tera-toggle-btn" id="calc-defender-tera-btn" onclick="onTeraToggle(false)" aria-pressed="false">Tera</button>
+              </div>
+
+              <div class="calc-control-row">
+                <label>Spread</label>
+                <div class="calc-preset-wrap" id="calc-defender-preset-wrap">
+                  <div class="calc-preset-selected" id="calc-defender-preset-display" tabindex="0">— load a Pokémon first —</div>
+                  <div class="calc-ac-dropdown calc-preset-dropdown" id="calc-defender-preset-dropdown"></div>
+                </div>
+              </div>
+
+              <div class="calc-control-row">
+                <label>Nature</label>
+                <select id="calc-defender-nature" disabled onchange="onDefenderStatChange()">
+                  <option>Average</option>
+                </select>
+              </div>
+
+              <table class="calc-ev-table">
+                <thead>
+                  <tr class="calc-ev-header">
+                    <th></th><th>Base</th><th class="calc-def-iv-col">IV</th><th><span id="calc-def-ev-col-label">Avg</span></th><th>Mod</th><th>Final</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr class="calc-ev-row"><td>HP</td><td class="ev-base"><span id="calc-def-base-hp">—</span></td><td class="calc-def-iv-col"><input type="number" id="calc-def-iv-hp" class="calc-iv-input" min="0" max="31" value="31" oninput="onDefenderStatChange()"></td><td class="ev-base"><span id="calc-def-avg-hp" class="def-avg-cell">—</span><input type="number" id="calc-def-ev-hp" class="calc-ev-input def-ev-cell" min="0" max="252" value="0" oninput="onDefenderStatChange()" style="display:none"></td><td></td><td class="ev-final"><span id="calc-def-final-hp">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>Atk</td><td class="ev-base"><span id="calc-def-base-atk">—</span></td><td class="calc-def-iv-col"><input type="number" id="calc-def-iv-atk" class="calc-iv-input" min="0" max="31" value="31" oninput="onDefenderStatChange()"></td><td class="ev-base"><span id="calc-def-avg-atk" class="def-avg-cell">—</span><input type="number" id="calc-def-ev-atk" class="calc-ev-input def-ev-cell" min="0" max="252" value="0" oninput="onDefenderStatChange()" style="display:none"></td><td><select id="calc-boost-opp-atk" class="calc-boost-sel" onchange="onBoostChange('atk',false)"></select></td><td class="ev-final"><span id="calc-def-final-atk">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>Def</td><td class="ev-base"><span id="calc-def-base-def">—</span></td><td class="calc-def-iv-col"><input type="number" id="calc-def-iv-def" class="calc-iv-input" min="0" max="31" value="31" oninput="onDefenderStatChange()"></td><td class="ev-base"><span id="calc-def-avg-def" class="def-avg-cell">—</span><input type="number" id="calc-def-ev-def" class="calc-ev-input def-ev-cell" min="0" max="252" value="0" oninput="onDefenderStatChange()" style="display:none"></td><td><select id="calc-boost-opp-def" class="calc-boost-sel" onchange="onBoostChange('def',false)"></select></td><td class="ev-final"><span id="calc-def-final-def">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>SpA</td><td class="ev-base"><span id="calc-def-base-spa">—</span></td><td class="calc-def-iv-col"><input type="number" id="calc-def-iv-spa" class="calc-iv-input" min="0" max="31" value="31" oninput="onDefenderStatChange()"></td><td class="ev-base"><span id="calc-def-avg-spa" class="def-avg-cell">—</span><input type="number" id="calc-def-ev-spa" class="calc-ev-input def-ev-cell" min="0" max="252" value="0" oninput="onDefenderStatChange()" style="display:none"></td><td><select id="calc-boost-opp-spa" class="calc-boost-sel" onchange="onBoostChange('spa',false)"></select></td><td class="ev-final"><span id="calc-def-final-spa">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>SpD</td><td class="ev-base"><span id="calc-def-base-spd">—</span></td><td class="calc-def-iv-col"><input type="number" id="calc-def-iv-spd" class="calc-iv-input" min="0" max="31" value="31" oninput="onDefenderStatChange()"></td><td class="ev-base"><span id="calc-def-avg-spd" class="def-avg-cell">—</span><input type="number" id="calc-def-ev-spd" class="calc-ev-input def-ev-cell" min="0" max="252" value="0" oninput="onDefenderStatChange()" style="display:none"></td><td><select id="calc-boost-opp-spd" class="calc-boost-sel" onchange="onBoostChange('spd',false)"></select></td><td class="ev-final"><span id="calc-def-final-spd">—</span></td></tr>
+                  <tr class="calc-ev-row"><td>Spe</td><td class="ev-base"><span id="calc-def-base-spe">—</span></td><td class="calc-def-iv-col"><input type="number" id="calc-def-iv-spe" class="calc-iv-input" min="0" max="31" value="31" oninput="onDefenderStatChange()"></td><td class="ev-base"><span id="calc-def-avg-spe" class="def-avg-cell">—</span><input type="number" id="calc-def-ev-spe" class="calc-ev-input def-ev-cell" min="0" max="252" value="0" oninput="onDefenderStatChange()" style="display:none"></td><td><select id="calc-boost-opp-spe" class="calc-boost-sel" onchange="onBoostChange('spe',false)"></select></td><td class="ev-final"><span id="calc-def-final-spe">—</span></td></tr>
+                </tbody>
+                <tfoot id="calc-def-ev-total-row" style="display:none">
+                  <tr class="calc-ev-row calc-ev-total-row">
+                    <td>Total</td><td></td><td class="calc-def-iv-col"></td><td><span id="calc-def-ev-total">0</span><span id="calc-def-ev-max" style="color:#666;font-size:10px"> / 510</span></td><td></td><td></td>
+                  </tr>
+                </tfoot>
+              </table>
+
+              <div id="calc-speed-comp-opp" class="calc-speed-comp"></div>
+
+              <div class="calc-control-stack">
+                <div class="calc-control-row">
+                  <label>Ability</label>
+                  <div class="calc-ability-cell">
+                    <div class="calc-autocomplete-wrap">
+                      <input type="text" id="calc-defender-ability" placeholder="—" autocomplete="off">
+                      <div class="calc-ac-dropdown" id="calc-defender-ability-dropdown"></div>
+                    </div>
+                    <label class="calc-ability-activate" id="calc-defender-ability-activate" style="display:none" title="">
+                      <input type="checkbox" id="calc-defender-ability-activate-cb" onchange="onAbilityActivationToggle(false)">
+                    </label>
+                  </div>
+                </div>
+                <div class="calc-control-row">
+                  <label>Item</label>
+                  <div class="calc-autocomplete-wrap">
+                    <input type="text" id="calc-defender-item" placeholder="None" autocomplete="off">
+                    <div class="calc-ac-dropdown" id="calc-defender-item-dropdown"></div>
+                  </div>
+                </div>
+                <div class="calc-control-row">
+                  <label for="calc-defender-status">Status</label>
+                  <select id="calc-defender-status" onchange="onDefenderStatusChange()">
+                    <option value="Healthy">Healthy</option>
+                    <option value="Burned">Burned</option>
+                    <option value="Poisoned">Poisoned</option>
+                    <option value="Badly Poisoned">Badly Poisoned</option>
+                    <option value="Paralyzed">Paralyzed</option>
+                    <option value="Asleep">Asleep</option>
+                    <option value="Frozen">Frozen</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="calc-moves-label">Opponent's Moves <span style="color:#555">— click to analyze</span></div>
+              <div class="calc-move-list" id="calc-def-movelist">
+                <div style="color:#444;font-size:11px">Load an opponent to see moves</div>
+              </div>
+
+              <div class="calc-custom-move-form">
+                <div class="cm-label">Search any move</div>
+                <div class="calc-autocomplete-wrap">
+                  <input type="text" id="calc-def-move-search" placeholder="e.g. Flamethrower…" autocomplete="off"
+                    oninput="searchMoves(this.value, false)">
+                  <div class="calc-ac-dropdown" id="calc-def-move-dropdown"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Results: tiered breakdown for selected move -->
+          <div id="calc-results">
+            <div style="color:#555;padding:6px 0;font-size:12px;">
+              Select a Pokémon and opponent, then click a move to see the full damage breakdown.
+            </div>
+          </div>
+
+          <p style="color:#444;font-size:11px;margin-top:6px;">
+            KO% is weighted across usage spreads. Frail/Average/Bulky tiers are split by defensive stat percentile.
+          </p>
+        </div>
+        {% endif %}
+
+        {% if not calc_only %}
+        <!-- Usage Stats panel (existing content) -->
+        <div id="usage-panel" style="display:contents;">
         <div class="Stats">
           <h2>Base Stats</h2>
           {% if base_stats|length > 0 %}
@@ -970,10 +2146,15 @@
           </div>
         </div>
         {% endif %}
-      </div>
-    </div>
-    <div style="text-align: center; position: relative; display: inline-block; width: 100%;" id="footer-month-container">
+        </div><!-- end #usage-panel -->
+        {% endif %}
+      </div><!-- end .right -->
+    </div><!-- end .grid-container -->
+    <div style="text-align: center; position: relative; display: inline-block; width: 100%; margin-top: 20px;" id="footer-month-container">
       <h6 style="display: inline;">Usage stats data from </h6>
+      {% if calc_only %}
+      <h6 style="display: inline;" id="month-display">{{ selected_month }}</h6>
+      {% else %}
       <div class="month-selector" id="month-selector" style="display: inline-block; position: relative; padding: 0;">
         <button type="button" class="month-toggle" id="month-toggle" style="width: auto; padding: 3px 10px; font-size: 12px;">
           <span id="month-display">{{ selected_month }}</span>
@@ -987,11 +2168,12 @@
           {% endfor %}
         </div>
       </div>
+      {% endif %}
     </div>
-    <div style="text-align: center; height: 32px">
-      <h6><a href="/about">About</a></h6>
-      <h6>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</h6>
-    </div>
+    <footer style="text-align: center; padding: 6px 20px 20px; color: #666; font-size: 12px;">
+      <p><a href="/about" style="color: #ffd54f; text-decoration: none;">About</a></p>
+      <p>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</p>
+    </footer>
     <div class="tooltip" id="tooltip"></div>
     <script>
       function decodeHtmlEntities(encodedString) {
@@ -1010,9 +2192,17 @@
       window.selectedMonth = "{{ selected_month }}";
       window.availableMonths = {{ available_months | tojson }};
       window.isChampions = {{ is_champions | tojson }};
+      window.isCalcPage = {{ calc_only | default(false) | tojson }};
+      window.calcFormatRatings = {{ calc_format_ratings | default({}) | tojson }};
       window.trendMonths = {{ trend_months | tojson }};
       window.trendUsage = {{ trend_usage | tojson }};
       window.teraType = {% if tera_types_list|length > 0 %}"{{ tera_types_list[0][0] }}"{% else %}""{% endif %};
+      window.calcPokemonOptions = [
+        {% for p in pokemon_names %}
+        { name: {{ p[0] | tojson }}, usage: {{ p[1] | tojson }} }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ];
+      window.calcPokemonNames = window.calcPokemonOptions.map(p => p.name);
       window.initialMoves = [
         {% for move in moves_list[:4] if move[0] != "Nothing" %}
           "{{ move[0] }}"{% if not loop.last %},{% endif %}
@@ -1020,7 +2210,158 @@
       ];
     </script>
 
-    <!-- External JavaScript file -->
-    <script src="{{ url_for('static', filename='tools_2.3.js') }}"></script>
+    <!-- External JavaScript files -->
+    {% if not calc_only %}
+    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=2"></script>
+    {% endif %}
+    {% if calc_only %}
+    <script src="{{ url_for('static', filename='vendor/smogon-calc.js') }}"></script>
+    <script src="{{ url_for('static', filename='damage_calc.js') }}"></script>
+    <script>
+    (function() {
+      // Custom select replacement for dark-themed scrollbars
+      var SKIP = '.calc-boost-sel, .move-hits-select';
+
+      function customizeSelect(sel) {
+        if (sel._cselInit || sel.matches(SKIP)) return;
+        sel._cselInit = true;
+
+        var wrap = document.createElement('div');
+        wrap.className = 'csel-wrap';
+        sel.parentNode.insertBefore(wrap, sel);
+        wrap.appendChild(sel);
+
+        var display = document.createElement('div');
+        display.className = 'csel-display';
+        display.tabIndex = 0;
+        wrap.insertBefore(display, sel);
+
+        var dropdown = document.createElement('div');
+        dropdown.className = 'csel-dropdown';
+        wrap.appendChild(dropdown);
+
+        function buildItems() {
+          var html = '';
+          var opts = sel.querySelectorAll('option, optgroup');
+          opts.forEach(function(node) {
+            if (node.tagName === 'OPTGROUP') {
+              html += '<div class="csel-group-label">' + node.label + '</div>';
+              var children = node.querySelectorAll('option');
+              children.forEach(function(opt) {
+                html += '<div class="csel-item" data-value="' + opt.value + '">' + opt.textContent + '</div>';
+              });
+            } else if (node.parentElement === sel) {
+              html += '<div class="csel-item" data-value="' + node.value + '">' + node.textContent + '</div>';
+            }
+          });
+          dropdown.innerHTML = html;
+          syncDisplay();
+        }
+
+        function syncDisplay() {
+          var opt = sel.options[sel.selectedIndex];
+          display.textContent = opt ? opt.textContent : '';
+        }
+
+        function openDropdown() {
+          dropdown.style.display = 'block';
+          // Scroll active item into view
+          var active = dropdown.querySelector('.csel-item.active');
+          if (active) active.scrollIntoView({ block: 'nearest' });
+        }
+
+        function closeDropdown() {
+          dropdown.style.display = 'none';
+        }
+
+        function highlightActive() {
+          dropdown.querySelectorAll('.csel-item').forEach(function(el) {
+            el.classList.toggle('active', el.dataset.value === sel.value);
+          });
+        }
+
+        display.addEventListener('click', function(e) {
+          e.stopPropagation();
+          // Close all other open custom selects
+          document.querySelectorAll('.csel-dropdown').forEach(function(d) {
+            if (d !== dropdown) d.style.display = 'none';
+          });
+          if (dropdown.style.display === 'block') {
+            closeDropdown();
+          } else {
+            highlightActive();
+            openDropdown();
+          }
+        });
+
+        display.addEventListener('keydown', function(e) {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            display.click();
+          } else if (e.key === 'Escape') {
+            closeDropdown();
+          }
+        });
+
+        dropdown.addEventListener('click', function(e) {
+          var item = e.target.closest('.csel-item');
+          if (!item) return;
+          sel.value = item.dataset.value;
+          closeDropdown();
+          sel.dispatchEvent(new Event('change', { bubbles: true }));
+        });
+
+        document.addEventListener('click', function() {
+          closeDropdown();
+        });
+
+        wrap.addEventListener('click', function(e) {
+          e.stopPropagation();
+        });
+
+        // Watch for innerHTML changes on the select (dynamic option rebuilds)
+        var observer = new MutationObserver(function() {
+          buildItems();
+        });
+        observer.observe(sel, { childList: true, subtree: true, characterData: true });
+
+        // Intercept programmatic .value and .selectedIndex changes
+        var origValueDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'value');
+        var origIdxDesc = Object.getOwnPropertyDescriptor(HTMLSelectElement.prototype, 'selectedIndex');
+
+        Object.defineProperty(sel, 'value', {
+          get: function() { return origValueDesc.get.call(this); },
+          set: function(v) { origValueDesc.set.call(this, v); syncDisplay(); },
+          configurable: true
+        });
+
+        Object.defineProperty(sel, 'selectedIndex', {
+          get: function() { return origIdxDesc.get.call(this); },
+          set: function(v) { origIdxDesc.set.call(this, v); syncDisplay(); },
+          configurable: true
+        });
+
+        // Handle disabled state
+        if (sel.disabled) {
+          display.style.opacity = '0.5';
+          display.style.pointerEvents = 'none';
+        }
+        var disabledObs = new MutationObserver(function() {
+          display.style.opacity = sel.disabled ? '0.5' : '';
+          display.style.pointerEvents = sel.disabled ? 'none' : '';
+        });
+        disabledObs.observe(sel, { attributes: true, attributeFilter: ['disabled'] });
+
+        buildItems();
+      }
+
+      function initAllCustomSelects() {
+        document.querySelectorAll('#calc-panel select:not(' + SKIP + ')').forEach(customizeSelect);
+      }
+
+      initAllCustomSelects();
+    })();
+    </script>
+    {% endif %}
   </body>
 </html>

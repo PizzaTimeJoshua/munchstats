@@ -1,0 +1,359 @@
+.utilichart, .utilichart li {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+	display: block;
+	clear: both;
+	word-wrap: normal;
+}
+
+.utilichart li > a, .utilitychart li > div {
+	display: block;
+	height: 30px;
+	padding: 0 0 0 4px;
+	border: 1px solid transparent;
+	margin: 0 5px 1px 5px;
+	text-decoration: none;
+}
+.utilichart li > a.cur {
+	border-color: #CCCCCC;
+	background: #F2F2F2;
+}
+.utilichart .filter,
+.searchboxwrapper .filter {
+	padding:1px 3px;
+	border-radius: 3px;
+	border: 1px solid #777;
+	background: #EEE;
+	color: black;
+	font-size: 9pt;
+	font-family: Verdana, sans-serif;
+	font-weight: bold;
+	cursor: pointer;
+}
+.utilichart .filter:hover,
+.searchboxwrapper .filter:hover {
+	color: #777777;
+	text-decoration: line-through;
+}
+.searchboxwrapper .filter.noclear:hover {
+	color: black;
+	text-decoration: none;
+	cursor: default;
+}
+.utilichart .filter i,
+.searchboxwrapper .filter i {
+	color: #999999;
+}
+.utilichart .filter:hover i,
+.searchboxwrapper .filter:hover i {
+	color: #BB2222;
+}
+.resultheader,
+.utilichart li.resultheader,
+.utilichart .result {
+	height: 32px;
+	padding: 1px 0 0 0;
+	contain: strict;
+}
+.message .utilichart .result, .chat .utilichart .result, .notice .utilichart .result {
+	height: auto;
+	contain: none;
+}
+.result p,
+.resultheader p,
+.utilichart .result p {
+	padding: 7px 0 0 8px;
+	margin: 0;
+}
+.utilichart h3,
+.dexentry h3,
+.resultheader h3 {
+	margin: 5px 0 0 -1px;
+	padding: 3px 8px;
+	font-family: Verdana, sans-serif;
+	font-size: 10pt;
+
+	background: #DAE5F0;
+	color: black;
+	border: 1px solid #AAAAAA;
+	text-shadow: 1px 1px 0 rgba(255,255,255,.6);
+	/* box-shadow: inset 1px 1px 0 rgba(255,255,255,.6), 0px 2px 2px rgba(0,0,0,.15); */
+	box-shadow: inset 1px 1px 0 rgba(255,255,255,.6);
+}
+.utilichart li > em {
+	display: block;
+	padding: 0 8px;
+	font-size: 10pt;
+}
+.utilichart .col {
+	float: left;
+	padding-top: 7px;
+	height: 22px;
+	font-size: 9pt;
+	color: #444444;
+}
+.utilichart .iconcol {
+	padding-top: 0px;
+	width: 40px;
+	height: 30px;
+}
+.utilichart .iconcol span {
+	display: block;
+	width: 40px;
+	height: 30px;
+	background: transparent none no-repeat scroll 0px -8px;
+}
+.utilichart .itemiconcol {
+	padding-top: 3px;
+	width: 24px;
+	height: 27px;
+}
+.utilichart .itemiconcol span {
+	display: block;
+	width: 24px;
+	height: 24px;
+	background: transparent none no-repeat scroll 0px 0px;
+}
+.utilichart .numcol {
+	width: 24px;
+	padding-right: 5px;
+	text-align: right;
+	color: #999999;
+	padding-top: 8px;
+	font-size: 8pt;
+	white-space: nowrap;
+}
+.utilichart .statcol,
+.utilichart .bstcol,
+.utilichart .labelcol,
+.utilichart .widelabelcol,
+.utilichart .pplabelcol {
+	padding-top: 1px;
+	height: 28px;
+	width: 24px;
+	text-align: right;
+	font-size: 8pt;
+}
+.utilichart .labelcol {
+	text-align: center;
+	width: 30px;
+	margin-left: -2px;
+}
+.utilichart .widelabelcol {
+	text-align: center;
+	width: 50px;
+}
+.utilichart .pplabelcol {
+	text-align: center;
+	width: 18px;
+	padding-right: 5px;
+}
+.utilichart .bstcol {
+	padding-left: 2px;
+}
+.utilichart .labelcol em,
+.utilichart .widelabelcol em,
+.utilichart .pplabelcol em,
+.utilichart .statcol em,
+.utilichart .bstcol em {
+	color: #999999;
+	font-size: 7pt;
+	font-style: normal;
+}
+.utilichart .stattitlecol {
+	padding-top: 2px;
+	width: 20px;
+	text-align: right;
+	font-size: 7pt;
+	color: #999999;
+}
+.utilichart .namecol {
+	padding-top: 6px;
+	height: 23px;
+	width: 120px;
+	color: #000000;
+	font-size: 10pt;
+}
+.utilichart .pokemonnamecol {
+	padding-top: 6px;
+	height: 23px;
+	width: 127px;
+	color: #000000;
+	font-size: 10pt;
+	white-space: nowrap;
+}
+.utilichart .shortpokemonnamecol {
+	padding-top: 6px;
+	height: 23px;
+	width: 118px;
+	color: #000000;
+	font-size: 10pt;
+	white-space: nowrap;
+}
+.utilichart .movenamecol {
+	padding-top: 6px;
+	height: 23px;
+	width: 152px;
+	color: #000000;
+	font-size: 10pt;
+}
+.utilichart .shortmovenamecol {
+	padding-top: 6px;
+	height: 23px;
+	width: 112px;
+	color: #000000;
+	font-size: 10pt;
+}
+.utilichart .tagcol {
+	padding-top: 6px;
+	height: 24px;
+	width: 34px;
+	border-right: 1px solid #CCCCCC;
+	margin-right: 5px;
+	text-align: center;
+	color: #000000;
+	font-size: 10pt;
+}
+.utilichart .tagcol.shorttagcol {
+	margin-right: 1px;
+}
+.utilichart .typecol {
+	width: 70px;
+}
+.utilichart .abilitycol {
+	padding-top: 8px;
+	height: 21px;
+	font-size: 8pt;
+	width: 86px;
+	text-align: center;
+	white-space: nowrap;
+}
+.utilichart .twoabilitycol {
+	padding-top: 1px;
+	height: 28px;
+	font-size: 8pt;
+	width: 86px;
+	text-align: center;
+	white-space: nowrap;
+}
+.utilichart .hacol {
+	font-style: italic;
+}
+.utilichart .unreleasedhacol {
+	font-style: italic;
+	text-decoration: line-through;
+}
+.utilichart b {
+	color: #4488CC;
+	text-decoration: underline;
+}
+.utilichart small {
+	font-size: 8pt;
+}
+.utilichart small b {
+	font-weight: normal;
+}
+.utilichart .illegalcol em {
+	padding: 2px 4px;
+	height: auto;
+	border: 1px solid #AA2222;
+	color: #AA2222;
+	border-radius: 4px;
+}
+.utilichart .filtercol em {
+	padding: 2px 4px;
+	height: auto;
+	border: 1px solid #22AA22;
+	color: #22AA22;
+	border-radius: 4px;
+}
+.utilichart .typecol img {
+	opacity: 0.6;
+	margin-right: 1px;
+}
+.utilichart .typecol img.b {
+	opacity: 1;
+	outline: #4488CC solid 1px;
+	outline-offset: 0;
+	background: #4488CC;
+}
+.utilichart .itemdesccol,
+.utilichart .abilitydesccol,
+.utilichart .movedesccol {
+	white-space: nowrap;
+	padding-top: 8px;
+	font-size: 8pt;
+	width: 488px;
+	height: 21px;
+	overflow: hidden;
+	color: #777777;
+}
+.utilichart .movedesccol {
+	width: 284px;
+}
+.utilichart .itemdesccol {
+	width: 464px;
+}
+
+.utilichart .sortrow {
+	background: #D0D0D0;
+	border-bottom: 1px solid #888;
+	height: 20px;
+	color: black;
+}
+.utilichart .sortcol {
+	font-family: Verdana, sans-serif;
+	font-size: 8pt;
+	background: transparent;
+	color: black;
+	float: left;
+	border-radius: 0;
+	border: 0;
+	padding: 0 0 0 0;
+	text-align: center;
+	height: 20px;
+}
+.utilichart .sortcol.cur {
+	font-weight: bold;
+	background: #E0E0E0;
+}
+.utilichart .sortcol:hover {
+	background: #F0F0F0;
+}
+.utilichart .sortcol.numsortcol.cur,
+.utilichart .sortcol.numsortcol.cur:hover {
+	background: #D0D0D0;
+	cursor: default;
+}
+.utilichart .numsortcol {
+	width: 80px;
+}
+.utilichart .pnamesortcol {
+	width: 127px;
+}
+.utilichart .typesortcol {
+	width: 70px;
+}
+.utilichart .abilitysortcol {
+	width: 172px;
+}
+.utilichart .statsortcol {
+	width: 24px;
+	text-align: right;
+}
+.utilichart .movenamesortcol {
+	width: 159px;
+}
+.utilichart .movetypesortcol {
+	width: 35px;
+}
+.utilichart .powersortcol {
+	width: 30px;
+}
+.utilichart .accuracysortcol {
+	width: 49px;
+}
+.utilichart .ppsortcol {
+	width: 23px;
+}

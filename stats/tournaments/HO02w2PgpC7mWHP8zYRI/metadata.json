@@ -1,0 +1,13 @@
+{
+  "id": "HO02w2PgpC7mWHP8zYRI",
+  "name": "2026 Houston Pokémon VGC Regional Championships",
+  "date": "2026-03-20",
+  "location": "2026 Houston Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 625,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 57,
+  "teams_scraped": 625,
+  "scraped_at": "2026-05-30T09:04:35.994552Z",
+  "day2_source": "pairings"
+}

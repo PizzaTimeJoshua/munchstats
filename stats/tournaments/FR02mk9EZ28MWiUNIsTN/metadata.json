@@ -1,0 +1,13 @@
+{
+  "id": "FR02mk9EZ28MWiUNIsTN",
+  "name": "2026 Frankfurt Pokémon VGC Regional Championships",
+  "date": "2025-09-13",
+  "location": "2026 Frankfurt Pokémon Regional Championships",
+  "type": "Regional",
+  "total_players": 742,
+  "topcut_cutoff_standing": 8,
+  "day2_cutoff_standing": 67,
+  "teams_scraped": 742,
+  "scraped_at": "2026-05-30T13:58:50.449245Z",
+  "day2_source": "pairings"
+}

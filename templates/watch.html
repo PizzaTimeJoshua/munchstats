@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Replay Viewer</title>
+<link rel="stylesheet" href="/static/replay_assets/style/font-awesome.css?v=2" />
+<link rel="stylesheet" href="/static/replay_assets/style/battle.css?v=2" />
+<link rel="stylesheet" href="/static/replay_assets/style/replay.css?v=2" />
+<link rel="stylesheet" href="/static/replay_assets/style/utilichart.css?v=2" />
+<link rel="stylesheet" href="/static/replay_assets/style/replay-override.css?v=2" />
+<style>
+body {
+  background: #1e1e1e;
+  color: #ccc;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+.loading-state {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  color: #e0e0e0;
+  font-size: 16px;
+}
+.error-state {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  color: #e0e0e0;
+  font-size: 16px;
+  flex-direction: column;
+  gap: 12px;
+}
+.error-state a {
+  color: #ffd54f;
+  text-decoration: none;
+}
+</style>
+</head>
+<body class="dark">
+<div class="loading-state" id="loadingState">Loading replay...</div>
+<div class="error-state" id="errorState">
+  <div>Failed to load replay.</div>
+  <a id="fallbackLink" href="#" target="_blank">Open on Pokemon Showdown</a>
+</div>
+<div class="wrapper replay-wrapper" style="max-width:1180px;margin:0 auto;display:none" id="replayWrapper">
+  <input type="hidden" name="replayid" value="{{ replay_id }}" />
+  <div class="battle"></div>
+  <div class="battle-log"></div>
+  <div class="replay-controls"></div>
+  <div class="replay-controls-2"></div>
+  <script type="text/plain" class="battle-log-data" id="logData"></script>
+</div>
+
+<!-- Load Showdown scripts in correct order -->
+<script>window.exports = window;</script>
+<script src="/static/replay_assets/js/lib/ps-polyfill.js?v=2"></script>
+<script src="/static/replay_assets/config/config.js?v=2"></script>
+<script src="/static/replay_assets/js/lib/jquery-1.11.0.min.js?v=2"></script>
+<script src="/static/replay_assets/js/lib/html-sanitizer-minified.js?v=2"></script>
+<script src="/static/replay_assets/js/battle-sound.js?v=2"></script>
+<script src="/static/replay_assets/js/battledata.js?v=2"></script>
+<script src="/static/replay_assets/data/pokedex-mini.js?v=2"></script>
+<script src="/static/replay_assets/data/pokedex-mini-bw.js?v=2"></script>
+<script src="/static/replay_assets/data/graphics.js?v=2"></script>
+<script src="/static/replay_assets/data/pokedex.js?v=2"></script>
+<script src="/static/replay_assets/data/moves.js?v=2"></script>
+<script src="/static/replay_assets/data/abilities.js?v=2"></script>
+<script src="/static/replay_assets/data/items.js?v=2"></script>
+<script src="/static/replay_assets/data/teambuilder-tables.js?v=2"></script>
+<script src="/static/replay_assets/js/battle-tooltips.js?v=2"></script>
+<script src="/static/replay_assets/js/battle.js?v=2"></script>
+
+<script>
+var Replays = {
+  battle: null,
+  muted: true,
+  init: function (logText) {
+    this.$el = $('.wrapper');
+    var id = $('input[name=replayid]').val() || '';
+    var log = logText || ($('script.battle-log-data').text() || '');
+    log = log.replace(/\\\//g, '/');
+
+    var self = this;
+    this.$el.on('click', '.chooser button', function (e) {
+      self.clickChangeSetting(e);
+    });
+    this.$el.on('click', 'button', function (e) {
+      var action = $(e.currentTarget).data('action');
+      if (action) self[action]();
+    });
+
+    this.battle = new Battle({
+      id: id,
+      $frame: this.$('.battle'),
+      $logFrame: this.$('.battle-log'),
+      log: log.split('\n'),
+      isReplay: true,
+      paused: true,
+      autoresize: true
+    });
+
+    this.$('.replay-controls-2').html('<div class="chooser leftchooser speedchooser"> <em>Speed:</em> <div><button value="hyperfast">Hyperfast</button><button value="fast">Fast</button><button value="normal" class="sel">Normal</button><button value="slow">Slow</button><button value="reallyslow">Really Slow</button></div> </div> <div class="chooser soundchooser" style="display:none"> <em>Music:</em> <div><button value="on">On</button><button class="sel" value="off">Off</button></div> </div>');
+
+    // Mute sound by default
+    this.battle.setMute(true);
+
+    var rc2 = this.$('.replay-controls-2')[0];
+    if (rc2) rc2.innerHTML = rc2.innerHTML;
+
+    if (window.HTMLAudioElement) $('.soundchooser, .startsoundchooser').show();
+
+    this.update();
+    this.battle.subscribe(function (state) { self.update(state); });
+  },
+  "$": function (sel) {
+    return this.$el.find(sel);
+  },
+  clickChangeSetting: function (e) {
+    e.preventDefault();
+    var $chooser = $(e.currentTarget).closest('.chooser');
+    var value = e.currentTarget.value;
+    this.changeSetting($chooser, value, $(e.currentTarget));
+  },
+  changeSetting: function (type, value, valueElem) {
+    var $chooser;
+    if (typeof type === 'string') {
+      $chooser = this.$('.' + type + 'chooser');
+    } else {
+      $chooser = type;
+      type = '';
+      if ($chooser.hasClass('soundchooser')) type = 'sound';
+      else if ($chooser.hasClass('speedchooser')) type = 'speed';
+    }
+    if (!valueElem) valueElem = $chooser.find('button[value=' + value + ']');
+    $chooser.find('button').removeClass('sel');
+    valueElem.addClass('sel');
+
+    switch (type) {
+    case 'sound':
+      this.muted = (value === 'off');
+      this.battle.setMute(this.muted);
+      this.$('.startsoundchooser').remove();
+      break;
+    case 'speed':
+      var fadeTable = { hyperfast: 40, fast: 50, normal: 300, slow: 500, reallyslow: 1000 };
+      var delayTable = { hyperfast: 1, fast: 1, normal: 1, slow: 1000, reallyslow: 3000 };
+      this.battle.messageShownTime = delayTable[value];
+      this.battle.messageFadeTime = fadeTable[value];
+      this.battle.scene.updateAcceleration();
+      break;
+    }
+  },
+  update: function (state) {
+    if (state === 'error') return;
+    if (BattleSound.muted && !this.muted) this.changeSetting('sound', 'off');
+    if (this.battle.paused) {
+      var resetDisabled = !this.battle.started ? ' disabled' : '';
+      this.$('.replay-controls').html('<button data-action="play"><i class="fa fa-play"></i> Play</button><button data-action="reset"' + resetDisabled + '><i class="fa fa-undo"></i> Reset</button> <button data-action="rewind"><i class="fa fa-step-backward"></i> Last turn</button><button data-action="ff"><i class="fa fa-step-forward"></i> Next turn</button> <button data-action="ffto"><i class="fa fa-fast-forward"></i> Go to turn...</button> <button data-action="switchViewpoint"><i class="fa fa-random"></i> Switch sides</button>');
+    } else {
+      this.$('.replay-controls').html('<button data-action="pause"><i class="fa fa-pause"></i> Pause</button><button data-action="reset"><i class="fa fa-undo"></i> Reset</button> <button data-action="rewind"><i class="fa fa-step-backward"></i> Last turn</button><button data-action="ff"><i class="fa fa-step-forward"></i> Next turn</button> <button data-action="ffto"><i class="fa fa-fast-forward"></i> Go to turn...</button> <button data-action="switchViewpoint"><i class="fa fa-random"></i> Switch sides</button>');
+    }
+  },
+  pause: function () { this.battle.pause(); },
+  play: function () { this.battle.play(); },
+  reset: function () { this.battle.reset(); },
+  ff: function () { this.battle.seekBy(1); },
+  rewind: function () { this.battle.seekBy(-1); },
+  ffto: function () {
+    var turn = prompt('Turn?');
+    if (!turn || !turn.trim()) return;
+    if (turn === 'e' || turn === 'end' || turn === 'f' || turn === 'finish') turn = Infinity;
+    turn = Number(turn);
+    if (isNaN(turn) || turn < 0) alert("Invalid turn");
+    this.battle.seekTurn(turn);
+  },
+  switchViewpoint: function () { this.battle.switchViewpoint(); },
+  loadNewBattle: function (logText, replayId) {
+    if (this.battle) {
+      this.battle.pause();
+      this.$('.battle').empty();
+      this.$('.battle-log').empty();
+    }
+    $('input[name=replayid]').val(replayId || '');
+    var self = this;
+    this.battle = new Battle({
+      id: replayId || '',
+      $frame: this.$('.battle'),
+      $logFrame: this.$('.battle-log'),
+      log: logText.split('\n'),
+      isReplay: true,
+      paused: true,
+      autoresize: true
+    });
+    this.battle.subscribe(function (state) { self.update(state); });
+    this.update();
+  }
+};
+
+// Fetch log and initialize
+var replayId = "{{ replay_id }}";
+var logUrl = "https://replay.pokemonshowdown.com/" + replayId + ".log";
+document.getElementById('fallbackLink').href = "https://replay.pokemonshowdown.com/" + replayId;
+
+fetch(logUrl)
+  .then(function(r) {
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    return r.text();
+  })
+  .then(function(logText) {
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('replayWrapper').style.display = '';
+    Replays.init(logText);
+  })
+  .catch(function(err) {
+    console.error('Failed to load replay log:', err);
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('errorState').style.display = 'flex';
+  });
+
+// Intercept ALL link clicks in the battle log area
+document.addEventListener('click', function(e) {
+  var link = e.target.closest ? e.target.closest('a') : null;
+  if (!link) return;
+  if (link.id === 'fallbackLink') return;
+  var href = link.href || link.getAttribute('href') || '';
+  var match = href.match(/replay\.pokemonshowdown\.com\/([a-z0-9-]+)/i) ||
+              href.match(/^\/?(gen[a-z0-9]+-[a-z0-9-]+)$/i);
+  if (match) {
+    e.preventDefault();
+    e.stopPropagation();
+    window.parent.postMessage({ type: 'switchReplay', replayId: match[1] }, '*');
+    return;
+  }
+  if (href && !href.startsWith('#') && !href.startsWith('javascript:')) {
+    e.preventDefault();
+  }
+}, true);
+
+// Listen for new replay loads via postMessage
+window.addEventListener('message', function(e) {
+  if (e.data && e.data.type === 'loadReplay' && e.data.replayId) {
+    var newLogUrl = "https://replay.pokemonshowdown.com/" + e.data.replayId + ".log";
+    fetch(newLogUrl)
+      .then(function(r) {
+        if (!r.ok) throw new Error('HTTP ' + r.status);
+        return r.text();
+      })
+      .then(function(logText) {
+        if (Replays.battle) {
+          Replays.loadNewBattle(logText, e.data.replayId);
+        } else {
+          document.getElementById('loadingState').style.display = 'none';
+          document.getElementById('replayWrapper').style.display = '';
+          Replays.init(logText);
+        }
+      })
+      .catch(function(err) {
+        console.error('Failed to load replay:', err);
+      });
+  }
+});
+</script>
+</body>
+</html>
