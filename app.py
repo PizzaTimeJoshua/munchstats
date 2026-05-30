@@ -1670,6 +1670,16 @@ _default_replay_path = os.path.join(REPLAY_DATA_DIR, f"search-replays-list-{REPL
 DEFAULT_REPLAYS = find_replays("", REPLAY_FORMATS[0]) if os.path.exists(_default_replay_path) else []
 
 
+@app.route("/tools/")
+def tools_page():
+    return render_template(
+        "tools.html",
+        selected_format=[DEFAULT_META, formatDisplayNames.get(DEFAULT_META, DEFAULT_META)],
+        selected_rating="0",
+        selected_pokemon="",
+    )
+
+
 @app.route("/replays/")
 @app.route("/replays/<format_code>/")
 def replays_page(format_code=None):

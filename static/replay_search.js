@@ -53,7 +53,7 @@ $(document).ready(function() {
 
     function defaultReplays() {
         $('#replays-list').empty();
-        $('#replay-header').hide();
+        $('#replay-header').removeClass('visible');
         $('#loadingText').toggle(true);
         $.ajax({
             url: '/replays/api/default',
@@ -71,7 +71,7 @@ $(document).ready(function() {
 
     function loadReplays() {
         $('#replays-list').empty();
-        $('#replay-header').hide();
+        $('#replay-header').removeClass('visible');
         $('#loadingText').toggle(true);
         $('#errorText').toggle(false);
         $('#noReplaysText').toggle(false);
@@ -119,7 +119,7 @@ $(document).ready(function() {
 
         if (replays.length < 1) {
             $('#noReplaysText').toggle(true);
-            $('#replay-header').hide();
+            $('#replay-header').removeClass('visible');
             return;
         }
 
@@ -134,7 +134,7 @@ $(document).ready(function() {
             header.removeClass('has-games');
             gamesCol.text('').hide();
         }
-        header.show();
+        header.addClass('visible');
 
         var showUsageScore = $('#usageScoreToggle').is(':checked');
 

@@ -179,7 +179,7 @@
 
   /* Replay table header */
   .replay-table-header {
-    display: grid;
+    display: none;
     grid-template-columns: 65px minmax(270px, 300px) minmax(270px, 300px) 70px 85px;
     font-size: 12px;
     font-weight: 600;
@@ -194,6 +194,9 @@
     z-index: 1;
     /* match card border space so columns align */
     padding: 0 1px;
+  }
+  .replay-table-header.visible {
+    display: grid;
   }
   .replay-table-header.has-games {
     grid-template-columns: 65px minmax(270px, 300px) minmax(270px, 300px) 70px 85px 240px;
@@ -550,7 +553,7 @@
     .tab-btn { padding: 6px 10px; font-size: 12px; margin-right: 2px; border-radius: 0; }
     .twitter-follow-div { display: none; }
     /* Replay table: card layout instead of grid */
-    .replay-table-header { display: none; }
+    .replay-table-header.visible { display: none; }
     .team-container, .team-container.has-games {
       grid-template-columns: 1fr;
       border-radius: 0;
@@ -623,6 +626,7 @@
     <a id="tab-tournaments-btn" class="tab-btn" href="{{ url_for('tournaments_page') }}">Tournaments</a>
     <a id="tab-calc-btn" class="tab-btn" href="{{ url_for('calc_page', format_code=selected_format[0], rating_threshold=selected_rating) }}">Damage Calc</a>
     <a id="tab-replays-btn" class="tab-btn tab-active" href="{{ url_for('replays_page') }}">Replays</a>
+    <a id="tab-tools-btn" class="tab-btn" href="{{ url_for('tools_page') }}">Tools</a>
   </div>
   <div class="twitter-follow-div">
     <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">
@@ -672,7 +676,7 @@
       <h3 id="loadingText" style="display: none;">Loading...</h3>
       <h3 id="noReplaysText" style="display: none;">No Replays Found.</h3>
       <h3 id="errorText" style="display: none;">Error: Unable to get replays.</h3>
-      <div class="replay-table-header" id="replay-header" style="display: none;">
+      <div class="replay-table-header" id="replay-header">
         <div>Rating</div>
         <div>Player 1</div>
         <div>Player 2</div>
