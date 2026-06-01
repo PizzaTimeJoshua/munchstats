@@ -170,6 +170,9 @@ $(document).ready(function () {
     updateDataSection("#items-container", data.items_list, "item");
     updateDataSection("#abilities-container", data.abilities_list, "ability");
     updateDataSection("#tera-container", data.tera_types_list, "tera");
+    $("#tera-section").toggle(!!(data.tera_types_list && data.tera_types_list.length));
+    updateDataSection("#natures-container", data.natures_list, "nature");
+    $("#natures-section").toggle(!!(data.natures_list && data.natures_list.length));
     updateTeammatesSection(data.teammates_list);
 
     // Update teams header
@@ -271,6 +274,7 @@ $(document).ready(function () {
       lines.push(header);
       if (slot.ability) lines.push("Ability: " + slot.ability);
       if (slot.tera_type) lines.push("Tera Type: " + slot.tera_type);
+      if (slot.nature) lines.push(slot.nature + " Nature");
       if (slot.moves) {
         slot.moves.forEach(function (m) { lines.push("- " + m); });
       }
@@ -311,6 +315,7 @@ $(document).ready(function () {
         html += '<div class="td-name">' + slot.pokemon + '</div>';
         html += '<div class="td-info">';
         if (slot.tera_type) html += 'Tera: ' + slot.tera_type + '<br>';
+        if (slot.nature) html += 'Nature: ' + slot.nature + '<br>';
         if (slot.ability) html += 'Ability: ' + slot.ability + '<br>';
         if (slot.item) html += 'Item: ' + slot.item + '<br>';
         if (slot.moves && slot.moves.length > 0) {
@@ -402,6 +407,7 @@ $(document).ready(function () {
       if (slot.item) parts.push(slot.item);
       if (slot.ability) parts.push(slot.ability);
       if (slot.tera_type) parts.push(slot.tera_type);
+      if (slot.nature) parts.push(slot.nature);
       if (slot.moves) slot.moves.forEach(function (m) { parts.push(m); });
     });
     return parts.join(" ").toLowerCase();
@@ -441,6 +447,7 @@ $(document).ready(function () {
         html += '<div class="td-name">' + slot.pokemon + '</div>';
         html += '<div class="td-info">';
         if (slot.tera_type) html += 'Tera: ' + slot.tera_type + '<br>';
+        if (slot.nature) html += 'Nature: ' + slot.nature + '<br>';
         if (slot.ability) html += 'Ability: ' + slot.ability + '<br>';
         if (slot.item) html += 'Item: ' + slot.item + '<br>';
         if (slot.moves && slot.moves.length > 0) {

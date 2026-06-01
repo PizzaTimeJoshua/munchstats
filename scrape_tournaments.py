@@ -121,10 +121,10 @@ def normalize_pokemon_name(raw_name, pokemon_lookup):
         (r"\s*\[Paldean Form\]", "-Paldea"),
         # Ursaluna
         (r"\s*\[Blood ?Moon\]", "-Bloodmoon"),
-        # Tauros Paldean breeds
-        (r"\s*\[Combat Breed\]", "-Paldea-Combat"),
-        (r"\s*\[Blaze Breed\]", "-Paldea-Blaze"),
-        (r"\s*\[Aqua Breed\]", "-Paldea-Aqua"),
+        # Tauros Paldean breeds (handles both "[Aqua Breed]" and "[Paldean Form - Aqua Breed]")
+        (r"\s*\[(?:Paldean Form - )?Combat Breed\]", "-Paldea-Combat"),
+        (r"\s*\[(?:Paldean Form - )?Blaze Breed\]", "-Paldea-Blaze"),
+        (r"\s*\[(?:Paldean Form - )?Aqua Breed\]", "-Paldea-Aqua"),
         # Oricorio styles - Baile is default
         (r"\s*\[Pom-Pom Style\]", "-Pom-Pom"),
         (r"\s*\[Pa'u Style\]", "-Pa'u"),
@@ -170,11 +170,13 @@ def normalize_pokemon_name(raw_name, pokemon_lookup):
         # Maushold - Family of Four is default on Showdown
         (r"\s*\[Family of Four\]", ""),
         (r"\s*\[Family of Three\]", "-Three"),
-        # Sinistcha/Polteageist
-        (r"\s*\[Unremarkable Form\]", ""),
-        (r"\s*\[Masterpiece Form\]", ""),
+        # Sinistcha/Polteageist (RK9 uses both "Counterfeit"/"Phony Form" and "Antique"/"Artisan Form")
+        (r"\s*\[(?:Unremarkable|Phony) Form\]", ""),
+        (r"\s*\[(?:Masterpiece|Artisan) Form\]", ""),
         (r"\s*\[Counterfeit\]", ""),
         (r"\s*\[Antique\]", ""),
+        # Floette
+        (r"\s*\[Eternal Flower\]", "-Eternal"),
         # Catch-all: strip unknown form brackets (default form)
         (r"\s*\[.*?\]", ""),
     ]
@@ -496,6 +498,18 @@ def scrape_tournament_metadata(session, tournament_id, event_info=None):
         if info.get("name") and ("VGC" in info["name"] or "TCG" in info["name"]):
             name = info["name"]
 
+    # Fallback: try to extract date from the tournament page itself
+    if not date_str:
+        page_text = soup.get_text()
+        # Look for patterns like "May 30-31, 2026" or "May 30, 2026"
+        page_date_match = re.search(
+            r"(January|February|March|April|May|June|July|August|September|October|November|December)"
+            r"\s+(\d{1,2})(?:\s*[-–]\s*\d{1,2})?,?\s*(\d{4})",
+            page_text,
+        )
+        if page_date_match:
+            date_str = f"{page_date_match.group(1)} {page_date_match.group(2)}, {page_date_match.group(3)}"
+
     # Parse date - try to extract YYYY-MM-DD
     if date_str:
         # RK9 dates might be "May 23-24, 2026" or similar
@@ -626,6 +640,7 @@ def parse_team_list(soup, pokemon_lookup, move_lookup):
 
         pokemon_name = ""
         tera_type = ""
+        nature = ""
         ability = ""
         item = ""
         moves = []
@@ -638,7 +653,7 @@ def parse_team_list(soup, pokemon_lookup, move_lookup):
                 text = child.strip()
                 if text and text not in ("", "\n"):
                     # Filter out stray text that isn't a name
-                    if not any(kw in text for kw in ["Tera Type:", "Ability:", "Held Item:"]):
+                    if not any(kw in text for kw in ["Tera Type:", "Stat Alignment:", "Ability:", "Held Item:"]):
                         pokemon_name = text
                         break
 
@@ -661,6 +676,8 @@ def parse_team_list(soup, pokemon_lookup, move_lookup):
 
             if b_text == "Tera Type:":
                 tera_type = value
+            elif b_text == "Stat Alignment:":
+                nature = value
             elif b_text == "Ability:":
                 ability = value
             elif b_text == "Held Item:":
@@ -689,6 +706,7 @@ def parse_team_list(soup, pokemon_lookup, move_lookup):
             "item": item,
             "ability": ability,
             "tera_type": tera_type,
+            "nature": nature,
             "moves": moves[:4],
         })
 
@@ -755,6 +773,7 @@ def aggregate_usage(players, filter_key):
                     "items": {},
                     "abilities": {},
                     "tera_types": {},
+                    "natures": {},
                     "teammates": {},
                 }
 
@@ -773,6 +792,9 @@ def aggregate_usage(players, filter_key):
 
             if slot.get("tera_type"):
                 stats["tera_types"][slot["tera_type"]] = stats["tera_types"].get(slot["tera_type"], 0) + 1
+
+            if slot.get("nature"):
+                stats["natures"][slot["nature"]] = stats["natures"].get(slot["nature"], 0) + 1
 
             # Teammates = other 5 Pokemon on the same team
             for teammate in team_names:

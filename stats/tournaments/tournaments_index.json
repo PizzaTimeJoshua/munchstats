@@ -1,5 +1,17 @@
 [
   {
+    "id": "IN02wbUMQOt2eNv12cgC",
+    "name": "2026 Indianapolis Pokémon VGC Regional Championships",
+    "date": "2026-05-31",
+    "location": "Indianapolis, IN",
+    "type": "Regional",
+    "total_players": 1013,
+    "day2_count": 145,
+    "day2_source": "pairings",
+    "teams_scraped": 1013,
+    "scraped_at": "2026-06-01T04:22:59.107916Z"
+  },
+  {
     "id": "IN01wT0IVRulcJxVUEZ0",
     "name": "2026 Indianapolis Pokémon TCG Regional Championships",
     "date": "2026-05-29",
@@ -10,18 +22,6 @@
     "day2_cutoff_standing": 32,
     "teams_scraped": 0,
     "scraped_at": "2026-05-29T05:47:22.088222Z"
-  },
-  {
-    "id": "IN02wbUMQOt2eNv12cgC",
-    "name": "2026 Indianapolis Pokémon VGC Regional Championships",
-    "date": "2026-05-29",
-    "location": "2026 Indianapolis Pokémon Regional Championships",
-    "type": "Regional",
-    "total_players": 314,
-    "topcut_cutoff_standing": 8,
-    "day2_cutoff_standing": 32,
-    "teams_scraped": 0,
-    "scraped_at": "2026-05-29T06:00:54.322317Z"
   },
   {
     "id": "MB01wmlUs2CVS0PCE3d9",

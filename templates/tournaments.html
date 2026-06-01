@@ -785,7 +785,7 @@
         </div>
 
         <!-- Tera Types -->
-        <div>
+        <div id="tera-section"{% if not tera_types_list %} style="display:none"{% endif %}>
           <h2>Tera Types</h2>
           <div class="Data" id="tera-container">
             {% if tera_types_list|length > 0 %}
@@ -795,6 +795,25 @@
                 <button type="button" class="export-button">
                   <span class="type-{{ tera[0] }}">{{ tera[0] }}</span>
                   <span class="right-text">{{ tera[1] }}%</span>
+                </button>
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Natures -->
+        <div id="natures-section"{% if not natures_list %} style="display:none"{% endif %}>
+          <h2>Natures</h2>
+          <div class="Data" id="natures-container">
+            {% if natures_list|length > 0 %}
+            <ul>
+              {% for nature in natures_list %}
+              <li>
+                <button type="button" class="export-button{% if nature[2] %} has-tooltip" data-tooltip="{{ nature[2] }}{% endif %}">
+                  <span class="left-text">{{ nature[0] }}</span>
+                  <span class="right-text">{{ nature[1] }}%</span>
                 </button>
               </li>
               {% endfor %}

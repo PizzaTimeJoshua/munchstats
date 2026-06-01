@@ -1879,6 +1879,27 @@ def compile_tournament_category(poke_data, category, total_count):
             for k in sorted_keys
         ]
 
+    if category == "natures":
+        nature_info = {
+            "Adamant": "+Atk / -SpA", "Brave": "+Atk / -Spe",
+            "Lonely": "+Atk / -Def", "Naughty": "+Atk / -SpD",
+            "Bold": "+Def / -Atk", "Relaxed": "+Def / -Spe",
+            "Impish": "+Def / -SpA", "Lax": "+Def / -SpD",
+            "Modest": "+SpA / -Atk", "Quiet": "+SpA / -Spe",
+            "Mild": "+SpA / -Def", "Rash": "+SpA / -SpD",
+            "Calm": "+SpD / -Atk", "Sassy": "+SpD / -Spe",
+            "Gentle": "+SpD / -Def", "Careful": "+SpD / -SpA",
+            "Timid": "+Spe / -Atk", "Hasty": "+Spe / -Def",
+            "Jolly": "+Spe / -SpA", "Naive": "+Spe / -SpD",
+            "Hardy": "Neutral", "Docile": "Neutral",
+            "Serious": "Neutral", "Bashful": "Neutral", "Quirky": "Neutral",
+        }
+        return [
+            [k, "{:.1f}".format(round(data[k] / total * 100, 1)),
+             nature_info.get(k, "")]
+            for k in sorted_keys
+        ]
+
     return [
         [k, "{:.1f}".format(round(data[k] / total * 100, 1))]
         for k in sorted_keys
@@ -1953,6 +1974,7 @@ def compile_tournament_page_data(tournament_id="", day_filter="all", pokemon_nam
     items_list = compile_tournament_category(poke_data, "items", usage_count)
     abilities_list = compile_tournament_category(poke_data, "abilities", usage_count)
     tera_types_list = compile_tournament_category(poke_data, "tera_types", usage_count)
+    natures_list = compile_tournament_category(poke_data, "natures", usage_count)
     teammates_list = compile_tournament_teammates(poke_data, usage_count)
 
     # Base stats and types from pokedex (pass dummy truthy dict so compile_top_data doesn't bail)
@@ -1983,6 +2005,7 @@ def compile_tournament_page_data(tournament_id="", day_filter="all", pokemon_nam
         "items_list": items_list,
         "abilities_list": abilities_list,
         "tera_types_list": tera_types_list,
+        "natures_list": natures_list,
         "teammates_list": teammates_list,
         "total_teams": total_teams,
     }
@@ -2061,6 +2084,7 @@ def api_tournament_teams(tournament_id, pokemon_name):
                         "item": s.get("item", ""),
                         "ability": s.get("ability", ""),
                         "tera_type": s.get("tera_type", ""),
+                        "nature": s.get("nature", ""),
                         "moves": s.get("moves", []),
                     }
                     for s in player["team"]
@@ -2097,6 +2121,7 @@ def api_tournament_standings(tournament_id):
                 "item": slot.get("item", ""),
                 "ability": slot.get("ability", ""),
                 "tera_type": slot.get("tera_type", ""),
+                "nature": slot.get("nature", ""),
                 "moves": slot.get("moves", []),
             })
 
