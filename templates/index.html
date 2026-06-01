@@ -1039,6 +1039,113 @@
         color: #ccc;
         border-color: #888;
       }
+      /* Merch section */
+      .merch-toggle {
+        background: #2a2a2a;
+        border: 1px solid #555;
+        color: #aaa;
+        font-size: 12px;
+        padding: 4px 14px;
+        cursor: pointer;
+        border-radius: 4px;
+        transition: color 0.2s, background 0.2s;
+        margin-left: 8px;
+        vertical-align: middle;
+      }
+      .merch-toggle:hover { color: #fff; background: #333; }
+      .merch-section.collapsed .merch-carousel { display: none; }
+      .merch-collapsed-msg {
+        display: none;
+        color: #666;
+        font-size: 12px;
+        text-align: center;
+        padding: 10px 0;
+      }
+      .merch-section.collapsed .merch-collapsed-msg { display: block; }
+      .merch-carousel {
+        width: 300px;
+        height: 210px;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        background: #222;
+        margin-bottom: 20px;
+        margin-right: 10px;
+        justify-self: center;
+        align-self: center;
+      }
+      .merch-track {
+        display: flex;
+        transition: transform 0.4s ease;
+        height: 185px;
+      }
+      .merch-track.no-transition { transition: none; }
+      .merch-card {
+        flex-shrink: 0;
+        width: 150px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        text-decoration: none;
+        color: #e0e0e0;
+        padding: 8px 0;
+      }
+      .merch-card:hover { background: #2a2a2a; }
+      .merch-card img {
+        width: 110px;
+        height: 110px;
+        object-fit: contain;
+        border-radius: 4px;
+        background: #fff;
+      }
+      .merch-card-title {
+        font-size: 11px;
+        color: #ccc;
+        text-align: center;
+        margin-top: 6px;
+        padding: 0 6px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 140px;
+      }
+      .merch-card-price {
+        font-size: 13px;
+        font-weight: 700;
+        color: #ffd54f;
+        margin-top: 3px;
+      }
+      .merch-nav {
+        position: absolute;
+        bottom: 4px;
+        left: 0; right: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        z-index: 2;
+      }
+      .merch-arrow {
+        background: rgba(34,34,34,0.8);
+        border: 1px solid #555;
+        color: #ccc;
+        font-size: 16px;
+        cursor: pointer;
+        padding: 1px 6px;
+        line-height: 1;
+        border-radius: 3px;
+        transition: color 0.2s, background 0.2s;
+      }
+      .merch-arrow:hover { color: #fff; background: #444; }
+      .merch-loading {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        height: 100%;
+        color: #666;
+        font-size: 13px;
+      }
       /* Medium screens: two Pokémon side-by-side, field full-width above */
       /* ── Responsive: Tablet (701–1100px) ── */
       @media (max-width: 1100px) and (min-width: 701px) {
@@ -1098,6 +1205,7 @@
         .pokemon-button .right-text { flex-shrink: 0; }
         /* Data cards + stats bars: fluid */
         .Data, .Export { width: 100%; max-width: 100%; box-sizing: border-box; margin-right: 0; }
+        .merch-carousel { width: 100%; max-width: 100%; box-sizing: border-box; }
         textarea { width: 100%; box-sizing: border-box; }
         .Stats { width: 100%; max-width: 400px; margin: 0 auto; box-sizing: border-box; }
         .bar-container { width: 100%; box-sizing: border-box; height: auto; min-height: 28px; padding: 0; }
@@ -2146,6 +2254,14 @@
           </div>
         </div>
         {% endif %}
+        <!-- Merch -->
+        <div class="merch-section" id="merch-section">
+          <h2>Merch <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="These are affiliate eBay links that help support the website.">&#xf059;</span> <button type="button" class="merch-toggle" id="merch-toggle">Hide</button></h2>
+          <div class="merch-carousel" id="merch-carousel">
+            <div class="merch-loading">Loading merch...</div>
+          </div>
+          <div class="merch-collapsed-msg">Merch hidden &mdash; click Show to browse</div>
+        </div>
         </div><!-- end #usage-panel -->
         {% endif %}
       </div><!-- end .right -->
@@ -2212,7 +2328,7 @@
 
     <!-- External JavaScript files -->
     {% if not calc_only %}
-    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=2"></script>
+    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=3"></script>
     {% endif %}
     {% if calc_only %}
     <script src="{{ url_for('static', filename='vendor/smogon-calc.js') }}"></script>

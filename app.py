@@ -1,16 +1,21 @@
+import base64
 import difflib
 import gzip
 import json
 import math
 import os
 import re
+import time
 from datetime import datetime
 from functools import lru_cache
 
 import ijson
 import requests
+from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 import pyjson5
+
+load_dotenv()
 
 app = Flask(__name__)
 
@@ -2135,6 +2140,122 @@ def api_tournament_standings(tournament_id):
 
     standings.sort(key=lambda s: s["placement"])
     return jsonify(standings)
+
+
+# ─── eBay Merch API ──────────────────────────────────────────────────────
+
+EBAY_CLIENT_ID = os.environ.get("EBAY_CLIENT_ID", "")
+EBAY_CLIENT_SECRET = os.environ.get("EBAY_CLIENT_SECRET", "")
+EBAY_CAMPID = "5339155159"
+
+_ebay_token_cache = {"token": None, "expires": 0}
+_ebay_merch_cache = {}
+MERCH_CACHE_TTL = 86400  # 24 hours
+
+
+def get_ebay_oauth_token():
+    """Get an eBay OAuth application token, cached until expiry."""
+    if _ebay_token_cache["token"] and time.time() < _ebay_token_cache["expires"]:
+        return _ebay_token_cache["token"]
+
+    if not EBAY_CLIENT_ID or not EBAY_CLIENT_SECRET:
+        return None
+
+    credentials = base64.b64encode(
+        f"{EBAY_CLIENT_ID}:{EBAY_CLIENT_SECRET}".encode()
+    ).decode()
+
+    try:
+        resp = requests.post(
+            "https://api.ebay.com/identity/v1/oauth2/token",
+            headers={
+                "Content-Type": "application/x-www-form-urlencoded",
+                "Authorization": f"Basic {credentials}",
+            },
+            data={
+                "grant_type": "client_credentials",
+                "scope": "https://api.ebay.com/oauth/api_scope",
+            },
+            timeout=10,
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            _ebay_token_cache["token"] = data["access_token"]
+            _ebay_token_cache["expires"] = time.time() + data.get("expires_in", 7200) - 60
+            return _ebay_token_cache["token"]
+    except Exception:
+        pass
+    return None
+
+
+@app.route("/api/merch/<pokemon_name>")
+def api_merch(pokemon_name):
+    """Return eBay listings for a Pokemon, cached for 24 hours."""
+    cache_key = pokemon_name.lower()
+    cached = _ebay_merch_cache.get(cache_key)
+    if cached and time.time() < cached["expires"]:
+        return jsonify(cached["data"])
+
+    token = get_ebay_oauth_token()
+    if not token:
+        return jsonify([])
+
+    categories = [
+        ("plush", f"{pokemon_name} Pokemon plush"),
+        ("card", f"{pokemon_name} Pokemon card"),
+        ("figure", f"{pokemon_name} Pokemon figure"),
+        ("merch", f"{pokemon_name} Pokemon"),
+    ]
+
+    # Collect results per category, then interleave
+    per_category = {cat: [] for cat, _ in categories}
+    for category, query in categories:
+        try:
+            resp = requests.get(
+                "https://api.ebay.com/buy/browse/v1/item_summary/search",
+                headers={"Authorization": f"Bearer {token}"},
+                params={"q": query, "limit": 2},
+                timeout=10,
+            )
+            if resp.status_code == 200:
+                data = resp.json()
+                for item in data.get("itemSummaries", []):
+                    image = item.get("image", {}).get("imageUrl", "")
+                    price_obj = item.get("price", {})
+                    price = price_obj.get("value", "")
+                    currency = price_obj.get("currency", "USD")
+                    affiliate_url = (
+                        item.get("itemAffiliateWebUrl")
+                        or item.get("itemWebUrl", "")
+                    )
+                    if affiliate_url and "campid" not in affiliate_url:
+                        sep = "&" if "?" in affiliate_url else "?"
+                        affiliate_url += (
+                            f"{sep}mkcid=1&mkrid=711-53200-19255-0"
+                            f"&campid={EBAY_CAMPID}&toolid=10001&mkevt=1"
+                        )
+                    per_category[category].append({
+                        "title": item.get("title", ""),
+                        "price": price,
+                        "currency": currency,
+                        "image": image,
+                        "url": affiliate_url,
+                        "category": category,
+                    })
+        except Exception:
+            continue
+
+    # Interleave: [plush1, card1, figure1, merch1, plush2, card2, figure2, merch2]
+    listings = []
+    max_per_cat = max((len(v) for v in per_category.values()), default=0)
+    cat_keys = [cat for cat, _ in categories]
+    for i in range(max_per_cat):
+        for cat in cat_keys:
+            if i < len(per_category[cat]):
+                listings.append(per_category[cat][i])
+
+    _ebay_merch_cache[cache_key] = {"data": listings, "expires": time.time() + MERCH_CACHE_TTL}
+    return jsonify(listings)
 
 
 # ─── Error Handlers & Index ──────────────────────────────────────────────

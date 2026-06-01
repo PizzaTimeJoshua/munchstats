@@ -204,6 +204,54 @@
     background-color: #333333;
     color: #ffffff;
   }
+  .export-button.selected {
+    background-color: #2a2a2a;
+    border-left: 3px solid #888888;
+  }
+  textarea {
+    width: 300px;
+    height: 174px;
+    font-size: 13px;
+    resize: none;
+    background-color: #1e1e1e;
+    color: #ffffff;
+    overflow-y: scroll;
+    overflow-x: scroll;
+    white-space: nowrap;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    border: 0px;
+    text-align: left;
+  }
+  .Export {
+    overflow-y: hidden;
+    overflow-x: auto;
+    margin-bottom: 5px;
+    width: 300px;
+    justify-self: center;
+    align-self: center;
+    margin-right: 10px;
+  }
+  .Export::-webkit-scrollbar { height: 12px; }
+  .Export::-webkit-scrollbar-track { background: #222222; }
+  .Export::-webkit-scrollbar-thumb { background: #333333; }
+  .Export::-webkit-scrollbar-thumb:hover { background: #111111; }
+  .copy-button {
+    background-color: #222222;
+    color: #e0e0e0;
+    border: 0px solid #555;
+    padding: 8px 8px;
+    width: 100%;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    justify-content: center;
+    align-items: center;
+    display: flex;
+    height: 24px;
+  }
+  .copy-button:hover {
+    background-color: #333333;
+    color: #ffffff;
+  }
   .left-text, .right-text { white-space: nowrap; }
   .left-text { margin-right: 10px; padding-left: 10px; }
   .right-text { margin-left: 10px; padding-right: 10px; }
@@ -491,6 +539,113 @@
   }
   .team-copy-btn:hover { color: #fff; background: #333; }
   .team-copy-btn.copied { color: #ffd54f; }
+  /* Merch section */
+  .merch-toggle {
+    background: #2a2a2a;
+    border: 1px solid #555;
+    color: #aaa;
+    font-size: 12px;
+    padding: 4px 14px;
+    cursor: pointer;
+    border-radius: 4px;
+    transition: color 0.2s, background 0.2s;
+    margin-left: 8px;
+    vertical-align: middle;
+  }
+  .merch-toggle:hover { color: #fff; background: #333; }
+  .merch-section.collapsed .merch-carousel { display: none; }
+  .merch-collapsed-msg {
+    display: none;
+    color: #666;
+    font-size: 12px;
+    text-align: center;
+    padding: 10px 0;
+  }
+  .merch-section.collapsed .merch-collapsed-msg { display: block; }
+  .merch-carousel {
+    width: 300px;
+    height: 210px;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    background: #222;
+    margin-bottom: 20px;
+    margin-right: 10px;
+    justify-self: center;
+    align-self: center;
+  }
+  .merch-track {
+    display: flex;
+    transition: transform 0.4s ease;
+    height: 185px;
+  }
+  .merch-track.no-transition { transition: none; }
+  .merch-card {
+    flex-shrink: 0;
+    width: 150px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-decoration: none;
+    color: #e0e0e0;
+    padding: 8px 0;
+  }
+  .merch-card:hover { background: #2a2a2a; }
+  .merch-card img {
+    width: 110px;
+    height: 110px;
+    object-fit: contain;
+    border-radius: 4px;
+    background: #fff;
+  }
+  .merch-card-title {
+    font-size: 11px;
+    color: #ccc;
+    text-align: center;
+    margin-top: 6px;
+    padding: 0 6px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 140px;
+  }
+  .merch-card-price {
+    font-size: 13px;
+    font-weight: 700;
+    color: #ffd54f;
+    margin-top: 3px;
+  }
+  .merch-nav {
+    position: absolute;
+    bottom: 4px;
+    left: 0; right: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    z-index: 2;
+  }
+  .merch-arrow {
+    background: rgba(34,34,34,0.8);
+    border: 1px solid #555;
+    color: #ccc;
+    font-size: 16px;
+    cursor: pointer;
+    padding: 1px 6px;
+    line-height: 1;
+    border-radius: 3px;
+    transition: color 0.2s, background 0.2s;
+  }
+  .merch-arrow:hover { color: #fff; background: #444; }
+  .merch-loading {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: #666;
+    font-size: 13px;
+  }
   /* Responsive */
   @media (max-width: 1100px) and (min-width: 701px) {
     .grid-container { grid-template-columns: 1fr; grid-gap: 15px; }
@@ -543,6 +698,8 @@
     .pokemon-button .right-text { flex-shrink: 0; }
     /* Data cards: fluid width */
     .Data { width: 100%; max-width: 100%; box-sizing: border-box; }
+    .Export, .copy-button { width: 100%; max-width: 100%; box-sizing: border-box; margin-right: 0; }
+    .merch-carousel { width: 100%; max-width: 100%; box-sizing: border-box; }
     .Stats { width: 100%; max-width: 400px; margin: 0 auto; box-sizing: border-box; }
     .bar-container { width: 100%; box-sizing: border-box; height: auto; min-height: 28px; padding: 0; }
     .left-container { width: 100%; height: auto; min-height: 28px; }
@@ -705,14 +862,14 @@
         </div>
 
         <!-- Moves -->
-        <div>
+        <div id="moves-section"{% if not moves_list %} style="display:none"{% endif %}>
           <h2>Moves</h2>
           <div class="Data" id="moves-container">
             {% if moves_list|length > 0 %}
             <ul>
               {% for move in moves_list %}
               <li>
-                <button type="button" class="export-button has-tooltip" data-tooltip="{{ move[2] }}">
+                <button type="button" class="export-button has-tooltip" data-tooltip="{{ move[2] }}" export-data='{"move": "{{ move[0] }}"}'>
                   <span class="left-text">{{ move[0] }}</span>
                   <span class="right-text">{{ move[1] }}%</span>
                 </button>
@@ -724,7 +881,7 @@
         </div>
 
         <!-- Teammates -->
-        <div>
+        <div id="teammates-section"{% if not teammates_list %} style="display:none"{% endif %}>
           <h2>Teammates</h2>
           <div class="Data" id="teammates-container">
             {% if teammates_list|length > 0 %}
@@ -745,14 +902,14 @@
         </div>
 
         <!-- Items -->
-        <div>
+        <div id="items-section"{% if not items_list %} style="display:none"{% endif %}>
           <h2>Items</h2>
           <div class="Data" id="items-container">
             {% if items_list|length > 0 %}
             <ul>
               {% for item in items_list %}
               <li>
-                <button type="button" class="export-button has-tooltip" data-tooltip="{{ item[2] }}">
+                <button type="button" class="export-button has-tooltip" data-tooltip="{{ item[2] }}" export-data='{"item": "{{ item[0] }}"}'>
                   <div class="image-item" style="background-position: {{ item[3][1] * -24 }}px {{ item[3][0] * -24 }}px;">
                     <span class="left-text" style="padding-left: 32px;">{{ item[0] }}</span>
                   </div>
@@ -766,14 +923,14 @@
         </div>
 
         <!-- Abilities -->
-        <div>
+        <div id="abilities-section"{% if not abilities_list %} style="display:none"{% endif %}>
           <h2>Abilities</h2>
           <div class="Data" id="abilities-container">
             {% if abilities_list|length > 0 %}
             <ul>
               {% for ability in abilities_list %}
               <li>
-                <button type="button" class="export-button has-tooltip" data-tooltip="{{ ability[2] }}">
+                <button type="button" class="export-button has-tooltip" data-tooltip="{{ ability[2] }}" export-data='{"ability": "{{ ability[0] }}"}'>
                   <span class="left-text">{{ ability[0] }}</span>
                   <span class="right-text">{{ ability[1] }}%</span>
                 </button>
@@ -792,7 +949,7 @@
             <ul>
               {% for tera in tera_types_list %}
               <li>
-                <button type="button" class="export-button">
+                <button type="button" class="export-button" export-data='{"tera": "{{ tera[0] }}"}'>
                   <span class="type-{{ tera[0] }}">{{ tera[0] }}</span>
                   <span class="right-text">{{ tera[1] }}%</span>
                 </button>
@@ -811,7 +968,7 @@
             <ul>
               {% for nature in natures_list %}
               <li>
-                <button type="button" class="export-button{% if nature[2] %} has-tooltip" data-tooltip="{{ nature[2] }}{% endif %}">
+                <button type="button" class="export-button{% if nature[2] %} has-tooltip" data-tooltip="{{ nature[2] }}{% endif %}" export-data='{"nature": "{{ nature[0] }}"}'>
                   <span class="left-text">{{ nature[0] }}</span>
                   <span class="right-text">{{ nature[1] }}%</span>
                 </button>
@@ -820,6 +977,22 @@
             </ul>
             {% endif %}
           </div>
+        </div>
+
+        <!-- Export Pokemon -->
+        <div id="export-section"{% if not moves_list %} style="display:none"{% endif %}>
+          <h2>Export Pokemon <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Click on Moves, Items, Abilities, Tera Types and Natures to change the Export!">&#xf059;</span></h2>
+          <textarea class="Export" id="showdown-set" spellcheck="false"></textarea>
+          <button type="button" class="copy-button" id="copy-button" style="text-align: center;">Copy Pokemon to Clipboard</button>
+        </div>
+
+        <!-- Merch -->
+        <div class="merch-section" id="merch-section">
+          <h2>Merch <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="These are affiliate eBay links that help support the website.">&#xf059;</span> <button type="button" class="merch-toggle" id="merch-toggle">Hide</button></h2>
+          <div class="merch-carousel" id="merch-carousel">
+            <div class="merch-loading">Loading merch...</div>
+          </div>
+          <div class="merch-collapsed-msg">Merch hidden &mdash; click Show to browse</div>
         </div>
 
         <!-- Teams using selected Pokemon -->
@@ -856,7 +1029,7 @@
     window.currentDayFilter = "{{ day_filter }}";
     window.currentPokemonName = "{{ selected_pokemon }}";
   </script>
-  <script src="{{ url_for('static', filename='tournament_stats.js') }}"></script>
+  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=3"></script>
   {% endif %}
 </body>
 </html>
