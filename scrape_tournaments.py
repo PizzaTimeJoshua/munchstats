@@ -808,8 +808,34 @@ def aggregate_usage(players, filter_key):
     return {"total_teams": total_teams, "pokemon": pokemon_stats}
 
 
+def _has_tera_data(players):
+    """Check if this tournament actually uses Tera types.
+
+    Champions format and other non-Tera formats may have a handful of
+    stale/incorrect Tera entries on RK9.  If fewer than 10% of Pokemon
+    slots have a non-empty tera_type the tournament is treated as
+    non-Tera and all tera data is discarded.
+    """
+    total = 0
+    with_tera = 0
+    for p in players:
+        for slot in p.get("team", []):
+            total += 1
+            if slot.get("tera_type"):
+                with_tera += 1
+    if total == 0:
+        return False
+    return (with_tera / total) >= 0.10
+
+
 def build_aggregated_data(players):
     """Build all filter-level aggregations."""
+    # If the tournament doesn't meaningfully use Tera, strip stale values
+    if not _has_tera_data(players):
+        for p in players:
+            for slot in p.get("team", []):
+                slot["tera_type"] = ""
+
     return {
         "all": aggregate_usage(players, "all"),
         "day2": aggregate_usage(players, "day2"),
