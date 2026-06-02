@@ -624,7 +624,6 @@
     align-items: center;
     justify-content: center;
     gap: 6px;
-    z-index: 2;
   }
   .merch-arrow {
     background: rgba(34,34,34,0.8);
@@ -699,7 +698,7 @@
     /* Data cards: fluid width */
     .Data { width: 100%; max-width: 100%; box-sizing: border-box; }
     .Export, .copy-button { width: 100%; max-width: 100%; box-sizing: border-box; margin-right: 0; }
-    .merch-carousel { width: 100%; max-width: 100%; box-sizing: border-box; }
+    .merch-carousel { width: 100%; max-width: 300px; box-sizing: border-box; margin: 0 auto; }
     .Stats { width: 100%; max-width: 400px; margin: 0 auto; box-sizing: border-box; }
     .bar-container { width: 100%; box-sizing: border-box; height: auto; min-height: 28px; padding: 0; }
     .left-container { width: 100%; height: auto; min-height: 28px; }
@@ -1029,7 +1028,7 @@
     window.currentDayFilter = "{{ day_filter }}";
     window.currentPokemonName = "{{ selected_pokemon }}";
   </script>
-  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=3"></script>
+  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=4"></script>
   {% endif %}
 </body>
 </html>

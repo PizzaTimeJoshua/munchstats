@@ -2146,7 +2146,6 @@ def api_tournament_standings(tournament_id):
 
 EBAY_CLIENT_ID = os.environ.get("EBAY_CLIENT_ID", "")
 EBAY_CLIENT_SECRET = os.environ.get("EBAY_CLIENT_SECRET", "")
-EBAY_CAMPID = "5339155159"
 
 _ebay_token_cache = {"token": None, "expires": 0}
 _ebay_merch_cache = {}
@@ -2213,7 +2212,10 @@ def api_merch(pokemon_name):
         try:
             resp = requests.get(
                 "https://api.ebay.com/buy/browse/v1/item_summary/search",
-                headers={"Authorization": f"Bearer {token}"},
+                headers={
+                    "Authorization": f"Bearer {token}",
+                    "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+                },
                 params={"q": query, "limit": 2},
                 timeout=10,
             )
@@ -2224,22 +2226,12 @@ def api_merch(pokemon_name):
                     price_obj = item.get("price", {})
                     price = price_obj.get("value", "")
                     currency = price_obj.get("currency", "USD")
-                    affiliate_url = (
-                        item.get("itemAffiliateWebUrl")
-                        or item.get("itemWebUrl", "")
-                    )
-                    if affiliate_url and "campid" not in affiliate_url:
-                        sep = "&" if "?" in affiliate_url else "?"
-                        affiliate_url += (
-                            f"{sep}mkcid=1&mkrid=711-53200-19255-0"
-                            f"&campid={EBAY_CAMPID}&toolid=10001&mkevt=1"
-                        )
                     per_category[category].append({
                         "title": item.get("title", ""),
                         "price": price,
                         "currency": currency,
                         "image": image,
-                        "url": affiliate_url,
+                        "url": item.get("itemWebUrl", ""),
                         "category": category,
                     })
         except Exception:

@@ -1802,7 +1802,18 @@ $(document).ready(function () {
       '</a>';
   }
 
+  var epnLoaded = false;
+  function loadEpnSmartLinks() {
+    if (epnLoaded) return;
+    epnLoaded = true;
+    window._epn = {campaign: 5339155159, smartPopover: false};
+    var s = document.createElement("script");
+    s.src = "https://epnt.ebay.com/static/epn-smart-tools.js";
+    document.body.appendChild(s);
+  }
+
   function renderMerchCarousel(carousel, listings) {
+    loadEpnSmartLinks();
     merchItemCount = listings.length;
     var html = '<div class="merch-track">';
     for (var c = listings.length - MERCH_VISIBLE; c < listings.length; c++) {

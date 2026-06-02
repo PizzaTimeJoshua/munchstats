@@ -1124,7 +1124,6 @@
         align-items: center;
         justify-content: center;
         gap: 6px;
-        z-index: 2;
       }
       .merch-arrow {
         background: rgba(34,34,34,0.8);
@@ -1205,7 +1204,7 @@
         .pokemon-button .right-text { flex-shrink: 0; }
         /* Data cards + stats bars: fluid */
         .Data, .Export { width: 100%; max-width: 100%; box-sizing: border-box; margin-right: 0; }
-        .merch-carousel { width: 100%; max-width: 100%; box-sizing: border-box; }
+        .merch-carousel { width: 100%; max-width: 300px; box-sizing: border-box; margin: 0 auto; }
         textarea { width: 100%; box-sizing: border-box; }
         .Stats { width: 100%; max-width: 400px; margin: 0 auto; box-sizing: border-box; }
         .bar-container { width: 100%; box-sizing: border-box; height: auto; min-height: 28px; padding: 0; }
@@ -2328,7 +2327,7 @@
 
     <!-- External JavaScript files -->
     {% if not calc_only %}
-    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=3"></script>
+    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=4"></script>
     {% endif %}
     {% if calc_only %}
     <script src="{{ url_for('static', filename='vendor/smogon-calc.js') }}"></script>
