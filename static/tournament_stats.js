@@ -302,25 +302,17 @@ $(document).ready(function () {
 
   function buildCardHtml(item) {
     return '<a class="merch-card" href="' + escapeAttr(item.url) +
-      '" target="_blank" rel="noopener noreferrer nofollow">' +
+      '" target="_blank" rel="noopener nofollow">' +
       '<img src="' + escapeAttr(item.image) + '" alt="' + escapeAttr(item.title) + '" loading="lazy">' +
       '<div class="merch-card-title">' + escapeAttr(item.title) + '</div>' +
       '<div class="merch-card-price">$' + escapeAttr(item.price) + '</div>' +
       '</a>';
   }
 
-  var epnLoaded = false;
-  function loadEpnSmartLinks() {
-    if (epnLoaded) return;
-    epnLoaded = true;
-    window._epn = {campaign: 5339155159, smartPopover: false};
-    var s = document.createElement("script");
-    s.src = "https://epnt.ebay.com/static/epn-smart-tools.js";
-    document.body.appendChild(s);
-  }
+  // Affiliate tracking is now handled server-side via the Browse API
+  // X-EBAY-C-ENDUSERCTX header, so no client-side EPN script needed.
 
   function renderMerchCarousel(carousel, listings) {
-    loadEpnSmartLinks();
     merchItemCount = listings.length;
     // Build track: [clones of last VISIBLE] [real items] [clones of first VISIBLE]
     var html = '<div class="merch-track">';

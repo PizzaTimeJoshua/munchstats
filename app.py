@@ -2215,6 +2215,7 @@ def api_merch(pokemon_name):
                 headers={
                     "Authorization": f"Bearer {token}",
                     "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
+                    "X-EBAY-C-ENDUSERCTX": "affiliateCampaignId=5339155159",
                 },
                 params={"q": query, "limit": 2},
                 timeout=10,
@@ -2231,7 +2232,7 @@ def api_merch(pokemon_name):
                         "price": price,
                         "currency": currency,
                         "image": image,
-                        "url": item.get("itemWebUrl", ""),
+                        "url": item.get("itemAffiliateWebUrl") or item.get("itemWebUrl", ""),
                         "category": category,
                     })
         except Exception:
