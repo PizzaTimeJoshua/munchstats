@@ -1482,6 +1482,10 @@ $(document).ready(function () {
     // Tera Types
     var teraHTML = buildTeraTypesHTML(data.tera_types_list);
     if (teraHTML) html += "<div>" + teraHTML + "</div>";
+    // Tournament Teams
+    if (data.has_tournament_data) html += buildTournamentTeamsSectionHTML();
+    // Recent Replays
+    if (data.has_replay_data) html += buildRecentReplaysSectionHTML();
     // Export
     var exportHTML = buildExportHTML(data);
     if (exportHTML) html += "<div>" + exportHTML + "</div>";
@@ -1707,6 +1711,17 @@ $(document).ready(function () {
     // Merch
     initMerchToggle();
     updateMerchSection(data.selected_pokemon);
+
+    // Tournament Teams & Recent Replays
+    window.hasTournamentData = !!data.has_tournament_data;
+    window.hasReplayData = !!data.has_replay_data;
+    window.isTransformed = !!data.is_transformed;
+    if (window.hasTournamentData) {
+      loadTournamentTeams(data.selected_pokemon, data.selected_format[0]);
+    }
+    if (window.hasReplayData) {
+      loadRecentReplays(data.selected_pokemon, data.selected_format[0]);
+    }
   }
 
   // ========== OVERRIDE SELECTION FUNCTIONS ==========
@@ -1904,9 +1919,367 @@ $(document).ready(function () {
     });
   }
 
+  // ========== TOURNAMENT TEAMS & RECENT REPLAYS ==========
+
+  function loadTournamentTeams(pokemonName, formatCode) {
+    var container = document.querySelector("#tournament-teams-section .Data");
+    if (!container) return;
+    container.innerHTML = '<div class="section-loading">Loading tournament data...</div>';
+
+    fetch("/api/pokemon-teams/" + encodeURIComponent(formatCode) + "/" + encodeURIComponent(pokemonName))
+      .then(function (res) { return res.json(); })
+      .then(function (teams) {
+        if (!teams || teams.length === 0) {
+          container.innerHTML = '<div class="section-loading">No tournament data found</div>';
+          return;
+        }
+        renderTournamentTeams(container, teams);
+      })
+      .catch(function () {
+        container.innerHTML = '<div class="section-loading">Could not load tournament data</div>';
+      });
+  }
+
+  var _topTeamsData = [];
+
+  function renderTournamentTeams(container, teams) {
+    _topTeamsData = teams;
+    var html = "";
+    for (var i = 0; i < teams.length; i++) {
+      var t = teams[i];
+      var record = t.record && t.record.wins != null
+        ? " (" + t.record.wins + "-" + t.record.losses + ")"
+        : "";
+      html += '<div class="team-entry" data-team-idx="' + i + '" style="cursor:pointer;">';
+      html += '<div class="team-entry-header">';
+      html += '<span class="placement">#' + t.placement + ' ' + t.player + record + '</span>';
+      html += '<span class="tournament-info">' + t.tournament_name + '</span>';
+      html += '</div>';
+      html += '<div class="team-entry-sprites">';
+      for (var j = 0; j < t.team.length; j++) {
+        var sp = t.team[j].sprite;
+        html += '<div class="image-pokemon" style="background-position: ' + (sp[1] * -40) + 'px ' + (sp[0] * -30) + 'px;"></div>';
+      }
+      html += '</div>';
+      html += '</div>';
+    }
+    html += '<a class="section-more-link" href="/tournaments/">View all tournaments &rarr;</a>';
+    container.innerHTML = html;
+
+    container.querySelectorAll('.team-entry').forEach(function(entry) {
+      entry.addEventListener('click', function() {
+        var idx = parseInt(this.getAttribute('data-team-idx'), 10);
+        openTeamModal(_topTeamsData[idx]);
+      });
+    });
+  }
+
+  function loadRecentReplays(pokemonName, formatCode) {
+    var container = document.querySelector("#recent-replays-section .Data");
+    if (!container) return;
+    container.innerHTML = '<div class="section-loading">Loading replays...</div>';
+
+    fetch("/api/pokemon-replays/" + encodeURIComponent(formatCode) + "/" + encodeURIComponent(pokemonName))
+      .then(function (res) { return res.json(); })
+      .then(function (replays) {
+        if (!replays || replays.length === 0) {
+          container.innerHTML = '<div class="section-loading">No replays found</div>';
+          return;
+        }
+        renderRecentReplays(container, replays, formatCode);
+      })
+      .catch(function () {
+        container.innerHTML = '<div class="section-loading">Could not load replays</div>';
+      });
+  }
+
+  function renderRecentReplays(container, replays, formatCode) {
+    var html = "";
+    if (window.isTransformed) {
+      html += '<div style="color: #b08d57; font-size: 11px; padding: 4px 8px; border-bottom: 1px solid #2a2a2a;">Replays show base form only and may not reflect this specific form.</div>';
+    }
+    for (var i = 0; i < replays.length; i++) {
+      var r = replays[i];
+      // r = [id, rating, winner, players, sprite_index_team, score, uploadtime, usage_score, bo3_matches, format, teamused_brought, winner_index]
+      var replayId = r[0];
+      var rating = r[1];
+      var players = r[3];
+      var spriteTeams = r[4];
+      var teamusedBrought = r[10];
+      var bo3Matches = r[8];
+      var title = players[0] + ' vs ' + players[1];
+
+      html += '<div class="replay-entry" data-replay-id="' + replayId + '" data-replay-title="' + encodeURIComponent(title) + '"';
+      if (bo3Matches && bo3Matches.length > 0) {
+        html += ' data-bo3=\'' + JSON.stringify(bo3Matches) + '\'';
+      }
+      html += '>';
+      html += '<div class="replay-entry-header">';
+      html += '<span class="players">' + title + '</span>';
+      html += '<span class="rating">Rating: ' + rating + '</span>';
+      html += '</div>';
+      html += '<div class="replay-entry-teams">';
+
+      // Player 1 team
+      html += '<div class="replay-entry-team">';
+      for (var j = 0; j < spriteTeams[0].length; j++) {
+        var idx = spriteTeams[0][j];
+        var col = idx % 12;
+        var row = Math.floor(idx / 12);
+        var notBrought = teamusedBrought && teamusedBrought[0] && teamusedBrought[0][j] === false ? ' not-brought' : '';
+        html += '<div class="image-pokemon' + notBrought + '" style="background-position: -' + (col * 40) + 'px -' + (row * 30) + 'px;"></div>';
+      }
+      html += '</div>';
+
+      // Player 2 team
+      html += '<div class="replay-entry-team">';
+      for (var k = 0; k < spriteTeams[1].length; k++) {
+        var idx2 = spriteTeams[1][k];
+        var col2 = idx2 % 12;
+        var row2 = Math.floor(idx2 / 12);
+        var notBrought2 = teamusedBrought && teamusedBrought[1] && teamusedBrought[1][k] === false ? ' not-brought' : '';
+        html += '<div class="image-pokemon' + notBrought2 + '" style="background-position: -' + (col2 * 40) + 'px -' + (row2 * 30) + 'px;"></div>';
+      }
+      html += '</div>';
+
+      html += '</div>';
+      html += '</div>';
+    }
+    html += '<a class="section-more-link" href="/replays/' + encodeURIComponent(formatCode) + '/">View all replays &rarr;</a>';
+    container.innerHTML = html;
+
+    // Attach click handlers for replay modal
+    container.querySelectorAll('.replay-entry').forEach(function(entry) {
+      entry.addEventListener('click', function() {
+        var rid = this.getAttribute('data-replay-id');
+        var rtitle = decodeURIComponent(this.getAttribute('data-replay-title'));
+        var bo3 = this.getAttribute('data-bo3');
+        openUsageReplayModal(rid, rtitle, bo3 ? JSON.parse(bo3) : null);
+      });
+    });
+  }
+
+  // ========== REPLAY MODAL (Usage Stats Page) ==========
+
+  var currentUsageBo3 = null;
+
+  function openUsageReplayModal(replayId, title, bo3Matches) {
+    var modal = document.getElementById('replayModal');
+    var iframe = document.getElementById('replayIframe');
+    var titleEl = document.getElementById('replayModalTitle');
+    var extLink = document.getElementById('replayExternalLink');
+    var gamesEl = document.getElementById('replayModalGames');
+
+    if (!modal || !iframe) return;
+
+    if (bo3Matches && bo3Matches.length > 0) {
+      // Start at game 1 — find the first valid match
+      var firstValid = bo3Matches[0] || replayId;
+      currentUsageBo3 = {
+        matches: bo3Matches,
+        title: title || 'Replay',
+        activeGame: 0
+      };
+      titleEl.textContent = (title || 'Replay') + ' - Game 1';
+      extLink.href = 'https://replay.pokemonshowdown.com/' + firstValid;
+      iframe.src = '/replays/watch/' + firstValid;
+      renderUsageBo3Buttons();
+    } else {
+      currentUsageBo3 = null;
+      if (gamesEl) gamesEl.innerHTML = '';
+      titleEl.textContent = title || 'Replay Viewer';
+      extLink.href = 'https://replay.pokemonshowdown.com/' + replayId;
+      iframe.src = '/replays/watch/' + replayId;
+    }
+
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function renderUsageBo3Buttons() {
+    var gamesEl = document.getElementById('replayModalGames');
+    if (!gamesEl || !currentUsageBo3) { if (gamesEl) gamesEl.innerHTML = ''; return; }
+
+    var html = '';
+    for (var i = 0; i < currentUsageBo3.matches.length; i++) {
+      var matchId = currentUsageBo3.matches[i];
+      var isActive = (i === currentUsageBo3.activeGame);
+      var isDisabled = (!matchId || matchId === '');
+      var cls = 'replay-modal-game-btn';
+      if (isActive) cls += ' active';
+      if (isDisabled) cls += ' disabled';
+      html += '<button class="' + cls + '" data-game-index="' + i + '">Game ' + (i + 1) + '</button>';
+    }
+    gamesEl.innerHTML = html;
+
+    gamesEl.querySelectorAll('.replay-modal-game-btn:not(.disabled)').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(this.getAttribute('data-game-index'));
+        switchUsageBo3Game(idx);
+      });
+    });
+  }
+
+  function switchUsageBo3Game(gameIndex) {
+    if (!currentUsageBo3) return;
+    var matchId = currentUsageBo3.matches[gameIndex];
+    if (!matchId || matchId === '') return;
+
+    currentUsageBo3.activeGame = gameIndex;
+
+    var iframe = document.getElementById('replayIframe');
+    var titleEl = document.getElementById('replayModalTitle');
+    var extLink = document.getElementById('replayExternalLink');
+
+    titleEl.textContent = currentUsageBo3.title + ' - Game ' + (gameIndex + 1);
+    extLink.href = 'https://replay.pokemonshowdown.com/' + matchId;
+    iframe.contentWindow.postMessage({ type: 'loadReplay', replayId: matchId }, '*');
+    renderUsageBo3Buttons();
+  }
+
+  function closeUsageReplayModal() {
+    var modal = document.getElementById('replayModal');
+    var iframe = document.getElementById('replayIframe');
+    var gamesEl = document.getElementById('replayModalGames');
+    if (!modal) return;
+
+    modal.classList.remove('active');
+    if (iframe) iframe.src = 'about:blank';
+    document.body.style.overflow = '';
+    currentUsageBo3 = null;
+    if (gamesEl) gamesEl.innerHTML = '';
+  }
+
+  // Modal event listeners
+  var replayModalClose = document.getElementById('replayModalClose');
+  if (replayModalClose) {
+    replayModalClose.addEventListener('click', closeUsageReplayModal);
+  }
+  var replayModalOverlay = document.getElementById('replayModal');
+  if (replayModalOverlay) {
+    replayModalOverlay.addEventListener('click', function(e) {
+      if (e.target === this) closeUsageReplayModal();
+    });
+  }
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeUsageReplayModal();
+      closeTeamModal();
+    }
+  });
+
+  // ========== TEAM DETAIL MODAL ==========
+
+  function teamToShowdown(team) {
+    var lines = [];
+    team.forEach(function(slot) {
+      var header = slot.pokemon;
+      if (slot.item) header += " @ " + slot.item;
+      lines.push(header);
+      if (slot.ability) lines.push("Ability: " + slot.ability);
+      if (slot.tera_type) lines.push("Tera Type: " + slot.tera_type);
+      if (slot.nature) lines.push(slot.nature + " Nature");
+      if (slot.moves) {
+        slot.moves.forEach(function(m) { lines.push("- " + m); });
+      }
+      lines.push("");
+    });
+    return lines.join("\n").trim();
+  }
+
+  function openTeamModal(teamData) {
+    var modal = document.getElementById('teamModal');
+    var titleEl = document.getElementById('teamModalTitle');
+    var bodyEl = document.getElementById('teamModalBody');
+    if (!modal) return;
+
+    var record = teamData.record && teamData.record.wins != null
+      ? " (" + teamData.record.wins + "-" + teamData.record.losses + ")"
+      : "";
+    titleEl.textContent = "#" + teamData.placement + " " + teamData.player + record + " — " + teamData.tournament_name;
+
+    var html = '<div class="team-modal-grid">';
+    teamData.team.forEach(function(slot) {
+      html += '<div class="team-modal-pokemon">';
+      html += '<div class="tm-name">' + slot.pokemon + '</div>';
+      html += '<div class="tm-info">';
+      if (slot.tera_type) html += 'Tera: ' + slot.tera_type + '<br>';
+      if (slot.nature) html += 'Nature: ' + slot.nature + '<br>';
+      if (slot.ability) html += 'Ability: ' + slot.ability + '<br>';
+      if (slot.item) html += 'Item: ' + slot.item + '<br>';
+      if (slot.moves && slot.moves.length > 0) {
+        slot.moves.forEach(function(m) { html += '- ' + m + '<br>'; });
+      }
+      html += '</div></div>';
+    });
+    html += '</div>';
+    html += '<button class="team-modal-copy" id="teamModalCopy">Copy Team to Clipboard</button>';
+    bodyEl.innerHTML = html;
+
+    document.getElementById('teamModalCopy').addEventListener('click', function() {
+      var text = teamToShowdown(teamData.team);
+      var btn = this;
+      navigator.clipboard.writeText(text).then(function() {
+        btn.textContent = "Copied!";
+        btn.classList.add("copied");
+        setTimeout(function() {
+          btn.textContent = "Copy Team to Clipboard";
+          btn.classList.remove("copied");
+        }, 2000);
+      });
+    });
+
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeTeamModal() {
+    var modal = document.getElementById('teamModal');
+    if (!modal) return;
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  var teamModalClose = document.getElementById('teamModalClose');
+  if (teamModalClose) {
+    teamModalClose.addEventListener('click', closeTeamModal);
+  }
+  var teamModalOverlay = document.getElementById('teamModal');
+  if (teamModalOverlay) {
+    teamModalOverlay.addEventListener('click', function(e) {
+      if (e.target === this) closeTeamModal();
+    });
+  }
+
+  function buildTournamentTeamsSectionHTML() {
+    return '<div id="tournament-teams-section">' +
+      '<h2>Top Teams <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Teams from recent VGC tournaments that used this Pokemon, sorted by placement.">&#xf059;</span></h2>' +
+      '<div class="Data" style="height: auto; max-height: 210px;">' +
+      '<div class="section-loading" id="tournament-teams-loading">Loading tournament data...</div>' +
+      '</div></div>';
+  }
+
+  function buildRecentReplaysSectionHTML() {
+    return '<div id="recent-replays-section">' +
+      '<h2>Recent Replays <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="High-rated replays where this Pokemon was used.">&#xf059;</span></h2>' +
+      '<div class="Data" style="height: auto; max-height: 210px;">' +
+      '<div class="section-loading" id="recent-replays-loading">Loading replays...</div>' +
+      '</div></div>';
+  }
+
   // Initial load merch
   initMerchToggle();
   if (window.currentPokemonName) {
     updateMerchSection(window.currentPokemonName);
+  }
+
+  // Initial load tournament teams & replays
+  if (window.currentPokemonName && !window.isCalcPage) {
+    if (window.hasTournamentData) {
+      loadTournamentTeams(window.currentPokemonName, window.selectedFormat);
+    }
+    if (window.hasReplayData) {
+      loadRecentReplays(window.currentPokemonName, window.selectedFormat);
+    }
   }
 });
