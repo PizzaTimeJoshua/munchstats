@@ -9,5 +9,6 @@
   "day2_cutoff_standing": 57,
   "teams_scraped": 625,
   "scraped_at": "2026-05-30T09:04:35.994552Z",
-  "day2_source": "pairings"
+  "day2_source": "pairings",
+  "format": "gen9vgc2026regf"
 }

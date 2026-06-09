@@ -1145,6 +1145,279 @@
         color: #666;
         font-size: 13px;
       }
+      /* Tournament Teams & Recent Replays sections */
+      .section-loading {
+        color: #666;
+        font-size: 13px;
+        padding: 20px;
+        text-align: center;
+      }
+      .team-entry {
+        padding: 6px 8px;
+        border-bottom: 1px solid #2a2a2a;
+        text-align: left;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .team-entry:hover {
+        background-color: #2a2a2a;
+      }
+      .team-entry:last-child {
+        border-bottom: none;
+      }
+      .team-entry-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        margin-bottom: 2px;
+      }
+      .team-entry-header .placement {
+        font-weight: bold;
+        color: #e0e0e0;
+      }
+      .team-entry-header .tournament-info {
+        color: #888;
+        font-size: 11px;
+        text-align: right;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 160px;
+      }
+      .team-entry-sprites {
+        display: flex;
+        gap: 0;
+      }
+      .replay-entry {
+        padding: 6px 8px;
+        border-bottom: 1px solid #2a2a2a;
+        text-align: left;
+        cursor: pointer;
+        transition: background-color 0.2s;
+      }
+      .replay-entry:last-child {
+        border-bottom: none;
+      }
+      .replay-entry:hover {
+        background-color: #2a2a2a;
+      }
+      .replay-entry-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 12px;
+        margin-bottom: 2px;
+      }
+      .replay-entry-header .rating {
+        font-weight: bold;
+        color: #e0e0e0;
+      }
+      .replay-entry-header .players {
+        color: #888;
+        font-size: 11px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        max-width: 200px;
+      }
+      .replay-entry-teams {
+        display: flex;
+        flex-direction: column;
+        gap: 0;
+      }
+      .replay-entry-team {
+        display: flex;
+        gap: 0;
+      }
+      .replay-entry-team .image-pokemon {
+        opacity: 1;
+      }
+      .replay-entry-team .image-pokemon.not-brought {
+        opacity: 0.35;
+      }
+      /* Replay modal on usage stats page */
+      .replay-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.75);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      }
+      .replay-modal-overlay.active { display: flex; }
+      .replay-modal {
+        background: #1e1e1e;
+        border: 1px solid #555;
+        width: 95%;
+        max-width: 1200px;
+        height: 90vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      }
+      .replay-modal-header {
+        display: flex;
+        align-items: center;
+        padding: 10px 16px;
+        background: #222222;
+        border-bottom: 1px solid #555;
+        flex-shrink: 0;
+      }
+      .replay-modal-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #e0e0e0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        min-width: 0;
+        flex-shrink: 1;
+      }
+      .replay-modal-external {
+        color: #ffd54f;
+        text-decoration: none;
+        font-size: 13px;
+        margin-left: auto;
+        margin-right: 16px;
+        flex-shrink: 0;
+        white-space: nowrap;
+      }
+      .replay-modal-external:hover { opacity: 0.8; }
+      .replay-modal-close {
+        background: none;
+        border: 1px solid #555;
+        color: #e0e0e0;
+        font-size: 20px;
+        width: 32px;
+        height: 32px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        margin: 0;
+        flex-shrink: 0;
+      }
+      .replay-modal-close:hover { background: #333; }
+      .replay-modal-iframe { flex: 1; width: 100%; border: none; }
+      /* Team detail modal */
+      .team-modal-overlay {
+        display: none;
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0, 0, 0, 0.75);
+        z-index: 1000;
+        align-items: center;
+        justify-content: center;
+      }
+      .team-modal-overlay.active { display: flex; }
+      .team-modal {
+        background: #1e1e1e;
+        border: 1px solid #555;
+        width: 95%;
+        max-width: 700px;
+        max-height: 90vh;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+      }
+      .team-modal-header {
+        display: flex;
+        align-items: center;
+        padding: 10px 16px;
+        background: #222222;
+        border-bottom: 1px solid #555;
+        flex-shrink: 0;
+      }
+      .team-modal-title {
+        font-size: 14px;
+        font-weight: 600;
+        color: #e0e0e0;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .team-modal-close {
+        background: none;
+        border: 1px solid #555;
+        color: #e0e0e0;
+        font-size: 20px;
+        width: 32px;
+        height: 32px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        margin: 0;
+        flex-shrink: 0;
+      }
+      .team-modal-close:hover { background: #333; }
+      .team-modal-body {
+        padding: 12px 16px;
+        overflow-y: auto;
+        flex: 1;
+      }
+      .team-modal-grid {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+      }
+      .team-modal-pokemon {
+        background: #252525;
+        border: 1px solid #444;
+        padding: 8px 10px;
+        font-size: 12px;
+        text-align: left;
+        box-sizing: border-box;
+      }
+      .team-modal-pokemon .tm-name {
+        font-weight: 600;
+        color: #ffd54f;
+        font-size: 13px;
+      }
+      .team-modal-pokemon .tm-info {
+        color: #aaa;
+        font-size: 11px;
+        line-height: 1.6;
+      }
+      .team-modal-copy {
+        background: #2a2a2a;
+        color: #aaa;
+        border: 1px solid #555;
+        padding: 6px 14px;
+        margin-top: 10px;
+        cursor: pointer;
+        font-size: 12px;
+        display: block;
+        width: 100%;
+        text-align: center;
+        transition: color 0.2s, background 0.2s;
+      }
+      .team-modal-copy:hover { color: #fff; background: #333; }
+      .team-modal-copy.copied { color: #ffd54f; }
+      @media (max-width: 600px) {
+        .team-modal-grid { grid-template-columns: repeat(2, 1fr); }
+      }
+      .section-more-link {
+        display: block;
+        text-align: center;
+        padding: 6px;
+        color: #888;
+        font-size: 12px;
+        text-decoration: none;
+        transition: color 0.2s;
+      }
+      .section-more-link:hover {
+        color: #e0e0e0;
+      }
       /* Medium screens: two Pokémon side-by-side, field full-width above */
       /* ── Responsive: Tablet (701–1100px) ── */
       @media (max-width: 1100px) and (min-width: 701px) {
@@ -2227,6 +2500,22 @@
           </div>
         </div>
         {% endif %}
+        {% if has_tournament_data %}
+        <div id="tournament-teams-section">
+          <h2>Top Teams <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Teams from recent VGC tournaments that used this Pokemon, sorted by placement.">&#xf059;</span></h2>
+          <div class="Data" style="height: auto; max-height: 210px;">
+            <div class="section-loading" id="tournament-teams-loading">Loading tournament data...</div>
+          </div>
+        </div>
+        {% endif %}
+        {% if has_replay_data %}
+        <div id="recent-replays-section">
+          <h2>Recent Replays <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="High-rated replays where this Pokemon was used.">&#xf059;</span></h2>
+          <div class="Data" style="height: auto; max-height: 210px;">
+            <div class="section-loading" id="recent-replays-loading">Loading replays...</div>
+          </div>
+        </div>
+        {% endif %}
         {% if evs_list[0]|length > 0 %}
         <div>
           <h2>Export Pokemon <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Click on Moves, Items, {% if is_champions %}Stat Point Spreads{% else %}EV Spreads{% endif %} and Abilities to change the Export!">&#xf059;</span></h2>
@@ -2308,6 +2597,9 @@
       window.availableMonths = {{ available_months | tojson }};
       window.isChampions = {{ is_champions | tojson }};
       window.isCalcPage = {{ calc_only | default(false) | tojson }};
+      window.hasTournamentData = {{ has_tournament_data | default(false) | tojson }};
+      window.hasReplayData = {{ has_replay_data | default(false) | tojson }};
+      window.isTransformed = {{ is_transformed | default(false) | tojson }};
       window.calcFormatRatings = {{ calc_format_ratings | default({}) | tojson }};
       window.trendMonths = {{ trend_months | tojson }};
       window.trendUsage = {{ trend_usage | tojson }};
@@ -2478,5 +2770,26 @@
     })();
     </script>
     {% endif %}
+    <!-- Replay Modal -->
+    <div class="replay-modal-overlay" id="replayModal">
+      <div class="replay-modal">
+        <div class="replay-modal-header">
+          <span class="replay-modal-title" id="replayModalTitle">Replay Viewer</span>
+          <a class="replay-modal-external" href="#" id="replayExternalLink" target="_blank">Open in New Tab</a>
+          <button class="replay-modal-close" id="replayModalClose" title="Close">&times;</button>
+        </div>
+        <iframe class="replay-modal-iframe" id="replayIframe" src="about:blank"></iframe>
+      </div>
+    </div>
+    <!-- Team Detail Modal -->
+    <div class="team-modal-overlay" id="teamModal">
+      <div class="team-modal">
+        <div class="team-modal-header">
+          <span class="team-modal-title" id="teamModalTitle">Team Details</span>
+          <button class="team-modal-close" id="teamModalClose" title="Close">&times;</button>
+        </div>
+        <div class="team-modal-body" id="teamModalBody"></div>
+      </div>
+    </div>
   </body>
 </html>

@@ -60,6 +60,45 @@ REPLAY_FORMATS = [
 ]
 
 
+def normalize_format(fmt):
+    """Strip bo3 suffix for format comparison."""
+    return fmt[:-3] if fmt.endswith("bo3") else fmt
+
+
+def tournament_format_matches(tournament_format, page_format):
+    """Check if a tournament's format matches the page's current format."""
+    return normalize_format(tournament_format) == normalize_format(page_format)
+
+
+def get_base_pokemon_name(name):
+    """Strip Mega/Primal suffixes to get the base Pokemon name for tournament/replay lookup."""
+    return re.sub(r"-(Mega|Primal)(-[A-Z])?$", "", name)
+
+
+def is_transformed_pokemon(name):
+    """Check if a Pokemon name is a Mega or Primal form."""
+    return bool(re.search(r"-(Mega|Primal)(-[A-Z])?$", name))
+
+
+# Built after data load — maps "Charizard-Mega-X" -> "Charizardite X", etc.
+_mega_required_items = {}
+
+
+def build_mega_item_lookup():
+    """Build reverse lookup from mega Pokemon name to required held item."""
+    global _mega_required_items
+    for _key, item in itemDetails.items():
+        mega_map = item.get("megaStone")
+        if mega_map and isinstance(mega_map, dict):
+            for _base, mega_name in mega_map.items():
+                _mega_required_items[mega_name.lower()] = item.get("name", "")
+        if item.get("isPrimalOrb"):
+            users = item.get("itemUser", [])
+            for user in users:
+                primal_name = user + "-Primal"
+                _mega_required_items[primal_name.lower()] = item.get("name", "")
+
+
 def load_data_file(filepath, mode="r", encoding="utf8"):
     """Load and return data from a JSON/JSON5 file if it exists."""
     if os.path.exists(filepath):
@@ -885,6 +924,7 @@ def get_pokemon_sprite(pokemon_name):
 
 
 load_all_data()
+build_mega_item_lookup()
 
 
 @app.route("/about/")
@@ -1046,6 +1086,9 @@ def compile_page_data(format_code, rating_threshold="", pokemon_name="", month=N
         "trend_months": trend_months,
         "trend_usage": trend_usage,
         "show_trend": sum(1 for v in trend_usage if v is not None and v > 0) >= 2,
+        "has_tournament_data": normalize_format(chosen_format) in get_tournament_formats(),
+        "has_replay_data": chosen_format in REPLAY_FORMATS,
+        "is_transformed": is_transformed_pokemon(default_pokemon),
     }
 
 
@@ -1781,6 +1824,22 @@ def watch_replay(replay_id):
 TOURNAMENT_DATA_DIR = os.path.join(DATA_DIRECTORY, "tournaments")
 os.makedirs(TOURNAMENT_DATA_DIR, exist_ok=True)
 
+_tournament_formats_cache = None
+
+
+def get_tournament_formats():
+    """Return set of normalized format codes that have tournament data."""
+    global _tournament_formats_cache
+    if _tournament_formats_cache is not None:
+        return _tournament_formats_cache
+    tournaments = load_tournament_list()
+    _tournament_formats_cache = {
+        normalize_format(t["format"])
+        for t in tournaments
+        if t.get("format")
+    }
+    return _tournament_formats_cache
+
 
 def load_tournament_list():
     """Load tournament index, sorted newest first. Filters out tournaments with no team data."""
@@ -2140,6 +2199,77 @@ def api_tournament_standings(tournament_id):
 
     standings.sort(key=lambda s: s["placement"])
     return jsonify(standings)
+
+
+# ─── Pokemon Detail Page: Tournament & Replay Integration ────────────────
+
+
+@app.route("/api/pokemon-teams/<format_code>/<pokemon_name>")
+def api_pokemon_tournament_teams(format_code, pokemon_name):
+    """Return top-performing tournament teams that used a given Pokemon."""
+    tournaments = load_tournament_list()
+    matching = [
+        t for t in tournaments
+        if t.get("format") and tournament_format_matches(t["format"], format_code)
+    ][:5]
+
+    if not matching:
+        return jsonify([])
+
+    all_teams = []
+    base_name = get_base_pokemon_name(pokemon_name)
+    poke_lower = base_name.lower()
+    required_item = _mega_required_items.get(pokemon_name.lower(), "")
+    for tourney in matching:
+        players = load_tournament_players(tourney["id"])
+        for player in players:
+            if not player.get("team"):
+                continue
+            # Find the slot matching the base Pokemon
+            matched_slot = None
+            for slot in player["team"]:
+                if slot["pokemon"].lower() == poke_lower:
+                    matched_slot = slot
+                    break
+            if not matched_slot:
+                continue
+            # If viewing a Mega/Primal, verify the held item matches
+            if required_item and matched_slot.get("item", "") != required_item:
+                continue
+            all_teams.append({
+                "player": player["name"],
+                "placement": player["placement"],
+                "record": player.get("record", {}),
+                "day_reached": player.get("day_reached", "day1"),
+                "tournament_name": tourney["name"],
+                "tournament_date": tourney.get("date", ""),
+                "tournament_id": tourney["id"],
+                "team": [
+                    {
+                        "pokemon": s["pokemon"],
+                        "sprite": list(get_pokemon_sprite(s["pokemon"])),
+                        "item": s.get("item", ""),
+                        "ability": s.get("ability", ""),
+                        "tera_type": s.get("tera_type", ""),
+                        "nature": s.get("nature", ""),
+                        "moves": s.get("moves", []),
+                    }
+                    for s in player["team"]
+                ],
+            })
+
+    all_teams.sort(key=lambda t: t["placement"])
+    return jsonify(all_teams[:8])
+
+
+@app.route("/api/pokemon-replays/<format_code>/<pokemon_name>")
+def api_pokemon_replays(format_code, pokemon_name):
+    """Return recent high-level replays featuring a given Pokemon."""
+    if format_code not in REPLAY_FORMATS:
+        return jsonify([])
+    search_name = get_base_pokemon_name(pokemon_name)
+    replays = find_replays([search_name], format_code, replay_total=10)
+    return jsonify(replays)
 
 
 # ─── eBay Merch API ──────────────────────────────────────────────────────
