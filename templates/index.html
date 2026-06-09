@@ -1262,31 +1262,23 @@
       .replay-modal-header {
         display: flex;
         align-items: center;
+        flex-wrap: wrap;
         padding: 10px 16px;
         background: #222222;
         border-bottom: 1px solid #555;
         flex-shrink: 0;
+        gap: 6px;
       }
       .replay-modal-title {
         font-size: 14px;
         font-weight: 600;
         color: #e0e0e0;
-        white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        min-width: 0;
-        flex-shrink: 1;
-      }
-      .replay-modal-external {
-        color: #ffd54f;
-        text-decoration: none;
-        font-size: 13px;
-        margin-left: auto;
-        margin-right: 16px;
-        flex-shrink: 0;
         white-space: nowrap;
+        min-width: 0;
+        flex: 1 1 0;
       }
-      .replay-modal-external:hover { opacity: 0.8; }
       .replay-modal-close {
         background: none;
         border: 1px solid #555;
@@ -1303,6 +1295,47 @@
         flex-shrink: 0;
       }
       .replay-modal-close:hover { background: #333; }
+      .replay-modal-external {
+        color: #ffd54f;
+        text-decoration: none;
+        font-size: 13px;
+        margin-right: 8px;
+        flex-shrink: 0;
+        white-space: nowrap;
+      }
+      .replay-modal-external:hover { opacity: 0.8; }
+      @media (max-width: 600px) {
+        .replay-modal-header {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          grid-template-rows: auto auto;
+          padding: 8px 10px;
+          gap: 6px;
+        }
+        .replay-modal-title { grid-column: 1; grid-row: 1; }
+        .replay-modal-close { grid-column: 2; grid-row: 1; }
+        .replay-modal-games { grid-column: 1 / -1; grid-row: 2; margin-left: 0; }
+        .replay-modal-external { display: none; }
+      }
+      .replay-modal-games {
+        display: flex;
+        gap: 4px;
+        margin-left: 12px;
+        flex-shrink: 0;
+      }
+      .replay-modal-game-btn {
+        background: #333;
+        color: #e0e0e0;
+        border: 1px solid #555;
+        padding: 4px 12px;
+        margin: 0;
+        font-size: 12px;
+        cursor: pointer;
+        transition: background-color 0.2s, border-color 0.2s;
+      }
+      .replay-modal-game-btn:hover { background: #444; border-color: #ffd54f; }
+      .replay-modal-game-btn.active { background: #ffd54f; border-color: #ffd54f; color: #1e1e1e; }
+      .replay-modal-game-btn.disabled { opacity: 0.35; pointer-events: none; }
       .replay-modal-iframe { flex: 1; width: 100%; border: none; }
       /* Team detail modal */
       .team-modal-overlay {
@@ -2619,7 +2652,7 @@
 
     <!-- External JavaScript files -->
     {% if not calc_only %}
-    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=5"></script>
+    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=6"></script>
     {% endif %}
     {% if calc_only %}
     <script src="{{ url_for('static', filename='vendor/smogon-calc.js') }}"></script>
@@ -2775,6 +2808,7 @@
       <div class="replay-modal">
         <div class="replay-modal-header">
           <span class="replay-modal-title" id="replayModalTitle">Replay Viewer</span>
+          <div class="replay-modal-games" id="replayModalGames"></div>
           <a class="replay-modal-external" href="#" id="replayExternalLink" target="_blank">Open in New Tab</a>
           <button class="replay-modal-close" id="replayModalClose" title="Close">&times;</button>
         </div>

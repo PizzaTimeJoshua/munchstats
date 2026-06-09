@@ -313,6 +313,8 @@
   .replay-modal-header {
     display: flex;
     align-items: center;
+    flex-wrap: wrap;
+    gap: 6px;
     padding: 10px 16px;
     background: #222222;
     border-bottom: 1px solid #555;
@@ -326,7 +328,7 @@
     overflow: hidden;
     text-overflow: ellipsis;
     min-width: 0;
-    flex-shrink: 1;
+    flex: 1 1 0;
   }
   .replay-modal-external {
     color: #ffd54f;
@@ -584,10 +586,18 @@
     }
     .team-rank-header { flex-wrap: wrap; }
     .team-rank-names { padding-left: 0; }
-    /* Replay modal: hide external link to save header space */
+    /* Replay modal: grid layout on mobile so close button stays on first row */
+    .replay-modal-header {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-rows: auto auto;
+      padding: 8px 10px;
+      gap: 6px;
+    }
+    .replay-modal-title { grid-column: 1; grid-row: 1; }
+    .replay-modal-close { grid-column: 2; grid-row: 1; }
+    .replay-modal-games { grid-column: 1 / -1; grid-row: 2; margin-left: 0; }
     .replay-modal-external { display: none; }
-    .replay-modal-header { padding: 8px 10px; }
-    .replay-modal-games { margin-left: 8px; }
   }
   @media (max-width: 500px) {
     .tab-btn { padding: 5px 7px; font-size: 11px; }
@@ -722,7 +732,7 @@
   <p><a href="{{ url_for('about') }}">About</a></p>
   <p>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</p>
 </footer>
-<script src="{{ url_for('static', filename='replay_search.js') }}?v=2"></script>
+<script src="{{ url_for('static', filename='replay_search.js') }}?v=3"></script>
 <script>
 (function() {
   function customizeSelect(sel) {

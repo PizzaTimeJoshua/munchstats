@@ -417,8 +417,8 @@ def load_all_data():
     format_info.sort(key=lambda x: (-x[2], -x[3]))
     availableFormats = [[fi[0], fi[1]] for fi in format_info]
     # Put Champions formats at the top of the list
-    champions = [f for f in availableFormats if f[1].startswith("[Champions]")]
-    others = [f for f in availableFormats if not f[1].startswith("[Champions]")]
+    champions = [f for f in availableFormats if "Champions]" in f[1]]
+    others = [f for f in availableFormats if "Champions]" not in f[1]]
     availableFormats = champions + others
     spriteIndex = load_data_file(build_data_path("forms_index.json")) or {}
     itemDetails = load_data_file(build_data_path("items.json")) or {}
@@ -441,8 +441,8 @@ def get_formats_for_month(month):
         gen = extract_generation_from_format(fmt) or 0
         format_list.append([fmt, display, gen])
     format_list.sort(key=lambda x: (-x[2], x[1]))
-    champions = [[f[0], f[1]] for f in format_list if f[1].startswith("[Champions]")]
-    others = [[f[0], f[1]] for f in format_list if not f[1].startswith("[Champions]")]
+    champions = [[f[0], f[1]] for f in format_list if "Champions]" in f[1]]
+    others = [[f[0], f[1]] for f in format_list if "Champions]" not in f[1]]
     return champions + others
 
 

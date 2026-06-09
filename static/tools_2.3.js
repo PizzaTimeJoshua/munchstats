@@ -2061,29 +2061,93 @@ $(document).ready(function () {
 
   // ========== REPLAY MODAL (Usage Stats Page) ==========
 
+  var currentUsageBo3 = null;
+
   function openUsageReplayModal(replayId, title, bo3Matches) {
     var modal = document.getElementById('replayModal');
     var iframe = document.getElementById('replayIframe');
     var titleEl = document.getElementById('replayModalTitle');
     var extLink = document.getElementById('replayExternalLink');
+    var gamesEl = document.getElementById('replayModalGames');
 
     if (!modal || !iframe) return;
 
-    titleEl.textContent = title || 'Replay Viewer';
-    extLink.href = 'https://replay.pokemonshowdown.com/' + replayId;
-    iframe.src = '/replays/watch/' + replayId;
+    if (bo3Matches && bo3Matches.length > 0) {
+      // Start at game 1 — find the first valid match
+      var firstValid = bo3Matches[0] || replayId;
+      currentUsageBo3 = {
+        matches: bo3Matches,
+        title: title || 'Replay',
+        activeGame: 0
+      };
+      titleEl.textContent = (title || 'Replay') + ' - Game 1';
+      extLink.href = 'https://replay.pokemonshowdown.com/' + firstValid;
+      iframe.src = '/replays/watch/' + firstValid;
+      renderUsageBo3Buttons();
+    } else {
+      currentUsageBo3 = null;
+      if (gamesEl) gamesEl.innerHTML = '';
+      titleEl.textContent = title || 'Replay Viewer';
+      extLink.href = 'https://replay.pokemonshowdown.com/' + replayId;
+      iframe.src = '/replays/watch/' + replayId;
+    }
+
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
+  }
+
+  function renderUsageBo3Buttons() {
+    var gamesEl = document.getElementById('replayModalGames');
+    if (!gamesEl || !currentUsageBo3) { if (gamesEl) gamesEl.innerHTML = ''; return; }
+
+    var html = '';
+    for (var i = 0; i < currentUsageBo3.matches.length; i++) {
+      var matchId = currentUsageBo3.matches[i];
+      var isActive = (i === currentUsageBo3.activeGame);
+      var isDisabled = (!matchId || matchId === '');
+      var cls = 'replay-modal-game-btn';
+      if (isActive) cls += ' active';
+      if (isDisabled) cls += ' disabled';
+      html += '<button class="' + cls + '" data-game-index="' + i + '">Game ' + (i + 1) + '</button>';
+    }
+    gamesEl.innerHTML = html;
+
+    gamesEl.querySelectorAll('.replay-modal-game-btn:not(.disabled)').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var idx = parseInt(this.getAttribute('data-game-index'));
+        switchUsageBo3Game(idx);
+      });
+    });
+  }
+
+  function switchUsageBo3Game(gameIndex) {
+    if (!currentUsageBo3) return;
+    var matchId = currentUsageBo3.matches[gameIndex];
+    if (!matchId || matchId === '') return;
+
+    currentUsageBo3.activeGame = gameIndex;
+
+    var iframe = document.getElementById('replayIframe');
+    var titleEl = document.getElementById('replayModalTitle');
+    var extLink = document.getElementById('replayExternalLink');
+
+    titleEl.textContent = currentUsageBo3.title + ' - Game ' + (gameIndex + 1);
+    extLink.href = 'https://replay.pokemonshowdown.com/' + matchId;
+    iframe.contentWindow.postMessage({ type: 'loadReplay', replayId: matchId }, '*');
+    renderUsageBo3Buttons();
   }
 
   function closeUsageReplayModal() {
     var modal = document.getElementById('replayModal');
     var iframe = document.getElementById('replayIframe');
+    var gamesEl = document.getElementById('replayModalGames');
     if (!modal) return;
 
     modal.classList.remove('active');
     if (iframe) iframe.src = 'about:blank';
     document.body.style.overflow = '';
+    currentUsageBo3 = null;
+    if (gamesEl) gamesEl.innerHTML = '';
   }
 
   // Modal event listeners
