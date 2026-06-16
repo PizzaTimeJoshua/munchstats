@@ -72,6 +72,9 @@ def tournament_format_matches(tournament_format, page_format):
 
 def get_base_pokemon_name(name):
     """Strip Mega/Primal suffixes to get the base Pokemon name for tournament/replay lookup."""
+    # Exception: Floette-Mega's base form is Floette-Eternal, not Floette.
+    if name == "Floette-Mega":
+        return "Floette-Eternal"
     return re.sub(r"-(Mega|Primal)(-[A-Z])?$", "", name)
 
 

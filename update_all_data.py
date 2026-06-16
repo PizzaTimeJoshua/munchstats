@@ -50,7 +50,11 @@ def extract_battle_icon_indexes_from_url(mjs_url, output_json_path):
     mjs_content = response.text.splitlines()
 
     # 2. Extract the content of BattlePokemonIconIndexes
-    start_index = mjs_content.index("const BattlePokemonIconIndexes = {")
+    start_index = next(
+        i
+        for i, line in enumerate(mjs_content)
+        if "BattlePokemonIconIndexes" in line and line.rstrip().endswith("{")
+    )
     end_index = start_index
     while mjs_content[end_index] != "};":
         end_index += 1
@@ -103,7 +107,7 @@ def updateData():
     with open("stats/pokedex.json", "w", encoding="utf-8") as file:
         file.write(pokedexRaw)
     print("Getting form data.")
-    url = "https://raw.githubusercontent.com/smogon/sprites/master/ps-pokemon.sheet.mjs"
+    url = "https://raw.githubusercontent.com/smogon/pokemon-showdown-client/master/play.pokemonshowdown.com/src/battle-dex-data.ts"
     extract_battle_icon_indexes_from_url(url, "stats/forms_index.json")
 
 
