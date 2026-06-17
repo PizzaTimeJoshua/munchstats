@@ -122,6 +122,11 @@
         background-color: #333333;
         color: #ffffff;
       }
+      .rating-button.active {
+        background-color: #333333;
+        color: #ffd54f;
+        border-color: #888;
+      }
       .pokemon-buttons {
         text-align: left;
       }
@@ -1864,7 +1869,7 @@
         <div class="rating-buttons" id="rating-buttons-container">
           <input type="hidden" name="rating_value" id="selectedRating" value="{{ selected_rating }}">
           {% for rate in rating_options %}
-          <button type="button" onclick="selectRating('{{ rate }}')" class="rating-button">{{ rate }}+</button>
+          <button type="button" onclick="selectRating('{{ rate }}')" class="rating-button {% if rate|string == selected_rating|string %}active{% endif %}">{{ rate }}+</button>
           {% endfor %}
         </div>
         <div style="height: 50px;">
@@ -2652,7 +2657,7 @@
 
     <!-- External JavaScript files -->
     {% if not calc_only %}
-    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=6"></script>
+    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=7"></script>
     {% endif %}
     {% if calc_only %}
     <script src="{{ url_for('static', filename='vendor/smogon-calc.js') }}"></script>

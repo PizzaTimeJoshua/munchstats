@@ -1082,7 +1082,9 @@ $(document).ready(function () {
       html +=
         '<button type="button" onclick="selectRating(\'' +
         esc(rate) +
-        '\')" class="rating-button">' +
+        '\')" class="rating-button' +
+        (String(rate) === String(selected) ? " active" : "") +
+        '">' +
         esc(rate) +
         "+</button>\n";
     });
