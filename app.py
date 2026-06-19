@@ -513,9 +513,19 @@ def compile_top_data(pokemon_data, pokemon_name, category, format_code="", base_
             "Serious": "Neutral", "Bashful": "Neutral", "Quirky": "Neutral",
         }
         nature_weights = {}
-        for spread_key, weight in pokemon_data.get("Spreads", {}).items():
-            nature = spread_key.split(":")[0]
-            nature_weights[nature] = nature_weights.get(nature, 0) + weight
+        # Early usage stats expose a direct "Natures" field (lowercase keys)
+        # before full "Spreads" data is available; prefer it when present.
+        direct_natures = pokemon_data.get("Natures", {})
+        if direct_natures:
+            for nature, weight in direct_natures.items():
+                normalized = nature.capitalize()
+                nature_weights[normalized] = (
+                    nature_weights.get(normalized, 0) + weight
+                )
+        else:
+            for spread_key, weight in pokemon_data.get("Spreads", {}).items():
+                nature = spread_key.split(":")[0]
+                nature_weights[nature] = nature_weights.get(nature, 0) + weight
         total_weight = max(
             sum(pokemon_data.get("Abilities", {"Unknown": 1}).values()),
             1,
