@@ -8,6 +8,7 @@ import re
 import time
 from datetime import datetime
 from functools import lru_cache
+from urllib.parse import quote
 
 import ijson
 import requests
@@ -425,6 +426,10 @@ def load_all_data():
     champions = [f for f in availableFormats if "Champions]" in f[1]]
     others = [f for f in availableFormats if "Champions]" not in f[1]]
     availableFormats = champions + others
+    # Register the live Pokémon Champions in-game formats and float them first.
+    for code, disp in CHAMPIONS_GAME_DISPLAY.items():
+        formatDisplayNames[code] = disp
+    availableFormats = champions_game_format_list() + availableFormats
     spriteIndex = load_data_file(build_data_path("forms_index.json")) or {}
     itemDetails = load_data_file(build_data_path("items.json")) or {}
     abilityDetails = load_data_file(build_data_path("abilities.json")) or {}
@@ -448,12 +453,368 @@ def get_formats_for_month(month):
     format_list.sort(key=lambda x: (-x[2], x[1]))
     champions = [[f[0], f[1]] for f in format_list if "Champions]" in f[1]]
     others = [[f[0], f[1]] for f in format_list if "Champions]" not in f[1]]
-    return champions + others
+    return champions_game_format_list() + champions + others
 
 
 def is_champions_format(format_code):
     """Check if a format code is a Champions format."""
     return "champions" in format_code.lower()
+
+
+# ─── Pokémon Champions (in-game) Battle Data ─────────────────────────────
+# Live battle data is fetched from championsbattledata.com and cached on disk
+# (NOT committed) for 12 hours. Attribution is required by their API rules.
+CHAMPIONS_API_BASE = "https://championsbattledata.com"
+CHAMPIONS_CACHE_DIR = os.path.join("cache", "champions")
+os.makedirs(CHAMPIONS_CACHE_DIR, exist_ok=True)
+CHAMPIONS_CACHE_TTL = 12 * 3600  # 12 hours
+CHAMPIONS_SEASON = "Current"
+CHAMPIONS_ATTRIBUTION = "Battle data provided by Pokémon Champions Battle Data"
+CHAMPIONS_ATTRIBUTION_URL = "https://championsbattledata.com/"
+
+# App format code -> API battle-data folder name
+CHAMPIONS_GAME_FORMATS = {
+    "championsdoubles": "Doubles",
+    "championssingles": "Singles",
+}
+CHAMPIONS_GAME_DISPLAY = {
+    "championsdoubles": "[Champions] In-Game Doubles",
+    "championssingles": "[Champions] In-Game Singles",
+}
+
+
+def is_champions_game_format(format_code):
+    """Check if a format code is a live Pokémon Champions in-game data format."""
+    return format_code in CHAMPIONS_GAME_FORMATS
+
+
+def champions_game_format_list():
+    """Return [[code, display], ...] for the champions in-game formats."""
+    return [[code, CHAMPIONS_GAME_DISPLAY[code]] for code in CHAMPIONS_GAME_FORMATS]
+
+
+def _champions_cache_path(key):
+    safe = re.sub(r"[^A-Za-z0-9_.-]", "_", key)
+    return os.path.join(CHAMPIONS_CACHE_DIR, safe + ".json")
+
+
+def _champions_cache_read(key, allow_stale=False):
+    """Return cached JSON if present and fresh (or any age when allow_stale)."""
+    path = _champions_cache_path(key)
+    if not os.path.exists(path):
+        return None
+    if not allow_stale and (time.time() - os.path.getmtime(path)) > CHAMPIONS_CACHE_TTL:
+        return None
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return None
+
+
+def _champions_cache_write(key, data):
+    try:
+        with open(_champions_cache_path(key), "w", encoding="utf-8") as f:
+            json.dump(data, f)
+    except Exception:
+        pass
+
+
+def champions_api_get(endpoint, cache_key):
+    """GET JSON from the Champions API with 12h on-disk caching and stale fallback."""
+    cached = _champions_cache_read(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        resp = requests.get(
+            CHAMPIONS_API_BASE + endpoint,
+            timeout=20,
+            headers={"User-Agent": "MunchStats (+https://munchstats.com)"},
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+            _champions_cache_write(cache_key, data)
+            return data
+    except Exception:
+        pass
+    # On failure, fall back to a stale cached copy if we have one.
+    return _champions_cache_read(cache_key, allow_stale=True)
+
+
+# The index is ~7MB; memoize the parsed copy in-process, keyed on cache mtime.
+_champions_index_mem = {"mtime": None, "index": None}
+
+
+def get_champions_index():
+    """Return the parsed Champions index dict (memoized on the cache file mtime)."""
+    path = _champions_cache_path("index")
+    if (
+        _champions_index_mem["index"] is not None
+        and os.path.exists(path)
+        and (time.time() - os.path.getmtime(path)) <= CHAMPIONS_CACHE_TTL
+        and _champions_index_mem["mtime"] == os.path.getmtime(path)
+    ):
+        return _champions_index_mem["index"]
+    data = champions_api_get("/api/index", "index")
+    if not data:
+        return None
+    mtime = os.path.getmtime(path) if os.path.exists(path) else time.time()
+    _champions_index_mem.update({"mtime": mtime, "index": data})
+    return data
+
+
+def get_champions_pokemon_by_name():
+    """Return {battleName: index entry} for all champions Pokémon, or {}."""
+    idx = get_champions_index()
+    if not idx:
+        return {}
+    return {p["name"]: p for p in idx.get("pokemon", [])}
+
+
+def get_champions_battle(format_folder, battle_name):
+    """Return parsed battle-data rows for one Pokémon/format, cached 12h."""
+    key = f"battle_{format_folder}_{battle_name}"
+    endpoint = (
+        f"/api/battle/{quote(format_folder)}/{quote(battle_name)}"
+        f"?season={quote(CHAMPIONS_SEASON)}"
+    )
+    return champions_api_get(endpoint, key)
+
+
+# Champions uses long in-game form names ("Aegislash Shield Forme",
+# "Basculegion Male", "Alolan Ninetales"); map them to Showdown-style names so
+# they match the pokedex/sprite data and read consistently with the rest of the site.
+_CHAMPIONS_REGIONS = {"Alolan": "alola", "Galarian": "galar", "Hisuian": "hisui", "Paldean": "paldea"}
+_CHAMPIONS_FILLER = {"Forme", "Form", "Variety", "Pattern", "Natural", "Flower", "Breed"}
+_CHAMPIONS_VARIANT_ALIASES = {"Jumbo": "super"}  # Gourgeist Jumbo -> Gourgeist-Super
+_champions_name_cache = {}
+
+
+def champions_display_name(raw_name):
+    """Map a Champions in-game name to its Showdown pokedex display name.
+
+    Falls back to the raw name if nothing matches. Result is cached.
+    """
+    if raw_name in _champions_name_cache:
+        return _champions_name_cache[raw_name]
+
+    def norm(s):
+        return re.sub(r"[^a-z0-9]+", "", s.lower())
+
+    result = raw_name
+    if norm(raw_name) in pokedexEntries:
+        result = pokedexEntries[norm(raw_name)].get("name", raw_name)
+    else:
+        tokens = raw_name.split()
+        region = ""
+        if tokens and tokens[0] in _CHAMPIONS_REGIONS:
+            region = _CHAMPIONS_REGIONS[tokens[0]]
+            tokens = tokens[1:]
+        gender = ""
+        if tokens and tokens[-1] in ("Male", "Female"):
+            gender = "" if tokens[-1] == "Male" else "f"
+            tokens = tokens[:-1]
+        core = [t for t in tokens if t not in _CHAMPIONS_FILLER]
+        base = core[0] if core else raw_name
+        extras = "".join(_CHAMPIONS_VARIANT_ALIASES.get(e, e) for e in core[1:])
+        # Candidate Showdown ids, most specific first; use the first real one.
+        candidates = []
+        if region and extras:
+            candidates += [norm(base + region + extras), norm(base + extras + region)]
+        if region:
+            candidates.append(norm(base + region))
+        if extras:
+            candidates += [norm(base + extras + gender), norm(base + extras)]
+        if gender:
+            candidates.append(norm(base + gender))
+        candidates.append(norm(base))
+        for cand in candidates:
+            if cand in pokedexEntries:
+                result = pokedexEntries[cand].get("name", raw_name)
+                break
+
+    _champions_name_cache[raw_name] = result
+    return result
+
+
+def _champions_pct(row):
+    """Return the row's usage percentage as a bare string (no %), or '' if none."""
+    return str(row.get("percentage", "")).rstrip("%")
+
+
+def format_champions_updated(iso_ts):
+    """Format the index's `generatedAt` (when the source scraped the data) for display."""
+    if not iso_ts:
+        return ""
+    try:
+        dt = datetime.fromisoformat(str(iso_ts).replace("Z", "+00:00"))
+        return dt.strftime("%B %d, %Y at %H:%M UTC")
+    except (ValueError, TypeError):
+        return str(iso_ts)
+
+
+def compile_champions_page_data(format_code, pokemon_name=""):
+    """Compile the Pokémon-page data dict for a Champions in-game format.
+
+    Returns the same shape as compile_page_data so index.html renders unchanged;
+    unused sections (rating, months, tera, counters, EVs, trends) are emptied.
+    """
+    folder = CHAMPIONS_GAME_FORMATS.get(format_code)
+    if not folder:
+        return None
+    pokemon_by_name = get_champions_pokemon_by_name()
+    if not pokemon_by_name:
+        return None
+
+    def _usage_position(index_entry):
+        rows = (
+            index_entry.get("summary", {})
+            .get("battleSummary", {})
+            .get(CHAMPIONS_SEASON, {})
+            .get(folder, {})
+            .get("rows")
+        )
+        # Position is a dense 1..N usage rank; sort unranked Pokémon last.
+        return rows[0].get("position", 10 ** 9) if rows else 10 ** 9
+
+    # Order by in-game usage placement for the selected format.
+    ordered = sorted(pokemon_by_name.values(), key=_usage_position)
+    display_names = []
+    display_to_raw = {}
+    for e in ordered:
+        disp = champions_display_name(e["name"])
+        display_names.append(disp)
+        display_to_raw[disp] = e["name"]
+
+    default_pokemon = display_names[0]
+    if pokemon_name and pokemon_name != "No Pokemon":
+        matched = fuzzy_match(pokemon_name, display_names)
+        if matched:
+            default_pokemon = matched
+
+    entry = pokemon_by_name[display_to_raw[default_pokemon]]
+    # The full ranked battle rows are embedded in the index itself
+    # (battleSummary[season][format].rows), so the whole feature runs off the
+    # single cached /api/index request. Fall back to the per-Pokémon endpoint
+    # only if a Pokémon ever ships without embedded rows.
+    rows = (
+        entry.get("summary", {})
+        .get("battleSummary", {})
+        .get(CHAMPIONS_SEASON, {})
+        .get(folder, {})
+        .get("rows")
+    )
+    if not rows:
+        battle_name = entry.get("battleName", default_pokemon)
+        rows = (get_champions_battle(folder, battle_name) or {}).get("rows", [])
+
+    rows_by_cat = {}
+    for row in rows:
+        rows_by_cat.setdefault(row.get("category", ""), []).append(row)
+
+    # Base stats and types come from the game's own metadata (they differ from
+    # the mainline games), never from the Showdown pokedex.
+    summary = entry.get("summary", {})
+    base = summary.get("baseStats") or {}
+    primary = summary.get("primary", {})
+
+    def _stat(k):
+        return base.get(k, primary.get(k, 0))
+
+    base_stats = [
+        _stat("hp"), _stat("attack"), _stat("defense"),
+        _stat("sp_attack"), _stat("sp_defense"), _stat("speed"),
+    ]
+    pokemon_types = summary.get("types") or primary.get("types") or []
+
+    moves_list = [
+        [r.get("name", ""), _champions_pct(r), build_move_tooltip(r.get("name", ""))]
+        for r in rows_by_cat.get("move", [])
+    ]
+
+    items_list = []
+    for r in rows_by_cat.get("held_item", []):
+        name = r.get("name", "")
+        info = itemDetails.get(re.sub(r"[^a-z0-9]+", "", name.lower()), {})
+        items_list.append([
+            info.get("name", name),
+            _champions_pct(r),
+            info.get("desc", "No info."),
+            divmod(info.get("spritenum", 0), 16),
+        ])
+
+    abilities_list = []
+    for r in rows_by_cat.get("ability", []):
+        name = r.get("name", "")
+        key = re.sub(r"[^a-z0-9]+", "", name.lower())
+        info = championsAbilityDetails.get(key) or abilityDetails.get(key) or {}
+        abilities_list.append([info.get("name", name), _champions_pct(r), info.get("desc", "No info.")])
+
+    # Teammates have no usage % in the source data — show rank instead.
+    teammates_list = []
+    for r in rows_by_cat.get("teammate", []):
+        mate = champions_display_name(r.get("name", ""))
+        teammates_list.append([mate, "#" + str(r.get("rank", "")), get_pokemon_sprite(mate)])
+
+    natures_list = []
+    for r in rows_by_cat.get("stat_alignment", []):
+        up, down = r.get("stat_up", ""), r.get("stat_down", "")
+        desc = f"+{up} / -{down}" if (up or down) else "Neutral"
+        natures_list.append([r.get("name", ""), _champions_pct(r), desc])
+
+    spreads_list = []
+    for r in rows_by_cat.get("stat_points", []):
+        pts = [
+            r.get("hp_points", 0), r.get("attack_points", 0), r.get("defense_points", 0),
+            r.get("sp_atk_points", 0), r.get("sp_def_points", 0), r.get("speed_points", 0),
+        ]
+        label = "/".join(str(p if p != "" else 0) for p in pts)
+        spreads_list.append([label, _champions_pct(r)])
+
+    available_months = get_available_months()
+    selected_month = available_months[-1] if available_months else get_latest_month()
+
+    return {
+        "pokemon_names": [
+            [disp, "#" + str(i + 1), get_pokemon_sprite(disp), ""]
+            for i, disp in enumerate(display_names)
+        ],
+        "selected_format": [format_code, formatDisplayNames.get(format_code, format_code)],
+        "selected_pokemon": default_pokemon,
+        "selected_rating": "0",
+        "selected_month": selected_month,
+        "available_months": available_months,
+        "base_stats": base_stats,
+        "pokemon_types": pokemon_types,
+        "moves_list": moves_list,
+        "teammates_list": teammates_list,
+        "items_list": items_list,
+        "abilities_list": abilities_list,
+        "spreads_list": spreads_list,
+        "natures_list": natures_list,
+        "evs_list": [[], [], [], [], []],
+        "counters_list": [],
+        "current_pokemon": [
+            default_pokemon, "", str(display_names.index(default_pokemon) + 1),
+            get_pokemon_sprite(default_pokemon),
+        ],
+        "rating_options": [],
+        "tera_types_list": [],
+        "graph_data": "[[],[],[],[],[],[]]",
+        "is_champions": True,
+        "is_champions_game": True,
+        "champions_slug": folder.lower(),
+        "champions_updated": format_champions_updated((get_champions_index() or {}).get("generatedAt")),
+        "month_formats": get_formats_for_month(selected_month),
+        "trend_months": [],
+        "trend_usage": [],
+        "show_trend": False,
+        "has_tournament_data": False,
+        "has_replay_data": False,
+        "is_transformed": False,
+        "champions_attribution": CHAMPIONS_ATTRIBUTION,
+        "champions_attribution_url": CHAMPIONS_ATTRIBUTION_URL,
+    }
 
 
 def calculate_stat_value(base, iv, ev, level, nature_multiplier):
@@ -1097,6 +1458,7 @@ def compile_page_data(format_code, rating_threshold="", pokemon_name="", month=N
         "tera_types_list": tera_types_list,
         "graph_data": graph_data,
         "is_champions": is_champions_format(chosen_format),
+        "is_champions_game": False,
         "month_formats": month_formats,
         "trend_months": trend_months,
         "trend_usage": trend_usage,
@@ -1111,6 +1473,13 @@ def compile_page_data(format_code, rating_threshold="", pokemon_name="", month=N
 @app.route("/calc/<format_code>/")
 @app.route("/calc/<format_code>/<rating_threshold>/")
 def calc_page(format_code="", rating_threshold=""):
+    # The damage calc isn't available for in-game Champions data — send the
+    # user to that format's usage page instead.
+    if is_champions_game_format(format_code):
+        return redirect(url_for(
+            "display_pokemon_page", format_code=format_code,
+            rating_threshold="0", pokemon_name="",
+        ))
     month = request.args.get("month", None)
     data = compile_page_data(format_code or DEFAULT_META, rating_threshold, "", month)
     if data is None:
@@ -1133,6 +1502,10 @@ def calc_page(format_code="", rating_threshold=""):
 @app.route("/<format_code>/<rating_threshold>/")
 @app.route("/<format_code>/")
 def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
+    if is_champions_game_format(format_code):
+        # Send legacy /championsdoubles/0/x URLs to the clean /champions/... path.
+        slug = CHAMPIONS_GAME_FORMATS[format_code].lower()
+        return redirect(url_for("champions_page", fmt=slug, pokemon_name=pokemon_name))
     month = request.args.get("month", None)
     data = compile_page_data(format_code, rating_threshold, pokemon_name, month)
     if data is None:
@@ -1160,6 +1533,31 @@ def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
             redirect_args["month"] = month
         return redirect(url_for("display_pokemon_page", **redirect_args))
 
+    return render_template("index.html", **data, availableFormats=data["month_formats"])
+
+
+# Slug (doubles/singles) -> app format code, for the clean /champions/ URLs.
+CHAMPIONS_SLUG_TO_FORMAT = {
+    CHAMPIONS_GAME_FORMATS[code].lower(): code for code in CHAMPIONS_GAME_FORMATS
+}
+
+
+@app.route("/champions/")
+@app.route("/champions/<fmt>/")
+@app.route("/champions/<fmt>/<pokemon_name>")
+def champions_page(fmt="doubles", pokemon_name=""):
+    """Clean, bookmarkable URLs for the Pokémon Champions in-game data."""
+    format_code = CHAMPIONS_SLUG_TO_FORMAT.get(fmt.lower())
+    if not format_code:
+        return redirect(url_for("champions_page", fmt="doubles"))
+    data = compile_champions_page_data(format_code, pokemon_name)
+    if data is None:
+        return redirect(url_for("champions_page", fmt="doubles"))
+    # Redirect to the canonical URL when the Pokémon was defaulted/corrected.
+    if data["selected_pokemon"] != pokemon_name:
+        return redirect(url_for(
+            "champions_page", fmt=fmt.lower(), pokemon_name=data["selected_pokemon"],
+        ))
     return render_template("index.html", **data, availableFormats=data["month_formats"])
 
 
@@ -1502,6 +1900,11 @@ def api_calc_data(format_code, rating_threshold="", pokemon_name=""):
 @app.route("/api/<format_code>/<rating_threshold>/")
 @app.route("/api/<format_code>/")
 def api_pokemon_data(format_code, rating_threshold="", pokemon_name=""):
+    if is_champions_game_format(format_code):
+        data = compile_champions_page_data(format_code, pokemon_name)
+        if data is None:
+            return jsonify({"error": "No data found"}), 404
+        return jsonify(data)
     month = request.args.get("month", None)
     data = compile_page_data(format_code, rating_threshold, pokemon_name, month)
     if data is None:
@@ -1533,6 +1936,17 @@ def search_pokemon_route():
         if selected_format[0] in formatDisplayNames
         else default_format
     )
+
+    # In-game Champions formats have no ratings/months — resolve the Pokémon and
+    # redirect straight to its usage page.
+    if is_champions_game_format(chosen_format):
+        search = selected_pokemon_input if selected_pokemon_input != "No Pokemon" else ""
+        data = compile_champions_page_data(chosen_format, search)
+        return redirect(url_for(
+            "display_pokemon_page", format_code=chosen_format,
+            rating_threshold="0", pokemon_name=(data["selected_pokemon"] if data else ""),
+        ))
+
     rating_options = get_valid_rating_thresholds(chosen_format)
     chosen_rating = (
         selected_rating_input
@@ -2412,7 +2826,7 @@ def internal_server_error(e):
 @app.route("/", methods=["GET"])
 def index():
     return display_pokemon_page(DEFAULT_META)
-
+6
 
 if __name__ == "__main__":
     app.run(debug=True)
