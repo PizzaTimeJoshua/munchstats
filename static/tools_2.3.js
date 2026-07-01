@@ -441,8 +441,12 @@ $(document).ready(function () {
   var currentMoves = window.initialMoves ? window.initialMoves.slice() : [];
 
   function toShowdownSpread(statsSpread) {
-    var parts = statsSpread.split(":");
+    var parts = String(statsSpread).split(":");
     var naturePart = parts[0];
+    // Champions stat-point spreads ("32/0/2/32/0/0") aren't in Nature:EVs form.
+    if (parts.length < 2) {
+      return ["", statsSpread];
+    }
     var evs = parts[1].replace(/\s/g, "").split("/");
     var evSpreadArr = [];
     if (evs[0] !== "0") evSpreadArr.push(evs[0] + " HP");
@@ -576,6 +580,10 @@ $(document).ready(function () {
       currentNature = spreadResult[0];
       currentEVSpread = spreadResult[1];
     }
+    if (window.isChampionsGame) {
+      // Alignment (nature) is provided separately from the stat-point spread.
+      currentNature = window.initialNature || "";
+    }
     if (window.initialSpread !== "" && !window.isChampions) {
       var sp = window.initialSpread.split(":");
       var evs = sp[1].replace(/\s/g, "").split("/");
@@ -611,7 +619,41 @@ $(document).ready(function () {
   }
   initExportState();
 
+  // Convert a Champions stat-point spread ("32/0/2/32/0/0") to a readable
+  // "32 HP / 2 Def / 32 SpA" string (non-zero stats only).
+  function formatChampionsStatPoints(spread) {
+    var labels = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"];
+    var parts = String(spread || "").split("/");
+    var out = [];
+    for (var i = 0; i < labels.length; i++) {
+      var v = parseInt(parts[i], 10);
+      if (v > 0) out.push(v + " " + labels[i]);
+    }
+    return out.join(" / ");
+  }
+
+  function generateChampionsSet() {
+    var s = currentPokemonName;
+    if (currentItem && currentItem !== "Nothing") {
+      s += " @ " + currentItem;
+    }
+    if (currentAbility) {
+      s += "\nAbility: " + currentAbility;
+    }
+    s += "\nLevel: 50";
+    var evs = formatChampionsStatPoints(currentEVSpread);
+    if (evs) s += "\nEVs: " + evs;
+    if (currentNature) s += "\n" + currentNature + " Nature";
+    currentMoves.forEach(function (move) {
+      s += "\n- " + move;
+    });
+    return s;
+  }
+
   function generateShowdownSet() {
+    if (window.isChampionsGame) {
+      return generateChampionsSet();
+    }
     var showdownSet = currentPokemonName;
     if (currentItem != "Nothing") {
       showdownSet += " @ " + currentItem;
@@ -857,7 +899,11 @@ $(document).ready(function () {
       var data = JSON.parse($(this).attr("export-data") || "{}");
       if (typeof data.spread === "string") {
         var temp = toShowdownSpread(data.spread);
-        if (temp[0] === currentNature && temp[1] === currentEVSpread) {
+        // Champions spreads have no nature attached — match on the spread alone.
+        var matches = window.isChampionsGame
+          ? temp[1] === currentEVSpread
+          : temp[0] === currentNature && temp[1] === currentEVSpread;
+        if (matches) {
           $(this).addClass("selected");
         } else {
           $(this).removeClass("selected");
@@ -958,16 +1004,12 @@ $(document).ready(function () {
     }
     if (typeof exportData.spread === "string") {
       var wasSelected = $(this).hasClass("selected");
-      if (wasSelected) {
-        if (window.initialSpread !== "") {
-          var temp = toShowdownSpread(window.initialSpread);
-          currentNature = temp[0];
-          currentEVSpread = temp[1];
-        }
-      } else {
-        var temp2 = toShowdownSpread(exportData.spread);
-        currentNature = temp2[0];
-        currentEVSpread = temp2[1];
+      var srcSpread = wasSelected ? window.initialSpread : exportData.spread;
+      if (srcSpread !== "") {
+        var conv = toShowdownSpread(srcSpread);
+        // Champions stat alignment is independent of the stat-point spread.
+        if (!window.isChampionsGame) currentNature = conv[0];
+        currentEVSpread = conv[1];
       }
       if (!window.isChampions) {
         var spreadToCheck = wasSelected
@@ -1052,6 +1094,24 @@ $(document).ready(function () {
       });
     }
     var sprite = data.current_pokemon[3];
+    // Usage/Rank/Rating don't apply to in-game Champions data (empty values /
+    // no rating options) — omit each stat that isn't present.
+    var statsHTML = "";
+    if (data.current_pokemon[1] !== "") {
+      statsHTML +=
+        '<div class="info-stat"><span class="info-stat-label">Usage</span><span class="info-stat-value">' +
+        data.current_pokemon[1] + "%</span></div>";
+    }
+    if (data.current_pokemon[2] !== "") {
+      statsHTML +=
+        '<div class="info-stat"><span class="info-stat-label">Rank</span><span class="info-stat-value">#' +
+        data.current_pokemon[2] + "</span></div>";
+    }
+    if (data.rating_options && data.rating_options.length > 0) {
+      statsHTML +=
+        '<div class="info-stat"><span class="info-stat-label">Rating</span><span class="info-stat-value">' +
+        esc(data.selected_rating) + "+</span></div>";
+    }
     return (
       '<div class="info-pokemon-header">' +
       '<div class="info-pokemon-center">' +
@@ -1061,14 +1121,7 @@ $(document).ready(function () {
       '<div class="info-types">' + typesHTML + "</div>" +
       "</div>" +
       "</div>" +
-      '<div class="info-stats-row">' +
-      '<div class="info-stat"><span class="info-stat-label">Usage</span><span class="info-stat-value">' +
-      data.current_pokemon[1] + "%</span></div>" +
-      '<div class="info-stat"><span class="info-stat-label">Rank</span><span class="info-stat-value">#' +
-      data.current_pokemon[2] + "</span></div>" +
-      '<div class="info-stat"><span class="info-stat-label">Rating</span><span class="info-stat-value">' +
-      esc(data.selected_rating) + "+</span></div>" +
-      "</div>" +
+      '<div class="info-stats-row">' + statsHTML + "</div>" +
       '<div class="info-format">' + esc(data.selected_format[1]) + "</div>"
     );
   }
@@ -1113,7 +1166,8 @@ $(document).ready(function () {
          pokemon[3] === "down" ? '<span class="trend-down">&#9660;</span> ' :
          pokemon[3] === "same" ? '<span class="trend-same">&#8212;</span> ' : '') +
         pokemon[1] +
-        "%</span>" +
+        (pokemon[1] && String(pokemon[1])[0] !== "#" ? "%" : "") +
+        "</span>" +
         "</button></li>\n";
     });
     return html;
@@ -1187,7 +1241,8 @@ $(document).ready(function () {
         "</div>" +
         '<span class="right-text">' +
         team[1] +
-        "%</span>" +
+        (team[1] && String(team[1])[0] !== "#" ? "%" : "") +
+        "</span>" +
         "</button></li>";
     });
     html += "</ul></div>";
@@ -1395,8 +1450,8 @@ $(document).ready(function () {
   }
 
   function buildExportHTML(data) {
-    if (!data.evs_list || !data.evs_list[0] || data.evs_list[0].length === 0)
-      return "";
+    var hasEvs = data.evs_list && data.evs_list[0] && data.evs_list[0].length > 0;
+    if (!hasEvs && !data.is_champions_game) return "";
     var isChampions = data.is_champions;
     var html =
       '<h2>Export Pokemon <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Click on Moves, Items, ' +
@@ -1558,16 +1613,25 @@ $(document).ready(function () {
       }
       var data = await res.json();
       updatePage(data);
-      var newUrl =
-        "/" +
-        data.selected_format[0] +
-        "/" +
-        data.selected_rating +
-        "/" +
-        data.selected_pokemon;
-      if (data.selected_month && data.available_months &&
-          data.selected_month !== data.available_months[data.available_months.length - 1]) {
-        newUrl += "?month=" + encodeURIComponent(data.selected_month);
+      var newUrl;
+      if (data.is_champions_game) {
+        newUrl =
+          "/champions/" +
+          data.champions_slug +
+          "/" +
+          encodeURIComponent(data.selected_pokemon);
+      } else {
+        newUrl =
+          "/" +
+          data.selected_format[0] +
+          "/" +
+          data.selected_rating +
+          "/" +
+          data.selected_pokemon;
+        if (data.selected_month && data.available_months &&
+            data.selected_month !== data.available_months[data.available_months.length - 1]) {
+          newUrl += "?month=" + encodeURIComponent(data.selected_month);
+        }
       }
       history.pushState(
         {
@@ -1602,9 +1666,23 @@ $(document).ready(function () {
         : "";
     window.initialSpread =
       data.spreads_list.length > 0 ? data.spreads_list[0][0] : "";
+    window.initialNature =
+      data.natures_list.length > 0 ? data.natures_list[0][0] : "";
     window.selectedFormat = data.selected_format[0];
     window.selectedRating = data.selected_rating;
     window.isChampions = data.is_champions;
+    window.isChampionsGame = !!data.is_champions_game;
+    // In-game Champions data has no months; show the source attribution instead.
+    var footerMonth = document.getElementById("footer-month-container");
+    if (footerMonth) footerMonth.style.display = window.isChampionsGame ? "none" : "";
+    var attribution = document.getElementById("champions-attribution");
+    if (attribution) attribution.style.display = window.isChampionsGame ? "block" : "none";
+    var updated = document.getElementById("champions-updated");
+    if (updated) {
+      updated.style.display = window.isChampionsGame ? "block" : "none";
+      var updatedValue = document.getElementById("champions-updated-value");
+      if (updatedValue) updatedValue.textContent = data.champions_updated || "";
+    }
     window.teraType =
       data.tera_types_list.length > 0 ? data.tera_types_list[0][0] : "";
     window.initialMoves = data.moves_list

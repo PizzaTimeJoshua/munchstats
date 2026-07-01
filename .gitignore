@@ -4,3 +4,4 @@ node_modules/
 .vscode/settings.json
 response_time.py
 .env
+cache/
