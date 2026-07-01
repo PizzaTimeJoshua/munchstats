@@ -162,8 +162,21 @@ def generateFormatList():
         for d in os.listdir(latest_path)
         if os.path.isdir(os.path.join(latest_path, d))
     ]
+
+    # Keep previously discovered format names so formats missing from the
+    # latest month don't get dropped. Only resolve names for new formats.
     meta_names = {}
+    if os.path.exists("stats/meta_names.json"):
+        try:
+            with open("stats/meta_names.json", "r") as file:
+                meta_names = pyjson5.load(file)
+        except Exception as e:
+            print(f"Unable to load existing meta_names.json: {e}")
+            meta_names = {}
+
     for meta in meta_games_list:
+        if meta in meta_names:
+            continue
         word = meta
         possibilities = format_names
         normalized_possibilities = {p.lower(): p for p in possibilities}

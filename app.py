@@ -23,7 +23,7 @@ app = Flask(__name__)
 DATA_DIRECTORY = "stats"
 os.makedirs(DATA_DIRECTORY, exist_ok=True)
 
-DEFAULT_META = "gen9championsvgc2026regmabo3"
+DEFAULT_META = "gen9championsvgc2026regmbbo3"
 SMOGON_STATS_URL = "https://www.smogon.com/stats/"
 
 # Global dictionaries for loaded data
