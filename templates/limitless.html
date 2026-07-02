@@ -409,13 +409,132 @@
     animation: spin 0.8s linear infinite;
   }
   @keyframes spin { to { transform: rotate(360deg); } }
-  #usage-view {
+  /* View toggle */
+  .view-toggle {
+    grid-column: 1 / -1;
+    display: flex;
+    gap: 0;
+    margin-bottom: 12px;
+    max-width: 300px;
+  }
+  .view-toggle-btn {
+    flex: 1;
+    padding: 8px 16px;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    color: #888;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+  }
+  .view-toggle-btn:first-child { border-radius: 6px 0 0 6px; }
+  .view-toggle-btn:last-child { border-radius: 0 6px 6px 0; }
+  .view-toggle-btn.active {
+    background: #ffd54f;
+    color: #1e1e1e;
+    border-color: #ffd54f;
+  }
+  .view-toggle-btn:hover:not(.active) {
+    background: #333;
+    color: #ccc;
+  }
+  #usage-view, #results-view {
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: repeat(auto-fill, 310px);
     justify-items: center;
     width: 100%;
   }
+  #results-view .teams-container {
+    max-width: 100%;
+  }
+  /* Teams section */
+  .teams-container {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: 960px;
+  }
+  .team-card {
+    background: #222;
+    border: 1px solid #444;
+    padding: 10px 14px;
+    margin-bottom: 8px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .team-card:hover { background: #2a2a2a; }
+  .team-placement {
+    font-size: 14px; font-weight: 700; color: #ffd54f;
+    min-width: 36px; text-align: center;
+  }
+  .team-player {
+    font-size: 13px; color: #ccc;
+    min-width: 120px;
+  }
+  .team-record {
+    color: #888; font-size: 12px;
+  }
+  .team-tournament {
+    color: #888; font-size: 11px;
+    flex: 1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    text-align: left;
+  }
+  .team-sprites {
+    display: flex; gap: 2px; flex-shrink: 0;
+  }
+  .team-detail {
+    display: none;
+    padding: 10px;
+    background: #1e1e1e;
+    border: 1px solid #333;
+    border-top: none;
+    margin-top: -9px;
+    margin-bottom: 8px;
+  }
+  .team-detail.open { display: block; }
+  .team-detail-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .team-detail-pokemon {
+    background: #252525;
+    border: 1px solid #444;
+    padding: 8px 10px;
+    font-size: 12px;
+    text-align: left;
+    box-sizing: border-box;
+  }
+  .team-detail-pokemon .td-name {
+    font-weight: 600;
+    color: #ffd54f;
+    font-size: 13px;
+  }
+  .team-detail-pokemon .td-info {
+    color: #aaa;
+    font-size: 11px;
+    line-height: 1.6;
+  }
+  .team-copy-btn {
+    background: #2a2a2a;
+    color: #aaa;
+    border: 1px solid #555;
+    padding: 5px 14px;
+    margin-top: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: color 0.2s, background 0.2s;
+    display: block;
+    width: 100%;
+    text-align: center;
+  }
+  .team-copy-btn:hover { color: #fff; background: #333; }
+  .team-copy-btn.copied { color: #ffd54f; }
   /* Merch section */
   .merch-toggle {
     background: #2a2a2a;
@@ -551,8 +670,18 @@
     /* Stack sidebar on top of content */
     .grid-container { grid-template-columns: 1fr; }
     .right { grid-template-columns: 1fr; justify-items: stretch; }
-    #usage-view { grid-template-columns: 1fr; }
-    #usage-view > div { width: 100%; }
+    #usage-view, #results-view { grid-template-columns: 1fr; }
+    #usage-view > div, #results-view > div { width: 100%; }
+    .team-detail-grid { grid-template-columns: repeat(2, 1fr); }
+    .view-toggle { max-width: 100%; }
+    .teams-container { max-width: 100%; }
+    #results-view input[type="text"] { margin: 0 0 10px 0; }
+    /* Team cards: compact layout */
+    .team-card { padding: 8px 10px; gap: 6px; }
+    .team-player { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+    .team-placement { min-width: 28px; font-size: 13px; }
+    .team-tournament { display: none; }
+    .team-sprites { flex-shrink: 1; flex-wrap: wrap; justify-content: flex-end; gap: 0; }
     .grid-container { grid-gap: 15px; padding: 0 8px; }
     /* Tab bar: shrink padding, hide social buttons */
     .tab-btn { padding: 6px 10px; font-size: 12px; margin-right: 2px; }
@@ -578,6 +707,7 @@
     .left-container { width: 100%; height: auto; min-height: 28px; }
   }
   @media (max-width: 500px) {
+    .team-detail-grid { grid-template-columns: 1fr; }
     .tab-btn { padding: 5px 7px; font-size: 11px; }
   }
 </style>
@@ -697,6 +827,12 @@
 
     <!-- RIGHT PANEL -->
     <div class="right" id="right-panel">
+      <!-- View toggle tabs -->
+      <div class="view-toggle">
+        <button type="button" class="view-toggle-btn active" id="btn-usage-view" onclick="switchView('usage')">Usage Stats</button>
+        <button type="button" class="view-toggle-btn" id="btn-results-view" onclick="switchView('results')">Top Teams</button>
+      </div>
+
       <!-- USAGE STATS VIEW -->
       <div id="usage-view">
         <!-- Base Stats -->
@@ -850,6 +986,24 @@
           </div>
           <div class="merch-collapsed-msg">Merch hidden &mdash; click Show to browse</div>
         </div>
+
+        <!-- Teams using selected Pokemon -->
+        <div class="teams-container">
+          <h2>Teams with {{ selected_pokemon }}</h2>
+          <div id="teams-list">
+            <p style="color: #666; font-size: 13px;">Loading teams...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- TOP TEAMS / RESULTS VIEW -->
+      <div id="results-view" style="display: none;">
+        <div class="teams-container">
+          <input type="text" id="resultsSearchInput" placeholder="Search players, Pokemon, moves, items, tournaments..." style="width: 100%; box-sizing: border-box; margin-bottom: 10px;">
+          <div id="results-list">
+            <p style="color: #666; font-size: 13px;">Loading teams...</p>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -867,7 +1021,7 @@
     window.currentSegment = "{{ segment }}";
     window.currentPokemonName = "{{ selected_pokemon }}";
   </script>
-  <script src="{{ url_for('static', filename='limitless_stats.js') }}?v=1"></script>
+  <script src="{{ url_for('static', filename='limitless_stats.js') }}?v=3"></script>
   {% endif %}
 </body>
 </html>

@@ -31,7 +31,8 @@ WINDOW_DAYS = 30  # rolling metagame window
 COMPLETION_GRACE_HOURS = 12  # skip events until date + grace < now
 MAX_STANDINGS_PER_REFRESH = 30  # rate-limit frugality cap per refresh
 FETCH_DELAY_SECONDS = 0.3  # politeness delay between standings fetches
-LIST_FETCH_LIMIT = 200
+LIST_FETCH_LIMIT = 500
+LIST_MAX_PAGES = 3  # page until the rolling window is covered
 API_KEY = os.environ.get("LIMITLESS_API_KEY", "")
 ATTRIBUTION_TEXT = "Data from Limitless TCG"
 ATTRIBUTION_URL = "https://play.limitlesstcg.com/"
@@ -109,20 +110,76 @@ def get_vgc_formats():
     return _cache_read(path, ttl=FORMATS_CACHE_TTL, allow_stale=True) or {}
 
 
-def get_tournament_list(format_id):
-    """Return the raw tournament list for a format (1h TTL, stale fallback)."""
-    path = _cache_path("tournaments_" + format_id)
+def get_vgc_tournaments():
+    """Return all recent VGC tournaments (1h TTL, stale fallback).
+
+    One shared list instead of one request per format, paged until it
+    reaches past the rolling window (the API caps page size, so a busy
+    month can need more than one page).
+    """
+    path = _cache_path("tournaments_all")
     cached = _cache_read(path, ttl=LIST_CACHE_TTL)
     if cached is not None:
         return cached
-    data = _api_get(
-        "/tournaments",
-        params={"game": "VGC", "format": format_id, "limit": LIST_FETCH_LIMIT},
+
+    window_start = datetime.now(timezone.utc) - timedelta(days=WINDOW_DAYS)
+    results = []
+    for page in range(1, LIST_MAX_PAGES + 1):
+        data = _api_get(
+            "/tournaments",
+            params={"game": "VGC", "limit": LIST_FETCH_LIMIT, "page": page},
+        )
+        if not isinstance(data, list) or not data:
+            if page == 1:
+                return _cache_read(path, ttl=LIST_CACHE_TTL, allow_stale=True) or []
+            break
+        results.extend(data)
+        oldest = _parse_date(data[-1].get("date"))
+        if len(data) < LIST_FETCH_LIMIT or (oldest and oldest < window_start):
+            break
+    _cache_write(path, results)
+    return results
+
+
+def _format_matches_name(format_id, name):
+    """True when a tournament name references the format id as a token."""
+    return re.search(
+        r"(?<![A-Za-z0-9])" + re.escape(format_id) + r"(?![A-Za-z0-9])",
+        name,
+        re.IGNORECASE,
     )
-    if isinstance(data, list):
-        _cache_write(path, data)
-        return data
-    return _cache_read(path, ttl=LIST_CACHE_TTL, allow_stale=True) or []
+
+
+def get_tournament_list(format_id):
+    """Return the tournaments belonging to one format.
+
+    Tournaments run with tweaked rules are tagged "CUSTOM" instead of a
+    regulation (e.g. the 898-player Smogon VGC Major Live "Reg M-B");
+    count them toward a format when their name says so.
+    """
+    return [
+        t for t in get_vgc_tournaments()
+        if t.get("format") == format_id
+        or (
+            t.get("format") == "CUSTOM"
+            and t.get("name")
+            and _format_matches_name(format_id, t["name"])
+        )
+    ]
+
+
+def get_available_formats():
+    """Return {format_id: display_name} for formats with eligible events.
+
+    Old regulations have no recent tournaments, so offering them in the
+    UI would only lead to empty pages. Checking costs one (1h-cached)
+    tournament-list request per format.
+    """
+    return {
+        fid: disp
+        for fid, disp in get_vgc_formats().items()
+        if eligible_tournaments(get_tournament_list(fid))
+    }
 
 
 def _parse_date(value):
@@ -210,6 +267,20 @@ def _clean_value(value):
     return "" if value.lower() == "none" else value
 
 
+def _normalize_slot(slot, pokedex):
+    """Normalize one raw Limitless decklist slot into munchstats terms."""
+    return {
+        "pokemon": normalize_limitless_pokemon(slot, pokedex),
+        "item": _clean_value(slot.get("item")),
+        "ability": _clean_value(slot.get("ability")),
+        # Tera types and natures render raw (CSS classes, tooltip
+        # lookups), so force canonical capitalization.
+        "tera": _clean_value(slot.get("tera")).capitalize(),
+        "nature": _clean_value(slot.get("nature")).capitalize(),
+        "moves": [m for m in (_clean_value(a) for a in slot.get("attacks") or []) if m],
+    }
+
+
 def _display_score(name):
     """Rank how display-ready a variant looks ("Life Orb" beats "life orb")."""
     return (any(c.isupper() for c in name), " " in name)
@@ -268,8 +339,9 @@ def aggregate_standings(standings_by_tid, pokedex, max_placing=None):
             losses = record.get("losses") or 0
             ties = record.get("ties") or 0
 
-            team_names = [normalize_limitless_pokemon(s, pokedex) for s in decklist]
-            for slot, name in zip(decklist, team_names):
+            slots = [_normalize_slot(s, pokedex) for s in decklist]
+            team_names = [s["pokemon"] for s in slots]
+            for slot, name in zip(slots, team_names):
                 if not name:
                     continue
                 if name not in pokemon_stats:
@@ -292,26 +364,18 @@ def aggregate_standings(standings_by_tid, pokedex, max_placing=None):
                 stats["losses"] += losses
                 stats["ties"] += ties
 
-                for move in slot.get("attacks") or []:
-                    move = _clean_value(move)
-                    if move:
-                        stats["moves"][move] = stats["moves"].get(move, 0) + 1
-                item = _clean_value(slot.get("item"))
-                if item:
-                    stats["items"][item] = stats["items"].get(item, 0) + 1
-                ability = _clean_value(slot.get("ability"))
-                if ability:
-                    stats["abilities"][ability] = stats["abilities"].get(ability, 0) + 1
+                for move in slot["moves"]:
+                    stats["moves"][move] = stats["moves"].get(move, 0) + 1
+                if slot["item"]:
+                    stats["items"][slot["item"]] = stats["items"].get(slot["item"], 0) + 1
+                if slot["ability"]:
+                    stats["abilities"][slot["ability"]] = stats["abilities"].get(slot["ability"], 0) + 1
                 total_slots += 1
-                # Tera types and natures render raw (CSS classes, tooltip
-                # lookups), so force canonical capitalization here.
-                tera = _clean_value(slot.get("tera")).capitalize()
-                if tera:
+                if slot["tera"]:
                     tera_slots += 1
-                    stats["tera_types"][tera] = stats["tera_types"].get(tera, 0) + 1
-                nature = _clean_value(slot.get("nature")).capitalize()
-                if nature:
-                    stats["natures"][nature] = stats["natures"].get(nature, 0) + 1
+                    stats["tera_types"][slot["tera"]] = stats["tera_types"].get(slot["tera"], 0) + 1
+                if slot["nature"]:
+                    stats["natures"][slot["nature"]] = stats["natures"].get(slot["nature"], 0) + 1
                 for teammate in team_names:
                     if teammate and teammate != name:
                         stats["teammates"][teammate] = stats["teammates"].get(teammate, 0) + 1
@@ -333,20 +397,21 @@ def aggregate_standings(standings_by_tid, pokedex, max_placing=None):
     return {"total_teams": total_teams, "pokemon": pokemon_stats}
 
 
-# One aggregate per format, memoized on the set of tournament ids it
-# covers; the refresh lock keeps concurrent requests from stampeding the
-# API (losers of the race serve whatever standings are already cached).
+# One aggregate (and teams list) per format, memoized on the set of
+# tournament ids covered; the refresh lock keeps concurrent requests from
+# stampeding the API (losers of the race serve whatever is cached).
 _agg_mem = {}
+_teams_mem = {}
 _refresh_lock = threading.Lock()
 
 
-def build_limitless_aggregate(format_id, pokedex):
-    """Return the aggregated stats bundle for a format, refreshing lazily.
+def _cached_standings_map(format_id):
+    """Refresh lazily and return ({tid: standings}, [tournament meta]).
 
     Network cost: one tournament-list request at most once per hour,
     plus standings requests only for newly finished tournaments (capped
-    at MAX_STANDINGS_PER_REFRESH per cycle). Returns None when no data
-    is available at all.
+    at MAX_STANDINGS_PER_REFRESH per cycle). Only tournaments with at
+    least one public decklist are included.
     """
     tournaments = get_tournament_list(format_id)
     eligible = eligible_tournaments(tournaments)
@@ -372,7 +437,15 @@ def build_limitless_aggregate(format_id, pokedex):
                 "date": t.get("date", ""),
                 "players": t.get("players", 0),
             })
+    return standings_by_tid, included
 
+
+def build_limitless_aggregate(format_id, pokedex):
+    """Return the aggregated stats bundle for a format, refreshing lazily.
+
+    Returns None when no data is available at all.
+    """
+    standings_by_tid, included = _cached_standings_map(format_id)
     if not standings_by_tid:
         return None
 
@@ -394,23 +467,132 @@ def build_limitless_aggregate(format_id, pokedex):
     return data
 
 
+def get_all_teams(format_id, pokedex):
+    """Return every team from a format's cached standings, best first.
+
+    Each entry carries the player, placing, record, source tournament and
+    the normalized team, plus a precomputed lowercase `search` blob
+    (player, tournament, Pokemon, items, abilities, moves, teras,
+    natures) so callers can text-search the whole corpus cheaply.
+    Sorted by placing, ties broken by tournament size (a 1st out of 80
+    players beats a 1st out of 25).
+    """
+    standings_by_tid, included = _cached_standings_map(format_id)
+    if not standings_by_tid:
+        return []
+
+    key = tuple(sorted(standings_by_tid))
+    memo = _teams_mem.get(format_id)
+    if memo and memo["key"] == key:
+        return memo["teams"]
+
+    meta_by_tid = {t["id"]: t for t in included}
+    teams = []
+    for tid, standings in standings_by_tid.items():
+        meta = meta_by_tid[tid]
+        for player in standings:
+            decklist = player.get("decklist")
+            if not decklist:
+                continue
+            slots = [s for s in (_normalize_slot(x, pokedex) for x in decklist) if s["pokemon"]]
+            if not slots:
+                continue
+            name = player.get("name") or player.get("player") or ""
+            entry = {
+                "player": name,
+                "placing": player.get("placing"),
+                "record": player.get("record") or {},
+                "tournament": meta,
+                "team": slots,
+            }
+            search_parts = [name, meta["name"]]
+            for s in slots:
+                search_parts += [s["pokemon"], s["item"], s["ability"], s["tera"], s["nature"]]
+                search_parts += s["moves"]
+            entry["search"] = " ".join(p for p in search_parts if p).lower()
+            teams.append(entry)
+
+    teams.sort(key=lambda e: (e["placing"] or 9999, -(e["tournament"].get("players") or 0)))
+    _teams_mem[format_id] = {"key": key, "teams": teams}
+    return teams
+
+
+def _record_points(record):
+    """Swiss-style points for one record: a win is 1, a tie is half."""
+    record = record or {}
+    return (record.get("wins") or 0) + 0.5 * (record.get("ties") or 0)
+
+
+def group_team_archetypes(teams):
+    """Group identical 6-Pokemon teams into archetypes, most points first.
+
+    Two players running the same six Pokemon (regardless of slot order,
+    items or moves) pool into one archetype: their points collect into
+    one total and their records combine into one win rate. Archetypes
+    rank by pooled points; each archetype's players rank by their own
+    points (an 11-3 run beats a 4-1), ties broken by placing.
+    """
+    groups = {}
+    order = []
+    for entry in teams:
+        key = tuple(sorted(s["pokemon"] for s in entry["team"]))
+        group = groups.get(key)
+        if group is None:
+            group = groups[key] = {
+                # Display in the best-placing player's slot order
+                "pokemon": [s["pokemon"] for s in entry["team"]],
+                "count": 0,
+                "wins": 0,
+                "losses": 0,
+                "ties": 0,
+                "best_placing": entry["placing"] or 9999,
+                "players": [],
+            }
+            order.append(group)
+        group["count"] += 1
+        record = entry["record"] or {}
+        group["wins"] += record.get("wins") or 0
+        group["losses"] += record.get("losses") or 0
+        group["ties"] += record.get("ties") or 0
+        placing = entry["placing"] or 9999
+        if placing < group["best_placing"]:
+            group["best_placing"] = placing
+        group["players"].append(entry)
+
+    for group in order:
+        games = group["wins"] + group["losses"] + group["ties"]
+        group["win_rate"] = (
+            round((group["wins"] + 0.5 * group["ties"]) / games * 100, 1)
+            if games > 0
+            else None
+        )
+        group["points"] = group["wins"] + 0.5 * group["ties"]
+        group["players"].sort(
+            key=lambda e: (
+                -_record_points(e["record"]),
+                e["placing"] or 9999,
+                -(e["tournament"].get("players") or 0),
+            )
+        )
+
+    order.sort(key=lambda g: (-g["points"], -g["count"], -(g["win_rate"] or 0)))
+    return order
+
+
 def _warm_cache(pokedex, max_cycles=5):
-    """Backfill the default format's caches until no standings are missing.
+    """Backfill every active format's caches until nothing is missing.
 
     Each build_limitless_aggregate call fetches at most
     MAX_STANDINGS_PER_REFRESH standings, so loop (bounded, in case the
-    API keeps failing) until the eligible set is fully cached.
+    API keeps failing) until each format's eligible set is fully cached.
     """
     try:
-        formats = get_vgc_formats()
-        if not formats:
-            return
-        format_id = next(iter(formats))
-        for _ in range(max_cycles):
-            build_limitless_aggregate(format_id, pokedex)
-            eligible = eligible_tournaments(get_tournament_list(format_id))
-            if all(os.path.exists(_standings_path(t["id"])) for t in eligible):
-                break
+        for format_id in get_available_formats():
+            for _ in range(max_cycles):
+                build_limitless_aggregate(format_id, pokedex)
+                eligible = eligible_tournaments(get_tournament_list(format_id))
+                if all(os.path.exists(_standings_path(t["id"])) for t in eligible):
+                    break
     except Exception:
         pass
 

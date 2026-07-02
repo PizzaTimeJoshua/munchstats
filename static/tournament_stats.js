@@ -206,7 +206,7 @@ $(document).ready(function () {
     }
     var html = "<ul>";
     dataList.forEach(function (entry) {
-      var exportAttr = ' export-data=\'' + JSON.stringify(buildExportData(type, entry[0])) + '\'';
+      var exportAttr = ' export-data="' + escapeAttr(JSON.stringify(buildExportData(type, entry[0]))) + '"';
       if (type === "item" && entry.length > 3) {
         var itemBg = (entry[3][1] * -24) + "px " + (entry[3][0] * -24) + "px";
         html += '<li><button type="button" class="export-button has-tooltip" data-tooltip="' +
@@ -424,7 +424,20 @@ $(document).ready(function () {
   function escapeAttr(str) {
     if (!str) return "";
     return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;")
+              .replace(/'/g, "&#39;")
               .replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // export-data attributes hold JSON; values like "King's Rock" must not
+  // break the attribute or crash updatePage, so parse defensively.
+  function parseExportData(el) {
+    var d = $(el).attr("export-data");
+    if (!d) return null;
+    try {
+      return JSON.parse(d);
+    } catch (e) {
+      return null;
+    }
   }
 
   // ========== EXPORT STATE ==========
@@ -487,46 +500,40 @@ $(document).ready(function () {
   function updateExportHighlights() {
     // Moves
     $("#moves-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (!d) return;
-      var parsed = JSON.parse(d);
+      var parsed = parseExportData(this);
+      if (!parsed) return;
       $(this).toggleClass("selected", exportMoves.indexOf(parsed.move) !== -1);
     });
     // Items
     $("#items-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (!d) return;
-      var parsed = JSON.parse(d);
+      var parsed = parseExportData(this);
+      if (!parsed) return;
       $(this).toggleClass("selected", parsed.item === exportItem);
     });
     // Abilities
     $("#abilities-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (!d) return;
-      var parsed = JSON.parse(d);
+      var parsed = parseExportData(this);
+      if (!parsed) return;
       $(this).toggleClass("selected", parsed.ability === exportAbility);
     });
     // Tera
     $("#tera-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (!d) return;
-      var parsed = JSON.parse(d);
+      var parsed = parseExportData(this);
+      if (!parsed) return;
       $(this).toggleClass("selected", parsed.tera === exportTeraType);
     });
     // Natures
     $("#natures-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (!d) return;
-      var parsed = JSON.parse(d);
+      var parsed = parseExportData(this);
+      if (!parsed) return;
       $(this).toggleClass("selected", parsed.nature === exportNature);
     });
   }
 
   // ========== EXPORT BUTTON HANDLER ==========
   $(document).on("click", "#usage-view .export-button", function () {
-    var exportDataText = $(this).attr("export-data");
-    if (!exportDataText) return;
-    var data = JSON.parse(exportDataText);
+    var data = parseExportData(this);
+    if (!data) return;
 
     if (typeof data.move === "string") {
       if ($(this).hasClass("selected")) {
@@ -857,24 +864,24 @@ $(document).ready(function () {
     // Initialize export from server-rendered data
     var initialData = { moves_list: [], items_list: [], abilities_list: [], tera_types_list: [], natures_list: [] };
     $("#moves-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (d) initialData.moves_list.push([JSON.parse(d).move]);
+      var parsed = parseExportData(this);
+      if (parsed) initialData.moves_list.push([parsed.move]);
     });
     $("#items-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (d) initialData.items_list.push([JSON.parse(d).item]);
+      var parsed = parseExportData(this);
+      if (parsed) initialData.items_list.push([parsed.item]);
     });
     $("#abilities-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (d) initialData.abilities_list.push([JSON.parse(d).ability]);
+      var parsed = parseExportData(this);
+      if (parsed) initialData.abilities_list.push([parsed.ability]);
     });
     $("#tera-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (d) initialData.tera_types_list.push([JSON.parse(d).tera]);
+      var parsed = parseExportData(this);
+      if (parsed) initialData.tera_types_list.push([parsed.tera]);
     });
     $("#natures-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (d) initialData.natures_list.push([JSON.parse(d).nature]);
+      var parsed = parseExportData(this);
+      if (parsed) initialData.natures_list.push([parsed.nature]);
     });
     initExportState(initialData);
   }

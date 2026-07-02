@@ -2650,7 +2650,9 @@ def api_tournament_standings(tournament_id):
 
 def compile_limitless_page_data(format_id="", segment="all", pokemon_name=""):
     """Compile all data needed for the Limitless usage stats page."""
-    formats = limitless_stats.get_vgc_formats()
+    # Offer only formats that currently have eligible tournaments; dead
+    # regulations (or deep links to them) fall back to the newest one.
+    formats = limitless_stats.get_available_formats()
     if not formats:
         return None
     if format_id not in formats:
@@ -2773,6 +2775,78 @@ def api_limitless_data(format_id, segment="all", pokemon_name=""):
         [i[0], i[1], i[2], list(i[3])] if len(i) > 3 else i
         for i in result["items_list"]
     ]
+    return jsonify(result)
+
+
+def _limitless_team_entry(entry):
+    """Serialize one Limitless team entry for the JSON endpoints."""
+    return {
+        "player": entry["player"],
+        "placing": entry["placing"],
+        "record": entry["record"],
+        "tournament": entry["tournament"],
+        "team": [
+            {
+                "pokemon": s["pokemon"],
+                "sprite": list(get_pokemon_sprite(s["pokemon"])),
+                "item": s["item"],
+                "ability": s["ability"],
+                "tera_type": s["tera"],
+                "nature": s["nature"],
+                "moves": s["moves"],
+            }
+            for s in entry["team"]
+        ],
+    }
+
+
+@app.route("/limitless/api/<format_id>/teams/<pokemon_name>")
+def api_limitless_teams(format_id, pokemon_name):
+    """Return the best-placing teams using a Pokemon across all events."""
+    if format_id not in limitless_stats.get_available_formats():
+        return jsonify([])
+    teams = limitless_stats.get_all_teams(format_id, pokedexEntries)
+    target = pokemon_name.lower()
+    matching = [
+        e for e in teams
+        if target in (s["pokemon"].lower() for s in e["team"])
+    ]
+    return jsonify([_limitless_team_entry(e) for e in matching[:50]])
+
+
+@app.route("/limitless/api/<format_id>/results/")
+def api_limitless_results(format_id):
+    """Return team archetypes (identical 6 Pokemon grouped), most-used first.
+
+    The optional multi-term AND search (player, tournament, Pokemon,
+    item, ability, move, tera, nature — e.g. "garchomp life orb")
+    filters the underlying teams before grouping, so counts reflect
+    matching teams.
+    """
+    if format_id not in limitless_stats.get_available_formats():
+        return jsonify([])
+    teams = limitless_stats.get_all_teams(format_id, pokedexEntries)
+    query = request.args.get("q", "").strip().lower()
+    if query:
+        terms = query.split()
+        teams = [e for e in teams if all(t in e["search"] for t in terms)]
+    archetypes = limitless_stats.group_team_archetypes(teams)
+
+    result = []
+    for group in archetypes[:50]:
+        points = group["points"]
+        result.append({
+            "pokemon": [
+                {"name": name, "sprite": list(get_pokemon_sprite(name))}
+                for name in group["pokemon"]
+            ],
+            "count": group["count"],
+            "points": int(points) if points == int(points) else points,
+            "win_rate": group["win_rate"],
+            "best_placing": group["best_placing"],
+            "total_players": len(group["players"]),
+            "players": [_limitless_team_entry(e) for e in group["players"][:30]],
+        })
     return jsonify(result)
 
 

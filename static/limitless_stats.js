@@ -164,6 +164,16 @@ $(document).ready(function () {
     updateTeammatesSection(data.teammates_list);
     $("#teammates-section").toggle(!!(data.teammates_list && data.teammates_list.length));
     updateMerchSection(data.selected_pokemon);
+
+    // Reload teams for the selected Pokemon
+    $("#usage-view .teams-container h2").text("Teams with " + currentPokemonName);
+    loadTeams(currentFormatId, currentPokemonName);
+
+    // Refresh the results view if it's active (format may have changed)
+    var resultsView = document.getElementById("results-view");
+    if (resultsView && resultsView.style.display !== "none") {
+      loadResults();
+    }
   }
 
   function updateDataSection(containerId, dataList, type) {
@@ -174,7 +184,7 @@ $(document).ready(function () {
     }
     var html = "<ul>";
     dataList.forEach(function (entry) {
-      var exportAttr = ' export-data=\'' + JSON.stringify(buildExportData(type, entry[0])) + '\'';
+      var exportAttr = ' export-data="' + escapeAttr(JSON.stringify(buildExportData(type, entry[0]))) + '"';
       if (type === "item" && entry.length > 3) {
         var itemBg = (entry[3][1] * -24) + "px " + (entry[3][0] * -24) + "px";
         html += '<li><button type="button" class="export-button has-tooltip" data-tooltip="' +
@@ -385,7 +395,20 @@ $(document).ready(function () {
   function escapeAttr(str) {
     if (!str) return "";
     return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;")
+              .replace(/'/g, "&#39;")
               .replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // export-data attributes hold JSON; values like "King's Rock" must not
+  // break the attribute or crash updatePage, so parse defensively.
+  function parseExportData(el) {
+    var d = $(el).attr("export-data");
+    if (!d) return null;
+    try {
+      return JSON.parse(d);
+    } catch (e) {
+      return null;
+    }
   }
 
   // ========== EXPORT STATE ==========
@@ -447,42 +470,36 @@ $(document).ready(function () {
 
   function updateExportHighlights() {
     $("#moves-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (!d) return;
-      var parsed = JSON.parse(d);
+      var parsed = parseExportData(this);
+      if (!parsed) return;
       $(this).toggleClass("selected", exportMoves.indexOf(parsed.move) !== -1);
     });
     $("#items-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (!d) return;
-      var parsed = JSON.parse(d);
+      var parsed = parseExportData(this);
+      if (!parsed) return;
       $(this).toggleClass("selected", parsed.item === exportItem);
     });
     $("#abilities-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (!d) return;
-      var parsed = JSON.parse(d);
+      var parsed = parseExportData(this);
+      if (!parsed) return;
       $(this).toggleClass("selected", parsed.ability === exportAbility);
     });
     $("#tera-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (!d) return;
-      var parsed = JSON.parse(d);
+      var parsed = parseExportData(this);
+      if (!parsed) return;
       $(this).toggleClass("selected", parsed.tera === exportTeraType);
     });
     $("#natures-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (!d) return;
-      var parsed = JSON.parse(d);
+      var parsed = parseExportData(this);
+      if (!parsed) return;
       $(this).toggleClass("selected", parsed.nature === exportNature);
     });
   }
 
   // ========== EXPORT BUTTON HANDLER ==========
   $(document).on("click", "#usage-view .export-button", function () {
-    var exportDataText = $(this).attr("export-data");
-    if (!exportDataText) return;
-    var data = JSON.parse(exportDataText);
+    var data = parseExportData(this);
+    if (!data) return;
 
     if (typeof data.move === "string") {
       if ($(this).hasClass("selected")) {
@@ -521,6 +538,221 @@ $(document).ready(function () {
     });
   });
 
+  // ========== TEAM CARDS (shared by both team lists) ==========
+  function teamToShowdown(team) {
+    var lines = [];
+    team.forEach(function (slot) {
+      var header = slot.pokemon;
+      if (slot.item) header += " @ " + slot.item;
+      lines.push(header);
+      if (slot.ability) lines.push("Ability: " + slot.ability);
+      if (slot.tera_type) lines.push("Tera Type: " + slot.tera_type);
+      if (slot.nature) lines.push(slot.nature + " Nature");
+      if (slot.moves) {
+        slot.moves.forEach(function (m) { lines.push("- " + m); });
+      }
+      lines.push("");
+    });
+    return lines.join("\n").trim();
+  }
+
+  function renderTeamEntries(entries, container, prefix) {
+    if (!entries || entries.length === 0) {
+      container.innerHTML = '<p style="color: #666; font-size: 13px;">No teams found.</p>';
+      return;
+    }
+
+    var html = "";
+    entries.forEach(function (entry, idx) {
+      var t = entry.tournament || {};
+      html += '<div class="team-card" onclick="toggleTeamDetail(\'' + prefix + '\', ' + idx + ')">';
+      html += '<span class="team-placement">#' + entry.placing + '</span>';
+      html += '<span class="team-player">' + escapeAttr(entry.player);
+      if (entry.record && entry.record.wins !== undefined) {
+        html += ' <span class="team-record">(' + entry.record.wins + '-' + entry.record.losses + ')</span>';
+      }
+      html += '</span>';
+      html += '<span class="team-tournament">' + escapeAttr(t.name || "") +
+              (t.players ? ' &middot; ' + t.players + ' players' : '') + '</span>';
+      html += '<span class="team-sprites">';
+      entry.team.forEach(function (slot) {
+        var bgPos = (slot.sprite[1] * -40) + "px " + (slot.sprite[0] * -30) + "px";
+        html += '<div class="image-pokemon" style="background-position: ' + bgPos + ';" title="' + escapeAttr(slot.pokemon) + '"></div>';
+      });
+      html += '</span>';
+      html += '</div>';
+
+      html += '<div class="team-detail" id="' + prefix + '-detail-' + idx + '">';
+      html += '<div class="team-detail-grid">';
+      entry.team.forEach(function (slot) {
+        html += '<div class="team-detail-pokemon">';
+        html += '<div class="td-name">' + escapeAttr(slot.pokemon) + '</div>';
+        html += '<div class="td-info">';
+        if (slot.tera_type) html += 'Tera: ' + escapeAttr(slot.tera_type) + '<br>';
+        if (slot.nature) html += 'Nature: ' + escapeAttr(slot.nature) + '<br>';
+        if (slot.ability) html += 'Ability: ' + escapeAttr(slot.ability) + '<br>';
+        if (slot.item) html += 'Item: ' + escapeAttr(slot.item) + '<br>';
+        if (slot.moves && slot.moves.length > 0) {
+          slot.moves.forEach(function (m) { html += '- ' + escapeAttr(m) + '<br>'; });
+        }
+        html += '</div></div>';
+      });
+      html += '</div>';
+      html += '<button class="team-copy-btn" onclick="copyTeam(event, \'' + prefix + '\', ' + idx + ')">Copy Team to Clipboard</button>';
+      html += '</div>';
+    });
+
+    container.innerHTML = html;
+    window._teamEntries = window._teamEntries || {};
+    window._teamEntries[prefix] = entries;
+  }
+
+  window.toggleTeamDetail = function (prefix, idx) {
+    var el = document.getElementById(prefix + "-detail-" + idx);
+    if (el) {
+      el.classList.toggle("open");
+    }
+  };
+
+  window.copyTeam = function (event, prefix, idx) {
+    event.stopPropagation();
+    var entries = (window._teamEntries || {})[prefix];
+    if (!entries || !entries[idx]) return;
+    var text = teamToShowdown(entries[idx].team);
+    navigator.clipboard.writeText(text).then(function () {
+      var btn = event.target;
+      btn.textContent = "Copied!";
+      btn.classList.add("copied");
+      setTimeout(function () {
+        btn.textContent = "Copy Team to Clipboard";
+        btn.classList.remove("copied");
+      }, 2000);
+    });
+  };
+
+  // ========== TEAMS WITH SELECTED POKEMON ==========
+  async function loadTeams(formatId, pokemonName) {
+    var container = document.getElementById("teams-list");
+    if (!container) return;
+    container.innerHTML = '<p style="color: #666; font-size: 13px;">Loading teams...</p>';
+
+    var url = "/limitless/api/" + encodeURIComponent(formatId) +
+              "/teams/" + encodeURIComponent(pokemonName);
+    try {
+      var res = await fetch(url);
+      if (!res.ok) {
+        container.innerHTML = '<p style="color: #666; font-size: 13px;">No teams found.</p>';
+        return;
+      }
+      renderTeamEntries(await res.json(), container, "teams");
+    } catch (e) {
+      container.innerHTML = '<p style="color: #666; font-size: 13px;">Failed to load teams.</p>';
+    }
+  }
+
+  // ========== TOP TEAMS / RESULTS VIEW (archetypes, server-side search) ==========
+  var resultsLoadedFor = null; // formatId + query the list currently shows
+
+  function renderArchetypes(archetypes, container) {
+    if (!archetypes || archetypes.length === 0) {
+      container.innerHTML = '<p style="color: #666; font-size: 13px;">No teams found.</p>';
+      return;
+    }
+
+    var html = "";
+    archetypes.forEach(function (a, idx) {
+      var topPlayer = a.players.length ? a.players[0].player : "";
+      html += '<div class="team-card" onclick="toggleArchetype(' + idx + ')">';
+      html += '<span class="team-placement">#' + (idx + 1) + '</span>';
+      html += '<span class="team-player">' + a.count + (a.count === 1 ? ' team' : ' teams');
+      html += ' <span class="team-record">(' + a.points + ' pts';
+      if (a.win_rate !== null && a.win_rate !== undefined) {
+        html += ' &middot; ' + a.win_rate + '% WR';
+      }
+      html += ')</span>';
+      html += '</span>';
+      html += '<span class="team-tournament">' + escapeAttr(topPlayer) +
+              (a.count > 1 ? ' +' + (a.count - 1) + ' more' : '') + '</span>';
+      html += '<span class="team-sprites">';
+      a.pokemon.forEach(function (p) {
+        var bgPos = (p.sprite[1] * -40) + "px " + (p.sprite[0] * -30) + "px";
+        html += '<div class="image-pokemon" style="background-position: ' + bgPos + ';" title="' + escapeAttr(p.name) + '"></div>';
+      });
+      html += '</span>';
+      html += '</div>';
+      html += '<div class="team-detail" id="arch-detail-' + idx + '"><div id="arch-players-' + idx + '"></div></div>';
+    });
+
+    container.innerHTML = html;
+    window._archetypes = archetypes;
+  }
+
+  window.toggleArchetype = function (idx) {
+    var el = document.getElementById("arch-detail-" + idx);
+    if (!el) return;
+    var opened = el.classList.toggle("open");
+    var playersEl = document.getElementById("arch-players-" + idx);
+    if (opened && playersEl && !playersEl.hasChildNodes()) {
+      var a = (window._archetypes || [])[idx];
+      if (!a) return;
+      renderTeamEntries(a.players, playersEl, "arch" + idx);
+      if (a.count > a.players.length) {
+        playersEl.innerHTML += '<p style="color: #666; font-size: 12px;">Showing the top ' +
+          a.players.length + ' of ' + a.count + ' teams.</p>';
+      }
+    }
+  };
+
+  async function loadResults() {
+    var container = document.getElementById("results-list");
+    if (!container) return;
+    var query = ($("#resultsSearchInput").val() || "").trim();
+    var cacheKey = currentFormatId + " " + query;
+    if (resultsLoadedFor === cacheKey) return;
+
+    container.innerHTML = '<p style="color: #666; font-size: 13px;">Loading teams...</p>';
+    var url = "/limitless/api/" + encodeURIComponent(currentFormatId) +
+              "/results/?q=" + encodeURIComponent(query);
+    try {
+      var res = await fetch(url);
+      if (!res.ok) {
+        container.innerHTML = '<p style="color: #666; font-size: 13px;">No teams found.</p>';
+        return;
+      }
+      renderArchetypes(await res.json(), container);
+      resultsLoadedFor = cacheKey;
+    } catch (e) {
+      container.innerHTML = '<p style="color: #666; font-size: 13px;">Failed to load teams.</p>';
+    }
+  }
+
+  var resultsSearchTimer = null;
+  $("#resultsSearchInput").on("input", function () {
+    clearTimeout(resultsSearchTimer);
+    resultsSearchTimer = setTimeout(loadResults, 300);
+  });
+
+  // ========== VIEW TOGGLE ==========
+  window.switchView = function (view) {
+    var usageView = document.getElementById("usage-view");
+    var resultsView = document.getElementById("results-view");
+    var btnUsage = document.getElementById("btn-usage-view");
+    var btnResults = document.getElementById("btn-results-view");
+
+    if (view === "results") {
+      usageView.style.display = "none";
+      resultsView.style.display = "grid";
+      btnUsage.classList.remove("active");
+      btnResults.classList.add("active");
+      loadResults();
+    } else {
+      usageView.style.display = "grid";
+      resultsView.style.display = "none";
+      btnUsage.classList.add("active");
+      btnResults.classList.remove("active");
+    }
+  };
+
   // ========== GLOBAL SELECTION FUNCTIONS ==========
   window.selectFormat = function (id) {
     currentFormatId = id;
@@ -553,28 +785,29 @@ $(document).ready(function () {
   // ========== INITIAL LOAD ==========
   if (currentPokemonName) {
     updateMerchSection(currentPokemonName);
+    loadTeams(currentFormatId, currentPokemonName);
 
     // Initialize export from server-rendered data
     var initialData = { moves_list: [], items_list: [], abilities_list: [], tera_types_list: [], natures_list: [] };
     $("#moves-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (d) initialData.moves_list.push([JSON.parse(d).move]);
+      var parsed = parseExportData(this);
+      if (parsed) initialData.moves_list.push([parsed.move]);
     });
     $("#items-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (d) initialData.items_list.push([JSON.parse(d).item]);
+      var parsed = parseExportData(this);
+      if (parsed) initialData.items_list.push([parsed.item]);
     });
     $("#abilities-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (d) initialData.abilities_list.push([JSON.parse(d).ability]);
+      var parsed = parseExportData(this);
+      if (parsed) initialData.abilities_list.push([parsed.ability]);
     });
     $("#tera-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (d) initialData.tera_types_list.push([JSON.parse(d).tera]);
+      var parsed = parseExportData(this);
+      if (parsed) initialData.tera_types_list.push([parsed.tera]);
     });
     $("#natures-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (d) initialData.natures_list.push([JSON.parse(d).nature]);
+      var parsed = parseExportData(this);
+      if (parsed) initialData.natures_list.push([parsed.nature]);
     });
     initExportState(initialData);
   }
