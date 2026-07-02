@@ -16,6 +16,8 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 import pyjson5
 
+import limitless_stats
+
 load_dotenv()
 
 app = Flask(__name__)
@@ -1310,6 +1312,9 @@ def get_pokemon_sprite(pokemon_name):
 
 load_all_data()
 build_mega_item_lookup()
+# Rebuild the Limitless cache in the background after (re)start; dyno
+# restarts wipe the disk cache, so don't make the first visitor wait.
+limitless_stats.warm_cache_async(pokedexEntries)
 
 
 @app.route("/about/")
@@ -2637,6 +2642,138 @@ def api_tournament_standings(tournament_id):
 
     standings.sort(key=lambda s: s["placement"])
     return jsonify(standings)
+
+
+# ─── Limitless Online Tournament Usage Stats ─────────────────────────────
+# Aggregated usage from Limitless online VGC tournaments (attribution in
+# the template). Data is fetched lazily and cached by limitless_stats.
+
+def compile_limitless_page_data(format_id="", segment="all", pokemon_name=""):
+    """Compile all data needed for the Limitless usage stats page."""
+    formats = limitless_stats.get_vgc_formats()
+    if not formats:
+        return None
+    if format_id not in formats:
+        format_id = next(iter(formats))
+
+    bundle = limitless_stats.build_limitless_aggregate(format_id, pokedexEntries)
+    if not bundle:
+        return None
+
+    segments = bundle.get("segments", {})
+    if segment not in segments:
+        segment = "all"
+    filter_data = segments.get(segment, {})
+    pokemon_index = filter_data.get("pokemon", {})
+    total_teams = filter_data.get("total_teams", 1)
+
+    if not pokemon_index:
+        return None
+
+    sorted_pokemon = sorted(
+        pokemon_index.keys(),
+        key=lambda n: pokemon_index[n].get("usage_pct", 0),
+        reverse=True,
+    )
+
+    selected_pokemon = sorted_pokemon[0] if sorted_pokemon else ""
+    if pokemon_name:
+        matched = fuzzy_match(pokemon_name, list(pokemon_index.keys()))
+        if matched:
+            selected_pokemon = matched
+
+    if not selected_pokemon or selected_pokemon not in pokemon_index:
+        return None
+
+    poke_data = pokemon_index[selected_pokemon]
+    usage_pct = poke_data.get("usage_pct", 0)
+    usage_count = poke_data.get("usage_count", 0)
+    rank = sorted_pokemon.index(selected_pokemon) + 1
+    win_rate = poke_data.get("win_rate")
+
+    moves_list = compile_tournament_category(poke_data, "moves", usage_count)
+    items_list = compile_tournament_category(poke_data, "items", usage_count)
+    abilities_list = compile_tournament_category(poke_data, "abilities", usage_count)
+    tera_types_list = compile_tournament_category(poke_data, "tera_types", usage_count)
+    natures_list = compile_tournament_category(poke_data, "natures", usage_count)
+    teammates_list = compile_tournament_teammates(poke_data, usage_count)
+
+    base_stats = compile_top_data({"_": 1}, selected_pokemon, "Stats") if pokedexEntries else []
+    pokemon_types = compile_top_data({"_": 1}, selected_pokemon, "Types") if pokedexEntries else []
+
+    pokemon_names = []
+    for name in sorted_pokemon:
+        pct = pokemon_index[name].get("usage_pct", 0)
+        pokemon_names.append([
+            name,
+            "{:.1f}".format(pct),
+            get_pokemon_sprite(name),
+        ])
+
+    return {
+        "formats": [[code, disp] for code, disp in formats.items()],
+        "selected_format_id": format_id,
+        "selected_format_name": formats.get(format_id, format_id),
+        "segment": segment,
+        "segment_options": ["all", "top8"],
+        "pokemon_names": pokemon_names,
+        "selected_pokemon": selected_pokemon,
+        "current_pokemon": [selected_pokemon, usage_pct, rank, get_pokemon_sprite(selected_pokemon)],
+        "win_rate": "{:.1f}".format(win_rate) if win_rate is not None else "—",
+        "base_stats": base_stats,
+        "pokemon_types": pokemon_types,
+        "moves_list": moves_list,
+        "items_list": items_list,
+        "abilities_list": abilities_list,
+        "tera_types_list": tera_types_list,
+        "natures_list": natures_list,
+        "teammates_list": teammates_list,
+        "total_teams": total_teams,
+        "tournament_count": len(bundle.get("tournaments", [])),
+        "included_tournaments": bundle.get("tournaments", []),
+        "window_days": limitless_stats.WINDOW_DAYS,
+        "min_players": limitless_stats.MIN_PLAYERS,
+        "attribution": limitless_stats.ATTRIBUTION_TEXT,
+        "attribution_url": limitless_stats.ATTRIBUTION_URL,
+    }
+
+
+@app.route("/limitless/")
+@app.route("/limitless/<format_id>/")
+@app.route("/limitless/<format_id>/<segment>/")
+@app.route("/limitless/<format_id>/<segment>/<pokemon_name>")
+def limitless_page(format_id="", segment="all", pokemon_name=""):
+    data = compile_limitless_page_data(format_id, segment, pokemon_name)
+    tab_kwargs = dict(
+        selected_format=[DEFAULT_META, formatDisplayNames.get(DEFAULT_META, DEFAULT_META)],
+        selected_rating="0",
+    )
+    if data is None:
+        return render_template("limitless.html", no_data=True, selected_pokemon="", **tab_kwargs)
+    return render_template("limitless.html", **data, **tab_kwargs)
+
+
+@app.route("/limitless/api/<format_id>/<segment>/")
+@app.route("/limitless/api/<format_id>/<segment>/<pokemon_name>")
+def api_limitless_data(format_id, segment="all", pokemon_name=""):
+    data = compile_limitless_page_data(format_id, segment, pokemon_name)
+    if data is None:
+        return jsonify({"error": "No data found"}), 404
+    # Convert tuple sprites to lists for JSON serialization
+    result = dict(data)
+    result["current_pokemon"] = list(result["current_pokemon"])
+    result["current_pokemon"][3] = list(result["current_pokemon"][3])
+    result["pokemon_names"] = [
+        [p[0], p[1], list(p[2])] for p in result["pokemon_names"]
+    ]
+    result["teammates_list"] = [
+        [t[0], t[1], list(t[2])] for t in result["teammates_list"]
+    ]
+    result["items_list"] = [
+        [i[0], i[1], i[2], list(i[3])] if len(i) > 3 else i
+        for i in result["items_list"]
+    ]
+    return jsonify(result)
 
 
 # ─── Pokemon Detail Page: Tournament & Replay Integration ────────────────
