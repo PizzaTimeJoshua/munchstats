@@ -587,6 +587,9 @@ def get_champions_battle(format_folder, battle_name):
 _CHAMPIONS_REGIONS = {"Alolan": "alola", "Galarian": "galar", "Hisuian": "hisui", "Paldean": "paldea"}
 _CHAMPIONS_FILLER = {"Forme", "Form", "Variety", "Pattern", "Natural", "Flower", "Breed"}
 _CHAMPIONS_VARIANT_ALIASES = {"Jumbo": "super"}  # Gourgeist Jumbo -> Gourgeist-Super
+# The API's name doesn't always match the in-game form. The game only has
+# Floette-Eternal, which the API just calls "Floette".
+_CHAMPIONS_NAME_OVERRIDES = {"Floette": "Floette-Eternal"}
 _champions_name_cache = {}
 
 
@@ -601,10 +604,12 @@ def champions_display_name(raw_name):
     def norm(s):
         return re.sub(r"[^a-z0-9]+", "", s.lower())
 
-    result = raw_name
-    if norm(raw_name) in pokedexEntries:
+    if raw_name in _CHAMPIONS_NAME_OVERRIDES:
+        result = _CHAMPIONS_NAME_OVERRIDES[raw_name]
+    elif norm(raw_name) in pokedexEntries:
         result = pokedexEntries[norm(raw_name)].get("name", raw_name)
     else:
+        result = raw_name
         tokens = raw_name.split()
         region = ""
         if tokens and tokens[0] in _CHAMPIONS_REGIONS:
@@ -712,19 +717,23 @@ def compile_champions_page_data(format_code, pokemon_name=""):
     for row in rows:
         rows_by_cat.setdefault(row.get("category", ""), []).append(row)
 
-    # Base stats and types come from the game's own metadata (they differ from
-    # the mainline games), never from the Showdown pokedex.
     summary = entry.get("summary", {})
-    base = summary.get("baseStats") or {}
     primary = summary.get("primary", {})
 
-    def _stat(k):
-        return base.get(k, primary.get(k, 0))
-
-    base_stats = [
-        _stat("hp"), _stat("attack"), _stat("defense"),
-        _stat("sp_attack"), _stat("sp_defense"), _stat("speed"),
-    ]
+    # Base stats come from the Showdown pokedex (mainline values), matched via
+    # the resolved display name. Fall back to the API metadata only if the
+    # Pokémon isn't in the pokedex.
+    base_stats = compile_top_data({"_": 1}, default_pokemon, "Stats")
+    if not base_stats:
+        base = summary.get("baseStats") or {}
+        base_stats = [
+            base.get("hp", primary.get("hp", 0)),
+            base.get("attack", primary.get("attack", 0)),
+            base.get("defense", primary.get("defense", 0)),
+            base.get("sp_attack", primary.get("sp_attack", 0)),
+            base.get("sp_defense", primary.get("sp_defense", 0)),
+            base.get("speed", primary.get("speed", 0)),
+        ]
     pokemon_types = summary.get("types") or primary.get("types") or []
 
     moves_list = [
