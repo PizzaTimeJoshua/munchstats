@@ -26,7 +26,8 @@ LIMITLESS_CACHE_DIR = os.path.join("cache", "limitless")
 STANDINGS_DIR = os.path.join(LIMITLESS_CACHE_DIR, "standings")
 LIST_CACHE_TTL = 3600  # tournament lists refresh hourly
 FORMATS_CACHE_TTL = 12 * 3600  # /games changes rarely
-MIN_PLAYERS = 24  # ignore small casual/practice events
+PLAYER_TIERS = [25, 50, 100, 200]  # usage-segment thresholds (tournament size)
+MIN_PLAYERS = PLAYER_TIERS[0]  # ignore small casual/practice events
 WINDOW_DAYS = 30  # rolling metagame window
 COMPLETION_GRACE_HOURS = 12  # skip events until date + grace < now
 MAX_STANDINGS_PER_REFRESH = 30  # rate-limit frugality cap per refresh
@@ -454,12 +455,21 @@ def build_limitless_aggregate(format_id, pokedex):
     if memo and memo["key"] == key:
         return memo["data"]
 
+    # One segment per tournament-size tier: usage from 25+ player events,
+    # from 50+ only, etc. Tiers with no tournaments are omitted.
+    players_by_tid = {t["id"]: t.get("players") or 0 for t in included}
+    segments = {}
+    for tier in PLAYER_TIERS:
+        tier_standings = {
+            tid: s for tid, s in standings_by_tid.items()
+            if players_by_tid[tid] >= tier
+        }
+        if tier_standings:
+            segments[str(tier)] = aggregate_standings(tier_standings, pokedex)
+
     data = {
         "format": format_id,
-        "segments": {
-            "all": aggregate_standings(standings_by_tid, pokedex),
-            "top8": aggregate_standings(standings_by_tid, pokedex, max_placing=8),
-        },
+        "segments": segments,
         "tournaments": included,
         "generated_at": time.time(),
     }
@@ -517,7 +527,7 @@ def get_all_teams(format_id, pokedex):
     return teams
 
 
-def _record_points(record):
+def record_points(record):
     """Swiss-style points for one record: a win is 1, a tie is half."""
     record = record or {}
     return (record.get("wins") or 0) + 0.5 * (record.get("ties") or 0)
@@ -569,7 +579,7 @@ def group_team_archetypes(teams):
         group["points"] = group["wins"] + 0.5 * group["ties"]
         group["players"].sort(
             key=lambda e: (
-                -_record_points(e["record"]),
+                -record_points(e["record"]),
                 e["placing"] or 9999,
                 -(e["tournament"].get("players") or 0),
             )

@@ -2518,19 +2518,58 @@ def compile_tournament_page_data(tournament_id="", day_filter="all", pokemon_nam
     }
 
 
+def _render_tournament_hub(source, data):
+    """Render the merged tournament stats page for either data source.
+
+    The sidebar always lists both official (RK9) tournaments and Limitless
+    online formats, whichever source is currently selected.
+    """
+    ctx = dict(data)
+    if source == "official":
+        ctx["official_tournaments"] = ctx.pop("tournaments")
+        # Cheap: disk-cached formats + tournament list, {} on failure
+        ctx["limitless_formats"] = [
+            [code, disp]
+            for code, disp in limitless_stats.get_available_formats().items()
+        ]
+    else:
+        ctx["limitless_formats"] = ctx.pop("formats")
+        ctx["official_tournaments"] = load_tournament_list()
+    return render_template(
+        "tournaments.html",
+        source=source,
+        limitless_attribution=limitless_stats.ATTRIBUTION_TEXT,
+        limitless_attribution_url=limitless_stats.ATTRIBUTION_URL,
+        selected_format=[DEFAULT_META, formatDisplayNames.get(DEFAULT_META, DEFAULT_META)],
+        selected_rating="0",
+        **ctx,
+    )
+
+
+def _render_tournament_hub_empty():
+    return render_template(
+        "tournaments.html",
+        no_data=True,
+        source="official",
+        selected_pokemon="",
+        selected_format=[DEFAULT_META, formatDisplayNames.get(DEFAULT_META, DEFAULT_META)],
+        selected_rating="0",
+    )
+
+
 @app.route("/tournaments/")
 @app.route("/tournaments/<tournament_id>/")
 @app.route("/tournaments/<tournament_id>/<day_filter>/")
 @app.route("/tournaments/<tournament_id>/<day_filter>/<pokemon_name>")
 def tournaments_page(tournament_id="", day_filter="all", pokemon_name=""):
     data = compile_tournament_page_data(tournament_id, day_filter, pokemon_name)
-    tab_kwargs = dict(
-        selected_format=[DEFAULT_META, formatDisplayNames.get(DEFAULT_META, DEFAULT_META)],
-        selected_rating="0",
-    )
-    if data is None:
-        return render_template("tournaments.html", no_data=True, selected_pokemon="", **tab_kwargs)
-    return render_template("tournaments.html", **data, **tab_kwargs)
+    if data is not None:
+        return _render_tournament_hub("official", data)
+    # No official data scraped: fall back to the online (Limitless) source
+    ldata = compile_limitless_page_data()
+    if ldata is not None:
+        return _render_tournament_hub("limitless", ldata)
+    return _render_tournament_hub_empty()
 
 
 @app.route("/tournaments/api/<tournament_id>/<day_filter>/")
@@ -2648,7 +2687,7 @@ def api_tournament_standings(tournament_id):
 # Aggregated usage from Limitless online VGC tournaments (attribution in
 # the template). Data is fetched lazily and cached by limitless_stats.
 
-def compile_limitless_page_data(format_id="", segment="all", pokemon_name=""):
+def compile_limitless_page_data(format_id="", segment="", pokemon_name=""):
     """Compile all data needed for the Limitless usage stats page."""
     # Offer only formats that currently have eligible tournaments; dead
     # regulations (or deep links to them) fall back to the newest one.
@@ -2662,9 +2701,14 @@ def compile_limitless_page_data(format_id="", segment="all", pokemon_name=""):
     if not bundle:
         return None
 
+    # Segments are tournament-size tiers ("25", "50", ...); default to
+    # the smallest, which always exists when the bundle does.
     segments = bundle.get("segments", {})
+    segment_options = sorted(segments, key=int)
+    if not segment_options:
+        return None
     if segment not in segments:
-        segment = "all"
+        segment = segment_options[0]
     filter_data = segments.get(segment, {})
     pokemon_index = filter_data.get("pokemon", {})
     total_teams = filter_data.get("total_teams", 1)
@@ -2717,7 +2761,7 @@ def compile_limitless_page_data(format_id="", segment="all", pokemon_name=""):
         "selected_format_id": format_id,
         "selected_format_name": formats.get(format_id, format_id),
         "segment": segment,
-        "segment_options": ["all", "top8"],
+        "segment_options": segment_options,
         "pokemon_names": pokemon_names,
         "selected_pokemon": selected_pokemon,
         "current_pokemon": [selected_pokemon, usage_pct, rank, get_pokemon_sprite(selected_pokemon)],
@@ -2731,10 +2775,13 @@ def compile_limitless_page_data(format_id="", segment="all", pokemon_name=""):
         "natures_list": natures_list,
         "teammates_list": teammates_list,
         "total_teams": total_teams,
-        "tournament_count": len(bundle.get("tournaments", [])),
+        "tournament_count": len([
+            t for t in bundle.get("tournaments", [])
+            if (t.get("players") or 0) >= int(segment)
+        ]),
         "included_tournaments": bundle.get("tournaments", []),
         "window_days": limitless_stats.WINDOW_DAYS,
-        "min_players": limitless_stats.MIN_PLAYERS,
+        "min_players": int(segment),
         "attribution": limitless_stats.ATTRIBUTION_TEXT,
         "attribution_url": limitless_stats.ATTRIBUTION_URL,
     }
@@ -2744,20 +2791,21 @@ def compile_limitless_page_data(format_id="", segment="all", pokemon_name=""):
 @app.route("/limitless/<format_id>/")
 @app.route("/limitless/<format_id>/<segment>/")
 @app.route("/limitless/<format_id>/<segment>/<pokemon_name>")
-def limitless_page(format_id="", segment="all", pokemon_name=""):
+def limitless_page(format_id="", segment="", pokemon_name=""):
+    """Deep links to Limitless stats open the merged tournaments page."""
     data = compile_limitless_page_data(format_id, segment, pokemon_name)
-    tab_kwargs = dict(
-        selected_format=[DEFAULT_META, formatDisplayNames.get(DEFAULT_META, DEFAULT_META)],
-        selected_rating="0",
-    )
-    if data is None:
-        return render_template("limitless.html", no_data=True, selected_pokemon="", **tab_kwargs)
-    return render_template("limitless.html", **data, **tab_kwargs)
+    if data is not None:
+        return _render_tournament_hub("limitless", data)
+    # Limitless data unavailable: fall back to the official source
+    odata = compile_tournament_page_data()
+    if odata is not None:
+        return _render_tournament_hub("official", odata)
+    return _render_tournament_hub_empty()
 
 
 @app.route("/limitless/api/<format_id>/<segment>/")
 @app.route("/limitless/api/<format_id>/<segment>/<pokemon_name>")
-def api_limitless_data(format_id, segment="all", pokemon_name=""):
+def api_limitless_data(format_id, segment="", pokemon_name=""):
     data = compile_limitless_page_data(format_id, segment, pokemon_name)
     if data is None:
         return jsonify({"error": "No data found"}), 404
@@ -2802,15 +2850,26 @@ def _limitless_team_entry(entry):
 
 @app.route("/limitless/api/<format_id>/teams/<pokemon_name>")
 def api_limitless_teams(format_id, pokemon_name):
-    """Return the best-placing teams using a Pokemon across all events."""
+    """Return the best-performing teams using a Pokemon across all events.
+
+    `min` filters by tournament size (player count); teams are ranked by
+    Swiss points (an 11-3 run outranks a 4-1) rather than placing.
+    """
     if format_id not in limitless_stats.get_available_formats():
         return jsonify([])
+    min_players = request.args.get("min", type=int) or 0
     teams = limitless_stats.get_all_teams(format_id, pokedexEntries)
     target = pokemon_name.lower()
     matching = [
         e for e in teams
-        if target in (s["pokemon"].lower() for s in e["team"])
+        if (e["tournament"].get("players") or 0) >= min_players
+        and target in (s["pokemon"].lower() for s in e["team"])
     ]
+    matching.sort(key=lambda e: (
+        -limitless_stats.record_points(e["record"]),
+        e["placing"] or 9999,
+        -(e["tournament"].get("players") or 0),
+    ))
     return jsonify([_limitless_team_entry(e) for e in matching[:50]])
 
 
@@ -2821,11 +2880,14 @@ def api_limitless_results(format_id):
     The optional multi-term AND search (player, tournament, Pokemon,
     item, ability, move, tera, nature — e.g. "garchomp life orb")
     filters the underlying teams before grouping, so counts reflect
-    matching teams.
+    matching teams. `min` filters by tournament size (player count).
     """
     if format_id not in limitless_stats.get_available_formats():
         return jsonify([])
+    min_players = request.args.get("min", type=int) or 0
     teams = limitless_stats.get_all_teams(format_id, pokedexEntries)
+    if min_players:
+        teams = [e for e in teams if (e["tournament"].get("players") or 0) >= min_players]
     query = request.args.get("q", "").strip().lower()
     if query:
         terms = query.split()
