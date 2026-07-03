@@ -24,15 +24,22 @@ $(document).ready(function () {
   });
 
   // ========== STATE ==========
-  var currentTournamentId = window.currentTournamentId;
-  var currentDayFilter = window.currentDayFilter;
-  var currentPokemonName = window.currentPokemonName;
+  // One page, two data sources: "official" (RK9 events, day filter) and
+  // "limitless" (online formats, min-player segments). Both keep their
+  // own selection so switching back and forth doesn't lose context.
+  var currentSource = window.hubSource || "official";
+  var currentTournamentId = window.currentTournamentId || "";
+  var currentDayFilter = window.currentDayFilter || "all";
+  var currentFormatId = window.currentFormatId || "";
+  var currentSegment = window.currentSegment || "";
+  var currentPokemonName = window.currentPokemonName || "";
+  var currentView = "usage";
   var isLoading = false;
 
   // ========== SEARCH FILTERS ==========
   $("#tournamentSearchInput").on("input", function () {
     var query = $(this).val().toLowerCase();
-    $("#tournament-list li").each(function () {
+    $("#source-list li").each(function () {
       var text = $(this).text().toLowerCase();
       if ($(this).hasClass("tournament-group-header")) {
         // Show/hide group headers based on whether any child is visible
@@ -43,7 +50,7 @@ $(document).ready(function () {
     });
     // Hide group headers with no visible children after them
     if (query) {
-      $("#tournament-list li.tournament-group-header").each(function () {
+      $("#source-list li.tournament-group-header").each(function () {
         var hasVisible = false;
         var next = $(this).next();
         while (next.length && !next.hasClass("tournament-group-header")) {
@@ -64,35 +71,40 @@ $(document).ready(function () {
   });
 
   // ========== DATA FETCHING ==========
-  async function fetchTournamentData(tournamentId, dayFilter, pokemonName) {
+  function pushHistory(replace) {
+    var state = {
+      source: currentSource,
+      tournament: currentTournamentId,
+      day: currentDayFilter,
+      format: currentFormatId,
+      segment: currentSegment,
+      pokemon: currentPokemonName,
+    };
+    var url;
+    if (currentSource === "limitless") {
+      url = "/limitless/" + currentFormatId + "/" + currentSegment + "/" + currentPokemonName;
+    } else {
+      url = "/tournaments/" + currentTournamentId + "/" + currentDayFilter + "/" + currentPokemonName;
+    }
+    if (replace) {
+      history.replaceState(state, "", url);
+    } else {
+      history.pushState(state, "", url);
+    }
+  }
+
+  async function fetchHubData(source, url, skipPush) {
     if (isLoading) return;
     isLoading = true;
     document.getElementById("loading-overlay").classList.add("active");
 
-    var url = "/tournaments/api/" + encodeURIComponent(tournamentId) +
-              "/" + encodeURIComponent(dayFilter) + "/";
-    if (pokemonName) {
-      url += encodeURIComponent(pokemonName);
-    }
-
     try {
       var res = await fetch(url);
-      if (!res.ok) {
-        isLoading = false;
-        document.getElementById("loading-overlay").classList.remove("active");
-        return;
+      if (res.ok) {
+        var data = await res.json();
+        updatePage(data, source);
+        if (!skipPush) pushHistory(false);
       }
-      var data = await res.json();
-      updatePage(data);
-
-      // Update URL
-      var newUrl = "/tournaments/" + data.selected_tournament.id + "/" +
-                   data.day_filter + "/" + data.selected_pokemon;
-      history.pushState({
-        tournament: data.selected_tournament.id,
-        day: data.day_filter,
-        pokemon: data.selected_pokemon
-      }, "", newUrl);
     } catch (e) {
       console.error("Failed to fetch tournament data:", e);
     }
@@ -101,10 +113,40 @@ $(document).ready(function () {
     document.getElementById("loading-overlay").classList.remove("active");
   }
 
-  function updatePage(data) {
-    currentTournamentId = data.selected_tournament.id;
-    currentDayFilter = data.day_filter;
+  function fetchOfficialData(tournamentId, dayFilter, pokemonName, skipPush) {
+    var url = "/tournaments/api/" + encodeURIComponent(tournamentId) +
+              "/" + encodeURIComponent(dayFilter) + "/";
+    if (pokemonName) url += encodeURIComponent(pokemonName);
+    fetchHubData("official", url, skipPush);
+  }
+
+  function fetchLimitlessData(formatId, segment, pokemonName, skipPush) {
+    var url = "/limitless/api/" + encodeURIComponent(formatId) +
+              "/" + encodeURIComponent(segment) + "/";
+    if (pokemonName) url += encodeURIComponent(pokemonName);
+    fetchHubData("limitless", url, skipPush);
+  }
+
+  function updateSidebarHighlight() {
+    $("#source-list .meta-button").each(function () {
+      var src = $(this).attr("data-source");
+      var id = $(this).attr("data-id");
+      var active = src === currentSource &&
+        id === (currentSource === "limitless" ? currentFormatId : currentTournamentId);
+      $(this).toggleClass("active", active);
+    });
+  }
+
+  function updatePage(data, source) {
+    currentSource = source;
     currentPokemonName = data.selected_pokemon;
+    if (source === "limitless") {
+      currentFormatId = data.selected_format_id;
+      currentSegment = data.segment;
+    } else {
+      currentTournamentId = data.selected_tournament.id;
+      currentDayFilter = data.day_filter;
+    }
 
     // Update pokemon info card
     var cp = data.current_pokemon;
@@ -114,7 +156,21 @@ $(document).ready(function () {
     $("#info-usage").text(cp[1] + "%");
     $("#info-rank").text("#" + cp[2]);
     $("#info-teams").text(data.total_teams);
-    $("#info-tournament").text(data.selected_tournament.name);
+
+    $("#info-winrate").text(data.win_rate === "—" ? data.win_rate : data.win_rate + "%");
+
+    // Source-specific card bits: context line + page title
+    if (source === "limitless") {
+      $("#info-context").text(
+        data.selected_format_name + " · " + data.tournament_count +
+        " online tournaments · last " + data.window_days + " days · " +
+        data.min_players + "+ players"
+      );
+      document.title = "Tournaments | MunchStats | " + data.selected_format_name + " (Online)";
+    } else {
+      $("#info-context").text(data.selected_tournament.name);
+      document.title = "Tournaments | MunchStats | " + data.selected_tournament.name;
+    }
 
     // Update types
     var typesHtml = "";
@@ -135,23 +191,25 @@ $(document).ready(function () {
       }
     }
 
-    // Update tournament list highlights
-    $("#tournament-list .meta-button").removeClass("active");
-    $("#tournament-list .meta-button").each(function () {
-      var onclick = $(this).attr("onclick") || "";
-      if (onclick.indexOf(currentTournamentId) !== -1) {
-        $(this).addClass("active");
-      }
-    });
+    updateSidebarHighlight();
 
-    // Update day filter highlights
-    $("#day-filter-container .rating-button").removeClass("active");
-    $("#day-filter-container .rating-button").each(function () {
-      var onclick = $(this).attr("onclick") || "";
-      if (onclick.indexOf("'" + currentDayFilter + "'") !== -1) {
-        $(this).addClass("active");
-      }
-    });
+    // Show the filter row that belongs to the selected source
+    $("#day-filter-container").toggle(source === "official");
+    $("#segment-filter-wrap").toggle(source === "limitless");
+    if (source === "limitless") {
+      // Rebuild segment (tournament-size) buttons: tiers differ per format
+      var segHtml = "";
+      (data.segment_options || []).forEach(function (opt) {
+        segHtml += '<button type="button" onclick="selectSegment(\'' + opt + '\')" class="rating-button' +
+          (opt === currentSegment ? ' active' : '') + '">' + opt + '+</button>';
+      });
+      $("#segment-filter-container").html(segHtml);
+    } else {
+      $("#day-filter-container .rating-button").each(function () {
+        var onclick = $(this).attr("onclick") || "";
+        $(this).toggleClass("active", onclick.indexOf("'" + currentDayFilter + "'") !== -1);
+      });
+    }
 
     // Update Pokemon list
     var pokemonHtml = "";
@@ -185,17 +243,13 @@ $(document).ready(function () {
     $("#teammates-section").toggle(!!(data.teammates_list && data.teammates_list.length));
     updateMerchSection(data.selected_pokemon);
 
-    // Update teams header
-    $(".teams-container h2").text("Teams with " + currentPokemonName);
+    // Reload teams for the selected Pokemon
+    $("#teams-heading").text("Teams with " + currentPokemonName);
+    loadTeams();
 
-    // Load teams for the selected Pokemon
-    loadTeams(currentTournamentId, currentPokemonName, currentDayFilter);
-
-    // Reload standings if that view is active
-    var standingsView = document.getElementById("standings-view");
-    if (standingsView && standingsView.style.display !== "none") {
-      loadStandings(currentTournamentId, currentDayFilter);
-    }
+    // Relabel the secondary view for the source and refresh it if open
+    $("#btn-secondary-view").text(source === "limitless" ? "Top Teams" : "Standings");
+    applyView(currentView === "secondary");
   }
 
   function updateDataSection(containerId, dataList, type) {
@@ -206,7 +260,7 @@ $(document).ready(function () {
     }
     var html = "<ul>";
     dataList.forEach(function (entry) {
-      var exportAttr = ' export-data=\'' + JSON.stringify(buildExportData(type, entry[0])) + '\'';
+      var exportAttr = ' export-data="' + escapeAttr(JSON.stringify(buildExportData(type, entry[0]))) + '"';
       if (type === "item" && entry.length > 3) {
         var itemBg = (entry[3][1] * -24) + "px " + (entry[3][0] * -24) + "px";
         html += '<li><button type="button" class="export-button has-tooltip" data-tooltip="' +
@@ -219,8 +273,8 @@ $(document).ready(function () {
           '<span class="type-' + entry[0] + '">' + entry[0] + '</span>' +
           '<span class="right-text">' + entry[1] + '%</span></button></li>';
       } else {
-        var tooltip = entry.length > 2 ? ' has-tooltip" data-tooltip="' + escapeAttr(entry[2]) : '';
-        html += '<li><button type="button" class="export-button' + tooltip + '"' + exportAttr + '>' +
+        var tooltipAttr = entry.length > 2 ? ' has-tooltip" data-tooltip="' + escapeAttr(entry[2]) : '';
+        html += '<li><button type="button" class="export-button' + tooltipAttr + '"' + exportAttr + '>' +
           '<span class="left-text">' + entry[0] + '</span>' +
           '<span class="right-text">' + entry[1] + '%</span></button></li>';
       }
@@ -309,20 +363,17 @@ $(document).ready(function () {
       '</a>';
   }
 
-  // Affiliate tracking is now handled server-side via the Browse API
+  // Affiliate tracking is handled server-side via the Browse API
   // X-EBAY-C-ENDUSERCTX header, so no client-side EPN script needed.
 
   function renderMerchCarousel(carousel, listings) {
     merchItemCount = listings.length;
     // Build track: [clones of last VISIBLE] [real items] [clones of first VISIBLE]
     var html = '<div class="merch-track">';
-    // Prepend clones
     for (var c = listings.length - MERCH_VISIBLE; c < listings.length; c++) {
       html += buildCardHtml(listings[c]);
     }
-    // Real items
     listings.forEach(function (item) { html += buildCardHtml(item); });
-    // Append clones
     for (var c2 = 0; c2 < MERCH_VISIBLE; c2++) {
       html += buildCardHtml(listings[c2]);
     }
@@ -347,7 +398,6 @@ $(document).ready(function () {
       }
     }
 
-    // Arrow buttons
     carousel.querySelector(".merch-prev").addEventListener("click", function (e) {
       e.preventDefault();
       e.stopPropagation();
@@ -423,8 +473,21 @@ $(document).ready(function () {
 
   function escapeAttr(str) {
     if (!str) return "";
-    return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;")
+    return String(str).replace(/&/g, "&amp;").replace(/"/g, "&quot;")
+              .replace(/'/g, "&#39;")
               .replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+
+  // export-data attributes hold JSON; values like "King's Rock" must not
+  // break the attribute or crash updatePage, so parse defensively.
+  function parseExportData(el) {
+    var d = $(el).attr("export-data");
+    if (!d) return null;
+    try {
+      return JSON.parse(d);
+    } catch (e) {
+      return null;
+    }
   }
 
   // ========== EXPORT STATE ==========
@@ -485,48 +548,37 @@ $(document).ready(function () {
   }
 
   function updateExportHighlights() {
-    // Moves
     $("#moves-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (!d) return;
-      var parsed = JSON.parse(d);
+      var parsed = parseExportData(this);
+      if (!parsed) return;
       $(this).toggleClass("selected", exportMoves.indexOf(parsed.move) !== -1);
     });
-    // Items
     $("#items-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (!d) return;
-      var parsed = JSON.parse(d);
+      var parsed = parseExportData(this);
+      if (!parsed) return;
       $(this).toggleClass("selected", parsed.item === exportItem);
     });
-    // Abilities
     $("#abilities-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (!d) return;
-      var parsed = JSON.parse(d);
+      var parsed = parseExportData(this);
+      if (!parsed) return;
       $(this).toggleClass("selected", parsed.ability === exportAbility);
     });
-    // Tera
     $("#tera-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (!d) return;
-      var parsed = JSON.parse(d);
+      var parsed = parseExportData(this);
+      if (!parsed) return;
       $(this).toggleClass("selected", parsed.tera === exportTeraType);
     });
-    // Natures
     $("#natures-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (!d) return;
-      var parsed = JSON.parse(d);
+      var parsed = parseExportData(this);
+      if (!parsed) return;
       $(this).toggleClass("selected", parsed.nature === exportNature);
     });
   }
 
   // ========== EXPORT BUTTON HANDLER ==========
   $(document).on("click", "#usage-view .export-button", function () {
-    var exportDataText = $(this).attr("export-data");
-    if (!exportDataText) return;
-    var data = JSON.parse(exportDataText);
+    var data = parseExportData(this);
+    if (!data) return;
 
     if (typeof data.move === "string") {
       if ($(this).hasClass("selected")) {
@@ -565,29 +617,7 @@ $(document).ready(function () {
     });
   });
 
-  // ========== TEAMS LOADING ==========
-  async function loadTeams(tournamentId, pokemonName, dayFilter) {
-    var container = document.getElementById("teams-list");
-    if (!container) return;
-    container.innerHTML = '<p style="color: #666; font-size: 13px;">Loading teams...</p>';
-
-    var url = "/tournaments/api/" + encodeURIComponent(tournamentId) +
-              "/teams/" + encodeURIComponent(pokemonName) +
-              "?day=" + encodeURIComponent(dayFilter);
-
-    try {
-      var res = await fetch(url);
-      if (!res.ok) {
-        container.innerHTML = '<p style="color: #666; font-size: 13px;">No teams found.</p>';
-        return;
-      }
-      var teams = await res.json();
-      renderTeams(teams, container);
-    } catch (e) {
-      container.innerHTML = '<p style="color: #666; font-size: 13px;">Failed to load teams.</p>';
-    }
-  }
-
+  // ========== TEAM CARDS (shared by all team lists) ==========
   function teamToShowdown(team) {
     var lines = [];
     team.forEach(function (slot) {
@@ -605,75 +635,80 @@ $(document).ready(function () {
     return lines.join("\n").trim();
   }
 
-  function renderTeams(teams, container) {
-    if (!teams || teams.length === 0) {
+  // Official entries use placement/name, Limitless ones placing/player;
+  // normalize here so one card builder serves every list.
+  function buildTeamEntryHtml(entry, prefix, idx, opts) {
+    var placing = entry.placing != null ? entry.placing : entry.placement;
+    var player = entry.player || entry.name || "";
+    var t = entry.tournament || null;
+    var placementClass = opts.muted ? "team-placement team-standing" : "team-placement";
+
+    var html = '<div class="team-card" onclick="toggleTeamDetail(\'' + prefix + '\', ' + idx + ')">';
+    html += '<span class="' + placementClass + '">#' + placing + '</span>';
+    html += '<span class="team-player">' + escapeAttr(player);
+    if (entry.record && entry.record.wins !== undefined) {
+      html += ' <span class="team-record">(' + entry.record.wins + '-' + entry.record.losses + ')</span>';
+    }
+    html += '</span>';
+    if (opts.showTournament && t) {
+      html += '<span class="team-tournament">' + escapeAttr(t.name || "") +
+              (t.players ? ' &middot; ' + t.players + ' players' : '') + '</span>';
+    }
+    html += '<span class="team-sprites">';
+    entry.team.forEach(function (slot) {
+      var bgPos = (slot.sprite[1] * -40) + "px " + (slot.sprite[0] * -30) + "px";
+      html += '<div class="image-pokemon" style="background-position: ' + bgPos + ';" title="' + escapeAttr(slot.pokemon) + '"></div>';
+    });
+    html += '</span>';
+    html += '</div>';
+
+    html += '<div class="team-detail" id="' + prefix + '-detail-' + idx + '">';
+    html += '<div class="team-detail-grid">';
+    entry.team.forEach(function (slot) {
+      html += '<div class="team-detail-pokemon">';
+      html += '<div class="td-name">' + escapeAttr(slot.pokemon) + '</div>';
+      html += '<div class="td-info">';
+      if (slot.tera_type) html += 'Tera: ' + escapeAttr(slot.tera_type) + '<br>';
+      if (slot.nature) html += 'Nature: ' + escapeAttr(slot.nature) + '<br>';
+      if (slot.ability) html += 'Ability: ' + escapeAttr(slot.ability) + '<br>';
+      if (slot.item) html += 'Item: ' + escapeAttr(slot.item) + '<br>';
+      if (slot.moves && slot.moves.length > 0) {
+        slot.moves.forEach(function (m) { html += '- ' + escapeAttr(m) + '<br>'; });
+      }
+      html += '</div></div>';
+    });
+    html += '</div>';
+    html += '<button class="team-copy-btn" onclick="copyTeam(event, \'' + prefix + '\', ' + idx + ')">Copy Team to Clipboard</button>';
+    html += '</div>';
+    return html;
+  }
+
+  function renderTeamEntries(entries, container, prefix, opts) {
+    if (!entries || entries.length === 0) {
       container.innerHTML = '<p style="color: #666; font-size: 13px;">No teams found.</p>';
       return;
     }
-
     var html = "";
-    teams.forEach(function (team, idx) {
-      // Team card header
-      html += '<div class="team-card" onclick="toggleTeamDetail(' + idx + ')">';
-      html += '<span class="team-placement">#' + team.placement + '</span>';
-      html += '<span class="team-player">' + team.player;
-      if (team.record && team.record.wins !== undefined) {
-        html += ' <span class="team-record">(' + team.record.wins + '-' + team.record.losses + ')</span>';
-      }
-      html += '</span>';
-      html += '<span class="team-sprites">';
-      team.team.forEach(function (slot) {
-        var bgPos = (slot.sprite[1] * -40) + "px " + (slot.sprite[0] * -30) + "px";
-        html += '<div class="image-pokemon" style="background-position: ' + bgPos + ';" title="' + slot.pokemon + '"></div>';
-      });
-      html += '</span>';
-      html += '</div>';
-
-      // Expandable detail with grid
-      html += '<div class="team-detail" id="team-detail-' + idx + '">';
-      html += '<div class="team-detail-grid">';
-      team.team.forEach(function (slot) {
-        html += '<div class="team-detail-pokemon">';
-        html += '<div class="td-name">' + slot.pokemon + '</div>';
-        html += '<div class="td-info">';
-        if (slot.tera_type) html += 'Tera: ' + slot.tera_type + '<br>';
-        if (slot.nature) html += 'Nature: ' + slot.nature + '<br>';
-        if (slot.ability) html += 'Ability: ' + slot.ability + '<br>';
-        if (slot.item) html += 'Item: ' + slot.item + '<br>';
-        if (slot.moves && slot.moves.length > 0) {
-          slot.moves.forEach(function (m) { html += '- ' + m + '<br>'; });
-        }
-        html += '</div></div>';
-      });
-      html += '</div>';
-      html += '<button class="team-copy-btn" onclick="copyTeam(event, ' + idx + ')">Copy Team to Clipboard</button>';
-      html += '</div>';
+    entries.forEach(function (entry, idx) {
+      html += buildTeamEntryHtml(entry, prefix, idx, opts || {});
     });
-
     container.innerHTML = html;
-
-    // Store team data for copy
-    window._teamsData = teams;
+    window._teamEntries = window._teamEntries || {};
+    window._teamEntries[prefix] = entries;
   }
 
-  window.toggleTeamDetail = function (idx) {
-    var el = document.getElementById("team-detail-" + idx);
+  window.toggleTeamDetail = function (prefix, idx) {
+    var el = document.getElementById(prefix + "-detail-" + idx);
     if (el) {
       el.classList.toggle("open");
     }
   };
 
-  window.toggleStandingsDetail = function (idx) {
-    var el = document.getElementById("standings-detail-" + idx);
-    if (el) {
-      el.classList.toggle("open");
-    }
-  };
-
-  window.copyStandingsTeam = function (event, idx) {
+  window.copyTeam = function (event, prefix, idx) {
     event.stopPropagation();
-    if (!window._standingsData || !window._standingsData[idx]) return;
-    var text = teamToShowdown(window._standingsData[idx].team);
+    var entries = (window._teamEntries || {})[prefix];
+    if (!entries || !entries[idx]) return;
+    var text = teamToShowdown(entries[idx].team);
     navigator.clipboard.writeText(text).then(function () {
       var btn = event.target;
       btn.textContent = "Copied!";
@@ -685,29 +720,46 @@ $(document).ready(function () {
     });
   };
 
-  window.copyTeam = function (event, idx) {
-    event.stopPropagation();
-    if (!window._teamsData || !window._teamsData[idx]) return;
-    var text = teamToShowdown(window._teamsData[idx].team);
-    navigator.clipboard.writeText(text).then(function () {
-      var btn = event.target;
-      btn.textContent = "Copied!";
-      btn.classList.add("copied");
-      setTimeout(function () {
-        btn.textContent = "Copy Team to Clipboard";
-        btn.classList.remove("copied");
-      }, 2000);
-    });
-  };
+  // ========== TEAMS WITH SELECTED POKEMON ==========
+  async function loadTeams() {
+    var container = document.getElementById("teams-list");
+    if (!container) return;
+    container.innerHTML = '<p style="color: #666; font-size: 13px;">Loading teams...</p>';
 
-  // ========== STANDINGS ==========
-  async function loadStandings(tournamentId, dayFilter) {
+    var url;
+    var opts;
+    if (currentSource === "limitless") {
+      url = "/limitless/api/" + encodeURIComponent(currentFormatId) +
+            "/teams/" + encodeURIComponent(currentPokemonName) +
+            "?min=" + encodeURIComponent(currentSegment);
+      opts = { muted: true, showTournament: true };
+    } else {
+      url = "/tournaments/api/" + encodeURIComponent(currentTournamentId) +
+            "/teams/" + encodeURIComponent(currentPokemonName) +
+            "?day=" + encodeURIComponent(currentDayFilter);
+      opts = {};
+    }
+
+    try {
+      var res = await fetch(url);
+      if (!res.ok) {
+        container.innerHTML = '<p style="color: #666; font-size: 13px;">No teams found.</p>';
+        return;
+      }
+      renderTeamEntries(await res.json(), container, "teams", opts);
+    } catch (e) {
+      container.innerHTML = '<p style="color: #666; font-size: 13px;">Failed to load teams.</p>';
+    }
+  }
+
+  // ========== STANDINGS VIEW (official events) ==========
+  async function loadStandings() {
     var container = document.getElementById("standings-list");
     if (!container) return;
     container.innerHTML = '<p style="color: #666; font-size: 13px;">Loading standings...</p>';
 
-    var url = "/tournaments/api/" + encodeURIComponent(tournamentId) +
-              "/standings?day=" + encodeURIComponent(dayFilter);
+    var url = "/tournaments/api/" + encodeURIComponent(currentTournamentId) +
+              "/standings?day=" + encodeURIComponent(currentDayFilter);
 
     try {
       var res = await fetch(url);
@@ -715,15 +767,14 @@ $(document).ready(function () {
         container.innerHTML = '<p style="color: #666; font-size: 13px;">No standings available.</p>';
         return;
       }
-      var standings = await res.json();
-      renderStandings(standings, container);
+      renderStandings(await res.json(), container);
     } catch (e) {
       container.innerHTML = '<p style="color: #666; font-size: 13px;">Failed to load standings.</p>';
     }
   }
 
   function buildSearchText(entry) {
-    var parts = [entry.name];
+    var parts = [entry.name || entry.player || ""];
     entry.team.forEach(function (slot) {
       parts.push(slot.pokemon);
       if (slot.item) parts.push(slot.item);
@@ -745,52 +796,15 @@ $(document).ready(function () {
     standings.forEach(function (entry, idx) {
       var searchText = escapeAttr(buildSearchText(entry));
       html += '<div class="standings-entry" data-search="' + searchText + '">';
-
-      html += '<div class="team-card" onclick="toggleStandingsDetail(' + idx + ')">';
-      html += '<span class="team-placement">#' + entry.placement + '</span>';
-      html += '<span class="team-player">' + entry.name;
-      if (entry.record && entry.record.wins !== undefined) {
-        html += ' <span class="team-record">(' + entry.record.wins + '-' + entry.record.losses + ')</span>';
-      }
-      html += '</span>';
-      html += '<span class="team-sprites">';
-      entry.team.forEach(function (slot) {
-        var bgPos = (slot.sprite[1] * -40) + "px " + (slot.sprite[0] * -30) + "px";
-        html += '<div class="image-pokemon" style="background-position: ' + bgPos + ';" title="' + slot.pokemon + '"></div>';
-      });
-      html += '</span>';
+      html += buildTeamEntryHtml(entry, "standings", idx, {});
       html += '</div>';
-
-      // Expandable detail
-      html += '<div class="team-detail" id="standings-detail-' + idx + '">';
-      html += '<div class="team-detail-grid">';
-      entry.team.forEach(function (slot) {
-        html += '<div class="team-detail-pokemon">';
-        html += '<div class="td-name">' + slot.pokemon + '</div>';
-        html += '<div class="td-info">';
-        if (slot.tera_type) html += 'Tera: ' + slot.tera_type + '<br>';
-        if (slot.nature) html += 'Nature: ' + slot.nature + '<br>';
-        if (slot.ability) html += 'Ability: ' + slot.ability + '<br>';
-        if (slot.item) html += 'Item: ' + slot.item + '<br>';
-        if (slot.moves && slot.moves.length > 0) {
-          slot.moves.forEach(function (m) { html += '- ' + m + '<br>'; });
-        }
-        html += '</div></div>';
-      });
-      html += '</div>';
-      html += '<button class="team-copy-btn" onclick="copyStandingsTeam(event, ' + idx + ')">Copy Team to Clipboard</button>';
-      html += '</div>';
-
-      html += '</div>'; // .standings-entry
     });
 
     container.innerHTML = html;
-
-    // Store standings data for copy
-    window._standingsData = standings;
+    window._teamEntries = window._teamEntries || {};
+    window._teamEntries["standings"] = standings;
   }
 
-  // ========== STANDINGS SEARCH ==========
   $("#standingsSearchInput").on("input", function () {
     var query = $(this).val().toLowerCase();
     $("#standings-list .standings-entry").each(function () {
@@ -799,82 +813,208 @@ $(document).ready(function () {
     });
   });
 
+  // ========== TOP TEAMS VIEW (Limitless archetypes, server-side search) ==========
+  var resultsLoadedFor = null; // format + segment + query the list currently shows
+
+  function renderArchetypes(archetypes, container) {
+    if (!archetypes || archetypes.length === 0) {
+      container.innerHTML = '<p style="color: #666; font-size: 13px;">No teams found.</p>';
+      return;
+    }
+
+    var html = "";
+    archetypes.forEach(function (a, idx) {
+      var topPlayer = a.players.length ? a.players[0].player : "";
+      html += '<div class="team-card" onclick="toggleArchetype(' + idx + ')">';
+      html += '<span class="team-placement">#' + (idx + 1) + '</span>';
+      html += '<span class="team-player">' + a.count + (a.count === 1 ? ' team' : ' teams');
+      html += ' <span class="team-record">(' + a.points + ' pts';
+      if (a.win_rate !== null && a.win_rate !== undefined) {
+        html += ' &middot; ' + a.win_rate + '% WR';
+      }
+      html += ')</span>';
+      html += '</span>';
+      html += '<span class="team-tournament">' + escapeAttr(topPlayer) +
+              (a.count > 1 ? ' +' + (a.count - 1) + ' more' : '') + '</span>';
+      html += '<span class="team-sprites">';
+      a.pokemon.forEach(function (p) {
+        var bgPos = (p.sprite[1] * -40) + "px " + (p.sprite[0] * -30) + "px";
+        html += '<div class="image-pokemon" style="background-position: ' + bgPos + ';" title="' + escapeAttr(p.name) + '"></div>';
+      });
+      html += '</span>';
+      html += '</div>';
+      html += '<div class="team-detail" id="arch-detail-' + idx + '"><div id="arch-players-' + idx + '"></div></div>';
+    });
+
+    container.innerHTML = html;
+    window._archetypes = archetypes;
+  }
+
+  window.toggleArchetype = function (idx) {
+    var el = document.getElementById("arch-detail-" + idx);
+    if (!el) return;
+    var opened = el.classList.toggle("open");
+    var playersEl = document.getElementById("arch-players-" + idx);
+    if (opened && playersEl && !playersEl.hasChildNodes()) {
+      var a = (window._archetypes || [])[idx];
+      if (!a) return;
+      renderTeamEntries(a.players, playersEl, "arch" + idx, { muted: true, showTournament: true });
+      if (a.count > a.players.length) {
+        playersEl.innerHTML += '<p style="color: #666; font-size: 12px;">Showing the top ' +
+          a.players.length + ' of ' + a.count + ' teams.</p>';
+      }
+    }
+  };
+
+  async function loadResults() {
+    var container = document.getElementById("results-list");
+    if (!container) return;
+    var query = ($("#resultsSearchInput").val() || "").trim();
+    var cacheKey = currentFormatId + " " + currentSegment + " " + query;
+    if (resultsLoadedFor === cacheKey) return;
+
+    container.innerHTML = '<p style="color: #666; font-size: 13px;">Loading teams...</p>';
+    var url = "/limitless/api/" + encodeURIComponent(currentFormatId) +
+              "/results/?min=" + encodeURIComponent(currentSegment) +
+              "&q=" + encodeURIComponent(query);
+    try {
+      var res = await fetch(url);
+      if (!res.ok) {
+        container.innerHTML = '<p style="color: #666; font-size: 13px;">No teams found.</p>';
+        return;
+      }
+      renderArchetypes(await res.json(), container);
+      resultsLoadedFor = cacheKey;
+    } catch (e) {
+      container.innerHTML = '<p style="color: #666; font-size: 13px;">Failed to load teams.</p>';
+    }
+  }
+
+  var resultsSearchTimer = null;
+  $("#resultsSearchInput").on("input", function () {
+    clearTimeout(resultsSearchTimer);
+    resultsSearchTimer = setTimeout(loadResults, 300);
+  });
+
   // ========== VIEW TOGGLE ==========
-  window.switchView = function (view) {
+  // The secondary view depends on the source: Standings for official
+  // events, Top Teams (archetypes) for Limitless formats.
+  function applyView(load) {
     var usageView = document.getElementById("usage-view");
     var standingsView = document.getElementById("standings-view");
-    var btnUsage = document.getElementById("btn-usage-view");
-    var btnStandings = document.getElementById("btn-standings-view");
+    var resultsView = document.getElementById("results-view");
+    var secondary = currentSource === "limitless" ? resultsView : standingsView;
+    var other = currentSource === "limitless" ? standingsView : resultsView;
 
-    if (view === "standings") {
+    other.style.display = "none";
+    if (currentView === "secondary") {
       usageView.style.display = "none";
-      standingsView.style.display = "grid";
-      btnUsage.classList.remove("active");
-      btnStandings.classList.add("active");
-      loadStandings(currentTournamentId, currentDayFilter);
+      secondary.style.display = "grid";
+      if (load) {
+        if (currentSource === "limitless") {
+          loadResults();
+        } else {
+          loadStandings();
+        }
+      }
     } else {
       usageView.style.display = "grid";
-      standingsView.style.display = "none";
-      btnUsage.classList.add("active");
-      btnStandings.classList.remove("active");
+      secondary.style.display = "none";
     }
+    $("#btn-usage-view").toggleClass("active", currentView === "usage");
+    $("#btn-secondary-view").toggleClass("active", currentView === "secondary");
+  }
+
+  window.switchView = function (view) {
+    currentView = view === "secondary" ? "secondary" : "usage";
+    applyView(true);
   };
 
   // ========== GLOBAL SELECTION FUNCTIONS ==========
   window.selectTournament = function (id) {
-    currentTournamentId = id;
-    fetchTournamentData(id, currentDayFilter, "");
+    fetchOfficialData(id, currentDayFilter || "all", "");
+  };
+
+  window.selectFormat = function (id) {
+    // First visit to the online source in this session: the server
+    // clamps an unknown segment to the smallest available tier.
+    fetchLimitlessData(id, currentSegment || "25", "");
   };
 
   window.selectDayFilter = function (filter) {
-    currentDayFilter = filter;
-    fetchTournamentData(currentTournamentId, filter, currentPokemonName);
+    fetchOfficialData(currentTournamentId, filter, currentPokemonName);
+  };
+
+  window.selectSegment = function (segment) {
+    fetchLimitlessData(currentFormatId, segment, currentPokemonName);
   };
 
   window.selectPokemon = function (name) {
-    currentPokemonName = name;
-    fetchTournamentData(currentTournamentId, currentDayFilter, name);
+    if (currentSource === "limitless") {
+      fetchLimitlessData(currentFormatId, currentSegment, name);
+    } else {
+      fetchOfficialData(currentTournamentId, currentDayFilter, name);
+    }
   };
 
   // ========== BROWSER HISTORY ==========
   window.addEventListener("popstate", function (event) {
     if (event.state) {
-      fetchTournamentData(event.state.tournament, event.state.day, event.state.pokemon);
+      if (event.state.source === "limitless") {
+        fetchLimitlessData(event.state.format, event.state.segment, event.state.pokemon, true);
+      } else {
+        fetchOfficialData(event.state.tournament, event.state.day, event.state.pokemon, true);
+      }
     }
   });
 
   history.replaceState({
+    source: currentSource,
     tournament: currentTournamentId,
     day: currentDayFilter,
-    pokemon: currentPokemonName
+    format: currentFormatId,
+    segment: currentSegment,
+    pokemon: currentPokemonName,
   }, "");
 
   // ========== INITIAL LOAD ==========
-  if (currentPokemonName && currentTournamentId) {
-    loadTeams(currentTournamentId, currentPokemonName, currentDayFilter);
+  // Keep the active tournament/format visible in the merged sidebar list
+  (function () {
+    var listContainer = document.getElementById("source-list-container");
+    var activeBtn = document.querySelector("#source-list .meta-button.active");
+    if (listContainer && activeBtn) {
+      var offset = activeBtn.getBoundingClientRect().top -
+                   listContainer.getBoundingClientRect().top;
+      var target = offset - (listContainer.clientHeight - activeBtn.offsetHeight) / 2;
+      if (target > 0) listContainer.scrollTop = target;
+    }
+  })();
+
+  if (currentPokemonName) {
+    loadTeams();
     updateMerchSection(currentPokemonName);
 
     // Initialize export from server-rendered data
     var initialData = { moves_list: [], items_list: [], abilities_list: [], tera_types_list: [], natures_list: [] };
     $("#moves-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (d) initialData.moves_list.push([JSON.parse(d).move]);
+      var parsed = parseExportData(this);
+      if (parsed) initialData.moves_list.push([parsed.move]);
     });
     $("#items-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (d) initialData.items_list.push([JSON.parse(d).item]);
+      var parsed = parseExportData(this);
+      if (parsed) initialData.items_list.push([parsed.item]);
     });
     $("#abilities-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (d) initialData.abilities_list.push([JSON.parse(d).ability]);
+      var parsed = parseExportData(this);
+      if (parsed) initialData.abilities_list.push([parsed.ability]);
     });
     $("#tera-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (d) initialData.tera_types_list.push([JSON.parse(d).tera]);
+      var parsed = parseExportData(this);
+      if (parsed) initialData.tera_types_list.push([parsed.tera]);
     });
     $("#natures-container .export-button").each(function () {
-      var d = $(this).attr("export-data");
-      if (d) initialData.natures_list.push([JSON.parse(d).nature]);
+      var parsed = parseExportData(this);
+      if (parsed) initialData.natures_list.push([parsed.nature]);
     });
     initExportState(initialData);
   }

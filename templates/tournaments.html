@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tournaments | MunchStats{% if selected_tournament %} | {{ selected_tournament.name }}{% endif %}</title>
+<title>Tournaments | MunchStats{% if not no_data %} | {% if source == "limitless" %}{{ selected_format_name }} (Online){% else %}{{ selected_tournament.name }}{% endif %}{% endif %}</title>
 <meta property="og:title" content="Tournaments | MunchStats">
-<meta name="description" content="VGC Tournament usage statistics from Regionals, Internationals, and Worlds.">
+<meta name="description" content="VGC Tournament usage statistics from Regionals, Internationals, Worlds, and Limitless online tournaments.">
 <meta name="twitter:card" content="summary_large_image">
 <meta property="og:image" content="https://www.munchstats.com/static/favicon.png">
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
@@ -82,7 +82,6 @@
   .left {
     display: grid;
     grid-template-columns: 1fr;
-    grid-template-rows: auto auto auto auto auto;
     text-align: center;
     align-content: center;
     align-items: center;
@@ -95,6 +94,7 @@
     text-align: center;
     justify-self: left;
     justify-items: center;
+    justify-content: space-evenly;
     height: min-content;
     width: 100%;
   }
@@ -401,6 +401,14 @@
     letter-spacing: 0.5px;
     border-bottom: 1px solid #333;
   }
+  /* Filter labels (day cut / min players) */
+  .filter-label {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    color: #888;
+    margin-top: 6px;
+  }
   /* Loading overlay */
   #loading-overlay {
     display: none; position: fixed; top: 0; left: 0;
@@ -449,14 +457,15 @@
     background: #333;
     color: #ccc;
   }
-  #usage-view, #standings-view {
+  #usage-view, #standings-view, #results-view {
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: repeat(auto-fill, 310px);
     justify-items: center;
+    justify-content: space-evenly;
     width: 100%;
   }
-  #standings-view .teams-container {
+  #standings-view .teams-container, #results-view .teams-container {
     max-width: 100%;
   }
   /* Teams section */
@@ -481,12 +490,21 @@
     font-size: 14px; font-weight: 700; color: #ffd54f;
     min-width: 36px; text-align: center;
   }
+  /* Player's final standing inside a team list: muted, not the yellow
+     used for the archetype's meta rank. */
+  .team-standing { color: #aaa; font-weight: 600; }
   .team-player {
     font-size: 13px; color: #ccc;
     min-width: 120px;
   }
   .team-record {
     color: #888; font-size: 12px;
+  }
+  .team-tournament {
+    color: #888; font-size: 11px;
+    flex: 1;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    text-align: left;
   }
   .team-sprites {
     display: flex; gap: 2px; flex-shrink: 0;
@@ -652,20 +670,19 @@
       width: 100% !important;
       display: grid;
       grid-template-columns: 1fr 1fr;
-      grid-template-rows: auto auto auto auto;
       max-width: 700px;
       justify-self: center;
       gap: 0 20px;
     }
     .left > #pokemon-info { grid-column: 1 / -1; justify-self: center; max-width: 340px; width: 100%; box-sizing: border-box; }
-    /* Tournament search + list on the left column */
-    .left > :nth-child(2) { grid-column: 1; grid-row: 2; justify-self: stretch; }
-    .left > :nth-child(3) { grid-column: 1; grid-row: 3; justify-self: stretch; width: 100%; }
-    /* Day filter spans both columns */
-    .left > :nth-child(4) { grid-column: 1 / -1; grid-row: 4; justify-self: center; }
+    /* Source search + list on the left column */
+    .left > .source-search { grid-column: 1; grid-row: 2; justify-self: stretch; }
+    .left > #source-list-container { grid-column: 1; grid-row: 3; justify-self: stretch; width: 100%; }
+    /* Filter rows span both columns (only one is visible at a time) */
+    .left > #day-filter-container, .left > #segment-filter-wrap { grid-column: 1 / -1; grid-row: 4; justify-self: center; }
     /* Pokemon search + list on the right column */
-    .left > :nth-child(5) { grid-column: 2; grid-row: 2; justify-self: stretch; }
-    .left > :nth-child(6) { grid-column: 2; grid-row: 3; justify-self: stretch; width: 100%; }
+    .left > .pokemon-search { grid-column: 2; grid-row: 2; justify-self: stretch; }
+    .left > .pokemon-list { grid-column: 2; grid-row: 3; justify-self: stretch; width: 100%; }
     .meta-list, .pokemon-list { width: 100%; margin-right: 0; }
     .meta-button { width: 100%; }
     .left input[type="text"] { width: 100%; box-sizing: border-box; }
@@ -674,10 +691,10 @@
   @media (max-width: 700px) {
     /* Stack sidebar on top of content */
     .grid-container { grid-template-columns: 1fr; }
-    /* Right panel + usage/standings views: single fluid column */
+    /* Right panel + views: single fluid column */
     .right { grid-template-columns: 1fr; justify-items: stretch; }
-    #usage-view, #standings-view { grid-template-columns: 1fr; }
-    #usage-view > div, #standings-view > div { width: 100%; }
+    #usage-view, #standings-view, #results-view { grid-template-columns: 1fr; }
+    #usage-view > div, #standings-view > div, #results-view > div { width: 100%; }
     .team-detail-grid { grid-template-columns: repeat(2, 1fr); }
     .grid-container { grid-gap: 15px; padding: 0 8px; }
     /* Tab bar: shrink padding, hide social buttons */
@@ -689,7 +706,7 @@
     .meta-list, .pokemon-list { width: 100%; margin-right: 0; }
     .meta-button { width: 100%; }
     .left input[type="text"] { width: 100%; box-sizing: border-box; margin: 5px 0; }
-    /* Day filter: allow wrapping, remove height clip */
+    /* Filter rows: allow wrapping, remove height clip */
     .rating-buttons { max-height: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
     .rating-button { padding: 6px 10px; margin: 0; font-size: 12px; }
     /* Pokemon list: allow names to truncate so % doesn't overlap */
@@ -704,11 +721,12 @@
     .left-container { width: 100%; height: auto; min-height: 28px; }
     .view-toggle { max-width: 100%; }
     .teams-container { max-width: 100%; }
-    #standings-view input[type="text"] { margin: 0 0 10px 0; }
+    #standings-view input[type="text"], #results-view input[type="text"] { margin: 0 0 10px 0; }
     /* Team cards: compact layout */
     .team-card { padding: 8px 10px; gap: 6px; }
     .team-player { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
     .team-placement { min-width: 28px; font-size: 13px; }
+    .team-tournament { display: none; }
     .team-sprites { flex-shrink: 1; flex-wrap: wrap; justify-content: flex-end; gap: 0; }
   }
   @media (max-width: 500px) {
@@ -751,7 +769,7 @@
   {% if no_data %}
   <div style="text-align: center; padding: 60px 20px;">
     <h2>No Tournament Data</h2>
-    <p style="color: #888;">Run <code>python scrape_tournaments.py</code> to scrape tournament data from RK9.</p>
+    <p style="color: #888;">Official tournament data has not been scraped and Limitless online data is unavailable &mdash; try again shortly.</p>
   </div>
   {% else %}
   <div class="grid-container">
@@ -778,24 +796,40 @@
             <span class="info-stat-label">Rank</span>
             <span class="info-stat-value" id="info-rank">#{{ current_pokemon[2] }}</span>
           </div>
+          <div class="info-stat" id="info-winrate-stat">
+            <span class="info-stat-label">Win Rate</span>
+            <span class="info-stat-value" id="info-winrate">{{ win_rate }}{% if win_rate != "—" %}%{% endif %}</span>
+          </div>
           <div class="info-stat">
             <span class="info-stat-label">Teams</span>
             <span class="info-stat-value" id="info-teams">{{ total_teams }}</span>
           </div>
         </div>
-        <div class="info-format" id="info-tournament">{{ selected_tournament.name }}</div>
+        <div class="info-format" id="info-context">{% if source == "limitless" %}{{ selected_format_name }} &middot; {{ tournament_count }} online tournaments &middot; last {{ window_days }} days &middot; {{ min_players }}+ players{% else %}{{ selected_tournament.name }}{% endif %}</div>
       </div>
 
-      <!-- Tournament search + list -->
-      <div style="height: 50px;">
+      <!-- Tournament / format search -->
+      <div class="source-search" style="height: 50px;">
         <input type="text" id="tournamentSearchInput" placeholder="Search for a Tournament">
       </div>
-      <div class="meta-list" id="tournament-list-container">
-        <ul id="tournament-list">
+
+      <!-- Merged selector: online formats + official events -->
+      <div class="meta-list" id="source-list-container">
+        <ul id="source-list">
+          {% if limitless_formats %}
+          <li class="tournament-group-header">Online (Limitless)</li>
+          {% for fmt in limitless_formats %}
+          <li>
+            <button type="button" onclick='selectFormat("{{ fmt[0] }}")' data-source="limitless" data-id="{{ fmt[0] }}" class="meta-button{% if source == "limitless" and fmt[0] == selected_format_id %} active{% endif %}">
+              {{ fmt[1] }}
+            </button>
+          </li>
+          {% endfor %}
+          {% endif %}
           {% set type_groups = ["Worlds", "International", "Special", "Regional"] %}
           {% for type_group in type_groups %}
             {% set group_tournaments = [] %}
-            {% for t in tournaments %}
+            {% for t in official_tournaments %}
               {% if t.type == type_group %}
                 {% if group_tournaments.append(t) %}{% endif %}
               {% endif %}
@@ -804,7 +838,7 @@
             <li class="tournament-group-header">{{ type_group }}s</li>
             {% for t in group_tournaments %}
             <li>
-              <button type="button" onclick='selectTournament("{{ t.id }}")' class="meta-button{% if t.id == selected_tournament.id %} active{% endif %}">
+              <button type="button" onclick='selectTournament("{{ t.id }}")' data-source="official" data-id="{{ t.id }}" class="meta-button{% if source == "official" and t.id == selected_tournament.id %} active{% endif %}">
                 {{ t.name }}{% if t.date %} ({{ t.date }}){% endif %}
               </button>
             </li>
@@ -814,16 +848,29 @@
         </ul>
       </div>
 
-      <!-- Day filter buttons -->
-      <div class="rating-buttons" id="day-filter-container">
-        <button type="button" onclick="selectDayFilter('all')" class="rating-button{% if day_filter == 'all' %} active{% endif %}">All</button>
-        <button type="button" onclick="selectDayFilter('day2')" class="rating-button{% if day_filter == 'day2' %} active{% endif %}">Day 2</button>
-        <button type="button" onclick="selectDayFilter('top16')" class="rating-button{% if day_filter == 'top16' %} active{% endif %}">Top 16</button>
-        <button type="button" onclick="selectDayFilter('top8')" class="rating-button{% if day_filter == 'top8' %} active{% endif %}">Top 8</button>
+      <!-- Day filter buttons (official events) -->
+      <div class="rating-buttons" id="day-filter-container"{% if source != "official" %} style="display:none"{% endif %}>
+        {% set current_day = day_filter if source == "official" else "all" %}
+        <button type="button" onclick="selectDayFilter('all')" class="rating-button{% if current_day == 'all' %} active{% endif %}">All</button>
+        <button type="button" onclick="selectDayFilter('day2')" class="rating-button{% if current_day == 'day2' %} active{% endif %}">Day 2</button>
+        <button type="button" onclick="selectDayFilter('top16')" class="rating-button{% if current_day == 'top16' %} active{% endif %}">Top 16</button>
+        <button type="button" onclick="selectDayFilter('top8')" class="rating-button{% if current_day == 'top8' %} active{% endif %}">Top 8</button>
+      </div>
+
+      <!-- Player-count filter (Limitless online formats) -->
+      <div id="segment-filter-wrap"{% if source != "limitless" %} style="display:none"{% endif %}>
+        <div class="filter-label">Min. players per tournament</div>
+        <div class="rating-buttons" id="segment-filter-container">
+          {% if source == "limitless" %}
+          {% for opt in segment_options %}
+          <button type="button" onclick="selectSegment('{{ opt }}')" class="rating-button{% if segment == opt %} active{% endif %}">{{ opt }}+</button>
+          {% endfor %}
+          {% endif %}
+        </div>
       </div>
 
       <!-- Pokemon search + list -->
-      <div style="height: 50px;">
+      <div class="pokemon-search" style="height: 50px;">
         <input type="text" id="pokemonSearchInput" placeholder="Search for a Pokemon">
       </div>
       <div class="pokemon-list">
@@ -847,7 +894,7 @@
       <!-- View toggle tabs -->
       <div class="view-toggle">
         <button type="button" class="view-toggle-btn active" id="btn-usage-view" onclick="switchView('usage')">Usage Stats</button>
-        <button type="button" class="view-toggle-btn" id="btn-standings-view" onclick="switchView('standings')">Standings</button>
+        <button type="button" class="view-toggle-btn" id="btn-secondary-view" onclick="switchView('secondary')">{% if source == "limitless" %}Top Teams{% else %}Standings{% endif %}</button>
       </div>
 
       <!-- USAGE STATS VIEW -->
@@ -1006,14 +1053,14 @@
 
         <!-- Teams using selected Pokemon -->
         <div class="teams-container">
-          <h2>Teams with {{ selected_pokemon }}</h2>
+          <h2 id="teams-heading">Teams with {{ selected_pokemon }}</h2>
           <div id="teams-list">
             <p style="color: #666; font-size: 13px;">Loading teams...</p>
           </div>
         </div>
       </div>
 
-      <!-- STANDINGS VIEW -->
+      <!-- STANDINGS VIEW (official events) -->
       <div id="standings-view" style="display: none;">
         <div class="teams-container">
           <input type="text" id="standingsSearchInput" placeholder="Search players, Pokemon, moves, items..." style="width: 100%; box-sizing: border-box; margin-bottom: 10px;">
@@ -1022,11 +1069,24 @@
           </div>
         </div>
       </div>
+
+      <!-- TOP TEAMS VIEW (Limitless online formats) -->
+      <div id="results-view" style="display: none;">
+        <div class="teams-container">
+          <input type="text" id="resultsSearchInput" placeholder="Search players, Pokemon, moves, items, tournaments..." style="width: 100%; box-sizing: border-box; margin-bottom: 10px;">
+          <div id="results-list">
+            <p style="color: #666; font-size: 13px;">Loading teams...</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <div style="text-align: center; padding: 20px; margin-top: 20px;">
-    <h6 style="color: #888;">Tournament data from <a href="https://rk9.gg" target="_blank" style="color: #ffd54f;">RK9.gg</a></h6>
+    <h6 style="color: #888;">
+      <span id="attribution-official"{% if source != "official" %} style="display:none"{% endif %}>Tournament data from <a href="https://rk9.gg" target="_blank" style="color: #ffd54f;">RK9.gg</a></span>
+      <span id="attribution-limitless"{% if source != "limitless" %} style="display:none"{% endif %}>{{ limitless_attribution }} &mdash; <a href="{{ limitless_attribution_url }}" target="_blank" style="color: #ffd54f;">play.limitlesstcg.com</a></span>
+    </h6>
   </div>
   {% endif %}
 
@@ -1034,11 +1094,14 @@
 
   {% if not no_data %}
   <script>
-    window.currentTournamentId = "{{ selected_tournament.id }}";
-    window.currentDayFilter = "{{ day_filter }}";
+    window.hubSource = "{{ source }}";
+    window.currentTournamentId = "{{ selected_tournament.id if source == 'official' else '' }}";
+    window.currentDayFilter = "{{ day_filter if source == 'official' else 'all' }}";
+    window.currentFormatId = "{{ selected_format_id if source == 'limitless' else '' }}";
+    window.currentSegment = "{{ segment if source == 'limitless' else '' }}";
     window.currentPokemonName = "{{ selected_pokemon }}";
   </script>
-  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=5"></script>
+  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=8"></script>
   {% endif %}
 </body>
 </html>
