@@ -104,6 +104,8 @@ $(document).ready(function () {
         var data = await res.json();
         updatePage(data, source);
         if (!skipPush) pushHistory(false);
+      } else {
+        console.error("Tournament data request failed:", res.status, url);
       }
     } catch (e) {
       console.error("Failed to fetch tournament data:", e);

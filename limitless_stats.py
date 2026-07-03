@@ -175,17 +175,53 @@ def get_tournament_list(format_id):
     ]
 
 
-def get_available_formats():
-    """Return {format_id: display_name} for formats with eligible events.
+# format_id -> {"key": cached-event ids, "value": bool}; avoids re-reading
+# standings files on every sidebar render.
+_has_data_mem = {}
 
-    Old regulations have no recent tournaments, so offering them in the
-    UI would only lead to empty pages. Checking costs one (1h-cached)
-    tournament-list request per format.
+
+def _format_has_data(format_id):
+    """True when some cached standings for the format contain a decklist.
+
+    Having eligible tournaments is not enough to offer a format in the
+    UI: its stats page only renders from cached standings with at least
+    one public decklist, so anything less would be a dead sidebar entry
+    (e.g. right after a restart, before the warm thread reaches the
+    format, or when every event keeps teamlists private). Checks cached
+    files only — backfilling stays with the warm thread and page loads.
+    """
+    eligible = eligible_tournaments(get_tournament_list(format_id))
+    key = tuple(sorted(
+        t["id"] for t in eligible
+        if os.path.exists(_standings_path(t["id"]))
+    ))
+    if not key:
+        return False
+    memo = _has_data_mem.get(format_id)
+    if memo and memo["key"] == key:
+        return memo["value"]
+    value = False
+    for tid in key:
+        standings = get_standings(tid, fetch=False)
+        if standings and any(p.get("decklist") for p in standings):
+            value = True
+            break
+    _has_data_mem[format_id] = {"key": key, "value": value}
+    return value
+
+
+def get_available_formats():
+    """Return {format_id: display_name} for formats that will render data.
+
+    Old regulations have no recent tournaments and some formats have no
+    public team data yet, so offering them in the UI would only lead to
+    empty pages. Costs one (1h-cached) tournament-list request shared by
+    all formats; the decklist check is memoized per format.
     """
     return {
         fid: disp
         for fid, disp in get_vgc_formats().items()
-        if eligible_tournaments(get_tournament_list(fid))
+        if _format_has_data(fid)
     }
 
 
@@ -614,15 +650,20 @@ def group_team_archetypes(teams):
 def _warm_cache(pokedex, max_cycles=5):
     """Backfill every active format's caches until nothing is missing.
 
-    Each build_limitless_aggregate call fetches at most
+    Iterates formats with eligible tournaments (not get_available_formats,
+    which requires already-cached standings — on a cold cache that set is
+    empty, and this thread is what populates it). Each
+    build_limitless_aggregate call fetches at most
     MAX_STANDINGS_PER_REFRESH standings, so loop (bounded, in case the
     API keeps failing) until each format's eligible set is fully cached.
     """
     try:
-        for format_id in get_available_formats():
+        for format_id in get_vgc_formats():
             for _ in range(max_cycles):
-                build_limitless_aggregate(format_id, pokedex)
                 eligible = eligible_tournaments(get_tournament_list(format_id))
+                if not eligible:
+                    break
+                build_limitless_aggregate(format_id, pokedex)
                 if all(os.path.exists(_standings_path(t["id"])) for t in eligible):
                     break
     except Exception:

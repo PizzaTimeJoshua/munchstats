@@ -34,7 +34,7 @@
 - Merged tournament hub at `/tournaments/` with two data sources: official (RK9.gg) events and online (Limitless) events
 - **Official (RK9.gg):** per-tournament usage stats with day-based filtering (Day 1, Day 2, Top 16, Top 8), player standings with team compositions, and per-Pokémon win rates
 - **Online (Limitless):** aggregated usage stats from recent Limitless online VGC tournaments (data from [Limitless TCG](https://play.limitlesstcg.com/)), deep-linkable at `/limitless/`
-  - Rolling 30-day window per regulation format, only formats with recent events are offered
+  - Rolling 30-day window per regulation format; only formats with recent events and public team data are offered
   - Tournament-size segments (25+/50+/100+/200+ players) to filter for more competitive events
   - Per-Pokémon usage %, win rates, moves, items, abilities, Tera types, natures, and teammates
   - Team results view grouping identical 6-Pokémon teams into archetypes ranked by Swiss points, with combined win rates and multi-term search (player, tournament, Pokémon, item, move, ...)
