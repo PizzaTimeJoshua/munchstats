@@ -157,10 +157,10 @@ $(document).ready(function () {
     $("#info-rank").text("#" + cp[2]);
     $("#info-teams").text(data.total_teams);
 
-    // Source-specific card bits: win rate + context line
+    $("#info-winrate").text(data.win_rate === "—" ? data.win_rate : data.win_rate + "%");
+
+    // Source-specific card bits: context line + page title
     if (source === "limitless") {
-      $("#info-winrate-stat").show();
-      $("#info-winrate").text(data.win_rate === "—" ? data.win_rate : data.win_rate + "%");
       $("#info-context").text(
         data.selected_format_name + " · " + data.tournament_count +
         " online tournaments · last " + data.window_days + " days · " +
@@ -168,7 +168,6 @@ $(document).ready(function () {
       );
       document.title = "Tournaments | MunchStats | " + data.selected_format_name + " (Online)";
     } else {
-      $("#info-winrate-stat").hide();
       $("#info-context").text(data.selected_tournament.name);
       document.title = "Tournaments | MunchStats | " + data.selected_tournament.name;
     }

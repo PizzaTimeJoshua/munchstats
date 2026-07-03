@@ -794,9 +794,9 @@
             <span class="info-stat-label">Rank</span>
             <span class="info-stat-value" id="info-rank">#{{ current_pokemon[2] }}</span>
           </div>
-          <div class="info-stat" id="info-winrate-stat"{% if source != "limitless" %} style="display:none"{% endif %}>
+          <div class="info-stat" id="info-winrate-stat">
             <span class="info-stat-label">Win Rate</span>
-            <span class="info-stat-value" id="info-winrate">{% if source == "limitless" %}{{ win_rate }}{% if win_rate != "—" %}%{% endif %}{% else %}—{% endif %}</span>
+            <span class="info-stat-value" id="info-winrate">{{ win_rate }}{% if win_rate != "—" %}%{% endif %}</span>
           </div>
           <div class="info-stat">
             <span class="info-stat-label">Teams</span>
@@ -1099,7 +1099,7 @@
     window.currentSegment = "{{ segment if source == 'limitless' else '' }}";
     window.currentPokemonName = "{{ selected_pokemon }}";
   </script>
-  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=7"></script>
+  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=8"></script>
   {% endif %}
 </body>
 </html>

@@ -2316,6 +2316,43 @@ def load_tournament_players(tournament_id):
     return load_data_file(path) or []
 
 
+# Day filters are hierarchical: top8 > top16 > day2 > day1
+_DAY_HIERARCHY = {"top8": 4, "top16": 3, "day2": 2, "day1": 1}
+
+
+def player_passes_day_filter(player, day_filter):
+    """True when the player reached at least the filtered day/cut."""
+    if day_filter == "all":
+        return True
+    required = _DAY_HIERARCHY.get(day_filter, 0)
+    return _DAY_HIERARCHY.get(player.get("day_reached", "day1"), 1) >= required
+
+
+def compute_official_win_rate(players, day_filter, pokemon_name):
+    """Pooled final-record win rate of teams that used a Pokemon.
+
+    Sums the final Swiss+cut records (RK9 stores no ties) of every
+    player passing the day filter whose team includes the Pokemon.
+    Returns a percentage, or None when no games are recorded.
+    """
+    target = pokemon_name.lower()
+    wins = losses = 0
+    for player in players:
+        if not player.get("team"):
+            continue
+        if not player_passes_day_filter(player, day_filter):
+            continue
+        if target not in (s["pokemon"].lower() for s in player["team"]):
+            continue
+        record = player.get("record") or {}
+        wins += record.get("wins", 0) or 0
+        losses += record.get("losses", 0) or 0
+    total = wins + losses
+    if not total:
+        return None
+    return round(wins / total * 100, 1)
+
+
 def build_move_tooltip(move_name):
     """Build tooltip text for a move from the move database."""
     move_key = re.sub(r"[^a-z0-9]+", "", move_name.lower())
@@ -2475,6 +2512,9 @@ def compile_tournament_page_data(tournament_id="", day_filter="all", pokemon_nam
     usage_pct = poke_data.get("usage_pct", 0)
     usage_count = poke_data.get("usage_count", 0)
     rank = sorted_pokemon.index(selected_pokemon) + 1
+    win_rate = compute_official_win_rate(
+        load_tournament_players(chosen["id"]), day_filter, selected_pokemon
+    )
 
     # Compile data lists
     moves_list = compile_tournament_category(poke_data, "moves", usage_count)
@@ -2506,6 +2546,7 @@ def compile_tournament_page_data(tournament_id="", day_filter="all", pokemon_nam
         "pokemon_names": pokemon_names,
         "selected_pokemon": selected_pokemon,
         "current_pokemon": [selected_pokemon, usage_pct, rank, get_pokemon_sprite(selected_pokemon)],
+        "win_rate": "{:.1f}".format(win_rate) if win_rate is not None else "—",
         "base_stats": base_stats,
         "pokemon_types": pokemon_types,
         "moves_list": moves_list,
@@ -2606,14 +2647,9 @@ def api_tournament_teams(tournament_id, pokemon_name):
     for player in players:
         if not player.get("team"):
             continue
-        # Day filter - hierarchical: top8 > top16 > day2 > day1
+        if not player_passes_day_filter(player, day_filter):
+            continue
         day = player.get("day_reached", "day1")
-        day_hierarchy = {"top8": 4, "top16": 3, "day2": 2, "day1": 1}
-        if day_filter != "all":
-            required_level = day_hierarchy.get(day_filter, 0)
-            player_level = day_hierarchy.get(day, 1)
-            if player_level < required_level:
-                continue
 
         team_names = [slot["pokemon"] for slot in player["team"]]
         matched = pokemon_name.lower() in [n.lower() for n in team_names]
@@ -2648,15 +2684,12 @@ def api_tournament_standings(tournament_id):
     day_filter = request.args.get("day", "all")
 
     standings = []
-    day_hierarchy = {"top8": 4, "top16": 3, "day2": 2, "day1": 1}
     for player in players:
         if not player.get("team"):
             continue
+        if not player_passes_day_filter(player, day_filter):
+            continue
         day = player.get("day_reached", "day1")
-        if day_filter != "all":
-            required_level = day_hierarchy.get(day_filter, 0)
-            if day_hierarchy.get(day, 1) < required_level:
-                continue
 
         team_sprites = []
         for slot in player["team"]:
