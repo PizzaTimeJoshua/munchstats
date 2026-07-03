@@ -32,6 +32,7 @@ WINDOW_DAYS = 30  # rolling metagame window
 COMPLETION_GRACE_HOURS = 12  # skip events until date + grace < now
 MAX_STANDINGS_PER_REFRESH = 30  # rate-limit frugality cap per refresh
 FETCH_DELAY_SECONDS = 0.3  # politeness delay between standings fetches
+FAILED_FETCH_COOLDOWN = 3600  # seconds before retrying a failed standings fetch
 LIST_FETCH_LIMIT = 500
 LIST_MAX_PAGES = 3  # page until the rolling window is covered
 API_KEY = os.environ.get("LIMITLESS_API_KEY", "")
@@ -65,9 +66,14 @@ def _cache_read(path, ttl=None, allow_stale=False):
 
 
 def _cache_write(path, data):
+    # Write-then-rename: a crash mid-write must not leave a corrupt file
+    # behind, because existing files are never refetched (standings have
+    # no TTL and `missing` checks are existence-based).
+    tmp = path + ".tmp"
     try:
-        with open(path, "w", encoding="utf-8") as f:
+        with open(tmp, "w", encoding="utf-8") as f:
             json.dump(data, f)
+        os.replace(tmp, path)
     except Exception:
         pass
 
@@ -222,6 +228,16 @@ def _standings_path(tournament_id):
     return _cache_path("standings", tournament_id)
 
 
+# In-process cooldown for standings requests that failed (event deleted,
+# API outage, rate limiting): without it every page view would retry the
+# same doomed fetches. Cleared naturally on process restart.
+_failed_fetches = {}
+
+
+def _fetch_cooling_down(tournament_id):
+    return time.time() - _failed_fetches.get(tournament_id, 0) < FAILED_FETCH_COOLDOWN
+
+
 def get_standings(tournament_id, fetch=True):
     """Return cached standings for a tournament, fetching once if missing.
 
@@ -232,11 +248,13 @@ def get_standings(tournament_id, fetch=True):
     cached = _cache_read(path)
     if cached is not None:
         return cached.get("standings")
-    if not fetch:
+    if not fetch or _fetch_cooling_down(tournament_id):
         return None
     data = _api_get("/tournaments/" + tournament_id + "/standings")
     if data is None:
+        _failed_fetches[tournament_id] = time.time()
         return None
+    _failed_fetches.pop(tournament_id, None)
     if not isinstance(data, list):
         data = []
     _cache_write(path, {"id": tournament_id, "standings": data})
@@ -417,7 +435,11 @@ def _cached_standings_map(format_id):
     tournaments = get_tournament_list(format_id)
     eligible = eligible_tournaments(tournaments)
 
-    missing = [t for t in eligible if not os.path.exists(_standings_path(t["id"]))]
+    missing = [
+        t for t in eligible
+        if not os.path.exists(_standings_path(t["id"]))
+        and not _fetch_cooling_down(t["id"])
+    ]
     if missing and _refresh_lock.acquire(blocking=False):
         try:
             for t in missing[:MAX_STANDINGS_PER_REFRESH]:
