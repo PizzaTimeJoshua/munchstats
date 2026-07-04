@@ -47,12 +47,10 @@ REPLAY_DATA_DIR = os.path.join(DATA_DIRECTORY, "replays")
 os.makedirs(REPLAY_DATA_DIR, exist_ok=True)
 
 REPLAY_FORMATS = [
-    "gen9championsvgc2026regmbbo3",
     "gen9championsvgc2026regmb",
-    "gen9championsvgc2026regmabo3",
-    "gen9championsvgc2026regma",
+    "gen9championsvgc2026regmbbo3",
     "gen9championsou",
-    "gen9championsbssregma",
+    "gen9championsbssregmb",
     "gen9vgc2026regibo3",
     "gen9vgc2026regi",
     "gen9nationaldex",
@@ -61,7 +59,7 @@ REPLAY_FORMATS = [
     "gen9anythinggoes",
     "gen9doublesou",
     "gen9ubers",
-    "gen9nationaldexdoubles",
+    "gen9nationaldexdoubles"
 ]
 
 
