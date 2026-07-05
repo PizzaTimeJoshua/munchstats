@@ -818,7 +818,7 @@ def compile_champions_page_data(format_code, pokemon_name=""):
         "trend_months": [],
         "trend_usage": [],
         "show_trend": False,
-        "has_tournament_data": False,
+        "has_tournament_data": has_top_teams_data(format_code),
         "has_replay_data": False,
         "is_transformed": False,
         "champions_attribution": CHAMPIONS_ATTRIBUTION,
@@ -1475,7 +1475,7 @@ def compile_page_data(format_code, rating_threshold="", pokemon_name="", month=N
         "trend_months": trend_months,
         "trend_usage": trend_usage,
         "show_trend": sum(1 for v in trend_usage if v is not None and v > 0) >= 2,
-        "has_tournament_data": normalize_format(chosen_format) in get_tournament_formats(),
+        "has_tournament_data": has_top_teams_data(chosen_format),
         "has_replay_data": chosen_format in REPLAY_FORMATS,
         "is_transformed": is_transformed_pokemon(default_pokemon),
     }
@@ -2946,22 +2946,80 @@ def api_limitless_results(format_id):
 # ─── Pokemon Detail Page: Tournament & Replay Integration ────────────────
 
 
+def _top_teams_source_format(format_code):
+    """Resolve the page format to the format used for Top Teams lookups.
+
+    The Champions in-game Doubles ladder plays the current VGC regulation,
+    so its page shows the current reg's tournament teams. In-game Singles
+    has no tournament scene.
+    """
+    if format_code in CHAMPIONS_GAME_FORMATS:
+        return normalize_format(DEFAULT_META) if format_code == "championsdoubles" else None
+    return format_code
+
+
+def _limitless_reg_token(format_id, display_name):
+    """Regulation token ("ma", "i") identifying a Limitless format."""
+    m = re.search(
+        r"regulation\s+(?:set\s+)?([a-z\-]+)\s*$", (display_name or "").lower()
+    )
+    token = m.group(1) if m else format_id
+    return re.sub(r"[^a-z0-9]", "", token.lower())
+
+
+def limitless_format_for(format_code):
+    """Map a usage-page VGC format code to its Limitless format id, or None.
+
+    Matches the page's reg suffix (gen9championsvgc2026regmb -> "mb")
+    against each Limitless format's regulation ("Regulation Set M-B").
+    Non-VGC formats (BSS, Smogon tiers) have no Limitless counterpart.
+    """
+    code = normalize_format(format_code or "")
+    if "vgc" not in code:
+        return None
+    m = re.search(r"reg([a-z0-9]+)$", code)
+    if not m:
+        return None
+    token = m.group(1)
+    for fid, disp in limitless_stats.get_vgc_formats().items():
+        if _limitless_reg_token(fid, disp) == token:
+            return fid
+    return None
+
+
+def has_top_teams_data(format_code):
+    """True when the Top Teams section has RK9 or Limitless teams to show."""
+    source = _top_teams_source_format(format_code)
+    if not source:
+        return False
+    if normalize_format(source) in get_tournament_formats():
+        return True
+    return limitless_format_for(source) in limitless_stats.get_available_formats()
+
+
 @app.route("/api/pokemon-teams/<format_code>/<pokemon_name>")
 def api_pokemon_tournament_teams(format_code, pokemon_name):
-    """Return top-performing tournament teams that used a given Pokemon."""
+    """Return top tournament teams that used a given Pokemon.
+
+    Merges RK9 majors with Limitless online events, ranked by Swiss
+    points, then tournament size, then placement — a deep run at a big
+    event outranks a short one at a small event.
+    """
+    source_format = _top_teams_source_format(format_code)
+    if not source_format:
+        return jsonify([])
+
+    base_name = get_base_pokemon_name(pokemon_name)
+    poke_lower = base_name.lower()
+    required_item = _mega_required_items.get(pokemon_name.lower(), "").lower()
+
+    all_teams = []
+
     tournaments = load_tournament_list()
     matching = [
         t for t in tournaments
-        if t.get("format") and tournament_format_matches(t["format"], format_code)
+        if t.get("format") and tournament_format_matches(t["format"], source_format)
     ][:5]
-
-    if not matching:
-        return jsonify([])
-
-    all_teams = []
-    base_name = get_base_pokemon_name(pokemon_name)
-    poke_lower = base_name.lower()
-    required_item = _mega_required_items.get(pokemon_name.lower(), "")
     for tourney in matching:
         players = load_tournament_players(tourney["id"])
         for player in players:
@@ -2976,16 +3034,20 @@ def api_pokemon_tournament_teams(format_code, pokemon_name):
             if not matched_slot:
                 continue
             # If viewing a Mega/Primal, verify the held item matches
-            if required_item and matched_slot.get("item", "") != required_item:
+            if required_item and matched_slot.get("item", "").lower() != required_item:
                 continue
+            record = player.get("record", {}) or {}
             all_teams.append({
                 "player": player["name"],
                 "placement": player["placement"],
-                "record": player.get("record", {}),
+                "record": record,
                 "day_reached": player.get("day_reached", "day1"),
                 "tournament_name": tourney["name"],
                 "tournament_date": tourney.get("date", ""),
                 "tournament_id": tourney["id"],
+                "tournament_players": tourney.get("total_players", 0),
+                "points": limitless_stats.record_points(record),
+                "source": "rk9",
                 "team": [
                     {
                         "pokemon": s["pokemon"],
@@ -3000,8 +3062,40 @@ def api_pokemon_tournament_teams(format_code, pokemon_name):
                 ],
             })
 
-    all_teams.sort(key=lambda t: t["placement"])
-    return jsonify(all_teams[:8])
+    lformat = limitless_format_for(source_format)
+    if lformat and lformat in limitless_stats.get_available_formats():
+        for e in limitless_stats.get_all_teams(lformat, pokedexEntries):
+            matched_slot = None
+            for slot in e["team"]:
+                if slot["pokemon"].lower() == poke_lower:
+                    matched_slot = slot
+                    break
+            if not matched_slot:
+                continue
+            if required_item and (matched_slot.get("item") or "").lower() != required_item:
+                continue
+            entry = _limitless_team_entry(e)
+            record = e.get("record") or {}
+            all_teams.append({
+                "player": entry["player"],
+                "placement": entry["placing"],
+                "record": record,
+                "day_reached": "day1",
+                "tournament_name": e["tournament"].get("name", ""),
+                "tournament_date": e["tournament"].get("date", ""),
+                "tournament_id": e["tournament"].get("id", ""),
+                "tournament_players": e["tournament"].get("players") or 0,
+                "points": limitless_stats.record_points(record),
+                "source": "limitless",
+                "team": entry["team"],
+            })
+
+    all_teams.sort(key=lambda t: (
+        -t["points"],
+        -(t["tournament_players"] or 0),
+        t["placement"] or 9999,
+    ))
+    return jsonify(all_teams[:12])
 
 
 @app.route("/api/pokemon-replays/<format_code>/<pokemon_name>")

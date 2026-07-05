@@ -2549,7 +2549,7 @@
         {% endif %}
         {% if has_tournament_data %}
         <div id="tournament-teams-section">
-          <h2>Top Teams <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Teams from recent VGC tournaments that used this Pokemon, sorted by placement.">&#xf059;</span></h2>
+          <h2>Top Teams <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Teams from recent VGC events (majors and Limitless online tournaments) that used this Pokemon, ranked by record and event size.">&#xf059;</span></h2>
           <div class="Data" style="height: auto; max-height: 210px;">
             <div class="section-loading" id="tournament-teams-loading">Loading tournament data...</div>
           </div>
@@ -2670,7 +2670,7 @@
 
     <!-- External JavaScript files -->
     {% if not calc_only %}
-    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=14"></script>
+    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=15"></script>
     {% endif %}
     {% if calc_only %}
     <script src="{{ url_for('static', filename='vendor/smogon-calc.js') }}"></script>

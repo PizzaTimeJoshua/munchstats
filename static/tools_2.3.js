@@ -2022,17 +2022,23 @@ $(document).ready(function () {
 
   var _topTeamsData = [];
 
+  function formatTeamRecord(record) {
+    if (!record || record.wins == null) return "";
+    var text = " (" + record.wins + "-" + record.losses;
+    if (record.ties) text += "-" + record.ties;
+    return text + ")";
+  }
+
   function renderTournamentTeams(container, teams) {
     _topTeamsData = teams;
     var html = "";
     for (var i = 0; i < teams.length; i++) {
       var t = teams[i];
-      var record = t.record && t.record.wins != null
-        ? " (" + t.record.wins + "-" + t.record.losses + ")"
-        : "";
+      var record = formatTeamRecord(t.record);
+      var placement = t.placement ? '#' + t.placement + ' ' : '';
       html += '<div class="team-entry" data-team-idx="' + i + '" style="cursor:pointer;">';
       html += '<div class="team-entry-header">';
-      html += '<span class="placement">#' + t.placement + ' ' + t.player + record + '</span>';
+      html += '<span class="placement">' + placement + t.player + record + '</span>';
       html += '<span class="tournament-info">' + t.tournament_name + '</span>';
       html += '</div>';
       html += '<div class="team-entry-sprites">';
@@ -2273,10 +2279,9 @@ $(document).ready(function () {
     var bodyEl = document.getElementById('teamModalBody');
     if (!modal) return;
 
-    var record = teamData.record && teamData.record.wins != null
-      ? " (" + teamData.record.wins + "-" + teamData.record.losses + ")"
-      : "";
-    titleEl.textContent = "#" + teamData.placement + " " + teamData.player + record + " — " + teamData.tournament_name;
+    var record = formatTeamRecord(teamData.record);
+    var placement = teamData.placement ? "#" + teamData.placement + " " : "";
+    titleEl.textContent = placement + teamData.player + record + " — " + teamData.tournament_name;
 
     var html = '<div class="team-modal-grid">';
     teamData.team.forEach(function(slot) {
@@ -2333,7 +2338,7 @@ $(document).ready(function () {
 
   function buildTournamentTeamsSectionHTML() {
     return '<div id="tournament-teams-section">' +
-      '<h2>Top Teams <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Teams from recent VGC tournaments that used this Pokemon, sorted by placement.">&#xf059;</span></h2>' +
+      '<h2>Top Teams <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Teams from recent VGC events (majors and Limitless online tournaments) that used this Pokemon, ranked by record and event size.">&#xf059;</span></h2>' +
       '<div class="Data" style="height: auto; max-height: 210px;">' +
       '<div class="section-loading" id="tournament-teams-loading">Loading tournament data...</div>' +
       '</div></div>';
