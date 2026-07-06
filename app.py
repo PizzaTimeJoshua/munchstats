@@ -265,6 +265,36 @@ def fetch_index_data(format_code, rating, month=None):
     return {}
 
 
+def fix_no_ability(format_code, pokemon_name, data):
+    """Remap Smogon's bogus 'noability' usage entries to the real ability.
+
+    Smogon usage stats record 'noability' for some new Mega formes (Mega
+    Staraptor, Mega Raichu, Mega Scrafty, ...) even though a Mega always has
+    exactly one real ability: its dex slot-0 ability. Only Megas are
+    remapped: gen 1-2 formats have no abilities at all, and in Hackmons
+    formats a non-Mega can genuinely run No Ability.
+    """
+    abilities = data.get("Abilities")
+    if not abilities or "noability" not in abilities:
+        return data
+    gen = extract_generation_from_format(format_code)
+    if gen is None or gen < 3:
+        return data
+    dex_key = re.sub(r"[^a-z0-9]+", "", pokemon_name.lower())
+    dex_entry = pokedexEntries.get(dex_key, {})
+    if "Mega" not in dex_entry.get("forme", ""):
+        return data
+    real = dex_entry.get("abilities", {}).get("0")
+    if not real:
+        return data
+    real_id = re.sub(r"[^a-z0-9]+", "", real.lower())
+    fixed = dict(abilities)
+    fixed[real_id] = fixed.get(real_id, 0) + fixed.pop("noability")
+    data = dict(data)
+    data["Abilities"] = fixed
+    return data
+
+
 def fetch_pokemon_data(format_code, rating, pokemon_name, month=None):
     """Load individual Pokémon data. Returns the Pokémon's data dict."""
     if month is None:
@@ -274,11 +304,13 @@ def fetch_pokemon_data(format_code, rating, pokemon_name, month=None):
         file_path = os.path.join(DATA_DIRECTORY, month, format_code, str(rating), f"{pokemon_name}.json")
         data = load_data_file(file_path)
         if data:
-            return data
+            return fix_no_ability(format_code, pokemon_name, data)
     # Fall back to remote (the full format is already cached by fetch_remote_format_data)
     remote_data = fetch_remote_format_data(month, format_code, str(rating))
     if remote_data and "data" in remote_data:
-        return remote_data["data"].get(pokemon_name, {})
+        return fix_no_ability(
+            format_code, pokemon_name, remote_data["data"].get(pokemon_name, {})
+        )
     return {}
 
 
