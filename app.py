@@ -17,6 +17,7 @@ from flask import Flask, jsonify, redirect, render_template, request, url_for
 import pyjson5
 
 import limitless_stats
+import vgcpastes
 
 load_dotenv()
 
@@ -1345,6 +1346,7 @@ build_mega_item_lookup()
 # Rebuild the Limitless cache in the background after (re)start; dyno
 # restarts wipe the disk cache, so don't make the first visitor wait.
 limitless_stats.warm_cache_async(pokedexEntries)
+vgcpastes.warm_cache_async()
 
 
 @app.route("/about/")
@@ -2214,6 +2216,137 @@ def replays_page(format_code=None):
         selected_rating="0",
         selected_pokemon="",
     )
+
+
+# ─── VGCPastes Team Search ───────────────────────────────────────────────
+def _vgcpastes_sprite(name):
+    """Sprite for a sheet Pokémon name, falling back to the base form for
+    mega forms missing from the sprite index (e.g. Floette-Eternal-Mega)."""
+    sprite = get_pokemon_sprite(name)
+    if sprite == (0, 0) and name.lower().endswith("-mega"):
+        sprite = get_pokemon_sprite(name[:-5])
+    return sprite
+
+
+def _vgcpastes_item_sprite(item_name):
+    """Item icon (row, col) on itemicons-sheet.png, or None if unknown."""
+    key = re.sub(r"[^a-z0-9]+", "", (item_name or "").lower())
+    spritenum = itemDetails.get(key, {}).get("spritenum")
+    if not spritenum:
+        return None
+    return list(divmod(spritenum, 16))
+
+
+# {normalized: display} of every Pokémon and item name, for fuzzy spelling
+# correction in the team search (built once; the source data is static).
+_vgcpastes_vocab_mem = None
+
+
+def _vgcpastes_vocab():
+    global _vgcpastes_vocab_mem
+    if _vgcpastes_vocab_mem is None:
+        vocab = {}
+        for source in (pokedexEntries, itemDetails):
+            for entry in source.values():
+                name = entry.get("name", "")
+                key = re.sub(r"[^a-z0-9]", "", name.lower())
+                if key:
+                    vocab[key] = name
+        _vgcpastes_vocab_mem = vocab
+    return _vgcpastes_vocab_mem
+
+
+@app.route("/teams/")
+@app.route("/teams/<repo_id>/")
+def teams_page(repo_id=vgcpastes.DEFAULT_REPOSITORY):
+    if repo_id not in vgcpastes.REPOSITORIES:
+        return redirect(url_for("teams_page"))
+    return render_template(
+        "teams.html",
+        repositories=vgcpastes.repository_list(),
+        selected_repo=repo_id,
+        selected_repo_name=vgcpastes.REPOSITORIES[repo_id]["display"],
+        code_label=vgcpastes.REPOSITORIES[repo_id]["code_label"],
+        vgcpastes_attribution=vgcpastes.ATTRIBUTION_TEXT,
+        vgcpastes_attribution_url=vgcpastes.ATTRIBUTION_URL,
+        vgcpastes_sheet_url=vgcpastes.SHEET_URL,
+        selected_format=[DEFAULT_META, formatDisplayNames.get(DEFAULT_META, DEFAULT_META)],
+        selected_rating="0",
+        selected_pokemon="",
+    )
+
+
+@app.route("/teams/api/<repo_id>/")
+def api_vgcpastes_teams(repo_id):
+    """Search VGCPastes teams. `q` splits on commas into groups; within a
+    group every term must match the same team slot (Pokémon + held item)
+    or the team's metadata, so "kingambit focus sash, garchomp" finds a
+    Kingambit holding a Focus Sash alongside a Garchomp. `mode=any`
+    accepts teams matching any group instead of all groups. Newest teams
+    first; paged via offset/limit."""
+    if repo_id not in vgcpastes.REPOSITORIES:
+        return jsonify({"error": "Unknown repository"}), 404
+    query = request.args.get("q", "")
+    limit = min(request.args.get("limit", type=int) or 60, 300)
+    offset = max(request.args.get("offset", type=int) or 0, 0)
+    teams, total = vgcpastes.search_teams(
+        repo_id,
+        query,
+        require_evs=request.args.get("evs") == "1",
+        require_code=request.args.get("code") == "1",
+        match_any=request.args.get("mode") == "any",
+        vocab=_vgcpastes_vocab(),
+    )
+    return jsonify({
+        "total": total,
+        "offset": offset,
+        "code_label": vgcpastes.REPOSITORIES[repo_id]["code_label"],
+        "teams": [
+            {
+                "team_id": t["team_id"],
+                "description": t["description"],
+                "player": t["player"],
+                "owner": t["owner"],
+                "pokemon": [
+                    {
+                        "name": name,
+                        "item": t["items"][i] if i < len(t["items"]) else "",
+                        "sprite": list(_vgcpastes_sprite(name)),
+                        "item_sprite": _vgcpastes_item_sprite(
+                            t["items"][i] if i < len(t["items"]) else ""
+                        ),
+                    }
+                    for i, name in enumerate(t["pokemon"])
+                ],
+                "pokepaste": t["pokepaste"],
+                "has_evs": t["has_evs"],
+                "code": t["code"],
+                "date": t["date"],
+                "date_display": t["date_display"],
+                "event": t["event"],
+                "rank": t["rank"],
+                "source_link": t["source_link"],
+                "report_link": t["report_link"],
+                "other_link": t["other_link"],
+            }
+            for t in teams[offset:offset + limit]
+        ],
+    })
+
+
+@app.route("/teams/api/<repo_id>/paste/<team_id>")
+def api_vgcpastes_paste(repo_id, team_id):
+    """Return the raw Showdown text of a team's Pokepaste for the in-site
+    team viewer. Pastes are immutable and cached on disk after first fetch."""
+    if repo_id not in vgcpastes.REPOSITORIES:
+        return jsonify({"error": "Unknown repository"}), 404
+    team = vgcpastes.get_team(repo_id, team_id)
+    if team is None:
+        return jsonify({"error": "Unknown team"}), 404
+    text = vgcpastes.get_paste_text(team["pokepaste"])
+    if text is None:
+        return jsonify({"error": "Paste unavailable"}), 502
+    return jsonify({"url": team["pokepaste"], "text": text})
 
 
 @app.route("/replays/api/search")
