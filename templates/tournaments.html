@@ -753,7 +753,8 @@
     <div class="tab-bar">
       <a id="tab-usage-btn" class="tab-btn" href="{{ url_for('display_pokemon_page', format_code=selected_format[0], rating_threshold=selected_rating, pokemon_name=selected_pokemon) }}">Usage Stats</a>
       <a id="tab-tournaments-btn" class="tab-btn tab-active" href="{{ url_for('tournaments_page') }}">Tournaments</a>
-      <a id="tab-calc-btn" class="tab-btn" href="{{ url_for('calc_page', format_code=selected_format[0], rating_threshold=selected_rating) }}">Damage Calc</a>
+      <a id="tab-teams-btn" class="tab-btn" href="{{ url_for('teams_page') }}">Teams</a>
+      <a id="tab-calc-btn" class="tab-btn" href="{{ url_for('calc_page', format_code=selected_format[0], rating_threshold=selected_rating) }}">Calc</a>
       <a id="tab-replays-btn" class="tab-btn" href="{{ url_for('replays_page') }}">Replays</a>
       <a id="tab-tools-btn" class="tab-btn" href="{{ url_for('tools_page') }}">Tools</a>
     </div>

@@ -2283,36 +2283,46 @@ $(document).ready(function () {
     var placement = teamData.placement ? "#" + teamData.placement + " " : "";
     titleEl.textContent = placement + teamData.player + record + " — " + teamData.tournament_name;
 
+    // Same set-card layout as the Teams page viewer
     var html = '<div class="team-modal-grid">';
     teamData.team.forEach(function(slot) {
-      html += '<div class="team-modal-pokemon">';
-      html += '<div class="tm-name">' + slot.pokemon + '</div>';
-      html += '<div class="tm-info">';
-      if (slot.tera_type) html += 'Tera: ' + slot.tera_type + '<br>';
-      if (slot.nature) html += 'Nature: ' + slot.nature + '<br>';
-      if (slot.ability) html += 'Ability: ' + slot.ability + '<br>';
-      if (slot.item) html += 'Item: ' + slot.item + '<br>';
-      if (slot.moves && slot.moves.length > 0) {
-        slot.moves.forEach(function(m) { html += '- ' + m + '<br>'; });
+      html += '<div class="set-card">';
+      html += '<div class="set-card-header">';
+      if (slot.sprite) {
+        html += '<div class="image-pokemon" style="background-position: ' +
+          slot.sprite[1] * -40 + 'px ' + slot.sprite[0] * -30 + 'px;"></div>';
       }
-      html += '</div></div>';
+      html += '<span class="set-card-name">' + esc(slot.pokemon) + '</span>';
+      if (slot.item) {
+        html += '<span class="set-card-item">';
+        if (slot.item_sprite) {
+          html += '<div class="image-item" style="background-position: ' +
+            slot.item_sprite[1] * -24 + 'px ' + slot.item_sprite[0] * -24 + 'px;"></div>';
+        }
+        html += esc(slot.item) + '</span>';
+      }
+      html += '</div>';
+      if (slot.ability) html += '<div class="set-line"><b>Ability:</b> ' + esc(slot.ability) + '</div>';
+      if (slot.tera_type) html += '<div class="set-line"><b>Tera Type:</b> ' + esc(slot.tera_type) + '</div>';
+      if (slot.nature) html += '<div class="set-line">' + esc(slot.nature) + ' Nature</div>';
+      if (slot.moves && slot.moves.length > 0) {
+        slot.moves.forEach(function(m) { html += '<div class="set-move">' + esc(m) + '</div>'; });
+      }
+      html += '</div>';
     });
     html += '</div>';
-    html += '<button class="team-modal-copy" id="teamModalCopy">Copy Team to Clipboard</button>';
     bodyEl.innerHTML = html;
 
-    document.getElementById('teamModalCopy').addEventListener('click', function() {
+    // Header button persists across opens: assign (not add) the handler
+    // so each open binds the current team without stacking listeners.
+    document.getElementById('teamModalCopy').onclick = function() {
       var text = teamToShowdown(teamData.team);
       var btn = this;
       navigator.clipboard.writeText(text).then(function() {
         btn.textContent = "Copied!";
-        btn.classList.add("copied");
-        setTimeout(function() {
-          btn.textContent = "Copy Team to Clipboard";
-          btn.classList.remove("copied");
-        }, 2000);
+        setTimeout(function() { btn.textContent = "Copy Team"; }, 1200);
       });
-    });
+    };
 
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';

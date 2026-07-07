@@ -1,0 +1,1046 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Teams | MunchStats | {{ selected_repo_name }}</title>
+<meta property="og:title" content="Teams | MunchStats">
+<meta name="description" content="Search tournament-proven Pokemon teams from the VGCPastes repository: pokepastes, rental codes, players and events.">
+<meta name="twitter:card" content="summary_large_image">
+<meta property="og:image" content="https://www.munchstats.com/static/favicon.png">
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+<style>
+  .teams-container *, .teams-container *::before, .teams-container *::after { box-sizing: border-box; }
+  body {
+    background-color: #1e1e1e;
+    display: grid;
+    grid-template-columns: 1fr;
+    grid-template-rows: auto 1fr auto;
+    color: #e0e0e0;
+    font-family: Arial, sans-serif;
+  }
+  h2 { font-weight: 600; letter-spacing: -0.3px; }
+  h3, h4 { font-weight: 500; color: #bbb; }
+  input, select, option {
+    background-color: #222222;
+    accent-color: #ffd54f;
+    color: #e0e0e0;
+    border: 1px solid #555;
+    padding: 10px 14px;
+    margin: 4px 0;
+    border-radius: 0;
+    font-size: 13px;
+    transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
+    width: 100%;
+  }
+  input:focus, select:focus {
+    outline: none;
+    border-color: #ffd54f;
+    box-shadow: 0 0 0 3px rgba(255, 213, 79, 0.15);
+  }
+  input:hover, select:hover { border-color: #666; }
+  input[type="checkbox"], input[type="radio"] {
+    width: auto;
+    margin: 0 6px 0 0;
+    cursor: pointer;
+  }
+  #searchButton {
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+  }
+  #randomButton {
+    width: 100%;
+    margin-top: 2px;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    background: #333;
+    color: #e0e0e0;
+    border: 1px solid #555;
+  }
+  #randomButton:hover {
+    background: #3a3a3a;
+    border-color: #ffd54f;
+    box-shadow: none;
+  }
+  button {
+    background-color: #ffd54f;
+    color: #1e1e1e;
+    border: none;
+    padding: 10px 18px;
+    margin: 4px 0;
+    border-radius: 0;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
+  }
+  button:hover {
+    background-color: #ffca28;
+    box-shadow: 0 4px 12px rgba(255, 213, 79, 0.3);
+  }
+  button:active { transform: scale(0.98); }
+  fieldset {
+    border: 1px solid #555;
+    border-radius: 0;
+    font-size: 12px;
+    margin: 8px 0;
+    padding: 10px 12px;
+    background-color: #2a2a2a;
+  }
+  legend {
+    font-size: 14px;
+    font-weight: 500;
+    color: #aaa;
+    padding: 0 6px;
+  }
+  fieldset label {
+    display: flex;
+    align-items: center;
+    padding: 6px 8px;
+    margin: 2px 0;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+  fieldset label:hover { background-color: #333; }
+
+  /* Tab bar (matches MunchStats index.html exactly) */
+  .top-bar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    border-bottom: 1px solid #444;
+    margin-bottom: 10px;
+  }
+  .tab-bar { text-align: left; padding-bottom: 0; }
+  .tab-btn {
+    background: #222;
+    color: #aaa;
+    border: 1px solid #444;
+    border-bottom: none;
+    display: inline-block;
+    padding: 6px 18px;
+    cursor: pointer;
+    font-size: 13px;
+    margin-right: 4px;
+    text-decoration: none;
+    transition: color 0.2s, background 0.2s;
+  }
+  .tab-btn:hover { color: #fff; background: #2a2a2a; }
+  .tab-btn.tab-active { background: #1e1e1e; color: #ffd54f; border-color: #888; }
+  .twitter-follow-div {
+    display: flex;
+    padding: 0 5px 6px 0;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  /* Layout */
+  .teams-container {
+    display: grid;
+    grid-template-columns: min-content 1fr;
+    grid-gap: 30px;
+    padding-top: 0px;
+  }
+  .left, .right {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    height: fit-content;
+  }
+  .left {
+    width: 300px;
+    background-color: #222222;
+    border: 1px solid #555;
+    border-radius: 0;
+    padding: 20px;
+    position: sticky;
+    top: 20px;
+  }
+  .left h2 { margin-top: 0; margin-bottom: 4px; }
+  .left h4 { margin: 12px 0 4px 0; }
+  .right { text-align: left; }
+  .search-hint { font-size: 12px; color: #888; margin: 6px 0 0 0; line-height: 1.5; }
+  .attribution-note {
+    font-size: 12px;
+    color: #888;
+    margin-top: 16px;
+    padding-top: 12px;
+    border-top: 1px solid #444;
+    line-height: 1.6;
+  }
+  .attribution-note a { color: #ffd54f; text-decoration: none; }
+  .attribution-note a:hover { text-decoration: underline; }
+
+  .sprite {
+    width: 40px;
+    height: 30px;
+    background-image: url("{{ url_for('static', filename='pokemonicons-sheet.png') }}");
+    background-size: 480px auto;
+    background-repeat: no-repeat;
+    flex-shrink: 0;
+  }
+  .item-icon {
+    display: inline-block;
+    width: 24px;
+    height: 24px;
+    background-image: url("{{ url_for('static', filename='itemicons-sheet.png') }}");
+    background-repeat: no-repeat;
+    flex-shrink: 0;
+    vertical-align: middle;
+  }
+
+  /* Result summary */
+  .result-summary {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 12px;
+    margin: 4px 0 10px 0;
+  }
+  .result-summary h2 { margin: 0; }
+  .result-count { font-size: 13px; color: #888; white-space: nowrap; }
+
+  /* Team cards */
+  .team-card {
+    background: #222222;
+    border: 1px solid #555;
+    border-radius: 0;
+    margin-bottom: 12px;
+    padding: 12px 16px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+  }
+  .team-card:hover {
+    border-color: #ffd54f;
+    box-shadow: 0 4px 20px rgba(255, 213, 79, 0.15);
+  }
+  .team-card-top {
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+  .team-card-id {
+    font-size: 11px;
+    font-weight: 700;
+    color: #1e1e1e;
+    background: #ffd54f;
+    padding: 2px 6px;
+    flex-shrink: 0;
+  }
+  .team-card-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #e0e0e0;
+    flex: 1;
+    min-width: 200px;
+  }
+  .team-card-date { font-size: 12px; color: #888; white-space: nowrap; }
+  .team-card-meta {
+    font-size: 13px;
+    color: #aaa;
+    margin: 4px 0 8px 0;
+  }
+  .team-card-meta .meta-rank { color: #ffd54f; font-weight: 600; }
+
+  /* Roster grid: sprite + names + item per Pokémon.
+     3x2 by default, 6x1 when the card is wide enough, 2x3 on mobile. */
+  .team-mons {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(170px, 1fr));
+    gap: 6px 12px;
+    margin-bottom: 10px;
+  }
+  @media (min-width: 1450px) {
+    .team-mons { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  }
+  .mon-entry {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+  }
+  .mon-names { min-width: 0; }
+  .mon-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: #e0e0e0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mon-item {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    color: #999;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .mon-item .item-icon { transform: scale(0.8); margin: -3px; }
+
+  .team-card-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .team-link-btn {
+    display: inline-block;
+    background: #ffd54f;
+    color: #1e1e1e;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 6px 12px;
+    text-decoration: none;
+    border: none;
+    margin: 0;
+    cursor: pointer;
+    transition: background-color 0.2s, box-shadow 0.2s;
+  }
+  .team-link-btn:hover { background: #ffca28; box-shadow: 0 4px 12px rgba(255, 213, 79, 0.3); }
+  .team-link-btn.secondary {
+    background: #333;
+    color: #e0e0e0;
+    border: 1px solid #555;
+  }
+  .team-link-btn.secondary:hover { border-color: #ffd54f; box-shadow: none; }
+  .team-code-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: #2a2a2a;
+    border: 1px dashed #666;
+    color: #e0e0e0;
+    font-size: 12px;
+    font-family: monospace;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: border-color 0.2s, background-color 0.2s;
+  }
+  .team-code-chip:hover { border-color: #ffd54f; background: #333; }
+  .team-code-chip .code-label {
+    font-family: Arial, sans-serif;
+    color: #888;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .no-evs-tag {
+    font-size: 10px;
+    color: #888;
+    border: 1px solid #555;
+    padding: 2px 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  #loadMoreBtn { width: 100%; margin-top: 4px; }
+  .status-text { color: #bbb; }
+
+  /* Team viewer modal */
+  .team-modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0, 0, 0, 0.75);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+  }
+  .team-modal-overlay.active { display: flex; }
+  .team-modal {
+    background: #1e1e1e;
+    border: 1px solid #555;
+    width: 95%;
+    max-width: 1000px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+  }
+  .team-modal-header {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #222222;
+    border-bottom: 1px solid #555;
+    flex-shrink: 0;
+  }
+  .team-modal-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #e0e0e0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+    flex: 1 1 200px;
+  }
+  .team-modal-header .team-link-btn { flex-shrink: 0; }
+  .team-modal-close {
+    background: none;
+    border: 1px solid #555;
+    color: #e0e0e0;
+    font-size: 20px;
+    width: 32px;
+    height: 32px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin: 0;
+    transition: background-color 0.2s;
+    flex-shrink: 0;
+  }
+  .team-modal-close:hover { background: #333; box-shadow: none; }
+  .team-modal-body {
+    overflow-y: auto;
+    padding: 16px;
+  }
+  .team-modal-meta {
+    font-size: 13px;
+    color: #aaa;
+    margin: 0 0 12px 0;
+  }
+  .team-modal-meta .meta-rank { color: #ffd54f; font-weight: 600; }
+  .team-modal-status { color: #bbb; font-size: 14px; padding: 20px 0; text-align: center; }
+  .set-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 12px;
+  }
+  .set-card {
+    background: #222222;
+    border: 1px solid #555;
+    padding: 10px 14px;
+    font-size: 13px;
+    line-height: 1.55;
+  }
+  .set-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid #444;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+  }
+  .set-card-name { font-weight: 700; font-size: 14px; color: #e0e0e0; min-width: 0; }
+  .set-card-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 12px;
+    color: #999;
+    margin-left: auto;
+    white-space: nowrap;
+  }
+  .set-line { color: #bbb; }
+  .set-line b { color: #e0e0e0; font-weight: 600; }
+  .set-move { color: #e0e0e0; }
+  .set-move::before { content: "- "; }
+
+  /* External link confirmation dialog */
+  .link-modal {
+    background: #1e1e1e;
+    border: 1px solid #555;
+    width: 95%;
+    max-width: 460px;
+    padding: 20px 24px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    text-align: left;
+  }
+  .link-modal h3 { margin: 0 0 8px 0; color: #e0e0e0; }
+  .link-modal p { margin: 0 0 8px 0; font-size: 13px; color: #aaa; }
+  .link-modal-url {
+    font-family: monospace;
+    font-size: 12px;
+    color: #ffd54f;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    padding: 8px 10px;
+    margin: 0 0 14px 0;
+    word-break: break-all;
+  }
+  .link-modal-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: flex-end;
+  }
+
+  footer {
+    text-align: center;
+    padding: 20px;
+    color: #666;
+    font-size: 12px;
+  }
+  footer a { color: #ffd54f; text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+
+  /* Tablet: stack sidebar */
+  @media (max-width: 800px) {
+    .teams-container {
+      grid-template-columns: 1fr;
+      grid-gap: 15px;
+      padding: 0 8px;
+    }
+    .left {
+      width: 100%;
+      position: static;
+      padding: 14px;
+    }
+    .team-mons { grid-template-columns: repeat(2, minmax(150px, 1fr)); }
+  }
+  @media (max-width: 700px) {
+    .tab-btn { padding: 6px 10px; font-size: 12px; margin-right: 2px; }
+    .twitter-follow-div { display: none; }
+  }
+  @media (max-width: 500px) {
+    .tab-btn { padding: 5px 7px; font-size: 11px; }
+    .team-mons { grid-template-columns: 1fr 1fr; }
+    .mon-name, .mon-item { font-size: 11px; }
+  }
+</style>
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-K1B7P5XXK6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() {
+    dataLayer.push(arguments);
+  }
+  gtag("js", new Date());
+  gtag("config", "G-K1B7P5XXK6");
+</script>
+</head>
+<body>
+<div class="top-bar">
+  <div class="tab-bar">
+    <a id="tab-usage-btn" class="tab-btn" href="{{ url_for('display_pokemon_page', format_code=selected_format[0], rating_threshold=selected_rating, pokemon_name=selected_pokemon) }}">Usage Stats</a>
+    <a id="tab-tournaments-btn" class="tab-btn" href="{{ url_for('tournaments_page') }}">Tournaments</a>
+    <a id="tab-teams-btn" class="tab-btn tab-active" href="{{ url_for('teams_page') }}">Teams</a>
+    <a id="tab-calc-btn" class="tab-btn" href="{{ url_for('calc_page', format_code=selected_format[0], rating_threshold=selected_rating) }}">Calc</a>
+    <a id="tab-replays-btn" class="tab-btn" href="{{ url_for('replays_page') }}">Replays</a>
+    <a id="tab-tools-btn" class="tab-btn" href="{{ url_for('tools_page') }}">Tools</a>
+  </div>
+  <div class="twitter-follow-div">
+    <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">
+      <img height="29" style="border:0px;height:29px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=3" border="0" alt="Buy Me a Coffee at ko-fi.com" />
+    </a>
+    <a href="https://twitter.com/MunchStats?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large" data-show-screen-name="false" data-dnt="true" data-show-count="false">Follow @MunchStats</a>
+    <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+  </div>
+</div>
+<div class="teams-container">
+  <div class="left">
+    <h2>Team Search</h2>
+    <h4>Repository</h4>
+    <select id="repoSelect">
+      {% for repo_id, repo_name in repositories %}
+        <option value="{{ repo_id }}"{% if repo_id == selected_repo %} selected{% endif %}>{{ repo_name }}</option>
+      {% endfor %}
+    </select>
+    <fieldset>
+      <legend>Search</legend>
+      <input id="searchInput" type="text" placeholder='e.g. "Kingambit Focus Sash, Garchomp"' autocomplete="off">
+      <label><input checked id="allPokemon" name="pokeFilter" type="radio" value="all"> Find All Pokemon on a Team</label>
+      <label><input id="anyPokemon" name="pokeFilter" type="radio" value="any"> Find Any Pokemon on a Team</label>
+    </fieldset>
+    <fieldset>
+      <legend>Filters</legend>
+      <label><input id="evsToggle" type="checkbox"> Has EV Spreads</label>
+      <label><input id="codeToggle" type="checkbox"> <span>Has <span id="codeToggleLabel">{{ code_label }}</span></span></label>
+      <label><input id="reportToggle" type="checkbox"> Has Team Report</label>
+    </fieldset>
+    <h4>Sort Results</h4>
+    <select id="sortSelect">
+      <option value="newest" selected>Newest First</option>
+      <option value="oldest">Oldest First</option>
+      <option value="random">Random Order</option>
+    </select>
+    <button id="searchButton">Search Teams</button>
+    <button id="randomButton" type="button">Show Random Team</button>
+    <p class="search-hint">
+      Separate Pok&eacute;mon with commas; words in one group must match the
+      same team member, so "Kingambit Focus Sash" means a Kingambit
+      <b>holding</b> a Focus Sash. Player, tournament, rank and team ID work too.
+      Click a team to view its full sets.
+    </p>
+    <div class="attribution-note">
+      {{ vgcpastes_attribution }} &mdash; follow
+      <a href="{{ vgcpastes_attribution_url }}" target="_blank" rel="noopener">@VGCPastes</a>
+      or browse the
+      <a href="{{ vgcpastes_sheet_url }}" target="_blank" rel="noopener">full spreadsheet</a>.
+      Data refreshes every 12 hours.
+    </div>
+  </div>
+  <div class="right">
+    <div class="result-summary">
+      <h2 id="resultsHeading">{{ selected_repo_name }} Teams</h2>
+      <span class="result-count" id="resultCount"></span>
+    </div>
+    <h3 class="status-text" id="loadingText" style="display: none;">Loading...</h3>
+    <h3 class="status-text" id="noTeamsText" style="display: none;">No teams found.</h3>
+    <h3 class="status-text" id="errorText" style="display: none;">Error: Unable to load teams.</h3>
+    <div id="teamsList"></div>
+    <button id="loadMoreBtn" style="display: none;">Load More</button>
+  </div>
+</div>
+<div class="team-modal-overlay" id="teamModal">
+  <div class="team-modal">
+    <div class="team-modal-header">
+      <span class="team-modal-title" id="teamModalTitle">Team Viewer</span>
+      <button class="team-link-btn" id="teamModalCopy" type="button">Copy Team</button>
+      <a class="team-link-btn secondary" href="#" id="teamModalPaste" target="_blank" rel="noopener">Open on Pokepaste</a>
+      <button class="team-modal-close" id="teamModalClose" title="Close">&times;</button>
+    </div>
+    <div class="team-modal-body">
+      <p class="team-modal-meta" id="teamModalMeta"></p>
+      <div class="team-modal-status" id="teamModalStatus" style="display: none;">Loading sets...</div>
+      <div class="set-grid" id="teamModalSets"></div>
+    </div>
+  </div>
+</div>
+<div class="team-modal-overlay" id="linkModal">
+  <div class="link-modal">
+    <h3>Leaving MunchStats</h3>
+    <p>This will open an external link in a new tab:</p>
+    <p class="link-modal-url" id="linkModalUrl"></p>
+    <div class="link-modal-actions">
+      <a class="team-link-btn" id="linkModalOpen" href="#" target="_blank" rel="noopener noreferrer">Open in New Tab</a>
+      <button class="team-link-btn secondary" id="linkModalCancel" type="button">Cancel</button>
+    </div>
+  </div>
+</div>
+<footer>
+  <p><a href="{{ vgcpastes_attribution_url }}" target="_blank" rel="noopener">{{ vgcpastes_attribution }}</a></p>
+  <p><a href="{{ url_for('about') }}">About</a></p>
+  <p>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</p>
+</footer>
+<script>
+(function() {
+  var PAGE_SIZE = 60;
+  var repoSelect = document.getElementById('repoSelect');
+  var searchInput = document.getElementById('searchInput');
+  var evsToggle = document.getElementById('evsToggle');
+  var codeToggle = document.getElementById('codeToggle');
+  var reportToggle = document.getElementById('reportToggle');
+  var sortSelect = document.getElementById('sortSelect');
+  var teamsList = document.getElementById('teamsList');
+  var loadMoreBtn = document.getElementById('loadMoreBtn');
+  var resultCount = document.getElementById('resultCount');
+  var loadingText = document.getElementById('loadingText');
+  var noTeamsText = document.getElementById('noTeamsText');
+  var errorText = document.getElementById('errorText');
+  var modal = document.getElementById('teamModal');
+  var modalTitle = document.getElementById('teamModalTitle');
+  var modalMeta = document.getElementById('teamModalMeta');
+  var modalStatus = document.getElementById('teamModalStatus');
+  var modalSets = document.getElementById('teamModalSets');
+  var modalCopy = document.getElementById('teamModalCopy');
+  var modalPasteLink = document.getElementById('teamModalPaste');
+
+  var currentRepo = {{ selected_repo | tojson }};
+  var codeLabel = {{ code_label | tojson }};
+  var loadedCount = 0;
+  var totalCount = 0;
+  var requestSeq = 0;
+  var randomSeed = 0;
+  var teamsById = {};
+  var modalPasteText = '';
+  var modalSeq = 0;
+
+  function esc(text) {
+    var div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function spriteHtml(sprite, title) {
+    return '<div class="sprite"' + (title ? ' title="' + esc(title) + '"' : '') +
+      ' style="background-position: -' + (sprite[1] * 40) + 'px -' + (sprite[0] * 30) + 'px"></div>';
+  }
+
+  function itemIconHtml(itemSprite) {
+    if (!itemSprite) return '';
+    return '<span class="item-icon" style="background-position: -' +
+      (itemSprite[1] * 24) + 'px -' + (itemSprite[0] * 24) + 'px"></span>';
+  }
+
+  function monEntryHtml(mon) {
+    return '<div class="mon-entry">' +
+      spriteHtml(mon.sprite, mon.name) +
+      '<div class="mon-names">' +
+        '<div class="mon-name" title="' + esc(mon.name) + '">' + esc(mon.name) + '</div>' +
+        '<div class="mon-item" title="' + esc(mon.item || 'No item') + '">' +
+          itemIconHtml(mon.item_sprite) +
+          '<span>' + (mon.item ? esc(mon.item) : '&mdash;') + '</span>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
+  }
+
+  function linkBtn(href, label) {
+    if (!href) return '';
+    return '<a class="team-link-btn secondary external-link" href="' + esc(href) +
+      '" target="_blank" rel="noopener noreferrer">' + esc(label) + '</a>';
+  }
+
+  function metaHtml(team) {
+    var meta = [];
+    if (team.player) meta.push('<b>' + esc(team.player) + '</b>');
+    if (team.event) meta.push(esc(team.event));
+    if (team.rank) meta.push('<span class="meta-rank">' + esc(team.rank) + '</span>');
+    return meta.join(' &middot; ');
+  }
+
+  function teamCardHtml(team) {
+    var actions = '<button class="team-link-btn view-team-btn" type="button">View Team</button>' +
+      linkBtn(team.source_link, 'Source') +
+      linkBtn(team.report_link, 'Report') +
+      linkBtn(team.other_link, 'More');
+    if (team.code) {
+      actions += '<span class="team-code-chip" data-code="' + esc(team.code) +
+        '" title="Click to copy"><span class="code-label">' + esc(codeLabel) +
+        '</span>' + esc(team.code) + '</span>';
+    }
+    if (!team.has_evs) {
+      actions += '<span class="no-evs-tag" title="The Pokepaste for this team has no EV spreads">No EVs</span>';
+    }
+    return '<div class="team-card" data-team-id="' + esc(team.team_id) + '">' +
+      '<div class="team-card-top">' +
+        '<span class="team-card-id">' + esc(team.team_id) + '</span>' +
+        '<span class="team-card-title">' + esc(team.description || 'Untitled Team') + '</span>' +
+        (team.date_display ? '<span class="team-card-date">' + esc(team.date_display) + '</span>' : '') +
+      '</div>' +
+      (metaHtml(team) ? '<div class="team-card-meta">' + metaHtml(team) + '</div>' : '') +
+      '<div class="team-mons">' + team.pokemon.map(monEntryHtml).join('') + '</div>' +
+      '<div class="team-card-actions">' + actions + '</div>' +
+    '</div>';
+  }
+
+  function searchMode() {
+    return document.getElementById('anyPokemon').checked ? 'any' : 'all';
+  }
+
+  function newSeed() {
+    return Math.floor(Math.random() * 1e9);
+  }
+
+  function buildFilterQuery() {
+    return '&q=' + encodeURIComponent(searchInput.value.trim()) +
+      '&mode=' + searchMode() +
+      (evsToggle.checked ? '&evs=1' : '') +
+      (codeToggle.checked ? '&code=1' : '') +
+      (reportToggle.checked ? '&report=1' : '');
+  }
+
+  function buildApiQuery(offset) {
+    var sort = sortSelect.value;
+    return '?limit=' + PAGE_SIZE + '&offset=' + offset + buildFilterQuery() +
+      '&sort=' + sort +
+      (sort === 'random' ? '&seed=' + randomSeed : '');
+  }
+
+  function fetchTeams(append) {
+    var seq = ++requestSeq;
+    var offset = append ? loadedCount : 0;
+    if (!append) {
+      loadingText.style.display = 'block';
+      noTeamsText.style.display = 'none';
+      errorText.style.display = 'none';
+      teamsList.innerHTML = '';
+      teamsById = {};
+      loadMoreBtn.style.display = 'none';
+      resultCount.textContent = '';
+    }
+    var url = '/teams/api/' + encodeURIComponent(currentRepo) + '/' + buildApiQuery(offset);
+    fetch(url)
+      .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(data) {
+        if (seq !== requestSeq) return;
+        loadingText.style.display = 'none';
+        codeLabel = data.code_label || codeLabel;
+        document.getElementById('codeToggleLabel').textContent = codeLabel;
+        totalCount = data.total;
+        loadedCount = offset + data.teams.length;
+        data.teams.forEach(function(t) { teamsById[t.team_id] = t; });
+        teamsList.insertAdjacentHTML('beforeend', data.teams.map(teamCardHtml).join(''));
+        noTeamsText.style.display = totalCount === 0 ? 'block' : 'none';
+        resultCount.textContent = totalCount === 0 ? '' :
+          'Showing ' + loadedCount + ' of ' + totalCount + ' teams';
+        loadMoreBtn.style.display = loadedCount < totalCount ? 'block' : 'none';
+      })
+      .catch(function() {
+        if (seq !== requestSeq) return;
+        loadingText.style.display = 'none';
+        errorText.style.display = 'block';
+      });
+  }
+
+  /* ── Team viewer modal ── */
+
+  // Showdown-export attribute lines; anything else (with moves excluded)
+  // starts a new set. Blank-line splitting is unreliable: some pastes
+  // double-space every line.
+  var SET_ATTR_RE = /^(Ability|Level|Shiny|Happiness|Pokeball|Hidden Power|Tera Type|EVs|IVs|Dynamax Level|Gigantamax):/i;
+
+  function parseSets(text) {
+    var sets = [];
+    text.replace(/\r/g, '\n').split('\n').forEach(function(raw) {
+      var line = raw.trim();
+      if (!line) return;
+      var isAttr = line.charAt(0) === '-' || SET_ATTR_RE.test(line) || /\bNature$/i.test(line);
+      if (isAttr) {
+        if (sets.length) sets[sets.length - 1].rest.push(line);
+        return;
+      }
+      var item = '';
+      var at = line.indexOf(' @ ');
+      var namePart = line;
+      if (at >= 0) {
+        item = line.slice(at + 3).trim();
+        namePart = line.slice(0, at);
+      }
+      namePart = namePart.trim().replace(/\((M|F)\)\s*$/i, '').trim();
+      var m = namePart.match(/\(([^)]+)\)\s*$/);
+      sets.push({ species: m ? m[1] : namePart, item: item, rest: [] });
+    });
+    return sets;
+  }
+
+  function setCardHtml(set, team) {
+    // Reuse the sprite/item icon the card API already resolved. The paste
+    // may name the base form ("Gardevoir") where the sheet lists the battle
+    // form ("Gardevoir-Mega"), so fall back to form-prefix matches.
+    var mon = null;
+    if (team) {
+      var target = set.species.toLowerCase();
+      mon = team.pokemon.find(function(p) { return p.name.toLowerCase() === target; }) ||
+        team.pokemon.find(function(p) {
+          var name = p.name.toLowerCase();
+          return name.indexOf(target + '-') === 0 || target.indexOf(name + '-') === 0;
+        }) || null;
+    }
+    var body = set.rest.map(function(line) {
+      if (/^-\s*/.test(line)) {
+        return '<div class="set-move">' + esc(line.replace(/^-\s*/, '')) + '</div>';
+      }
+      var kv = line.match(/^([A-Za-z ]+):\s*(.*)$/);
+      if (kv) {
+        return '<div class="set-line"><b>' + esc(kv[1]) + ':</b> ' + esc(kv[2]) + '</div>';
+      }
+      return '<div class="set-line">' + esc(line) + '</div>';
+    }).join('');
+    return '<div class="set-card">' +
+      '<div class="set-card-header">' +
+        (mon ? spriteHtml(mon.sprite, mon.name) : '') +
+        '<span class="set-card-name">' + esc(set.species) + '</span>' +
+        (set.item ? '<span class="set-card-item">' +
+          (mon && mon.item === set.item ? itemIconHtml(mon.item_sprite) : '') +
+          esc(set.item) + '</span>' : '') +
+      '</div>' + body +
+    '</div>';
+  }
+
+  function openTeamModal(team) {
+    var seq = ++modalSeq;
+    modalTitle.textContent = team.team_id + ' — ' + (team.description || 'Untitled Team');
+    modalMeta.innerHTML = metaHtml(team) +
+      (team.date_display ? (metaHtml(team) ? ' &middot; ' : '') + esc(team.date_display) : '');
+    modalPasteLink.href = team.pokepaste || '#';
+    modalPasteLink.style.display = team.pokepaste ? '' : 'none';
+    modalCopy.style.display = 'none';
+    modalSets.innerHTML = '';
+    modalPasteText = '';
+    modalStatus.textContent = 'Loading sets...';
+    modalStatus.style.display = 'block';
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+
+    var url = '/teams/api/' + encodeURIComponent(currentRepo) + '/paste/' +
+      encodeURIComponent(team.team_id);
+    fetch(url)
+      .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(data) {
+        if (seq !== modalSeq) return;
+        modalPasteText = data.text;
+        modalStatus.style.display = 'none';
+        modalCopy.style.display = '';
+        modalSets.innerHTML = parseSets(data.text).map(function(s) {
+          return setCardHtml(s, team);
+        }).join('');
+      })
+      .catch(function() {
+        if (seq !== modalSeq) return;
+        modalStatus.textContent = 'Could not load the sets. Try the Pokepaste link instead.';
+      });
+  }
+
+  function closeTeamModal() {
+    modalSeq++;
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  modalCopy.addEventListener('click', function() {
+    if (!modalPasteText || !navigator.clipboard) return;
+    navigator.clipboard.writeText(modalPasteText).then(function() {
+      modalCopy.textContent = 'Copied!';
+      setTimeout(function() { modalCopy.textContent = 'Copy Team'; }, 1200);
+    });
+  });
+  document.getElementById('teamModalClose').addEventListener('click', closeTeamModal);
+  modal.addEventListener('click', function(e) {
+    if (e.target === modal) closeTeamModal();
+  });
+  document.addEventListener('keydown', function(e) {
+    if (e.key !== 'Escape') return;
+    if (linkModal.classList.contains('active')) {
+      closeLinkModal();
+    } else if (modal.classList.contains('active')) {
+      closeTeamModal();
+    }
+  });
+
+  /* ── External link confirmation ── */
+
+  var linkModal = document.getElementById('linkModal');
+  var linkModalUrl = document.getElementById('linkModalUrl');
+  var linkModalOpen = document.getElementById('linkModalOpen');
+
+  function openLinkModal(href) {
+    linkModalUrl.textContent = href;
+    linkModalOpen.href = href;
+    linkModal.classList.add('active');
+  }
+
+  function closeLinkModal() {
+    linkModal.classList.remove('active');
+  }
+
+  linkModalOpen.addEventListener('click', closeLinkModal);
+  document.getElementById('linkModalCancel').addEventListener('click', closeLinkModal);
+  linkModal.addEventListener('click', function(e) {
+    if (e.target === linkModal) closeLinkModal();
+  });
+
+  /* ── List interactions ── */
+
+  teamsList.addEventListener('click', function(e) {
+    var chip = e.target.closest('.team-code-chip');
+    if (chip) {
+      if (!navigator.clipboard) return;
+      navigator.clipboard.writeText(chip.dataset.code).then(function() {
+        var label = chip.querySelector('.code-label');
+        var original = label.textContent;
+        label.textContent = 'Copied!';
+        setTimeout(function() { label.textContent = original; }, 1200);
+      });
+      return;
+    }
+    var ext = e.target.closest('a.external-link');
+    if (ext) {
+      // Sheet-sourced links (Source/Report/More) confirm before leaving
+      e.preventDefault();
+      openLinkModal(ext.href);
+      return;
+    }
+    if (e.target.closest('a')) return;
+    var card = e.target.closest('.team-card');
+    if (!card) return;
+    var team = teamsById[card.dataset.teamId];
+    if (team) openTeamModal(team);
+  });
+
+  function updateUrl() {
+    var params = new URLSearchParams();
+    if (searchInput.value.trim()) params.set('q', searchInput.value.trim());
+    if (searchMode() === 'any') params.set('mode', 'any');
+    if (evsToggle.checked) params.set('evs', '1');
+    if (codeToggle.checked) params.set('code', '1');
+    if (reportToggle.checked) params.set('report', '1');
+    if (sortSelect.value !== 'newest') params.set('sort', sortSelect.value);
+    if (sortSelect.value === 'random') params.set('seed', randomSeed);
+    var qs = params.toString();
+    history.replaceState(null, '', '/teams/' + encodeURIComponent(currentRepo) + '/' + (qs ? '?' + qs : ''));
+  }
+
+  function refresh() {
+    // Each new search reshuffles; Load More keeps this seed for its pages
+    if (sortSelect.value === 'random') randomSeed = newSeed();
+    updateUrl();
+    fetchTeams(false);
+  }
+
+  document.getElementById('searchButton').addEventListener('click', refresh);
+  searchInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') refresh();
+  });
+
+  repoSelect.addEventListener('change', function() {
+    currentRepo = repoSelect.value;
+    var heading = repoSelect.options[repoSelect.selectedIndex].textContent;
+    document.getElementById('resultsHeading').textContent = heading + ' Teams';
+    refresh();
+  });
+
+  evsToggle.addEventListener('change', refresh);
+  codeToggle.addEventListener('change', refresh);
+  reportToggle.addEventListener('change', refresh);
+  sortSelect.addEventListener('change', refresh);
+  document.getElementById('allPokemon').addEventListener('change', refresh);
+  document.getElementById('anyPokemon').addEventListener('change', refresh);
+  loadMoreBtn.addEventListener('click', function() { fetchTeams(true); });
+
+  var randomButton = document.getElementById('randomButton');
+  randomButton.addEventListener('click', function() {
+    var url = '/teams/api/' + encodeURIComponent(currentRepo) +
+      '/?limit=1&offset=0' + buildFilterQuery() +
+      '&sort=random&seed=' + newSeed();
+    fetch(url)
+      .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(data) {
+        if (data.teams && data.teams.length) {
+          teamsById[data.teams[0].team_id] = data.teams[0];
+          openTeamModal(data.teams[0]);
+        } else {
+          randomButton.textContent = 'No Matching Teams';
+          setTimeout(function() { randomButton.textContent = 'Show Random Team'; }, 1500);
+        }
+      })
+      .catch(function() {
+        randomButton.textContent = 'Error — Try Again';
+        setTimeout(function() { randomButton.textContent = 'Show Random Team'; }, 1500);
+      });
+  });
+
+  // Restore a shared search from the URL
+  var params = new URLSearchParams(location.search);
+  if (params.get('q')) searchInput.value = params.get('q');
+  if (params.get('mode') === 'any') document.getElementById('anyPokemon').checked = true;
+  evsToggle.checked = params.get('evs') === '1';
+  codeToggle.checked = params.get('code') === '1';
+  reportToggle.checked = params.get('report') === '1';
+  if (['newest', 'oldest', 'random'].indexOf(params.get('sort')) >= 0) {
+    sortSelect.value = params.get('sort');
+  }
+  randomSeed = parseInt(params.get('seed'), 10) || newSeed();
+  fetchTeams(false);
+})();
+</script>
+</body>
+</html>
