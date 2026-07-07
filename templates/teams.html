@@ -51,6 +51,21 @@
     font-size: 15px;
     font-weight: 600;
   }
+  #randomButton {
+    width: 100%;
+    margin-top: 2px;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: 600;
+    background: #333;
+    color: #e0e0e0;
+    border: 1px solid #555;
+  }
+  #randomButton:hover {
+    background: #3a3a3a;
+    border-color: #ffd54f;
+    box-shadow: none;
+  }
   button {
     background-color: #ffd54f;
     color: #1e1e1e;
@@ -437,7 +452,7 @@
   .set-line { color: #bbb; }
   .set-line b { color: #e0e0e0; font-weight: 600; }
   .set-move { color: #e0e0e0; }
-  .set-move::before { content: "\25AA "; color: #ffd54f; }
+  .set-move::before { content: "- "; }
 
   /* External link confirmation dialog */
   .link-modal {
@@ -547,14 +562,21 @@
     <fieldset>
       <legend>Filters</legend>
       <label><input id="evsToggle" type="checkbox"> Has EV Spreads</label>
-      <label><input id="codeToggle" type="checkbox"> Has <span id="codeToggleLabel"> {{ code_label }}</span></label>
+      <label><input id="codeToggle" type="checkbox"> <span>Has <span id="codeToggleLabel">{{ code_label }}</span></span></label>
+      <label><input id="reportToggle" type="checkbox"> Has Team Report</label>
     </fieldset>
+    <h4>Sort Results</h4>
+    <select id="sortSelect">
+      <option value="newest" selected>Newest First</option>
+      <option value="oldest">Oldest First</option>
+      <option value="random">Random Order</option>
+    </select>
     <button id="searchButton">Search Teams</button>
+    <button id="randomButton" type="button">Show Random Team</button>
     <p class="search-hint">
       Separate Pok&eacute;mon with commas; words in one group must match the
       same team member, so "Kingambit Focus Sash" means a Kingambit
-      <b>holding</b> a Focus Sash. Small typos in Pok&eacute;mon and item
-      names are forgiven. Player, tournament, rank and team ID work too.
+      <b>holding</b> a Focus Sash. Player, tournament, rank and team ID work too.
       Click a team to view its full sets.
     </p>
     <div class="attribution-note">
@@ -615,6 +637,8 @@
   var searchInput = document.getElementById('searchInput');
   var evsToggle = document.getElementById('evsToggle');
   var codeToggle = document.getElementById('codeToggle');
+  var reportToggle = document.getElementById('reportToggle');
+  var sortSelect = document.getElementById('sortSelect');
   var teamsList = document.getElementById('teamsList');
   var loadMoreBtn = document.getElementById('loadMoreBtn');
   var resultCount = document.getElementById('resultCount');
@@ -634,6 +658,7 @@
   var loadedCount = 0;
   var totalCount = 0;
   var requestSeq = 0;
+  var randomSeed = 0;
   var teamsById = {};
   var modalPasteText = '';
   var modalSeq = 0;
@@ -711,12 +736,23 @@
     return document.getElementById('anyPokemon').checked ? 'any' : 'all';
   }
 
-  function buildApiQuery(offset) {
-    return '?limit=' + PAGE_SIZE + '&offset=' + offset +
-      '&q=' + encodeURIComponent(searchInput.value.trim()) +
+  function newSeed() {
+    return Math.floor(Math.random() * 1e9);
+  }
+
+  function buildFilterQuery() {
+    return '&q=' + encodeURIComponent(searchInput.value.trim()) +
       '&mode=' + searchMode() +
       (evsToggle.checked ? '&evs=1' : '') +
-      (codeToggle.checked ? '&code=1' : '');
+      (codeToggle.checked ? '&code=1' : '') +
+      (reportToggle.checked ? '&report=1' : '');
+  }
+
+  function buildApiQuery(offset) {
+    var sort = sortSelect.value;
+    return '?limit=' + PAGE_SIZE + '&offset=' + offset + buildFilterQuery() +
+      '&sort=' + sort +
+      (sort === 'random' ? '&seed=' + randomSeed : '');
   }
 
   function fetchTeams(append) {
@@ -894,7 +930,6 @@
 
   function closeLinkModal() {
     linkModal.classList.remove('active');
-    linkModalOpen.href = '#';
   }
 
   linkModalOpen.addEventListener('click', closeLinkModal);
@@ -937,11 +972,16 @@
     if (searchMode() === 'any') params.set('mode', 'any');
     if (evsToggle.checked) params.set('evs', '1');
     if (codeToggle.checked) params.set('code', '1');
+    if (reportToggle.checked) params.set('report', '1');
+    if (sortSelect.value !== 'newest') params.set('sort', sortSelect.value);
+    if (sortSelect.value === 'random') params.set('seed', randomSeed);
     var qs = params.toString();
     history.replaceState(null, '', '/teams/' + encodeURIComponent(currentRepo) + '/' + (qs ? '?' + qs : ''));
   }
 
   function refresh() {
+    // Each new search reshuffles; Load More keeps this seed for its pages
+    if (sortSelect.value === 'random') randomSeed = newSeed();
     updateUrl();
     fetchTeams(false);
   }
@@ -960,9 +1000,33 @@
 
   evsToggle.addEventListener('change', refresh);
   codeToggle.addEventListener('change', refresh);
+  reportToggle.addEventListener('change', refresh);
+  sortSelect.addEventListener('change', refresh);
   document.getElementById('allPokemon').addEventListener('change', refresh);
   document.getElementById('anyPokemon').addEventListener('change', refresh);
   loadMoreBtn.addEventListener('click', function() { fetchTeams(true); });
+
+  var randomButton = document.getElementById('randomButton');
+  randomButton.addEventListener('click', function() {
+    var url = '/teams/api/' + encodeURIComponent(currentRepo) +
+      '/?limit=1&offset=0' + buildFilterQuery() +
+      '&sort=random&seed=' + newSeed();
+    fetch(url)
+      .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(data) {
+        if (data.teams && data.teams.length) {
+          teamsById[data.teams[0].team_id] = data.teams[0];
+          openTeamModal(data.teams[0]);
+        } else {
+          randomButton.textContent = 'No Matching Teams';
+          setTimeout(function() { randomButton.textContent = 'Show Random Team'; }, 1500);
+        }
+      })
+      .catch(function() {
+        randomButton.textContent = 'Error — Try Again';
+        setTimeout(function() { randomButton.textContent = 'Show Random Team'; }, 1500);
+      });
+  });
 
   // Restore a shared search from the URL
   var params = new URLSearchParams(location.search);
@@ -970,6 +1034,11 @@
   if (params.get('mode') === 'any') document.getElementById('anyPokemon').checked = true;
   evsToggle.checked = params.get('evs') === '1';
   codeToggle.checked = params.get('code') === '1';
+  reportToggle.checked = params.get('report') === '1';
+  if (['newest', 'oldest', 'random'].indexOf(params.get('sort')) >= 0) {
+    sortSelect.value = params.get('sort');
+  }
+  randomSeed = parseInt(params.get('seed'), 10) || newSeed();
   fetchTeams(false);
 })();
 </script>

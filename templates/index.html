@@ -1359,7 +1359,7 @@
         background: #1e1e1e;
         border: 1px solid #555;
         width: 95%;
-        max-width: 700px;
+        max-width: 1000px;
         max-height: 90vh;
         display: flex;
         flex-direction: column;
@@ -1404,46 +1404,61 @@
         overflow-y: auto;
         flex: 1;
       }
+      /* Set cards (same layout as the Teams page viewer) */
       .team-modal-grid {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 6px;
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        gap: 12px;
       }
-      .team-modal-pokemon {
-        background: #252525;
-        border: 1px solid #444;
-        padding: 8px 10px;
-        font-size: 12px;
+      .set-card {
+        background: #222222;
+        border: 1px solid #555;
+        padding: 10px 14px;
+        font-size: 13px;
+        line-height: 1.55;
         text-align: left;
         box-sizing: border-box;
       }
-      .team-modal-pokemon .tm-name {
-        font-weight: 600;
-        color: #ffd54f;
-        font-size: 13px;
+      .set-card-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 6px;
+        margin-bottom: 6px;
       }
-      .team-modal-pokemon .tm-info {
-        color: #aaa;
-        font-size: 11px;
-        line-height: 1.6;
-      }
-      .team-modal-copy {
-        background: #2a2a2a;
-        color: #aaa;
-        border: 1px solid #555;
-        padding: 6px 14px;
-        margin-top: 10px;
-        cursor: pointer;
+      .set-card-header .image-pokemon { flex-shrink: 0; }
+      .set-card-name { font-weight: 700; font-size: 14px; color: #e0e0e0; min-width: 0; }
+      .set-card-item {
+        display: flex;
+        align-items: center;
+        gap: 4px;
         font-size: 12px;
-        display: block;
-        width: 100%;
-        text-align: center;
-        transition: color 0.2s, background 0.2s;
+        color: #999;
+        margin-left: auto;
+        white-space: nowrap;
       }
-      .team-modal-copy:hover { color: #fff; background: #333; }
-      .team-modal-copy.copied { color: #ffd54f; }
-      @media (max-width: 600px) {
-        .team-modal-grid { grid-template-columns: repeat(2, 1fr); }
+      .set-card-item .image-item { flex-shrink: 0; }
+      .set-line { color: #bbb; }
+      .set-line b { color: #e0e0e0; font-weight: 600; }
+      .set-move { color: #e0e0e0; }
+      .set-move::before { content: "- "; }
+      /* Yellow header copy button, same as the Teams page viewer */
+      .team-modal-copy {
+        background: #ffd54f;
+        color: #1e1e1e;
+        font-size: 12px;
+        font-weight: 600;
+        padding: 6px 12px;
+        border: none;
+        margin: 0 8px;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background-color 0.2s, box-shadow 0.2s;
+      }
+      .team-modal-copy:hover {
+        background: #ffca28;
+        box-shadow: 0 4px 12px rgba(255, 213, 79, 0.3);
       }
       .section-more-link {
         display: block;
@@ -2671,7 +2686,7 @@
 
     <!-- External JavaScript files -->
     {% if not calc_only %}
-    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=15"></script>
+    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=17"></script>
     {% endif %}
     {% if calc_only %}
     <script src="{{ url_for('static', filename='vendor/smogon-calc.js') }}"></script>
@@ -2839,6 +2854,7 @@
       <div class="team-modal">
         <div class="team-modal-header">
           <span class="team-modal-title" id="teamModalTitle">Team Details</span>
+          <button class="team-modal-copy" id="teamModalCopy" type="button">Copy Team</button>
           <button class="team-modal-close" id="teamModalClose" title="Close">&times;</button>
         </div>
         <div class="team-modal-body" id="teamModalBody"></div>

@@ -2228,7 +2228,7 @@ def _vgcpastes_sprite(name):
     return sprite
 
 
-def _vgcpastes_item_sprite(item_name):
+def _item_icon_sprite(item_name):
     """Item icon (row, col) on itemicons-sheet.png, or None if unknown."""
     key = re.sub(r"[^a-z0-9]+", "", (item_name or "").lower())
     spritenum = itemDetails.get(key, {}).get("spritenum")
@@ -2289,13 +2289,19 @@ def api_vgcpastes_teams(repo_id):
     query = request.args.get("q", "")
     limit = min(request.args.get("limit", type=int) or 60, 300)
     offset = max(request.args.get("offset", type=int) or 0, 0)
+    sort = request.args.get("sort", "newest")
+    if sort not in ("newest", "oldest", "random"):
+        sort = "newest"
     teams, total = vgcpastes.search_teams(
         repo_id,
         query,
         require_evs=request.args.get("evs") == "1",
         require_code=request.args.get("code") == "1",
+        require_report=request.args.get("report") == "1",
         match_any=request.args.get("mode") == "any",
         vocab=_vgcpastes_vocab(),
+        sort=sort,
+        seed=request.args.get("seed", type=int),
     )
     return jsonify({
         "total": total,
@@ -2312,7 +2318,7 @@ def api_vgcpastes_teams(repo_id):
                         "name": name,
                         "item": t["items"][i] if i < len(t["items"]) else "",
                         "sprite": list(_vgcpastes_sprite(name)),
-                        "item_sprite": _vgcpastes_item_sprite(
+                        "item_sprite": _item_icon_sprite(
                             t["items"][i] if i < len(t["items"]) else ""
                         ),
                     }
@@ -2827,6 +2833,7 @@ def api_tournament_teams(tournament_id, pokemon_name):
                         "pokemon": s["pokemon"],
                         "sprite": list(get_pokemon_sprite(s["pokemon"])),
                         "item": s.get("item", ""),
+                        "item_sprite": _item_icon_sprite(s.get("item", "")),
                         "ability": s.get("ability", ""),
                         "tera_type": s.get("tera_type", ""),
                         "nature": s.get("nature", ""),
@@ -3034,6 +3041,7 @@ def _limitless_team_entry(entry):
                 "pokemon": s["pokemon"],
                 "sprite": list(get_pokemon_sprite(s["pokemon"])),
                 "item": s["item"],
+                "item_sprite": _item_icon_sprite(s["item"]),
                 "ability": s["ability"],
                 "tera_type": s["tera"],
                 "nature": s["nature"],
@@ -3218,6 +3226,7 @@ def api_pokemon_tournament_teams(format_code, pokemon_name):
                         "pokemon": s["pokemon"],
                         "sprite": list(get_pokemon_sprite(s["pokemon"])),
                         "item": s.get("item", ""),
+                        "item_sprite": _item_icon_sprite(s.get("item", "")),
                         "ability": s.get("ability", ""),
                         "tera_type": s.get("tera_type", ""),
                         "nature": s.get("nature", ""),

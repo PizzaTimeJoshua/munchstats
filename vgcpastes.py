@@ -17,6 +17,7 @@ import difflib
 import io
 import json
 import os
+import random
 import re
 import threading
 import time
@@ -277,7 +278,8 @@ def _group_matches(team, terms):
 
 
 def search_teams(repo_id, query="", limit=None, require_evs=False,
-                 require_code=False, match_any=False, vocab=None):
+                 require_code=False, require_report=False, match_any=False,
+                 vocab=None, sort="newest", seed=None):
     """Return (matching teams, total match count) for a comma-group query.
 
     The query splits on commas into groups; within a group every term
@@ -287,12 +289,18 @@ def search_teams(repo_id, query="", limit=None, require_evs=False,
     `vocab` ({normalized: canonical} of Pokémon/item names) enables fuzzy
     spelling correction; corrections only ever widen a group's matches,
     since the original terms are always tried too.
+
+    `sort` is "newest" (sheet order), "oldest", or "random"; a random
+    order is deterministic for a given `seed` so paged requests sharing
+    one seed see a single consistent shuffle.
     """
     teams = get_teams(repo_id)
     if require_evs:
         teams = [t for t in teams if t["has_evs"]]
     if require_code:
         teams = [t for t in teams if t["code"]]
+    if require_report:
+        teams = [t for t in teams if t["report_link"]]
     groups = [g.split() for g in query.strip().lower().split(",")]
     groups = [g for g in groups if g]
     if groups:
@@ -309,6 +317,13 @@ def search_teams(repo_id, query="", limit=None, require_evs=False,
                 for g, c in checks
             )
         ]
+    if sort == "oldest":
+        teams = teams[::-1]
+    elif sort == "random":
+        # Copy first: without filters `teams` is the memoized cache list,
+        # which an in-place shuffle would corrupt for later requests.
+        teams = list(teams)
+        random.Random(seed).shuffle(teams)
     total = len(teams)
     if limit is not None:
         teams = teams[:limit]
