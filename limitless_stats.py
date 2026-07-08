@@ -149,30 +149,56 @@ def get_vgc_tournaments():
 
 
 def _format_matches_name(format_id, name):
-    """True when a tournament name references the format id as a token."""
+    """True when a tournament name references the format id as a token.
+
+    A hyphen in the id matches an optional hyphen or space in the name, so
+    the "M-B" regulation is found in "Reg M-B", "Reg MB" and
+    "Champions-MB" alike (organizers spell it inconsistently).
+    """
+    token = r"[-\s]?".join(re.escape(p) for p in format_id.split("-"))
     return re.search(
-        r"(?<![A-Za-z0-9])" + re.escape(format_id) + r"(?![A-Za-z0-9])",
+        r"(?<![A-Za-z0-9])" + token + r"(?![A-Za-z0-9])",
         name,
         re.IGNORECASE,
     )
 
 
+def _name_regulation(name, format_ids):
+    """Return the format id explicitly named in a tournament title, or None.
+
+    An explicit regulation in the title is more reliable than the API's
+    format tag: organizers routinely leave the format dropdown on the
+    previous regulation (so a Reg M-B event is tagged "M-A") or on
+    "CUSTOM", while still naming the event for the regulation it actually
+    runs. Only titles that name a known regulation trigger this override.
+    """
+    if not name:
+        return None
+    for fid in format_ids:
+        if _format_matches_name(fid, name):
+            return fid
+    return None
+
+
 def get_tournament_list(format_id):
     """Return the tournaments belonging to one format.
 
-    Tournaments run with tweaked rules are tagged "CUSTOM" instead of a
-    regulation (e.g. the 898-player Smogon VGC Major Live "Reg M-B");
-    count them toward a format when their name says so.
+    An explicit regulation in the tournament name wins over the API's
+    format tag, which organizers routinely leave on the previous
+    regulation or on "CUSTOM" (e.g. the 898-player Smogon VGC Major Live
+    "Reg M-B"). Tournaments whose name references no known regulation fall
+    back to their API format tag.
     """
-    return [
-        t for t in get_vgc_tournaments()
-        if t.get("format") == format_id
-        or (
-            t.get("format") == "CUSTOM"
-            and t.get("name")
-            and _format_matches_name(format_id, t["name"])
-        )
-    ]
+    format_ids = list(get_vgc_formats())
+    result = []
+    for t in get_vgc_tournaments():
+        named = _name_regulation(t.get("name"), format_ids)
+        if named is not None:
+            if named == format_id:
+                result.append(t)
+        elif t.get("format") == format_id:
+            result.append(t)
+    return result
 
 
 # format_id -> {"key": cached-event ids, "value": bool}; avoids re-reading
