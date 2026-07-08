@@ -181,7 +181,9 @@ def is_local_month(month):
     return os.path.isdir(os.path.join(DATA_DIRECTORY, month))
 
 
-@lru_cache(maxsize=4)
+# maxsize=2 (one format at two ratings): each parsed chaos dict is 17-40 MB,
+# so a bigger cache risks the 512 MB dyno quota when crawlers walk old months.
+@lru_cache(maxsize=2)
 def fetch_remote_format_data(month, format_code, rating):
     """Fetch a full format JSON from Smogon and return its data dict. Cached."""
     # Try variants: base, DLC1, DLC2, H1, H2
