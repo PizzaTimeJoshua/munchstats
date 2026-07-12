@@ -418,6 +418,7 @@
     margin: 0 0 12px 0;
   }
   .team-modal-meta .meta-rank { color: #ffd54f; font-weight: 600; }
+  #teamModalLinks { margin-bottom: 12px; }
   .team-modal-status { color: #bbb; font-size: 14px; padding: 20px 0; text-align: center; }
   .set-grid {
     display: grid;
@@ -609,6 +610,7 @@
     </div>
     <div class="team-modal-body">
       <p class="team-modal-meta" id="teamModalMeta"></p>
+      <div class="team-card-actions" id="teamModalLinks"></div>
       <div class="team-modal-status" id="teamModalStatus" style="display: none;">Loading sets...</div>
       <div class="set-grid" id="teamModalSets"></div>
     </div>
@@ -648,6 +650,7 @@
   var modal = document.getElementById('teamModal');
   var modalTitle = document.getElementById('teamModalTitle');
   var modalMeta = document.getElementById('teamModalMeta');
+  var modalLinks = document.getElementById('teamModalLinks');
   var modalStatus = document.getElementById('teamModalStatus');
   var modalSets = document.getElementById('teamModalSets');
   var modalCopy = document.getElementById('teamModalCopy');
@@ -707,16 +710,23 @@
     return meta.join(' &middot; ');
   }
 
+  function codeChipHtml(team) {
+    if (!team.code) return '';
+    return '<span class="team-code-chip" data-code="' + esc(team.code) +
+      '" title="Click to copy"><span class="code-label">' + esc(codeLabel) +
+      '</span>' + esc(team.code) + '</span>';
+  }
+
+  function teamLinksHtml(team) {
+    return linkBtn(team.source_link, 'Source') +
+      linkBtn(team.report_link, 'Report') +
+      linkBtn(team.other_link, 'More') +
+      codeChipHtml(team);
+  }
+
   function teamCardHtml(team) {
     var actions = '<button class="team-link-btn view-team-btn" type="button">View Team</button>' +
-      linkBtn(team.source_link, 'Source') +
-      linkBtn(team.report_link, 'Report') +
-      linkBtn(team.other_link, 'More');
-    if (team.code) {
-      actions += '<span class="team-code-chip" data-code="' + esc(team.code) +
-        '" title="Click to copy"><span class="code-label">' + esc(codeLabel) +
-        '</span>' + esc(team.code) + '</span>';
-    }
+      teamLinksHtml(team);
     if (!team.has_evs) {
       actions += '<span class="no-evs-tag" title="The Pokepaste for this team has no EV spreads">No EVs</span>';
     }
@@ -861,6 +871,8 @@
     modalTitle.textContent = team.team_id + ' — ' + (team.description || 'Untitled Team');
     modalMeta.innerHTML = metaHtml(team) +
       (team.date_display ? (metaHtml(team) ? ' &middot; ' : '') + esc(team.date_display) : '');
+    modalLinks.innerHTML = teamLinksHtml(team);
+    modalLinks.style.display = modalLinks.innerHTML ? '' : 'none';
     modalPasteLink.href = team.pokepaste || '#';
     modalPasteLink.style.display = team.pokepaste ? '' : 'none';
     modalCopy.style.display = 'none';
@@ -940,25 +952,33 @@
 
   /* ── List interactions ── */
 
-  teamsList.addEventListener('click', function(e) {
+  // Shared by the results list and the team modal's links row
+  function handleTeamActionClick(e) {
     var chip = e.target.closest('.team-code-chip');
     if (chip) {
-      if (!navigator.clipboard) return;
+      if (!navigator.clipboard) return true;
       navigator.clipboard.writeText(chip.dataset.code).then(function() {
         var label = chip.querySelector('.code-label');
         var original = label.textContent;
         label.textContent = 'Copied!';
         setTimeout(function() { label.textContent = original; }, 1200);
       });
-      return;
+      return true;
     }
     var ext = e.target.closest('a.external-link');
     if (ext) {
       // Sheet-sourced links (Source/Report/More) confirm before leaving
       e.preventDefault();
       openLinkModal(ext.href);
-      return;
+      return true;
     }
+    return false;
+  }
+
+  modalLinks.addEventListener('click', handleTeamActionClick);
+
+  teamsList.addEventListener('click', function(e) {
+    if (handleTeamActionClick(e)) return;
     if (e.target.closest('a')) return;
     var card = e.target.closest('.team-card');
     if (!card) return;
