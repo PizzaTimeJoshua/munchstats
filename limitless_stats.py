@@ -17,6 +17,7 @@ import os
 import re
 import threading
 import time
+from collections import OrderedDict
 from datetime import datetime, timedelta, timezone
 
 import requests
@@ -26,7 +27,7 @@ LIMITLESS_CACHE_DIR = os.path.join("cache", "limitless")
 STANDINGS_DIR = os.path.join(LIMITLESS_CACHE_DIR, "standings")
 LIST_CACHE_TTL = 3600  # tournament lists refresh hourly
 FORMATS_CACHE_TTL = 12 * 3600  # /games changes rarely
-PLAYER_TIERS = [25, 50, 100, 200]  # usage-segment thresholds (tournament size)
+PLAYER_TIERS = [25, 50, 100, 200, 500]  # usage-segment thresholds (tournament size)
 MIN_PLAYERS = PLAYER_TIERS[0]  # ignore small casual/practice events
 WINDOW_DAYS = 30  # rolling metagame window
 COMPLETION_GRACE_HOURS = 12  # skip events until date + grace < now
@@ -35,6 +36,7 @@ FETCH_DELAY_SECONDS = 0.3  # politeness delay between standings fetches
 FAILED_FETCH_COOLDOWN = 3600  # seconds before retrying a failed standings fetch
 LIST_FETCH_LIMIT = 500
 LIST_MAX_PAGES = 3  # page until the rolling window is covered
+EVENT_MEM_MAX = 6  # single-event bundles kept in RAM (dyno is RAM-bound)
 API_KEY = os.environ.get("LIMITLESS_API_KEY", "")
 ATTRIBUTION_TEXT = "Data from Limitless TCG"
 ATTRIBUTION_URL = "https://play.limitlesstcg.com/"
@@ -180,8 +182,8 @@ def _name_regulation(name, format_ids):
     return None
 
 
-def get_tournament_list(format_id):
-    """Return the tournaments belonging to one format.
+def resolve_format_id(tournament, format_ids=None):
+    """Return the regulation a tournament actually runs.
 
     An explicit regulation in the tournament name wins over the API's
     format tag, which organizers routinely leave on the previous
@@ -189,16 +191,19 @@ def get_tournament_list(format_id):
     "Reg M-B"). Tournaments whose name references no known regulation fall
     back to their API format tag.
     """
+    if format_ids is None:
+        format_ids = list(get_vgc_formats())
+    named = _name_regulation(tournament.get("name"), format_ids)
+    return named or tournament.get("format") or ""
+
+
+def get_tournament_list(format_id):
+    """Return the tournaments belonging to one format."""
     format_ids = list(get_vgc_formats())
-    result = []
-    for t in get_vgc_tournaments():
-        named = _name_regulation(t.get("name"), format_ids)
-        if named is not None:
-            if named == format_id:
-                result.append(t)
-        elif t.get("format") == format_id:
-            result.append(t)
-    return result
+    return [
+        t for t in get_vgc_tournaments()
+        if resolve_format_id(t, format_ids) == format_id
+    ]
 
 
 # format_id -> {"key": cached-event ids, "value": bool}; avoids re-reading
@@ -300,11 +305,13 @@ def _fetch_cooling_down(tournament_id):
     return time.time() - _failed_fetches.get(tournament_id, 0) < FAILED_FETCH_COOLDOWN
 
 
-def get_standings(tournament_id, fetch=True):
+def get_standings(tournament_id, fetch=True, meta=None):
     """Return cached standings for a tournament, fetching once if missing.
 
     Finished tournaments never change, so the cache has no TTL. Returns
-    None only when the standings were never fetched successfully.
+    None only when the standings were never fetched successfully. `meta`
+    (name/date/players) is persisted alongside a fresh fetch so event
+    pages can still label a tournament after it leaves the rolling list.
     """
     path = _standings_path(tournament_id)
     cached = _cache_read(path)
@@ -319,8 +326,14 @@ def get_standings(tournament_id, fetch=True):
     _failed_fetches.pop(tournament_id, None)
     if not isinstance(data, list):
         data = []
-    _cache_write(path, {"id": tournament_id, "standings": data})
+    _cache_write(path, {"id": tournament_id, "meta": meta or {}, "standings": data})
     return data
+
+
+def _cached_event_meta(tournament_id):
+    """Return the meta persisted with a standings file, or None."""
+    cached = _cache_read(_standings_path(tournament_id))
+    return (cached or {}).get("meta") or None
 
 
 def normalize_limitless_pokemon(entry, pokedex):
@@ -505,7 +518,7 @@ def _cached_standings_map(format_id):
     if missing and _refresh_lock.acquire(blocking=False):
         try:
             for t in missing[:MAX_STANDINGS_PER_REFRESH]:
-                get_standings(t["id"])
+                get_standings(t["id"], meta=_event_meta(t))
                 time.sleep(FETCH_DELAY_SECONDS)
         finally:
             _refresh_lock.release()
@@ -561,6 +574,23 @@ def build_limitless_aggregate(format_id, pokedex):
     return data
 
 
+def _team_entry(player, meta, pokedex):
+    """Normalize one standings row into a team entry, or None without a team."""
+    decklist = player.get("decklist")
+    if not decklist:
+        return None
+    slots = [s for s in (_normalize_slot(x, pokedex) for x in decklist) if s["pokemon"]]
+    if not slots:
+        return None
+    return {
+        "player": player.get("name") or player.get("player") or "",
+        "placing": player.get("placing"),
+        "record": player.get("record") or {},
+        "tournament": meta,
+        "team": slots,
+    }
+
+
 def get_all_teams(format_id, pokedex):
     """Return every team from a format's cached standings, best first.
 
@@ -585,22 +615,11 @@ def get_all_teams(format_id, pokedex):
     for tid, standings in standings_by_tid.items():
         meta = meta_by_tid[tid]
         for player in standings:
-            decklist = player.get("decklist")
-            if not decklist:
+            entry = _team_entry(player, meta, pokedex)
+            if entry is None:
                 continue
-            slots = [s for s in (_normalize_slot(x, pokedex) for x in decklist) if s["pokemon"]]
-            if not slots:
-                continue
-            name = player.get("name") or player.get("player") or ""
-            entry = {
-                "player": name,
-                "placing": player.get("placing"),
-                "record": player.get("record") or {},
-                "tournament": meta,
-                "team": slots,
-            }
-            search_parts = [name, meta["name"]]
-            for s in slots:
+            search_parts = [entry["player"], meta["name"]]
+            for s in entry["team"]:
                 search_parts += [s["pokemon"], s["item"], s["ability"], s["tera"], s["nature"]]
                 search_parts += s["moves"]
             entry["search"] = " ".join(p for p in search_parts if p).lower()
@@ -609,6 +628,80 @@ def get_all_teams(format_id, pokedex):
     teams.sort(key=lambda e: (e["placing"] or 9999, -(e["tournament"].get("players") or 0)))
     _teams_mem[format_id] = {"key": key, "teams": teams}
     return teams
+
+
+def _event_meta(tournament):
+    """Normalize an API tournament object into the meta served for one event."""
+    return {
+        "id": tournament.get("id", ""),
+        "name": tournament.get("name", ""),
+        "date": tournament.get("date", ""),
+        "players": tournament.get("players", 0),
+        "format": resolve_format_id(tournament),
+    }
+
+
+def find_event(tournament_id):
+    """Return the recent-list API object for a tournament id, or None."""
+    for t in get_vgc_tournaments():
+        if t.get("id") == tournament_id:
+            return t
+    return None
+
+
+# Single-event bundles, LRU-bounded: standings never change, so entries
+# are immortal until evicted, and EVENT_MEM_MAX keeps a burst of distinct
+# event pages from ballooning the dyno's memory.
+_event_mem = OrderedDict()
+
+
+def get_event_bundle(tournament_id, pokedex):
+    """Return {"meta", "format_id", "aggregate", "teams"} for one event.
+
+    Serves from cached standings; fetches once only for ids present in
+    the recent tournament list, so arbitrary deep-link ids can't spend
+    API quota. Returns None when no standings with decklists exist.
+    """
+    bundle = _event_mem.get(tournament_id)
+    if bundle is not None:
+        _event_mem.move_to_end(tournament_id)
+        return bundle
+
+    listed = find_event(tournament_id)
+    standings = get_standings(
+        tournament_id,
+        fetch=listed is not None,
+        meta=_event_meta(listed) if listed else None,
+    )
+    if not standings:
+        return None
+
+    meta = (
+        (_event_meta(listed) if listed else None)
+        or _cached_event_meta(tournament_id)
+        or {"id": tournament_id, "name": "Online Tournament",
+            "date": "", "players": 0, "format": ""}
+    )
+
+    teams = []
+    for player in standings:
+        entry = _team_entry(player, meta, pokedex)
+        if entry is not None:
+            teams.append(entry)
+    if not teams:
+        return None
+    teams.sort(key=lambda e: e["placing"] or 9999)
+
+    bundle = {
+        "meta": meta,
+        "format_id": meta.get("format") or "",
+        "aggregate": aggregate_standings({tournament_id: standings}, pokedex),
+        "teams": teams,
+    }
+    _event_mem[tournament_id] = bundle
+    while len(_event_mem) > EVENT_MEM_MAX:
+        _event_mem.popitem(last=False)
+    return bundle
 
 
 def record_points(record):

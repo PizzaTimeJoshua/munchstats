@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tournaments | MunchStats{% if not no_data %} | {% if source == "limitless" %}{{ selected_format_name }} (Online){% else %}{{ selected_tournament.name }}{% endif %}{% endif %}</title>
+<title>Tournaments | MunchStats{% if not no_data %} | {% if source == "limitless" %}{{ selected_format_name }} (Online){% elif source == "limitless_event" %}{{ selected_event.name }}{% else %}{{ selected_tournament.name }}{% endif %}{% endif %}</title>
 <meta property="og:title" content="Tournaments | MunchStats">
 <meta name="description" content="VGC Tournament usage statistics from Regionals, Internationals, Worlds, and Limitless online tournaments.">
 <meta name="twitter:card" content="summary_large_image">
@@ -166,16 +166,18 @@
   }
   /* Buttons */
   .rating-buttons {
-    text-align: center;
-    max-height: 50px;
-    padding-bottom: 10px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    padding: 5px 0 10px;
   }
   .rating-button {
     background-color: #222222;
     color: #e0e0e0;
     border: 1px solid #555;
-    padding: 8px 12px;
-    margin: 5px;
+    padding: 8px 10px;
+    margin: 0;
     cursor: pointer;
     transition: background-color 0.3s;
   }
@@ -457,7 +459,7 @@
     background: #333;
     color: #ccc;
   }
-  #usage-view, #standings-view, #results-view {
+  #usage-view, #standings-view, #results-view, #events-view {
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: repeat(auto-fill, 310px);
@@ -465,8 +467,22 @@
     justify-content: space-evenly;
     width: 100%;
   }
-  #standings-view .teams-container, #results-view .teams-container {
+  #standings-view .teams-container, #results-view .teams-container, #events-view .teams-container {
     max-width: 100%;
+  }
+  /* Event browser rows */
+  .event-date {
+    color: #888;
+    font-size: 12px;
+    min-width: 78px;
+    text-align: left;
+    flex-shrink: 0;
+  }
+  .events-count {
+    color: #666;
+    font-size: 12px;
+    text-align: left;
+    margin: 0 0 8px 0;
   }
   /* Teams section */
   .teams-container {
@@ -693,8 +709,8 @@
     .grid-container { grid-template-columns: 1fr; }
     /* Right panel + views: single fluid column */
     .right { grid-template-columns: 1fr; justify-items: stretch; }
-    #usage-view, #standings-view, #results-view { grid-template-columns: 1fr; }
-    #usage-view > div, #standings-view > div, #results-view > div { width: 100%; }
+    #usage-view, #standings-view, #results-view, #events-view { grid-template-columns: 1fr; }
+    #usage-view > div, #standings-view > div, #results-view > div, #events-view > div { width: 100%; }
     .team-detail-grid { grid-template-columns: repeat(2, 1fr); }
     .grid-container { grid-gap: 15px; padding: 0 8px; }
     /* Tab bar: shrink padding, hide social buttons */
@@ -706,9 +722,7 @@
     .meta-list, .pokemon-list { width: 100%; margin-right: 0; }
     .meta-button { width: 100%; }
     .left input[type="text"] { width: 100%; box-sizing: border-box; margin: 5px 0; }
-    /* Filter rows: allow wrapping, remove height clip */
-    .rating-buttons { max-height: none; display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; }
-    .rating-button { padding: 6px 10px; margin: 0; font-size: 12px; }
+    .rating-button { padding: 6px 10px; font-size: 12px; }
     /* Pokemon list: allow names to truncate so % doesn't overlap */
     .pokemon-button .left-text { overflow: hidden; text-overflow: ellipsis; min-width: 0; }
     .pokemon-button .right-text { flex-shrink: 0; }
@@ -721,7 +735,7 @@
     .left-container { width: 100%; height: auto; min-height: 28px; }
     .view-toggle { max-width: 100%; }
     .teams-container { max-width: 100%; }
-    #standings-view input[type="text"], #results-view input[type="text"] { margin: 0 0 10px 0; }
+    #standings-view input[type="text"], #results-view input[type="text"], #events-view input[type="text"] { margin: 0 0 10px 0; }
     /* Team cards: compact layout */
     .team-card { padding: 8px 10px; gap: 6px; }
     .team-player { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
@@ -806,7 +820,7 @@
             <span class="info-stat-value" id="info-teams">{{ total_teams }}</span>
           </div>
         </div>
-        <div class="info-format" id="info-context">{% if source == "limitless" %}{{ selected_format_name }} &middot; {{ tournament_count }} online tournaments &middot; last {{ window_days }} days &middot; {{ min_players }}+ players{% else %}{{ selected_tournament.name }}{% endif %}</div>
+        <div class="info-format" id="info-context">{% if source == "limitless" %}{{ selected_format_name }} &middot; {{ tournament_count }} online tournaments &middot; last {{ window_days }} days &middot; {{ min_players }}+ players{% elif source == "limitless_event" %}{{ selected_event.name }}{% if selected_event.players %} &middot; {{ selected_event.players }} players{% endif %}{% if selected_event.date %} &middot; {{ selected_event.date[:10] }}{% endif %}{% else %}{{ selected_tournament.name }}{% endif %}</div>
       </div>
 
       <!-- Tournament / format search -->
@@ -821,7 +835,7 @@
           <li class="tournament-group-header">Online (Limitless)</li>
           {% for fmt in limitless_formats %}
           <li>
-            <button type="button" onclick='selectFormat("{{ fmt[0] }}")' data-source="limitless" data-id="{{ fmt[0] }}" class="meta-button{% if source == "limitless" and fmt[0] == selected_format_id %} active{% endif %}">
+            <button type="button" onclick='selectFormat("{{ fmt[0] }}")' data-source="limitless" data-id="{{ fmt[0] }}" class="meta-button{% if source != "official" and fmt[0] == selected_format_id %} active{% endif %}">
               {{ fmt[1] }}
             </button>
           </li>
@@ -896,6 +910,9 @@
       <div class="view-toggle">
         <button type="button" class="view-toggle-btn active" id="btn-usage-view" onclick="switchView('usage')">Usage Stats</button>
         <button type="button" class="view-toggle-btn" id="btn-secondary-view" onclick="switchView('secondary')">{% if source == "limitless" %}Top Teams{% else %}Standings{% endif %}</button>
+        <!-- Doubles as the events browser (Limitless format) and the
+             back-to-events navigation (single event). -->
+        <button type="button" class="view-toggle-btn" id="btn-events-view" onclick="eventsButton()"{% if source == "official" %} style="display:none"{% endif %}>{% if source == "limitless_event" %}&#8249; All Events{% else %}Events{% endif %}</button>
       </div>
 
       <!-- USAGE STATS VIEW -->
@@ -1080,13 +1097,24 @@
           </div>
         </div>
       </div>
+
+      <!-- EVENTS BROWSER (individual Limitless tournaments) -->
+      <div id="events-view" style="display: none;">
+        <div class="teams-container">
+          <input type="text" id="eventsSearchInput" placeholder="Search tournaments..." style="width: 100%; box-sizing: border-box; margin-bottom: 10px;">
+          <p class="events-count" id="events-count"></p>
+          <div id="events-list">
+            <p style="color: #666; font-size: 13px;">No tournaments found.</p>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
   <div style="text-align: center; padding: 20px; margin-top: 20px;">
     <h6 style="color: #888;">
       <span id="attribution-official"{% if source != "official" %} style="display:none"{% endif %}>Tournament data from <a href="https://rk9.gg" target="_blank" style="color: #ffd54f;">RK9.gg</a></span>
-      <span id="attribution-limitless"{% if source != "limitless" %} style="display:none"{% endif %}>{{ limitless_attribution }} &mdash; <a href="{{ limitless_attribution_url }}" target="_blank" style="color: #ffd54f;">play.limitlesstcg.com</a></span>
+      <span id="attribution-limitless"{% if source == "official" %} style="display:none"{% endif %}>{{ limitless_attribution }} &mdash; <a href="{{ limitless_attribution_url }}" target="_blank" style="color: #ffd54f;">play.limitlesstcg.com</a></span>
     </h6>
   </div>
   {% endif %}
@@ -1098,11 +1126,13 @@
     window.hubSource = "{{ source }}";
     window.currentTournamentId = "{{ selected_tournament.id if source == 'official' else '' }}";
     window.currentDayFilter = "{{ day_filter if source == 'official' else 'all' }}";
-    window.currentFormatId = "{{ selected_format_id if source == 'limitless' else '' }}";
+    window.currentFormatId = "{{ selected_format_id if source != 'official' else '' }}";
     window.currentSegment = "{{ segment if source == 'limitless' else '' }}";
+    window.currentEventId = "{{ selected_event.id if source == 'limitless_event' else '' }}";
     window.currentPokemonName = "{{ selected_pokemon }}";
+    window.includedTournaments = {{ (included_tournaments if source == 'limitless' else []) | tojson }};
   </script>
-  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=8"></script>
+  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=9"></script>
   {% endif %}
 </body>
 </html>

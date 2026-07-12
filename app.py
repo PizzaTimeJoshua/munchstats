@@ -2784,13 +2784,8 @@ def tournaments_page(tournament_id="", day_filter="all", pokemon_name=""):
     return _render_tournament_hub_empty()
 
 
-@app.route("/tournaments/api/<tournament_id>/<day_filter>/")
-@app.route("/tournaments/api/<tournament_id>/<day_filter>/<pokemon_name>")
-def api_tournament_data(tournament_id, day_filter="all", pokemon_name=""):
-    data = compile_tournament_page_data(tournament_id, day_filter, pokemon_name)
-    if data is None:
-        return jsonify({"error": "No data found"}), 404
-    # Convert tuple sprites to lists for JSON serialization
+def _hub_json(data):
+    """Convert a hub page-data dict's sprite tuples for JSON serialization."""
     result = dict(data)
     result["current_pokemon"] = list(result["current_pokemon"])
     result["current_pokemon"][3] = list(result["current_pokemon"][3])
@@ -2800,12 +2795,20 @@ def api_tournament_data(tournament_id, day_filter="all", pokemon_name=""):
     result["teammates_list"] = [
         [t[0], t[1], list(t[2])] for t in result["teammates_list"]
     ]
-    # Convert item sprite tuples
     result["items_list"] = [
         [i[0], i[1], i[2], list(i[3])] if len(i) > 3 else i
         for i in result["items_list"]
     ]
-    return jsonify(result)
+    return result
+
+
+@app.route("/tournaments/api/<tournament_id>/<day_filter>/")
+@app.route("/tournaments/api/<tournament_id>/<day_filter>/<pokemon_name>")
+def api_tournament_data(tournament_id, day_filter="all", pokemon_name=""):
+    data = compile_tournament_page_data(tournament_id, day_filter, pokemon_name)
+    if data is None:
+        return jsonify({"error": "No data found"}), 404
+    return jsonify(_hub_json(data))
 
 
 @app.route("/tournaments/api/<tournament_id>/teams/<pokemon_name>")
@@ -2892,6 +2895,57 @@ def api_tournament_standings(tournament_id):
 # Aggregated usage from Limitless online VGC tournaments (attribution in
 # the template). Data is fetched lazily and cached by limitless_stats.
 
+def _compile_limitless_pokemon_context(pokemon_index, total_teams, pokemon_name):
+    """Pokemon selection + display lists shared by format and event pages.
+
+    Mirrors the selection logic of compile_tournament_page_data, but the
+    win rate comes precomputed from the Limitless aggregate.
+    """
+    if not pokemon_index:
+        return None
+
+    sorted_pokemon = sorted(
+        pokemon_index.keys(),
+        key=lambda n: pokemon_index[n].get("usage_pct", 0),
+        reverse=True,
+    )
+
+    selected_pokemon = sorted_pokemon[0]
+    if pokemon_name:
+        matched = fuzzy_match(pokemon_name, list(pokemon_index.keys()))
+        if matched:
+            selected_pokemon = matched
+
+    poke_data = pokemon_index[selected_pokemon]
+    usage_pct = poke_data.get("usage_pct", 0)
+    usage_count = poke_data.get("usage_count", 0)
+    rank = sorted_pokemon.index(selected_pokemon) + 1
+    win_rate = poke_data.get("win_rate")
+
+    return {
+        "pokemon_names": [
+            [
+                name,
+                "{:.1f}".format(pokemon_index[name].get("usage_pct", 0)),
+                get_pokemon_sprite(name),
+            ]
+            for name in sorted_pokemon
+        ],
+        "selected_pokemon": selected_pokemon,
+        "current_pokemon": [selected_pokemon, usage_pct, rank, get_pokemon_sprite(selected_pokemon)],
+        "win_rate": "{:.1f}".format(win_rate) if win_rate is not None else "—",
+        "base_stats": compile_top_data({"_": 1}, selected_pokemon, "Stats") if pokedexEntries else [],
+        "pokemon_types": compile_top_data({"_": 1}, selected_pokemon, "Types") if pokedexEntries else [],
+        "moves_list": compile_tournament_category(poke_data, "moves", usage_count),
+        "items_list": compile_tournament_category(poke_data, "items", usage_count),
+        "abilities_list": compile_tournament_category(poke_data, "abilities", usage_count),
+        "tera_types_list": compile_tournament_category(poke_data, "tera_types", usage_count),
+        "natures_list": compile_tournament_category(poke_data, "natures", usage_count),
+        "teammates_list": compile_tournament_teammates(poke_data, usage_count),
+        "total_teams": total_teams,
+    }
+
+
 def compile_limitless_page_data(format_id="", segment="", pokemon_name=""):
     """Compile all data needed for the Limitless usage stats page."""
     # Offer only formats that currently have eligible tournaments; dead
@@ -2915,71 +2969,21 @@ def compile_limitless_page_data(format_id="", segment="", pokemon_name=""):
     if segment not in segments:
         segment = segment_options[0]
     filter_data = segments.get(segment, {})
-    pokemon_index = filter_data.get("pokemon", {})
-    total_teams = filter_data.get("total_teams", 1)
 
-    if not pokemon_index:
-        return None
-
-    sorted_pokemon = sorted(
-        pokemon_index.keys(),
-        key=lambda n: pokemon_index[n].get("usage_pct", 0),
-        reverse=True,
+    ctx = _compile_limitless_pokemon_context(
+        filter_data.get("pokemon", {}),
+        filter_data.get("total_teams", 1),
+        pokemon_name,
     )
-
-    selected_pokemon = sorted_pokemon[0] if sorted_pokemon else ""
-    if pokemon_name:
-        matched = fuzzy_match(pokemon_name, list(pokemon_index.keys()))
-        if matched:
-            selected_pokemon = matched
-
-    if not selected_pokemon or selected_pokemon not in pokemon_index:
+    if ctx is None:
         return None
 
-    poke_data = pokemon_index[selected_pokemon]
-    usage_pct = poke_data.get("usage_pct", 0)
-    usage_count = poke_data.get("usage_count", 0)
-    rank = sorted_pokemon.index(selected_pokemon) + 1
-    win_rate = poke_data.get("win_rate")
-
-    moves_list = compile_tournament_category(poke_data, "moves", usage_count)
-    items_list = compile_tournament_category(poke_data, "items", usage_count)
-    abilities_list = compile_tournament_category(poke_data, "abilities", usage_count)
-    tera_types_list = compile_tournament_category(poke_data, "tera_types", usage_count)
-    natures_list = compile_tournament_category(poke_data, "natures", usage_count)
-    teammates_list = compile_tournament_teammates(poke_data, usage_count)
-
-    base_stats = compile_top_data({"_": 1}, selected_pokemon, "Stats") if pokedexEntries else []
-    pokemon_types = compile_top_data({"_": 1}, selected_pokemon, "Types") if pokedexEntries else []
-
-    pokemon_names = []
-    for name in sorted_pokemon:
-        pct = pokemon_index[name].get("usage_pct", 0)
-        pokemon_names.append([
-            name,
-            "{:.1f}".format(pct),
-            get_pokemon_sprite(name),
-        ])
-
-    return {
+    ctx.update({
         "formats": [[code, disp] for code, disp in formats.items()],
         "selected_format_id": format_id,
         "selected_format_name": formats.get(format_id, format_id),
         "segment": segment,
         "segment_options": segment_options,
-        "pokemon_names": pokemon_names,
-        "selected_pokemon": selected_pokemon,
-        "current_pokemon": [selected_pokemon, usage_pct, rank, get_pokemon_sprite(selected_pokemon)],
-        "win_rate": "{:.1f}".format(win_rate) if win_rate is not None else "—",
-        "base_stats": base_stats,
-        "pokemon_types": pokemon_types,
-        "moves_list": moves_list,
-        "items_list": items_list,
-        "abilities_list": abilities_list,
-        "tera_types_list": tera_types_list,
-        "natures_list": natures_list,
-        "teammates_list": teammates_list,
-        "total_teams": total_teams,
         "tournament_count": len([
             t for t in bundle.get("tournaments", [])
             if (t.get("players") or 0) >= int(segment)
@@ -2989,7 +2993,42 @@ def compile_limitless_page_data(format_id="", segment="", pokemon_name=""):
         "min_players": int(segment),
         "attribution": limitless_stats.ATTRIBUTION_TEXT,
         "attribution_url": limitless_stats.ATTRIBUTION_URL,
-    }
+    })
+    return ctx
+
+
+def compile_limitless_event_page_data(tournament_id, pokemon_name=""):
+    """Compile page data for a single Limitless online tournament."""
+    bundle = limitless_stats.get_event_bundle(tournament_id, pokedexEntries)
+    if not bundle:
+        return None
+
+    agg = bundle["aggregate"]
+    ctx = _compile_limitless_pokemon_context(
+        agg.get("pokemon", {}),
+        agg.get("total_teams", 1),
+        pokemon_name,
+    )
+    if ctx is None:
+        return None
+
+    # Parent format drives the sidebar highlight and the "All Events"
+    # back-navigation; fall back to the newest format when the event's
+    # regulation is unknown or has no browsable data.
+    formats = limitless_stats.get_available_formats()
+    parent_format = bundle["format_id"]
+    if parent_format not in formats:
+        parent_format = next(iter(formats)) if formats else ""
+
+    ctx.update({
+        "formats": [[code, disp] for code, disp in formats.items()],
+        "selected_format_id": parent_format,
+        "selected_format_name": formats.get(parent_format, parent_format),
+        "selected_event": bundle["meta"],
+        "attribution": limitless_stats.ATTRIBUTION_TEXT,
+        "attribution_url": limitless_stats.ATTRIBUTION_URL,
+    })
+    return ctx
 
 
 @app.route("/limitless/")
@@ -3014,21 +3053,50 @@ def api_limitless_data(format_id, segment="", pokemon_name=""):
     data = compile_limitless_page_data(format_id, segment, pokemon_name)
     if data is None:
         return jsonify({"error": "No data found"}), 404
-    # Convert tuple sprites to lists for JSON serialization
-    result = dict(data)
-    result["current_pokemon"] = list(result["current_pokemon"])
-    result["current_pokemon"][3] = list(result["current_pokemon"][3])
-    result["pokemon_names"] = [
-        [p[0], p[1], list(p[2])] for p in result["pokemon_names"]
+    return jsonify(_hub_json(data))
+
+
+@app.route("/limitless/event/<tournament_id>/")
+@app.route("/limitless/event/<tournament_id>/<pokemon_name>")
+def limitless_event_page(tournament_id, pokemon_name=""):
+    """Deep links to a single online tournament's stats."""
+    data = compile_limitless_event_page_data(tournament_id, pokemon_name)
+    if data is not None:
+        return _render_tournament_hub("limitless_event", data)
+    # Unknown/uncached event: fall back to the regular source chain
+    return limitless_page()
+
+
+@app.route("/limitless/api/event/<tournament_id>/")
+@app.route("/limitless/api/event/<tournament_id>/<pokemon_name>")
+def api_limitless_event_data(tournament_id, pokemon_name=""):
+    data = compile_limitless_event_page_data(tournament_id, pokemon_name)
+    if data is None:
+        return jsonify({"error": "No data found"}), 404
+    return jsonify(_hub_json(data))
+
+
+@app.route("/limitless/api/event/<tournament_id>/teams/<pokemon_name>")
+def api_limitless_event_teams(tournament_id, pokemon_name):
+    """Return one event's teams using a Pokemon, sorted by placing."""
+    bundle = limitless_stats.get_event_bundle(tournament_id, pokedexEntries)
+    if not bundle:
+        return jsonify([])
+    target = pokemon_name.lower()
+    matching = [
+        e for e in bundle["teams"]
+        if target in (s["pokemon"].lower() for s in e["team"])
     ]
-    result["teammates_list"] = [
-        [t[0], t[1], list(t[2])] for t in result["teammates_list"]
-    ]
-    result["items_list"] = [
-        [i[0], i[1], i[2], list(i[3])] if len(i) > 3 else i
-        for i in result["items_list"]
-    ]
-    return jsonify(result)
+    return jsonify([_limitless_team_entry(e) for e in matching[:50]])
+
+
+@app.route("/limitless/api/event/<tournament_id>/standings")
+def api_limitless_event_standings(tournament_id):
+    """Return one event's full standings (players with public decklists)."""
+    bundle = limitless_stats.get_event_bundle(tournament_id, pokedexEntries)
+    if not bundle:
+        return jsonify([])
+    return jsonify([_limitless_team_entry(e) for e in bundle["teams"]])
 
 
 def _limitless_team_entry(entry):
