@@ -69,7 +69,7 @@ jobs:
           path: |
             scraper/replays
             scraper/stats
-          key: replay-cache-${{ github.run_id }}
+          key: replay-cache-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
             replay-cache-
 
@@ -112,4 +112,4 @@ jobs:
           path: |
             scraper/replays
             scraper/stats
-          key: replay-cache-${{ github.run_id }}
+          key: replay-cache-${{ github.run_id }}-${{ github.run_attempt }}
