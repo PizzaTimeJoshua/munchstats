@@ -1,0 +1,115 @@
+name: Update replay stats
+
+# Scrapes new Showdown replays, rebuilds the searcher/team-ranking JSONs,
+# commits them to this repo, which triggers the Heroku auto-deploy.
+# The raw replay cache (~3 GB) is carried between runs via actions/cache,
+# seeded once from a release asset on the (private) scraper repo.
+#
+# Requires one repository secret: SCRAPER_TOKEN — a fine-grained PAT with
+# Contents:Read on PizzaTimeJoshua/Pokemon-Showdown-Replay-Scraper.
+# Until that secret is set, runs are silent no-ops.
+# Full setup steps: AUTOMATION-SETUP.md in the scraper repo.
+
+on:
+  schedule:
+    # 2:17 / 8:17 / 14:17 / 20:17 Pacific Daylight Time (cron is UTC;
+    # shifts one hour later in local terms when PST is in effect)
+    - cron: '17 3,9,15,21 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: replay-pipeline
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - name: Check setup
+        id: cfg
+        env:
+          TOKEN: ${{ secrets.SCRAPER_TOKEN }}
+        run: |
+          if [ -z "$TOKEN" ]; then
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+            echo "::warning::SCRAPER_TOKEN secret is not set — skipping. See AUTOMATION-SETUP.md in the scraper repo."
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Checkout munchstats
+        if: steps.cfg.outputs.configured == 'true'
+        uses: actions/checkout@v4
+        with:
+          path: munchstats
+
+      - name: Checkout replay scraper
+        if: steps.cfg.outputs.configured == 'true'
+        uses: actions/checkout@v4
+        with:
+          repository: PizzaTimeJoshua/Pokemon-Showdown-Replay-Scraper
+          token: ${{ secrets.SCRAPER_TOKEN }}
+          path: scraper
+
+      - name: Set up Python
+        if: steps.cfg.outputs.configured == 'true'
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+
+      - name: Restore replay cache
+        if: steps.cfg.outputs.configured == 'true'
+        id: cache
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            scraper/replays
+            scraper/stats
+          key: replay-cache-${{ github.run_id }}
+          restore-keys: |
+            replay-cache-
+
+      - name: Seed cache from release (first run or after cache eviction)
+        if: steps.cfg.outputs.configured == 'true' && steps.cache.outputs.cache-matched-key == ''
+        env:
+          GH_TOKEN: ${{ secrets.SCRAPER_TOKEN }}
+        run: |
+          gh release download seed \
+            --repo PizzaTimeJoshua/Pokemon-Showdown-Replay-Scraper \
+            --pattern 'replay-cache-seed.tar.*' --dir "$RUNNER_TEMP"
+          tar -xf "$RUNNER_TEMP"/replay-cache-seed.tar.* -C scraper
+          rm "$RUNNER_TEMP"/replay-cache-seed.tar.*
+
+      - name: Install dependencies
+        if: steps.cfg.outputs.configured == 'true'
+        run: pip install -r scraper/requirements.txt
+
+      - name: Configure git identity
+        if: steps.cfg.outputs.configured == 'true'
+        working-directory: munchstats
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Run pipeline
+        if: steps.cfg.outputs.configured == 'true'
+        working-directory: scraper
+        env:
+          MUNCHSTATS_DIRECTORY: ${{ github.workspace }}/munchstats
+        run: python replay-downloader-nogui.py
+
+      # Save even on failure/timeout so download progress is never lost;
+      # the pipeline is incremental and self-heals on the next run.
+      - name: Save replay cache
+        if: always() && steps.cfg.outputs.configured == 'true'
+        uses: actions/cache/save@v4
+        continue-on-error: true
+        with:
+          path: |
+            scraper/replays
+            scraper/stats
+          key: replay-cache-${{ github.run_id }}
