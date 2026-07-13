@@ -9,7 +9,11 @@ Caching strategy (keyless-API friendly):
   - Standings of finished tournaments never change, so they are cached
     on disk forever; each hourly refresh only fetches newly seen events.
   - The computed aggregate is memoized in-process, keyed on the set of
-    tournament ids it was built from.
+    tournament ids it was built from. That key is derived from file
+    existence alone, so steady-state requests never re-parse the
+    standings JSON; full parses happen only when the tournament set
+    changes, serialized behind a lock (the dyno is RAM-bound and one
+    large event's standings expand to many MB of Python objects).
 """
 
 import json
@@ -498,17 +502,26 @@ _agg_mem = {}
 _teams_mem = {}
 _refresh_lock = threading.Lock()
 
+# Parsing every cached standings file materializes tens of MB of Python
+# objects (one 4000+-player event alone is several MB of JSON), so the
+# parse must never run per-request: consumers check their key-based memo
+# first and rebuild under this lock, so losers of a memo race wait and
+# then serve the rebuilt memo instead of parsing their own copy.
+_parse_lock = threading.Lock()
 
-def _cached_standings_map(format_id):
-    """Refresh lazily and return ({tid: standings}, [tournament meta]).
 
-    Network cost: one tournament-list request at most once per hour,
-    plus standings requests only for newly finished tournaments (capped
-    at MAX_STANDINGS_PER_REFRESH per cycle). Only tournaments with at
-    least one public decklist are included.
+def _refresh_and_key(format_id):
+    """Refresh lazily; return (cached eligible tournaments, memo key).
+
+    Does no JSON parsing — only existence checks — so it is cheap enough
+    to run per-request. Network cost: one tournament-list request at most
+    once per hour, plus standings requests only for newly finished
+    tournaments (capped at MAX_STANDINGS_PER_REFRESH per cycle). The key
+    is the id set of eligible tournaments with standings on disk;
+    standings are immutable, so anything memoized on the key stays valid
+    until that set changes (new event fetched or window rolls).
     """
-    tournaments = get_tournament_list(format_id)
-    eligible = eligible_tournaments(tournaments)
+    eligible = eligible_tournaments(get_tournament_list(format_id))
 
     missing = [
         t for t in eligible
@@ -523,9 +536,21 @@ def _cached_standings_map(format_id):
         finally:
             _refresh_lock.release()
 
+    present = [t for t in eligible if os.path.exists(_standings_path(t["id"]))]
+    return present, tuple(sorted(t["id"] for t in present))
+
+
+def _load_standings_map(tournaments):
+    """Parse the given tournaments' standings from disk.
+
+    Returns ({tid: standings}, [tournament meta]) covering only
+    tournaments with at least one public decklist. Expensive (full JSON
+    parse of every file): callers must miss their memo first and hold
+    _parse_lock while rebuilding.
+    """
     standings_by_tid = {}
     included = []
-    for t in eligible:
+    for t in tournaments:
         standings = get_standings(t["id"], fetch=False)
         if standings and any(p.get("decklist") for p in standings):
             standings_by_tid[t["id"]] = standings
@@ -541,37 +566,47 @@ def _cached_standings_map(format_id):
 def build_limitless_aggregate(format_id, pokedex):
     """Return the aggregated stats bundle for a format, refreshing lazily.
 
-    Returns None when no data is available at all.
+    Returns None when no data is available at all (also memoized, so a
+    format whose cached standings all lack decklists doesn't re-parse
+    them on every request).
     """
-    standings_by_tid, included = _cached_standings_map(format_id)
-    if not standings_by_tid:
+    present, key = _refresh_and_key(format_id)
+    if not key:
         return None
 
-    key = tuple(sorted(standings_by_tid))
     memo = _agg_mem.get(format_id)
     if memo and memo["key"] == key:
         return memo["data"]
 
-    # One segment per tournament-size tier: usage from 25+ player events,
-    # from 50+ only, etc. Tiers with no tournaments are omitted.
-    players_by_tid = {t["id"]: t.get("players") or 0 for t in included}
-    segments = {}
-    for tier in PLAYER_TIERS:
-        tier_standings = {
-            tid: s for tid, s in standings_by_tid.items()
-            if players_by_tid[tid] >= tier
-        }
-        if tier_standings:
-            segments[str(tier)] = aggregate_standings(tier_standings, pokedex)
+    with _parse_lock:
+        memo = _agg_mem.get(format_id)
+        if memo and memo["key"] == key:
+            return memo["data"]
 
-    data = {
-        "format": format_id,
-        "segments": segments,
-        "tournaments": included,
-        "generated_at": time.time(),
-    }
-    _agg_mem[format_id] = {"key": key, "data": data}
-    return data
+        standings_by_tid, included = _load_standings_map(present)
+        data = None
+        if standings_by_tid:
+            # One segment per tournament-size tier: usage from 25+ player
+            # events, from 50+ only, etc. Tiers with no tournaments are
+            # omitted.
+            players_by_tid = {t["id"]: t.get("players") or 0 for t in included}
+            segments = {}
+            for tier in PLAYER_TIERS:
+                tier_standings = {
+                    tid: s for tid, s in standings_by_tid.items()
+                    if players_by_tid[tid] >= tier
+                }
+                if tier_standings:
+                    segments[str(tier)] = aggregate_standings(tier_standings, pokedex)
+
+            data = {
+                "format": format_id,
+                "segments": segments,
+                "tournaments": included,
+                "generated_at": time.time(),
+            }
+        _agg_mem[format_id] = {"key": key, "data": data}
+        return data
 
 
 def _team_entry(player, meta, pokedex):
@@ -606,29 +641,33 @@ def build_limitless_cut_aggregate(format_id, pokedex, min_players, max_placing):
     the official events' day filters. Returns None when no tournament
     matches the size tier.
     """
-    standings_by_tid, included = _cached_standings_map(format_id)
-    if not standings_by_tid:
-        return None
-    players_by_tid = {t["id"]: t.get("players") or 0 for t in included}
-    tier_standings = {
-        tid: s for tid, s in standings_by_tid.items()
-        if players_by_tid[tid] >= min_players
-    }
-    if not tier_standings:
+    present, _ = _refresh_and_key(format_id)
+    tier_present = [t for t in present if (t.get("players") or 0) >= min_players]
+    if not tier_present:
         return None
 
-    key = tuple(sorted(tier_standings))
+    key = tuple(sorted(t["id"] for t in tier_present))
     memo_key = (format_id, min_players, max_placing)
     memo = _cut_agg_mem.get(memo_key)
     if memo and memo["key"] == key:
         _cut_agg_mem.move_to_end(memo_key)
         return memo["data"]
 
-    data = aggregate_standings(tier_standings, pokedex, max_placing=max_placing)
-    _cut_agg_mem[memo_key] = {"key": key, "data": data}
-    while len(_cut_agg_mem) > CUT_AGG_MEM_MAX:
-        _cut_agg_mem.popitem(last=False)
-    return data
+    with _parse_lock:
+        memo = _cut_agg_mem.get(memo_key)
+        if memo and memo["key"] == key:
+            _cut_agg_mem.move_to_end(memo_key)
+            return memo["data"]
+
+        tier_standings, _ = _load_standings_map(tier_present)
+        if not tier_standings:
+            return None
+
+        data = aggregate_standings(tier_standings, pokedex, max_placing=max_placing)
+        _cut_agg_mem[memo_key] = {"key": key, "data": data}
+        while len(_cut_agg_mem) > CUT_AGG_MEM_MAX:
+            _cut_agg_mem.popitem(last=False)
+        return data
 
 
 def get_all_teams(format_id, pokedex):
@@ -641,33 +680,38 @@ def get_all_teams(format_id, pokedex):
     Sorted by placing, ties broken by tournament size (a 1st out of 80
     players beats a 1st out of 25).
     """
-    standings_by_tid, included = _cached_standings_map(format_id)
-    if not standings_by_tid:
+    present, key = _refresh_and_key(format_id)
+    if not key:
         return []
 
-    key = tuple(sorted(standings_by_tid))
     memo = _teams_mem.get(format_id)
     if memo and memo["key"] == key:
         return memo["teams"]
 
-    meta_by_tid = {t["id"]: t for t in included}
-    teams = []
-    for tid, standings in standings_by_tid.items():
-        meta = meta_by_tid[tid]
-        for player in standings:
-            entry = _team_entry(player, meta, pokedex)
-            if entry is None:
-                continue
-            search_parts = [entry["player"], meta["name"]]
-            for s in entry["team"]:
-                search_parts += [s["pokemon"], s["item"], s["ability"], s["tera"], s["nature"]]
-                search_parts += s["moves"]
-            entry["search"] = " ".join(p for p in search_parts if p).lower()
-            teams.append(entry)
+    with _parse_lock:
+        memo = _teams_mem.get(format_id)
+        if memo and memo["key"] == key:
+            return memo["teams"]
 
-    teams.sort(key=lambda e: (e["placing"] or 9999, -(e["tournament"].get("players") or 0)))
-    _teams_mem[format_id] = {"key": key, "teams": teams}
-    return teams
+        standings_by_tid, included = _load_standings_map(present)
+        meta_by_tid = {t["id"]: t for t in included}
+        teams = []
+        for tid, standings in standings_by_tid.items():
+            meta = meta_by_tid[tid]
+            for player in standings:
+                entry = _team_entry(player, meta, pokedex)
+                if entry is None:
+                    continue
+                search_parts = [entry["player"], meta["name"]]
+                for s in entry["team"]:
+                    search_parts += [s["pokemon"], s["item"], s["ability"], s["tera"], s["nature"]]
+                    search_parts += s["moves"]
+                entry["search"] = " ".join(p for p in search_parts if p).lower()
+                teams.append(entry)
+
+        teams.sort(key=lambda e: (e["placing"] or 9999, -(e["tournament"].get("players") or 0)))
+        _teams_mem[format_id] = {"key": key, "teams": teams}
+        return teams
 
 
 def _event_meta(tournament):
