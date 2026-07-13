@@ -19,6 +19,7 @@ Caching strategy (keyless-API friendly):
 import json
 import os
 import re
+import sys
 import threading
 import time
 from collections import OrderedDict
@@ -366,16 +367,26 @@ def _clean_value(value):
 
 
 def _normalize_slot(slot, pokedex):
-    """Normalize one raw Limitless decklist slot into munchstats terms."""
+    """Normalize one raw Limitless decklist slot into munchstats terms.
+
+    Every value is interned: the same few hundred Pokemon/item/move names
+    repeat across tens of thousands of cached team slots, and json.loads
+    gives each occurrence its own string object — interning collapses
+    them so the resident teams/aggregate memos stay small.
+    """
     return {
-        "pokemon": normalize_limitless_pokemon(slot, pokedex),
-        "item": _clean_value(slot.get("item")),
-        "ability": _clean_value(slot.get("ability")),
+        "pokemon": sys.intern(normalize_limitless_pokemon(slot, pokedex)),
+        "item": sys.intern(_clean_value(slot.get("item"))),
+        "ability": sys.intern(_clean_value(slot.get("ability"))),
         # Tera types and natures render raw (CSS classes, tooltip
         # lookups), so force canonical capitalization.
-        "tera": _clean_value(slot.get("tera")).capitalize(),
-        "nature": _clean_value(slot.get("nature")).capitalize(),
-        "moves": [m for m in (_clean_value(a) for a in slot.get("attacks") or []) if m],
+        "tera": sys.intern(_clean_value(slot.get("tera")).capitalize()),
+        "nature": sys.intern(_clean_value(slot.get("nature")).capitalize()),
+        "moves": [
+            sys.intern(m)
+            for m in (_clean_value(a) for a in slot.get("attacks") or [])
+            if m
+        ],
     }
 
 
@@ -404,82 +415,85 @@ def _dedupe_counts(counts):
     return {name: count for name, count in merged.values()}
 
 
-def aggregate_standings(standings_by_tid, pokedex, max_placing=None):
-    """Aggregate usage stats over many tournaments' standings.
+def _new_acc():
+    """Fresh accumulator for incremental standings aggregation."""
+    return {"total_teams": 0, "pokemon": {}, "total_slots": 0, "tera_slots": 0}
 
-    Mirrors scrape_tournaments.aggregate_usage but for the Limitless
-    standings shape (attacks->moves, tera->tera_types) and additionally
-    accumulates win/loss/tie records per Pokemon for win rates.
-    When max_placing is set, only teams placing at or above it count
-    (e.g. 8 for a "top cut" segment).
+
+def _acc_standings(acc, standings, pokedex, max_placing=None):
+    """Fold one tournament's standings into an accumulator.
+
+    Incremental so callers can stream tournaments one parsed file at a
+    time instead of materializing every standings list at once (the
+    full corpus expands to far more RAM than any single event).
+    """
+    pokemon_stats = acc["pokemon"]
+    for player in standings or []:
+        decklist = player.get("decklist")
+        if not decklist:
+            continue
+        if max_placing is not None:
+            placing = player.get("placing")
+            if not placing or placing > max_placing:
+                continue
+        acc["total_teams"] += 1
+        record = player.get("record") or {}
+        wins = record.get("wins") or 0
+        losses = record.get("losses") or 0
+        ties = record.get("ties") or 0
+
+        slots = [_normalize_slot(s, pokedex) for s in decklist]
+        team_names = [s["pokemon"] for s in slots]
+        for slot, name in zip(slots, team_names):
+            if not name:
+                continue
+            if name not in pokemon_stats:
+                pokemon_stats[name] = {
+                    "usage_count": 0,
+                    "usage_pct": 0,
+                    "moves": {},
+                    "items": {},
+                    "abilities": {},
+                    "tera_types": {},
+                    "natures": {},
+                    "teammates": {},
+                    "wins": 0,
+                    "losses": 0,
+                    "ties": 0,
+                }
+            stats = pokemon_stats[name]
+            stats["usage_count"] += 1
+            stats["wins"] += wins
+            stats["losses"] += losses
+            stats["ties"] += ties
+
+            for move in slot["moves"]:
+                stats["moves"][move] = stats["moves"].get(move, 0) + 1
+            if slot["item"]:
+                stats["items"][slot["item"]] = stats["items"].get(slot["item"], 0) + 1
+            if slot["ability"]:
+                stats["abilities"][slot["ability"]] = stats["abilities"].get(slot["ability"], 0) + 1
+            acc["total_slots"] += 1
+            if slot["tera"]:
+                acc["tera_slots"] += 1
+                stats["tera_types"][slot["tera"]] = stats["tera_types"].get(slot["tera"], 0) + 1
+            if slot["nature"]:
+                stats["natures"][slot["nature"]] = stats["natures"].get(slot["nature"], 0) + 1
+            for teammate in team_names:
+                if teammate and teammate != name:
+                    stats["teammates"][teammate] = stats["teammates"].get(teammate, 0) + 1
+
+
+def _finalize_acc(acc):
+    """Turn an accumulator into the served aggregate shape.
 
     Like scrape_tournaments._has_tera_data: when fewer than 10% of slots
     carry a Tera type the format doesn't use Tera (e.g. the Mega
     regulations) and the handful of stale entries are discarded.
     """
-    total_teams = 0
-    pokemon_stats = {}
-    total_slots = 0
-    tera_slots = 0
-
-    for standings in standings_by_tid.values():
-        for player in standings or []:
-            decklist = player.get("decklist")
-            if not decklist:
-                continue
-            if max_placing is not None:
-                placing = player.get("placing")
-                if not placing or placing > max_placing:
-                    continue
-            total_teams += 1
-            record = player.get("record") or {}
-            wins = record.get("wins") or 0
-            losses = record.get("losses") or 0
-            ties = record.get("ties") or 0
-
-            slots = [_normalize_slot(s, pokedex) for s in decklist]
-            team_names = [s["pokemon"] for s in slots]
-            for slot, name in zip(slots, team_names):
-                if not name:
-                    continue
-                if name not in pokemon_stats:
-                    pokemon_stats[name] = {
-                        "usage_count": 0,
-                        "usage_pct": 0,
-                        "moves": {},
-                        "items": {},
-                        "abilities": {},
-                        "tera_types": {},
-                        "natures": {},
-                        "teammates": {},
-                        "wins": 0,
-                        "losses": 0,
-                        "ties": 0,
-                    }
-                stats = pokemon_stats[name]
-                stats["usage_count"] += 1
-                stats["wins"] += wins
-                stats["losses"] += losses
-                stats["ties"] += ties
-
-                for move in slot["moves"]:
-                    stats["moves"][move] = stats["moves"].get(move, 0) + 1
-                if slot["item"]:
-                    stats["items"][slot["item"]] = stats["items"].get(slot["item"], 0) + 1
-                if slot["ability"]:
-                    stats["abilities"][slot["ability"]] = stats["abilities"].get(slot["ability"], 0) + 1
-                total_slots += 1
-                if slot["tera"]:
-                    tera_slots += 1
-                    stats["tera_types"][slot["tera"]] = stats["tera_types"].get(slot["tera"], 0) + 1
-                if slot["nature"]:
-                    stats["natures"][slot["nature"]] = stats["natures"].get(slot["nature"], 0) + 1
-                for teammate in team_names:
-                    if teammate and teammate != name:
-                        stats["teammates"][teammate] = stats["teammates"].get(teammate, 0) + 1
-
-    has_tera = total_slots > 0 and (tera_slots / total_slots) >= 0.10
-    for stats in pokemon_stats.values():
+    total_teams = acc["total_teams"]
+    has_tera = acc["total_slots"] > 0 and (acc["tera_slots"] / acc["total_slots"]) >= 0.10
+    for stats in acc["pokemon"].values():
         if not has_tera:
             stats["tera_types"] = {}
         for category in ("moves", "items", "abilities", "tera_types", "natures"):
@@ -492,7 +506,22 @@ def aggregate_standings(standings_by_tid, pokedex, max_placing=None):
             else None
         )
 
-    return {"total_teams": total_teams, "pokemon": pokemon_stats}
+    return {"total_teams": total_teams, "pokemon": acc["pokemon"]}
+
+
+def aggregate_standings(standings_by_tid, pokedex, max_placing=None):
+    """Aggregate usage stats over many tournaments' standings.
+
+    Mirrors scrape_tournaments.aggregate_usage but for the Limitless
+    standings shape (attacks->moves, tera->tera_types) and additionally
+    accumulates win/loss/tie records per Pokemon for win rates.
+    When max_placing is set, only teams placing at or above it count
+    (e.g. 8 for a "top cut" segment).
+    """
+    acc = _new_acc()
+    for standings in standings_by_tid.values():
+        _acc_standings(acc, standings, pokedex, max_placing)
+    return _finalize_acc(acc)
 
 
 # One aggregate (and teams list) per format, memoized on the set of
@@ -540,27 +569,68 @@ def _refresh_and_key(format_id):
     return present, tuple(sorted(t["id"] for t in present))
 
 
-def _load_standings_map(tournaments):
-    """Parse the given tournaments' standings from disk.
+def _build_format_memos(format_id, pokedex, present, key):
+    """Rebuild a format's aggregate and teams memos in one streamed pass.
 
-    Returns ({tid: standings}, [tournament meta]) covering only
-    tournaments with at least one public decklist. Expensive (full JSON
-    parse of every file): callers must miss their memo first and hold
-    _parse_lock while rebuilding.
+    Parses one standings file at a time and folds it into per-tier
+    accumulators and the teams list, so peak transient memory is one
+    tournament's standings instead of the whole corpus — a single big
+    online event expands to tens of MB of parsed JSON on its own. Both
+    memos share the pass because they invalidate on the same key.
+    Caller must hold _parse_lock. Returns (aggregate data, teams).
     """
-    standings_by_tid = {}
+    tier_accs = {}
     included = []
-    for t in tournaments:
+    teams = []
+    for t in present:
         standings = get_standings(t["id"], fetch=False)
-        if standings and any(p.get("decklist") for p in standings):
-            standings_by_tid[t["id"]] = standings
-            included.append({
-                "id": t["id"],
-                "name": t.get("name", ""),
-                "date": t.get("date", ""),
-                "players": t.get("players", 0),
-            })
-    return standings_by_tid, included
+        if not standings or not any(p.get("decklist") for p in standings):
+            continue
+        meta = {
+            "id": t["id"],
+            "name": t.get("name", ""),
+            "date": t.get("date", ""),
+            "players": t.get("players", 0),
+        }
+        included.append(meta)
+
+        # One accumulator per tournament-size tier: usage from 25+ player
+        # events, from 50+ only, etc. Tiers with no tournaments are omitted.
+        players = t.get("players") or 0
+        for tier in PLAYER_TIERS:
+            if players >= tier:
+                if tier not in tier_accs:
+                    tier_accs[tier] = _new_acc()
+                _acc_standings(tier_accs[tier], standings, pokedex)
+
+        for player in standings:
+            entry = _team_entry(player, meta, pokedex)
+            if entry is None:
+                continue
+            search_parts = [entry["player"], meta["name"]]
+            for s in entry["team"]:
+                search_parts += [s["pokemon"], s["item"], s["ability"], s["tera"], s["nature"]]
+                search_parts += s["moves"]
+            entry["search"] = " ".join(p for p in search_parts if p).lower()
+            teams.append(entry)
+
+    data = None
+    if included:
+        segments = {}
+        for tier in PLAYER_TIERS:
+            if tier in tier_accs:
+                segments[str(tier)] = _finalize_acc(tier_accs[tier])
+        data = {
+            "format": format_id,
+            "segments": segments,
+            "tournaments": included,
+            "generated_at": time.time(),
+        }
+
+    teams.sort(key=lambda e: (e["placing"] or 9999, -(e["tournament"].get("players") or 0)))
+    _agg_mem[format_id] = {"key": key, "data": data}
+    _teams_mem[format_id] = {"key": key, "teams": teams}
+    return data, teams
 
 
 def build_limitless_aggregate(format_id, pokedex):
@@ -582,30 +652,7 @@ def build_limitless_aggregate(format_id, pokedex):
         memo = _agg_mem.get(format_id)
         if memo and memo["key"] == key:
             return memo["data"]
-
-        standings_by_tid, included = _load_standings_map(present)
-        data = None
-        if standings_by_tid:
-            # One segment per tournament-size tier: usage from 25+ player
-            # events, from 50+ only, etc. Tiers with no tournaments are
-            # omitted.
-            players_by_tid = {t["id"]: t.get("players") or 0 for t in included}
-            segments = {}
-            for tier in PLAYER_TIERS:
-                tier_standings = {
-                    tid: s for tid, s in standings_by_tid.items()
-                    if players_by_tid[tid] >= tier
-                }
-                if tier_standings:
-                    segments[str(tier)] = aggregate_standings(tier_standings, pokedex)
-
-            data = {
-                "format": format_id,
-                "segments": segments,
-                "tournaments": included,
-                "generated_at": time.time(),
-            }
-        _agg_mem[format_id] = {"key": key, "data": data}
+        data, _ = _build_format_memos(format_id, pokedex, present, key)
         return data
 
 
@@ -659,11 +706,18 @@ def build_limitless_cut_aggregate(format_id, pokedex, min_players, max_placing):
             _cut_agg_mem.move_to_end(memo_key)
             return memo["data"]
 
-        tier_standings, _ = _load_standings_map(tier_present)
-        if not tier_standings:
+        acc = _new_acc()
+        any_decklists = False
+        for t in tier_present:
+            standings = get_standings(t["id"], fetch=False)
+            if not standings or not any(p.get("decklist") for p in standings):
+                continue
+            any_decklists = True
+            _acc_standings(acc, standings, pokedex, max_placing=max_placing)
+        if not any_decklists:
             return None
 
-        data = aggregate_standings(tier_standings, pokedex, max_placing=max_placing)
+        data = _finalize_acc(acc)
         _cut_agg_mem[memo_key] = {"key": key, "data": data}
         while len(_cut_agg_mem) > CUT_AGG_MEM_MAX:
             _cut_agg_mem.popitem(last=False)
@@ -692,25 +746,7 @@ def get_all_teams(format_id, pokedex):
         memo = _teams_mem.get(format_id)
         if memo and memo["key"] == key:
             return memo["teams"]
-
-        standings_by_tid, included = _load_standings_map(present)
-        meta_by_tid = {t["id"]: t for t in included}
-        teams = []
-        for tid, standings in standings_by_tid.items():
-            meta = meta_by_tid[tid]
-            for player in standings:
-                entry = _team_entry(player, meta, pokedex)
-                if entry is None:
-                    continue
-                search_parts = [entry["player"], meta["name"]]
-                for s in entry["team"]:
-                    search_parts += [s["pokemon"], s["item"], s["ability"], s["tera"], s["nature"]]
-                    search_parts += s["moves"]
-                entry["search"] = " ".join(p for p in search_parts if p).lower()
-                teams.append(entry)
-
-        teams.sort(key=lambda e: (e["placing"] or 9999, -(e["tournament"].get("players") or 0)))
-        _teams_mem[format_id] = {"key": key, "teams": teams}
+        _, teams = _build_format_memos(format_id, pokedex, present, key)
         return teams
 
 
