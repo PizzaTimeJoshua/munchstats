@@ -34,6 +34,9 @@ $(document).ready(function () {
   var currentFormatId = window.currentFormatId || "";
   var currentSegment = window.currentSegment || "";
   var currentEventId = window.currentEventId || "";
+  // Placement cut ("all" | "32" | "16" | "8") shared by both Limitless
+  // sources — the online counterpart of the official day filters.
+  var currentCut = window.currentCut || "all";
   var currentPokemonName = window.currentPokemonName || "";
   // Tournaments feeding the current format's stats; drives the Events
   // browser and refreshes with every format response, so newly cached
@@ -85,6 +88,7 @@ $(document).ready(function () {
       format: currentFormatId,
       segment: currentSegment,
       event: currentEventId,
+      cut: currentCut,
       pokemon: currentPokemonName,
     };
     var url;
@@ -94,6 +98,9 @@ $(document).ready(function () {
       url = "/limitless/event/" + currentEventId + "/" + currentPokemonName;
     } else {
       url = "/tournaments/" + currentTournamentId + "/" + currentDayFilter + "/" + currentPokemonName;
+    }
+    if (currentSource !== "official" && currentCut !== "all") {
+      url += "?cut=" + currentCut;
     }
     if (replace) {
       history.replaceState(state, "", url);
@@ -135,12 +142,14 @@ $(document).ready(function () {
     var url = "/limitless/api/" + encodeURIComponent(formatId) +
               "/" + encodeURIComponent(segment) + "/";
     if (pokemonName) url += encodeURIComponent(pokemonName);
+    url += "?cut=" + encodeURIComponent(currentCut || "all");
     fetchHubData("limitless", url, skipPush);
   }
 
   function fetchEventData(eventId, pokemonName, skipPush) {
     var url = "/limitless/api/event/" + encodeURIComponent(eventId) + "/";
     if (pokemonName) url += encodeURIComponent(pokemonName);
+    url += "?cut=" + encodeURIComponent(currentCut || "all");
     fetchHubData("limitless_event", url, skipPush);
   }
 
@@ -161,12 +170,14 @@ $(document).ready(function () {
     if (source === "limitless") {
       currentFormatId = data.selected_format_id;
       currentSegment = data.segment;
+      currentCut = data.cut || "all";
       includedTournaments = data.included_tournaments || [];
     } else if (source === "limitless_event") {
       currentEventId = data.selected_event.id;
       // Parent format: keeps the sidebar highlight and "All Events"
       // back-navigation anchored while browsing a single event.
       currentFormatId = data.selected_format_id;
+      currentCut = data.cut || "all";
     } else {
       currentTournamentId = data.selected_tournament.id;
       currentDayFilter = data.day_filter;
@@ -184,11 +195,12 @@ $(document).ready(function () {
     $("#info-winrate").text(data.win_rate === "—" ? data.win_rate : data.win_rate + "%");
 
     // Source-specific card bits: context line + page title
+    var cutSuffix = currentCut !== "all" ? " · Top " + currentCut : "";
     if (source === "limitless") {
       $("#info-context").text(
         data.selected_format_name + " · " + data.tournament_count +
         " online tournaments · last " + data.window_days + " days · " +
-        data.min_players + "+ players"
+        data.min_players + "+ players" + cutSuffix
       );
       document.title = "Tournaments | MunchStats | " + data.selected_format_name + " (Online)";
     } else if (source === "limitless_event") {
@@ -196,7 +208,7 @@ $(document).ready(function () {
       var bits = [ev.name];
       if (ev.players) bits.push(ev.players + " players");
       if (ev.date) bits.push(ev.date.slice(0, 10));
-      $("#info-context").text(bits.join(" · "));
+      $("#info-context").text(bits.join(" · ") + cutSuffix);
       document.title = "Tournaments | MunchStats | " + ev.name;
     } else {
       $("#info-context").text(data.selected_tournament.name);
@@ -224,10 +236,15 @@ $(document).ready(function () {
 
     updateSidebarHighlight();
 
-    // Show the filter row that belongs to the selected source; a single
-    // event has neither (its stats always cover the whole tournament)
+    // Show the filter rows that belong to the selected source; both
+    // Limitless sources share the placement-cut row
     $("#day-filter-container").toggle(source === "official");
     $("#segment-filter-wrap").toggle(source === "limitless");
+    $("#cut-filter-wrap").toggle(source !== "official");
+    $("#cut-filter-container .rating-button").each(function () {
+      var onclick = $(this).attr("onclick") || "";
+      $(this).toggleClass("active", onclick.indexOf("'" + currentCut + "'") !== -1);
+    });
     if (source === "limitless") {
       // Rebuild segment (tournament-size) buttons: tiers differ per format
       var segHtml = "";
@@ -767,12 +784,14 @@ $(document).ready(function () {
     if (currentSource === "limitless") {
       url = "/limitless/api/" + encodeURIComponent(currentFormatId) +
             "/teams/" + encodeURIComponent(currentPokemonName) +
-            "?min=" + encodeURIComponent(currentSegment);
+            "?min=" + encodeURIComponent(currentSegment) +
+            "&cut=" + encodeURIComponent(currentCut);
       opts = { muted: true, showTournament: true };
     } else if (currentSource === "limitless_event") {
       // Single event: placings are real standings, no tournament column
       url = "/limitless/api/event/" + encodeURIComponent(currentEventId) +
-            "/teams/" + encodeURIComponent(currentPokemonName);
+            "/teams/" + encodeURIComponent(currentPokemonName) +
+            "?cut=" + encodeURIComponent(currentCut);
       opts = {};
     } else {
       url = "/tournaments/api/" + encodeURIComponent(currentTournamentId) +
@@ -794,6 +813,14 @@ $(document).ready(function () {
   }
 
   // ========== STANDINGS VIEW (official events + single online events) ==========
+  // The full list can run to hundreds of team cards (an 800+ player
+  // online event), which lags mobile browsers, so standings render in
+  // pages: search runs over the full fetched data, the DOM only holds
+  // what's shown, and "Show all" remains available.
+  var STANDINGS_PAGE = 50;
+  var standingsData = [];
+  var standingsLimit = STANDINGS_PAGE;
+
   async function loadStandings() {
     var container = document.getElementById("standings-list");
     if (!container) return;
@@ -801,7 +828,8 @@ $(document).ready(function () {
 
     var url;
     if (currentSource === "limitless_event") {
-      url = "/limitless/api/event/" + encodeURIComponent(currentEventId) + "/standings";
+      url = "/limitless/api/event/" + encodeURIComponent(currentEventId) +
+            "/standings?cut=" + encodeURIComponent(currentCut);
     } else {
       url = "/tournaments/api/" + encodeURIComponent(currentTournamentId) +
             "/standings?day=" + encodeURIComponent(currentDayFilter);
@@ -813,7 +841,12 @@ $(document).ready(function () {
         container.innerHTML = '<p style="color: #666; font-size: 13px;">No standings available.</p>';
         return;
       }
-      renderStandings(await res.json(), container);
+      standingsData = await res.json();
+      standingsData.forEach(function (entry) {
+        entry._search = buildSearchText(entry);
+      });
+      standingsLimit = STANDINGS_PAGE;
+      renderStandings();
     } catch (e) {
       container.innerHTML = '<p style="color: #666; font-size: 13px;">Failed to load standings.</p>';
     }
@@ -832,31 +865,48 @@ $(document).ready(function () {
     return parts.join(" ").toLowerCase();
   }
 
-  function renderStandings(standings, container) {
-    if (!standings || standings.length === 0) {
+  function renderStandings() {
+    var container = document.getElementById("standings-list");
+    if (!container) return;
+    var query = ($("#standingsSearchInput").val() || "").toLowerCase();
+    var matched = query
+      ? standingsData.filter(function (e) { return e._search.indexOf(query) !== -1; })
+      : standingsData;
+
+    if (matched.length === 0) {
       container.innerHTML = '<p style="color: #666; font-size: 13px;">No standings available.</p>';
+      window._teamEntries = window._teamEntries || {};
+      window._teamEntries["standings"] = [];
       return;
     }
 
+    var shown = matched.slice(0, standingsLimit);
     var html = "";
-    standings.forEach(function (entry, idx) {
-      var searchText = escapeAttr(buildSearchText(entry));
-      html += '<div class="standings-entry" data-search="' + searchText + '">';
+    shown.forEach(function (entry, idx) {
       html += buildTeamEntryHtml(entry, "standings", idx, {});
-      html += '</div>';
     });
-
+    if (matched.length > shown.length) {
+      html += '<div class="show-more-row">';
+      html += '<button type="button" class="team-copy-btn" onclick="showMoreStandings(false)">Show ' +
+        Math.min(100, matched.length - shown.length) + ' more</button>';
+      html += '<button type="button" class="team-copy-btn" onclick="showMoreStandings(true)">Show all ' +
+        matched.length + '</button>';
+      html += '</div>';
+    }
     container.innerHTML = html;
+    // Detail toggles and copy buttons look entries up by rendered index
     window._teamEntries = window._teamEntries || {};
-    window._teamEntries["standings"] = standings;
+    window._teamEntries["standings"] = shown;
   }
 
+  window.showMoreStandings = function (all) {
+    standingsLimit = all ? Infinity : standingsLimit + 100;
+    renderStandings();
+  };
+
   $("#standingsSearchInput").on("input", function () {
-    var query = $(this).val().toLowerCase();
-    $("#standings-list .standings-entry").each(function () {
-      var searchText = $(this).attr("data-search") || "";
-      $(this).toggle(searchText.indexOf(query) !== -1);
-    });
+    standingsLimit = STANDINGS_PAGE;
+    renderStandings();
   });
 
   // ========== TOP TEAMS VIEW (Limitless archetypes, server-side search) ==========
@@ -916,12 +966,13 @@ $(document).ready(function () {
     var container = document.getElementById("results-list");
     if (!container) return;
     var query = ($("#resultsSearchInput").val() || "").trim();
-    var cacheKey = currentFormatId + " " + currentSegment + " " + query;
+    var cacheKey = currentFormatId + " " + currentSegment + " " + currentCut + " " + query;
     if (resultsLoadedFor === cacheKey) return;
 
     container.innerHTML = '<p style="color: #666; font-size: 13px;">Loading teams...</p>';
     var url = "/limitless/api/" + encodeURIComponent(currentFormatId) +
               "/results/?min=" + encodeURIComponent(currentSegment) +
+              "&cut=" + encodeURIComponent(currentCut) +
               "&q=" + encodeURIComponent(query);
     try {
       var res = await fetch(url);
@@ -1050,6 +1101,15 @@ $(document).ready(function () {
     fetchLimitlessData(currentFormatId, segment, currentPokemonName);
   };
 
+  window.selectCut = function (cut) {
+    currentCut = cut;
+    if (currentSource === "limitless_event") {
+      fetchEventData(currentEventId, currentPokemonName);
+    } else {
+      fetchLimitlessData(currentFormatId, currentSegment, currentPokemonName);
+    }
+  };
+
   window.selectEvent = function (id) {
     currentView = "usage";
     fetchEventData(id, "");
@@ -1079,6 +1139,7 @@ $(document).ready(function () {
   // ========== BROWSER HISTORY ==========
   window.addEventListener("popstate", function (event) {
     if (event.state) {
+      currentCut = event.state.cut || "all";
       if (event.state.source === "limitless") {
         fetchLimitlessData(event.state.format, event.state.segment, event.state.pokemon, true);
       } else if (event.state.source === "limitless_event") {
@@ -1096,6 +1157,7 @@ $(document).ready(function () {
     format: currentFormatId,
     segment: currentSegment,
     event: currentEventId,
+    cut: currentCut,
     pokemon: currentPokemonName,
   }, "");
 

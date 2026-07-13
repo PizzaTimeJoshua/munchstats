@@ -591,6 +591,46 @@ def _team_entry(player, meta, pokedex):
     }
 
 
+# Cut (top-placement) aggregates are built lazily per requested
+# (format, size tier, cut) combination instead of eagerly for every one,
+# and LRU-bounded so rarely used combinations don't accumulate in RAM.
+_cut_agg_mem = OrderedDict()
+CUT_AGG_MEM_MAX = 12
+
+
+def build_limitless_cut_aggregate(format_id, pokedex, min_players, max_placing):
+    """Aggregate a format's usage over teams placing at or above a cut.
+
+    Online events carry no day-2 information, so top-placement cuts
+    (top 8/16/32 of each tournament) are the Limitless counterpart of
+    the official events' day filters. Returns None when no tournament
+    matches the size tier.
+    """
+    standings_by_tid, included = _cached_standings_map(format_id)
+    if not standings_by_tid:
+        return None
+    players_by_tid = {t["id"]: t.get("players") or 0 for t in included}
+    tier_standings = {
+        tid: s for tid, s in standings_by_tid.items()
+        if players_by_tid[tid] >= min_players
+    }
+    if not tier_standings:
+        return None
+
+    key = tuple(sorted(tier_standings))
+    memo_key = (format_id, min_players, max_placing)
+    memo = _cut_agg_mem.get(memo_key)
+    if memo and memo["key"] == key:
+        _cut_agg_mem.move_to_end(memo_key)
+        return memo["data"]
+
+    data = aggregate_standings(tier_standings, pokedex, max_placing=max_placing)
+    _cut_agg_mem[memo_key] = {"key": key, "data": data}
+    while len(_cut_agg_mem) > CUT_AGG_MEM_MAX:
+        _cut_agg_mem.popitem(last=False)
+    return data
+
+
 def get_all_teams(format_id, pokedex):
     """Return every team from a format's cached standings, best first.
 
@@ -702,6 +742,26 @@ def get_event_bundle(tournament_id, pokedex):
     while len(_event_mem) > EVENT_MEM_MAX:
         _event_mem.popitem(last=False)
     return bundle
+
+
+def get_event_cut_aggregate(tournament_id, pokedex, max_placing):
+    """Return one event's aggregate over teams placing at or above a cut.
+
+    Stored on the event's LRU bundle: cut aggregates are small (at most
+    max_placing teams) and get evicted together with their event.
+    """
+    bundle = get_event_bundle(tournament_id, pokedex)
+    if not bundle:
+        return None
+    cuts = bundle.setdefault("cuts", {})
+    agg = cuts.get(max_placing)
+    if agg is None:
+        standings = get_standings(tournament_id, fetch=False) or []
+        agg = aggregate_standings(
+            {tournament_id: standings}, pokedex, max_placing=max_placing
+        )
+        cuts[max_placing] = agg
+    return agg
 
 
 def record_points(record):

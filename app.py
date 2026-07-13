@@ -2895,6 +2895,19 @@ def api_tournament_standings(tournament_id):
 # Aggregated usage from Limitless online VGC tournaments (attribution in
 # the template). Data is fetched lazily and cached by limitless_stats.
 
+# Placement cuts offered on the Limitless sources. Online events carry no
+# day-2 information, so top-placement cuts stand in for the official
+# events' day filters.
+LIMITLESS_CUTS = ("32", "16", "8")
+
+
+def _parse_limitless_cut(value):
+    """Normalize a ?cut= value to (cut, max_placing); invalid -> ("all", None)."""
+    if value in LIMITLESS_CUTS:
+        return value, int(value)
+    return "all", None
+
+
 def _compile_limitless_pokemon_context(pokemon_index, total_teams, pokemon_name):
     """Pokemon selection + display lists shared by format and event pages.
 
@@ -2946,7 +2959,7 @@ def _compile_limitless_pokemon_context(pokemon_index, total_teams, pokemon_name)
     }
 
 
-def compile_limitless_page_data(format_id="", segment="", pokemon_name=""):
+def compile_limitless_page_data(format_id="", segment="", pokemon_name="", cut="all"):
     """Compile all data needed for the Limitless usage stats page."""
     # Offer only formats that currently have eligible tournaments; dead
     # regulations (or deep links to them) fall back to the newest one.
@@ -2970,6 +2983,18 @@ def compile_limitless_page_data(format_id="", segment="", pokemon_name=""):
         segment = segment_options[0]
     filter_data = segments.get(segment, {})
 
+    # A placement cut narrows the aggregate to each tournament's top
+    # finishers; an empty cut falls back to the full field.
+    cut, max_placing = _parse_limitless_cut(cut)
+    if max_placing is not None:
+        cut_data = limitless_stats.build_limitless_cut_aggregate(
+            format_id, pokedexEntries, int(segment), max_placing
+        )
+        if cut_data and cut_data.get("pokemon"):
+            filter_data = cut_data
+        else:
+            cut = "all"
+
     ctx = _compile_limitless_pokemon_context(
         filter_data.get("pokemon", {}),
         filter_data.get("total_teams", 1),
@@ -2984,6 +3009,7 @@ def compile_limitless_page_data(format_id="", segment="", pokemon_name=""):
         "selected_format_name": formats.get(format_id, format_id),
         "segment": segment,
         "segment_options": segment_options,
+        "cut": cut,
         "tournament_count": len([
             t for t in bundle.get("tournaments", [])
             if (t.get("players") or 0) >= int(segment)
@@ -2997,13 +3023,23 @@ def compile_limitless_page_data(format_id="", segment="", pokemon_name=""):
     return ctx
 
 
-def compile_limitless_event_page_data(tournament_id, pokemon_name=""):
+def compile_limitless_event_page_data(tournament_id, pokemon_name="", cut="all"):
     """Compile page data for a single Limitless online tournament."""
     bundle = limitless_stats.get_event_bundle(tournament_id, pokedexEntries)
     if not bundle:
         return None
 
     agg = bundle["aggregate"]
+    cut, max_placing = _parse_limitless_cut(cut)
+    if max_placing is not None:
+        cut_agg = limitless_stats.get_event_cut_aggregate(
+            tournament_id, pokedexEntries, max_placing
+        )
+        if cut_agg and cut_agg.get("pokemon"):
+            agg = cut_agg
+        else:
+            cut = "all"
+
     ctx = _compile_limitless_pokemon_context(
         agg.get("pokemon", {}),
         agg.get("total_teams", 1),
@@ -3025,6 +3061,7 @@ def compile_limitless_event_page_data(tournament_id, pokemon_name=""):
         "selected_format_id": parent_format,
         "selected_format_name": formats.get(parent_format, parent_format),
         "selected_event": bundle["meta"],
+        "cut": cut,
         "attribution": limitless_stats.ATTRIBUTION_TEXT,
         "attribution_url": limitless_stats.ATTRIBUTION_URL,
     })
@@ -3037,7 +3074,9 @@ def compile_limitless_event_page_data(tournament_id, pokemon_name=""):
 @app.route("/limitless/<format_id>/<segment>/<pokemon_name>")
 def limitless_page(format_id="", segment="", pokemon_name=""):
     """Deep links to Limitless stats open the merged tournaments page."""
-    data = compile_limitless_page_data(format_id, segment, pokemon_name)
+    data = compile_limitless_page_data(
+        format_id, segment, pokemon_name, request.args.get("cut", "all")
+    )
     if data is not None:
         return _render_tournament_hub("limitless", data)
     # Limitless data unavailable: fall back to the official source
@@ -3050,7 +3089,9 @@ def limitless_page(format_id="", segment="", pokemon_name=""):
 @app.route("/limitless/api/<format_id>/<segment>/")
 @app.route("/limitless/api/<format_id>/<segment>/<pokemon_name>")
 def api_limitless_data(format_id, segment="", pokemon_name=""):
-    data = compile_limitless_page_data(format_id, segment, pokemon_name)
+    data = compile_limitless_page_data(
+        format_id, segment, pokemon_name, request.args.get("cut", "all")
+    )
     if data is None:
         return jsonify({"error": "No data found"}), 404
     return jsonify(_hub_json(data))
@@ -3060,7 +3101,9 @@ def api_limitless_data(format_id, segment="", pokemon_name=""):
 @app.route("/limitless/event/<tournament_id>/<pokemon_name>")
 def limitless_event_page(tournament_id, pokemon_name=""):
     """Deep links to a single online tournament's stats."""
-    data = compile_limitless_event_page_data(tournament_id, pokemon_name)
+    data = compile_limitless_event_page_data(
+        tournament_id, pokemon_name, request.args.get("cut", "all")
+    )
     if data is not None:
         return _render_tournament_hub("limitless_event", data)
     # Unknown/uncached event: fall back to the regular source chain
@@ -3070,7 +3113,9 @@ def limitless_event_page(tournament_id, pokemon_name=""):
 @app.route("/limitless/api/event/<tournament_id>/")
 @app.route("/limitless/api/event/<tournament_id>/<pokemon_name>")
 def api_limitless_event_data(tournament_id, pokemon_name=""):
-    data = compile_limitless_event_page_data(tournament_id, pokemon_name)
+    data = compile_limitless_event_page_data(
+        tournament_id, pokemon_name, request.args.get("cut", "all")
+    )
     if data is None:
         return jsonify({"error": "No data found"}), 404
     return jsonify(_hub_json(data))
@@ -3078,25 +3123,37 @@ def api_limitless_event_data(tournament_id, pokemon_name=""):
 
 @app.route("/limitless/api/event/<tournament_id>/teams/<pokemon_name>")
 def api_limitless_event_teams(tournament_id, pokemon_name):
-    """Return one event's teams using a Pokemon, sorted by placing."""
+    """Return one event's teams using a Pokemon, sorted by placing.
+
+    `cut` restricts to top placements (8/16/32).
+    """
     bundle = limitless_stats.get_event_bundle(tournament_id, pokedexEntries)
     if not bundle:
         return jsonify([])
+    _, max_placing = _parse_limitless_cut(request.args.get("cut"))
     target = pokemon_name.lower()
     matching = [
         e for e in bundle["teams"]
-        if target in (s["pokemon"].lower() for s in e["team"])
+        if (max_placing is None or (e["placing"] or 9999) <= max_placing)
+        and target in (s["pokemon"].lower() for s in e["team"])
     ]
     return jsonify([_limitless_team_entry(e) for e in matching[:50]])
 
 
 @app.route("/limitless/api/event/<tournament_id>/standings")
 def api_limitless_event_standings(tournament_id):
-    """Return one event's full standings (players with public decklists)."""
+    """Return one event's standings (players with public decklists).
+
+    `cut` restricts to top placements (8/16/32).
+    """
     bundle = limitless_stats.get_event_bundle(tournament_id, pokedexEntries)
     if not bundle:
         return jsonify([])
-    return jsonify([_limitless_team_entry(e) for e in bundle["teams"]])
+    _, max_placing = _parse_limitless_cut(request.args.get("cut"))
+    teams = bundle["teams"]
+    if max_placing is not None:
+        teams = [e for e in teams if (e["placing"] or 9999) <= max_placing]
+    return jsonify([_limitless_team_entry(e) for e in teams])
 
 
 def _limitless_team_entry(entry):
@@ -3126,17 +3183,20 @@ def _limitless_team_entry(entry):
 def api_limitless_teams(format_id, pokemon_name):
     """Return the best-performing teams using a Pokemon across all events.
 
-    `min` filters by tournament size (player count); teams are ranked by
-    Swiss points (an 11-3 run outranks a 4-1) rather than placing.
+    `min` filters by tournament size (player count) and `cut` by
+    placement (top 8/16/32); teams are ranked by Swiss points (an 11-3
+    run outranks a 4-1) rather than placing.
     """
     if format_id not in limitless_stats.get_available_formats():
         return jsonify([])
     min_players = request.args.get("min", type=int) or 0
+    _, max_placing = _parse_limitless_cut(request.args.get("cut"))
     teams = limitless_stats.get_all_teams(format_id, pokedexEntries)
     target = pokemon_name.lower()
     matching = [
         e for e in teams
         if (e["tournament"].get("players") or 0) >= min_players
+        and (max_placing is None or (e["placing"] or 9999) <= max_placing)
         and target in (s["pokemon"].lower() for s in e["team"])
     ]
     matching.sort(key=lambda e: (
@@ -3154,14 +3214,18 @@ def api_limitless_results(format_id):
     The optional multi-term AND search (player, tournament, Pokemon,
     item, ability, move, tera, nature — e.g. "garchomp life orb")
     filters the underlying teams before grouping, so counts reflect
-    matching teams. `min` filters by tournament size (player count).
+    matching teams. `min` filters by tournament size (player count) and
+    `cut` by placement (top 8/16/32).
     """
     if format_id not in limitless_stats.get_available_formats():
         return jsonify([])
     min_players = request.args.get("min", type=int) or 0
+    _, max_placing = _parse_limitless_cut(request.args.get("cut"))
     teams = limitless_stats.get_all_teams(format_id, pokedexEntries)
     if min_players:
         teams = [e for e in teams if (e["tournament"].get("players") or 0) >= min_players]
+    if max_placing is not None:
+        teams = [e for e in teams if (e["placing"] or 9999) <= max_placing]
     query = request.args.get("q", "").strip().lower()
     if query:
         terms = query.split()

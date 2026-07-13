@@ -484,6 +484,12 @@
     text-align: left;
     margin: 0 0 8px 0;
   }
+  /* Standings pagination */
+  .show-more-row {
+    display: flex;
+    gap: 8px;
+    margin-top: 4px;
+  }
   /* Teams section */
   .teams-container {
     grid-column: 1 / -1;
@@ -694,8 +700,10 @@
     /* Source search + list on the left column */
     .left > .source-search { grid-column: 1; grid-row: 2; justify-self: stretch; }
     .left > #source-list-container { grid-column: 1; grid-row: 3; justify-self: stretch; width: 100%; }
-    /* Filter rows span both columns (only one is visible at a time) */
+    /* Filter rows span both columns (day and segment are never visible
+       at the same time; the cut row gets its own row below them) */
     .left > #day-filter-container, .left > #segment-filter-wrap { grid-column: 1 / -1; grid-row: 4; justify-self: center; }
+    .left > #cut-filter-wrap { grid-column: 1 / -1; grid-row: 5; justify-self: center; }
     /* Pokemon search + list on the right column */
     .left > .pokemon-search { grid-column: 2; grid-row: 2; justify-self: stretch; }
     .left > .pokemon-list { grid-column: 2; grid-row: 3; justify-self: stretch; width: 100%; }
@@ -820,7 +828,7 @@
             <span class="info-stat-value" id="info-teams">{{ total_teams }}</span>
           </div>
         </div>
-        <div class="info-format" id="info-context">{% if source == "limitless" %}{{ selected_format_name }} &middot; {{ tournament_count }} online tournaments &middot; last {{ window_days }} days &middot; {{ min_players }}+ players{% elif source == "limitless_event" %}{{ selected_event.name }}{% if selected_event.players %} &middot; {{ selected_event.players }} players{% endif %}{% if selected_event.date %} &middot; {{ selected_event.date[:10] }}{% endif %}{% else %}{{ selected_tournament.name }}{% endif %}</div>
+        <div class="info-format" id="info-context">{% if source == "limitless" %}{{ selected_format_name }} &middot; {{ tournament_count }} online tournaments &middot; last {{ window_days }} days &middot; {{ min_players }}+ players{% if cut != "all" %} &middot; Top {{ cut }}{% endif %}{% elif source == "limitless_event" %}{{ selected_event.name }}{% if selected_event.players %} &middot; {{ selected_event.players }} players{% endif %}{% if selected_event.date %} &middot; {{ selected_event.date[:10] }}{% endif %}{% if cut != "all" %} &middot; Top {{ cut }}{% endif %}{% else %}{{ selected_tournament.name }}{% endif %}</div>
       </div>
 
       <!-- Tournament / format search -->
@@ -881,6 +889,19 @@
           <button type="button" onclick="selectSegment('{{ opt }}')" class="rating-button{% if segment == opt %} active{% endif %}">{{ opt }}+</button>
           {% endfor %}
           {% endif %}
+        </div>
+      </div>
+
+      <!-- Placement-cut filter (Limitless sources; online events have no
+           day data, so top-placement cuts stand in for day filters) -->
+      <div id="cut-filter-wrap"{% if source == "official" %} style="display:none"{% endif %}>
+        <div class="filter-label">Placement cut</div>
+        <div class="rating-buttons" id="cut-filter-container">
+          {% set current_cut = cut if source != "official" else "all" %}
+          <button type="button" onclick="selectCut('all')" class="rating-button{% if current_cut == 'all' %} active{% endif %}">All</button>
+          <button type="button" onclick="selectCut('32')" class="rating-button{% if current_cut == '32' %} active{% endif %}">Top 32</button>
+          <button type="button" onclick="selectCut('16')" class="rating-button{% if current_cut == '16' %} active{% endif %}">Top 16</button>
+          <button type="button" onclick="selectCut('8')" class="rating-button{% if current_cut == '8' %} active{% endif %}">Top 8</button>
         </div>
       </div>
 
@@ -1129,10 +1150,11 @@
     window.currentFormatId = "{{ selected_format_id if source != 'official' else '' }}";
     window.currentSegment = "{{ segment if source == 'limitless' else '' }}";
     window.currentEventId = "{{ selected_event.id if source == 'limitless_event' else '' }}";
+    window.currentCut = "{{ cut if source != 'official' else 'all' }}";
     window.currentPokemonName = "{{ selected_pokemon }}";
     window.includedTournaments = {{ (included_tournaments if source == 'limitless' else []) | tojson }};
   </script>
-  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=9"></script>
+  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=10"></script>
   {% endif %}
 </body>
 </html>
