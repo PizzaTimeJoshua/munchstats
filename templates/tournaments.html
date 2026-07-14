@@ -1102,7 +1102,12 @@
       <!-- STANDINGS VIEW (official events) -->
       <div id="standings-view" style="display: none;">
         <div class="teams-container">
-          <input type="text" id="standingsSearchInput" placeholder="Search players, Pokemon, moves, items..." style="width: 100%; box-sizing: border-box; margin-bottom: 10px;">
+          <input type="text" id="standingsSearchInput" placeholder='e.g. "Kingambit Focus Sash, Garchomp" or a player' style="width: 100%; box-sizing: border-box; margin-bottom: 4px;">
+          <p style="color: #666; font-size: 12px; margin: 0 0 10px;">
+            Separate Pok&eacute;mon with commas; words in one group must match the
+            same team member, so "Kingambit Focus Sash" means a Kingambit
+            <b>holding</b> a Focus Sash. Player names work too.
+          </p>
           <div id="standings-list">
             <p style="color: #666; font-size: 13px;">Loading standings...</p>
           </div>
@@ -1112,7 +1117,12 @@
       <!-- TOP TEAMS VIEW (Limitless online formats) -->
       <div id="results-view" style="display: none;">
         <div class="teams-container">
-          <input type="text" id="resultsSearchInput" placeholder="Search players, Pokemon, moves, items, tournaments..." style="width: 100%; box-sizing: border-box; margin-bottom: 10px;">
+          <input type="text" id="resultsSearchInput" placeholder='e.g. "Kingambit Focus Sash, Garchomp" or a player' style="width: 100%; box-sizing: border-box; margin-bottom: 4px;">
+          <p style="color: #666; font-size: 12px; margin: 0 0 10px;">
+            Separate Pok&eacute;mon with commas; words in one group must match the
+            same team member, so "Kingambit Focus Sash" means a Kingambit
+            <b>holding</b> a Focus Sash. Players and tournaments work too.
+          </p>
           <div id="results-list">
             <p style="color: #666; font-size: 13px;">Loading teams...</p>
           </div>
@@ -1154,7 +1164,7 @@
     window.currentPokemonName = "{{ selected_pokemon }}";
     window.includedTournaments = {{ (included_tournaments if source == 'limitless' else []) | tojson }};
   </script>
-  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=10"></script>
+  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=11"></script>
   {% endif %}
 </body>
 </html>

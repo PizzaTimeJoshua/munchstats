@@ -3207,15 +3207,31 @@ def api_limitless_teams(format_id, pokemon_name):
     return jsonify([_limitless_team_entry(e) for e in matching[:50]])
 
 
+def _limitless_group_matches(entry, terms):
+    """True if all terms of one comma-group match the same team slot
+    (Pokemon + item + ability + tera + nature + moves), or all match
+    the player/tournament metadata.
+
+    Same slot-scoping as vgcpastes._group_matches: "kingambit focus
+    sash" means a Kingambit *holding* a Focus Sash, not any Focus Sash
+    on the team.
+    """
+    for slot in entry["search_slots"]:
+        if all(term in slot for term in terms):
+            return True
+    return all(term in entry["search_meta"] for term in terms)
+
+
 @app.route("/limitless/api/<format_id>/results/")
 def api_limitless_results(format_id):
     """Return team archetypes (identical 6 Pokemon grouped), most-used first.
 
-    The optional multi-term AND search (player, tournament, Pokemon,
-    item, ability, move, tera, nature — e.g. "garchomp life orb")
-    filters the underlying teams before grouping, so counts reflect
-    matching teams. `min` filters by tournament size (player count) and
-    `cut` by placement (top 8/16/32).
+    The optional search uses the teams-page comma-group syntax: groups
+    split on commas, every term in a group must match the same team
+    slot (or the player/tournament metadata), and teams must satisfy
+    all groups. It filters the underlying teams before grouping, so
+    counts reflect matching teams. `min` filters by tournament size
+    (player count) and `cut` by placement (top 8/16/32).
     """
     if format_id not in limitless_stats.get_available_formats():
         return jsonify([])
@@ -3228,8 +3244,12 @@ def api_limitless_results(format_id):
         teams = [e for e in teams if (e["placing"] or 9999) <= max_placing]
     query = request.args.get("q", "").strip().lower()
     if query:
-        terms = query.split()
-        teams = [e for e in teams if all(t in e["search"] for t in terms)]
+        groups = [g.split() for g in query.split(",")]
+        groups = [g for g in groups if g]
+        teams = [
+            e for e in teams
+            if all(_limitless_group_matches(e, g) for g in groups)
+        ]
     archetypes = limitless_stats.group_team_archetypes(teams)
 
     result = []

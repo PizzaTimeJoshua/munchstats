@@ -1809,7 +1809,9 @@ $(document).ready(function () {
     fetchPageData(currentFormatCode, currentRatingValue, pokemonName);
   };
   window.selectMeta = function (metaCode) {
-    fetchPageData(metaCode, currentRatingValue, "");
+    // Carry the selected Pokemon into the new format; the server falls
+    // back to the top-usage Pokemon when it isn't in that format.
+    fetchPageData(metaCode, currentRatingValue, currentPokemonName);
   };
   window.selectRating = function (ratingType) {
     fetchPageData(currentFormatCode, ratingType, currentPokemonName);

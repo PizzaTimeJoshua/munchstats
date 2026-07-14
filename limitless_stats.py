@@ -607,11 +607,19 @@ def _build_format_memos(format_id, pokedex, present, key):
             entry = _team_entry(player, meta, pokedex)
             if entry is None:
                 continue
-            search_parts = [entry["player"], meta["name"]]
-            for s in entry["team"]:
-                search_parts += [s["pokemon"], s["item"], s["ability"], s["tera"], s["nature"]]
-                search_parts += s["moves"]
-            entry["search"] = " ".join(p for p in search_parts if p).lower()
+            # Slot-scoped search: one string per team member plus a
+            # metadata string, so "kingambit focus sash" can be required
+            # to match a single slot rather than the whole team.
+            entry["search_slots"] = [
+                " ".join(filter(None, [
+                    s["pokemon"], s["item"], s["ability"], s["tera"], s["nature"],
+                    *s["moves"],
+                ])).lower()
+                for s in entry["team"]
+            ]
+            entry["search_meta"] = " ".join(
+                filter(None, [entry["player"], meta["name"]])
+            ).lower()
             teams.append(entry)
 
     data = None

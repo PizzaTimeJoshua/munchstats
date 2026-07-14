@@ -843,7 +843,7 @@ $(document).ready(function () {
       }
       standingsData = await res.json();
       standingsData.forEach(function (entry) {
-        entry._search = buildSearchText(entry);
+        entry._search = buildSearchIndex(entry);
       });
       standingsLimit = STANDINGS_PAGE;
       renderStandings();
@@ -852,25 +852,52 @@ $(document).ready(function () {
     }
   }
 
-  function buildSearchText(entry) {
-    var parts = [entry.name || entry.player || ""];
-    entry.team.forEach(function (slot) {
-      parts.push(slot.pokemon);
+  // Slot-scoped search index, mirroring the teams page: one string per
+  // team member plus a metadata string, so "kingambit focus sash" must
+  // match a single slot — a Kingambit *holding* a Focus Sash.
+  function buildSearchIndex(entry) {
+    var slots = entry.team.map(function (slot) {
+      var parts = [slot.pokemon];
       if (slot.item) parts.push(slot.item);
       if (slot.ability) parts.push(slot.ability);
       if (slot.tera_type) parts.push(slot.tera_type);
       if (slot.nature) parts.push(slot.nature);
-      if (slot.moves) slot.moves.forEach(function (m) { parts.push(m); });
+      if (slot.moves) parts = parts.concat(slot.moves);
+      return parts.join(" ").toLowerCase();
     });
-    return parts.join(" ").toLowerCase();
+    return {
+      slots: slots,
+      meta: (entry.name || entry.player || "").toLowerCase(),
+    };
+  }
+
+  // "kingambit focus sash, garchomp" -> [["kingambit","focus","sash"],
+  // ["garchomp"]]; empty groups from stray commas are dropped.
+  function parseSearchGroups(query) {
+    var groups = [];
+    query.toLowerCase().split(",").forEach(function (part) {
+      var terms = part.split(/\s+/).filter(function (t) { return t; });
+      if (terms.length) groups.push(terms);
+    });
+    return groups;
+  }
+
+  function entryMatchesGroups(index, groups) {
+    return groups.every(function (terms) {
+      var slotHit = index.slots.some(function (slot) {
+        return terms.every(function (t) { return slot.indexOf(t) !== -1; });
+      });
+      if (slotHit) return true;
+      return terms.every(function (t) { return index.meta.indexOf(t) !== -1; });
+    });
   }
 
   function renderStandings() {
     var container = document.getElementById("standings-list");
     if (!container) return;
-    var query = ($("#standingsSearchInput").val() || "").toLowerCase();
-    var matched = query
-      ? standingsData.filter(function (e) { return e._search.indexOf(query) !== -1; })
+    var groups = parseSearchGroups($("#standingsSearchInput").val() || "");
+    var matched = groups.length
+      ? standingsData.filter(function (e) { return entryMatchesGroups(e._search, groups); })
       : standingsData;
 
     if (matched.length === 0) {
@@ -1083,14 +1110,17 @@ $(document).ready(function () {
   };
 
   // ========== GLOBAL SELECTION FUNCTIONS ==========
+  // Switching tournament/format/event carries the selected Pokemon
+  // along; the server falls back to the top-usage Pokemon when it
+  // isn't present in the new dataset.
   window.selectTournament = function (id) {
-    fetchOfficialData(id, currentDayFilter || "all", "");
+    fetchOfficialData(id, currentDayFilter || "all", currentPokemonName);
   };
 
   window.selectFormat = function (id) {
     // First visit to the online source in this session: the server
     // clamps an unknown segment to the smallest available tier.
-    fetchLimitlessData(id, currentSegment || "25", "");
+    fetchLimitlessData(id, currentSegment || "25", currentPokemonName);
   };
 
   window.selectDayFilter = function (filter) {
@@ -1112,7 +1142,7 @@ $(document).ready(function () {
 
   window.selectEvent = function (id) {
     currentView = "usage";
-    fetchEventData(id, "");
+    fetchEventData(id, currentPokemonName);
   };
 
   // One button, two jobs: opens the events browser on a format page,
@@ -1120,7 +1150,7 @@ $(document).ready(function () {
   window.eventsButton = function () {
     if (currentSource === "limitless_event") {
       currentView = "events";
-      fetchLimitlessData(currentFormatId, currentSegment || "25", "");
+      fetchLimitlessData(currentFormatId, currentSegment || "25", currentPokemonName);
     } else if (currentSource === "limitless") {
       switchView("events");
     }
