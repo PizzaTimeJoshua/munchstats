@@ -4,7 +4,7 @@
 > **Repo:** https://github.com/PizzaTimeJoshua/munchstats
 
 ## Overview
-**MunchStats** is a fast, single-page style Flask app that presents Pokémon Showdown usage statistics by format. Pick a ladder (e.g., VGC 2026, OU), then dive into Pokémon detail pages with usage %, common moves, items, abilities, EV spreads, and usage trends. Also features an integrated damage calculator, VGC tournament stats, and a replay search engine.
+**MunchStats** is a fast, single-page style Flask app that presents Pokémon Showdown usage statistics by format. Pick a ladder (e.g., VGC 2026, OU), then dive into Pokémon detail pages with usage %, common moves, items, abilities, EV spreads, and usage trends. Also features an integrated damage calculator, VGC tournament stats, a searchable team repository, and a replay search engine.
 
 ## Key Features
 
@@ -36,11 +36,22 @@
 - **Online (Limitless):** aggregated usage stats from recent Limitless online VGC tournaments (data from [Limitless TCG](https://play.limitlesstcg.com/)), deep-linkable at `/limitless/`
   - Rolling 30-day window per regulation format; only formats with recent events and public team data are offered
   - Tournament-size segments (25+/50+/100+/200+ players) to filter for more competitive events
+  - Placement-cut filter (`?cut=` — Top 32 / Top 16 / Top 8) to restrict stats, teams, and standings to top finishers
   - Per-Pokémon usage %, win rates, moves, items, abilities, Tera types, natures, and teammates
-  - Team results view grouping identical 6-Pokémon teams into archetypes ranked by Swiss points, with combined win rates and multi-term search (player, tournament, Pokémon, item, move, ...)
-  - Best-performing teams per Pokémon across all events
-- Top tournament teams shown on Pokémon detail pages
+  - Team results view grouping identical 6-Pokémon teams into archetypes ranked by usage, with combined win rates and slot-scoped comma-group search (`kingambit focus sash, garchomp` = a Kingambit *holding* Focus Sash alongside a Garchomp; terms also match player/tournament metadata)
+  - Best-performing teams per Pokémon across all events, ranked by Swiss points
+- **Individual Limitless events:** per-event pages at `/limitless/event/<id>/` with that tournament's own usage stats, teams, and standings (also cut-filterable)
+- Top tournament teams shown on Pokémon detail pages — merges RK9 majors with Limitless online events, ranked by Swiss points, then tournament size, then placement
 - BO3 format support
+
+### Team Search (VGCPastes)
+- Searchable team repository at `/teams/` — team data from the [VGCPastes Repository](https://twitter.com/VGCPastes) (public Google Sheet)
+- Repository selector (Champions M-A/M-B, SV Regulation I)
+- Slot-scoped comma-group search: within a comma group, every term must match the same team slot (Pokémon + held item) or the team's metadata; `mode=any` matches any group instead of all
+- Filters: has EV spreads, has rental/replica code, has tournament report; sort by newest/oldest/random
+- Team cards with Pokémon and item sprites, player/event/rank metadata, and source/report links
+- In-site team viewer: fetches the raw Showdown paste from Pokepaste (immutable, cached on disk) into a modal
+- Sheet tabs cached on disk for 12 hours with stale fallback; cache warmed in a background thread at startup
 
 ### Replay Search
 - Searchable replay database at `/replays/`
@@ -48,6 +59,7 @@
 - Team usage rankings
 - Embedded replay viewer
 - BO3 replay selector
+- Replay data auto-updated ~4×/day by a scheduled GitHub Actions workflow (see Data Pipeline)
 
 ### Other
 - Pokémon merchandise listings via eBay affiliate integration
@@ -60,7 +72,8 @@
 - **Charts:** Chart.js (EV distribution bar chart, usage trend line chart)
 - **Damage Calc:** @smogon/calc 0.11.0 (bundled with esbuild)
 - **Process management:** Gunicorn (Procfile)
-- **Data:** Per-Pokémon JSON files in `stats/`, trend data in `stats/trends/`, tournament data in `stats/tournaments/`, Limitless API cache in `cache/limitless/`
+- **Data:** Per-Pokémon JSON files in `stats/`, trend data in `stats/trends/`, tournament data in `stats/tournaments/`, Limitless API cache in `cache/limitless/`, VGCPastes sheet cache in `cache/vgcpastes/`
+- **Automation:** GitHub Actions (scheduled replay-stats updates)
 
 ## Data Files
 - **Per-Pokémon stats:** `stats/{YYYY-MM}/{format}/{rating}/{Pokemon}.json`
@@ -68,6 +81,7 @@
 - **Trend data:** `stats/trends/{format}/{rating}.json` (12 months of usage % per Pokémon)
 - **Tournament data:** `stats/tournaments/{tournament_id}/` (metadata, players, aggregated stats)
 - **Limitless cache:** `cache/limitless/` (formats, tournament list, per-tournament standings) — fetched lazily at runtime, safe to delete
+- **VGCPastes cache:** `cache/vgcpastes/` (sheet tabs as CSV, fetched Pokepaste texts) — fetched lazily at runtime, safe to delete
 - **Metadata:** `stats/pokedex.json`, `stats/moves.json`, `stats/items.json`, `stats/abilities.json`, `stats/forms_index.json`, `stats/meta_names.json`
 - **Champions mod:** `stats/champions_moves.json`, `stats/champions_abilities.json`
 
@@ -81,7 +95,9 @@
 - `GET /calc/` → damage calculator (also `/calc/<format_code>/` and `/calc/<format_code>/<rating>/`)
 - `GET /champions/` → Champions format stats (also `/champions/<fmt>/` and `/champions/<fmt>/<pokemon_name>`)
 - `GET /tournaments/` → tournament hub, official RK9 source (also `/tournaments/<id>/`, `/tournaments/<id>/<day_filter>/`, `/tournaments/<id>/<day_filter>/<pokemon_name>`)
-- `GET /limitless/` → tournament hub, online Limitless source (also `/limitless/<format_id>/`, `/limitless/<format_id>/<segment>/`, `/limitless/<format_id>/<segment>/<pokemon_name>`)
+- `GET /limitless/` → tournament hub, online Limitless source (also `/limitless/<format_id>/`, `/limitless/<format_id>/<segment>/`, `/limitless/<format_id>/<segment>/<pokemon_name>`; all accept `?cut=8|16|32`)
+- `GET /limitless/event/<tournament_id>/` → single online tournament's stats (also `/<pokemon_name>`, `?cut=`)
+- `GET /teams/` → VGCPastes team search (also `/teams/<repo_id>/`)
 - `GET /replays/` → replay search (also `/replays/<format_code>/`)
 - `GET /replays/watch/<replay_id>` → replay viewer
 - `GET /tools/` → tools page
@@ -99,9 +115,14 @@
 - `GET /tournaments/api/<tournament_id>/<day_filter>/` → tournament data JSON
 - `GET /tournaments/api/<tournament_id>/teams/<pokemon_name>` → teams using Pokémon
 - `GET /tournaments/api/<tournament_id>/standings` → player standings
-- `GET /limitless/api/<format_id>/<segment>/` → Limitless usage stats JSON (also `/<pokemon_name>`)
-- `GET /limitless/api/<format_id>/teams/<pokemon_name>` → best teams using Pokémon (`?min=` filters tournament size)
-- `GET /limitless/api/<format_id>/results/` → team archetypes (`?q=` multi-term search, `?min=` size filter)
+- `GET /limitless/api/<format_id>/<segment>/` → Limitless usage stats JSON (also `/<pokemon_name>`; `?cut=` placement filter)
+- `GET /limitless/api/<format_id>/teams/<pokemon_name>` → best teams using Pokémon (`?min=` tournament size, `?cut=` placement)
+- `GET /limitless/api/<format_id>/results/` → team archetypes (`?q=` slot-scoped comma-group search, `?min=` size, `?cut=` placement)
+- `GET /limitless/api/event/<tournament_id>/` → single-event usage stats JSON (also `/<pokemon_name>`; `?cut=`)
+- `GET /limitless/api/event/<tournament_id>/teams/<pokemon_name>` → one event's teams using Pokémon (`?cut=`)
+- `GET /limitless/api/event/<tournament_id>/standings` → one event's standings (`?cut=`)
+- `GET /teams/api/<repo_id>/` → VGCPastes team search (`?q=` comma-group search, `?evs=`/`?code=`/`?report=` filters, `?sort=newest|oldest|random`, `?mode=any`, paged via `offset`/`limit`)
+- `GET /teams/api/<repo_id>/paste/<team_id>` → raw Showdown text of a team's Pokepaste
 - `GET /replays/api/search` → replay search with filters
 - `GET /replays/api/default` → default replay listing
 - `GET /replays/api/rankings` → team usage rankings
@@ -118,6 +139,7 @@ static/
 templates/
   index.html                  Main stats page
   tournaments.html            Tournament stats page
+  teams.html                  VGCPastes team search page
   replays.html                Replay search page
   watch.html                  Replay viewer
   tools.html, about.html, 404.html, 500.html
@@ -127,8 +149,11 @@ stats/
   tournaments/                Tournament data (RK9.gg)
   replays/                    Replay data
   pokedex.json, moves.json, items.json, abilities.json, etc.
+.github/workflows/
+  update-replay-stats.yml     Scheduled replay-stats update (GitHub Actions)
 app.py                        Flask application
 limitless_stats.py            Limitless API client + online tournament usage aggregation
+vgcpastes.py                  VGCPastes sheet client + team search
 update_all_data.py            Data pipeline (downloads, splits, generates trends)
 scrape_tournaments.py         Tournament data scraper (RK9.gg)
 Procfile
@@ -161,6 +186,12 @@ Online tournament data needs no pipeline step — it is fetched lazily at runtim
 - The cache is warmed in a background thread at app startup, so a fresh deploy (or Heroku dyno restart, which wipes the disk) rebuilds itself before the first visitor.
 - Set `LIMITLESS_API_KEY` to send an access key with requests (optional; only needed if rate-limited).
 
+### VGCPastes Team Data
+Team data also needs no pipeline step — the public VGCPastes spreadsheet tabs are fetched as CSV at runtime and cached under `cache/vgcpastes/` for 12 hours (with stale fallback if the sheet is unreachable). Pokepaste texts are immutable and cached on first fetch. Like the Limitless cache, it is warmed in a background thread at startup.
+
+### Replay Stats Automation
+`.github/workflows/update-replay-stats.yml` runs the replay scraper on a schedule (4×/day) via GitHub Actions: it scrapes new Showdown replays, rebuilds the searcher/team-ranking JSONs under `stats/replays/`, and commits them to this repo (which triggers the Heroku auto-deploy). The raw replay cache is carried between runs via `actions/cache`, seeded from a release asset on the private scraper repo. Requires one repository secret, `SCRAPER_TOKEN` (fine-grained PAT with Contents:Read on the scraper repo); until it is set, runs are silent no-ops. It can also be triggered manually via `workflow_dispatch`.
+
 ## Local Setup
 ```bash
 python -m venv .venv
@@ -175,12 +206,12 @@ npm install                # for damage calc build
 export FLASK_APP=app.py  # Windows: set FLASK_APP=app.py
 flask run
 
-# Prod-like
-gunicorn app:app --workers 2 --bind 127.0.0.1:8000
+# Prod-like (mirrors Procfile: single worker + threads to fit Heroku's 512MB dyno)
+gunicorn app:app --workers 1 --threads 8 --bind 127.0.0.1:8000
 ```
 
 ## Deployment
-- **Heroku / Render / Fly.io:** use `Procfile` (`web: gunicorn app:app`).
+- **Heroku / Render / Fly.io:** use `Procfile` (single gunicorn worker with 8 threads, tuned for a 512MB dyno).
 - Ensure the `/stats` directory is populated at build/deploy time.
 - Set `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET` environment variables for merch integration.
 - Optionally set `LIMITLESS_API_KEY` for the Limitless API (works keyless by default).
