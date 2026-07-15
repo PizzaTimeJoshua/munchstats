@@ -743,6 +743,69 @@ def scrape_team_lists(session, players, tournament_id, pokemon_lookup, move_look
     print(f"    Scraped {teams_found}/{total} team lists")
 
 
+# ─── Mega form resolution ─────────────────────────────────────────────────
+# Mirrors limitless_stats._resolve_battle_form: RK9 team lists record base
+# names ("Charizard"); which Mega it becomes is implied by the held stone,
+# and the Champions metas are defined by that choice — so usage stats count
+# each Mega forme separately, like the Showdown ladder does.
+
+# The game's only Floette is the Eternal Flower one (team lists may spell
+# it plain "Floette"), and only Floette-Eternal can Mega Evolve.
+_NAME_CANONICAL = {"Floette": "Floette-Eternal"}
+_pokedex_cache = None
+_stone_to_form = None
+
+
+def _get_pokedex():
+    global _pokedex_cache
+    if _pokedex_cache is None:
+        _pokedex_cache = load_json(os.path.join(STATS_DIR, "pokedex.json"))
+    return _pokedex_cache
+
+
+def _base_species(name, pokedex):
+    """A name's pokedex baseSpecies ("Floette-Eternal" -> "Floette")."""
+    entry = pokedex.get(re.sub(r"[^a-z0-9]+", "", name.lower()))
+    if not entry:
+        return name
+    return entry.get("baseSpecies") or entry.get("name") or name
+
+
+def _resolve_battle_form(name, item, pokedex):
+    """Resolve a slot to the form it battles as, via its held stone.
+
+    The holder check compares pokedex baseSpecies so every spelling of
+    the holder matches its Mega form. Non-Mega formats never carry the
+    stones, so this is a no-op there.
+    """
+    global _stone_to_form
+    if _stone_to_form is None:
+        _stone_to_form = {}
+        for entry in pokedex.values():
+            required = entry.get("requiredItem")
+            forme = entry.get("forme") or ""
+            if required and ("Mega" in forme or "Primal" in forme):
+                key = re.sub(r"[^a-z0-9]+", "", required.lower())
+                _stone_to_form[key] = entry
+    name = _NAME_CANONICAL.get(name, name)
+    if not item:
+        return name
+    form = _stone_to_form.get(re.sub(r"[^a-z0-9]+", "", item.lower()))
+    if form and _base_species(form.get("name", ""), pokedex) == _base_species(name, pokedex):
+        return form.get("name") or name
+    return name
+
+
+def resolve_battle_forms(players):
+    """Resolve every team slot to its battle form, in place. Idempotent."""
+    pokedex = _get_pokedex()
+    for player in players:
+        for slot in player.get("team") or []:
+            slot["pokemon"] = _resolve_battle_form(
+                slot.get("pokemon", ""), slot.get("item", ""), pokedex
+            )
+
+
 def aggregate_usage(players, filter_key):
     """Compute usage stats for a given filter level."""
     day_hierarchy = {"top8": 4, "top16": 3, "day2": 2, "day1": 1}
@@ -830,6 +893,9 @@ def _has_tera_data(players):
 
 def build_aggregated_data(players):
     """Build all filter-level aggregations."""
+    # Split Mega formes out of their base names first (mutates players,
+    # so the resolved names also persist to players.json on save).
+    resolve_battle_forms(players)
     # If the tournament doesn't meaningfully use Tera, strip stale values
     if not _has_tera_data(players):
         for p in players:
@@ -1041,6 +1107,8 @@ def main():
     parser.add_argument("--force", action="store_true", help="Re-scrape even if data exists")
     parser.add_argument("--reteam", action="store_true",
                         help="Re-scrape team lists for existing tournaments (uses saved roster/team_links)")
+    parser.add_argument("--reaggregate", action="store_true",
+                        help="Rebuild aggregated.json (and re-resolve players.json) from saved data, no scraping")
     parser.add_argument("--discover", action="store_true", help="Discover and list available tournaments")
     args = parser.parse_args()
 
@@ -1054,6 +1122,26 @@ def main():
     session.headers.update({
         "User-Agent": "MunchStats Tournament Scraper (munchstats.com)",
     })
+
+    if args.reaggregate:
+        # Rebuild saved tournaments through the current aggregation logic
+        # (e.g. after Mega form resolution changes) without any scraping.
+        tids = args.tournament_ids or [
+            d for d in sorted(os.listdir(TOURNAMENT_DATA_DIR))
+            if os.path.exists(os.path.join(TOURNAMENT_DATA_DIR, d, "players.json"))
+        ]
+        print(f"Re-aggregating {len(tids)} tournaments...")
+        for tid in tids:
+            players = load_json(os.path.join(TOURNAMENT_DATA_DIR, tid, "players.json"))
+            metadata = load_json(os.path.join(TOURNAMENT_DATA_DIR, tid, "metadata.json"))
+            if not players or not metadata:
+                print(f"  Skipping {tid}: missing saved data")
+                continue
+            aggregated = build_aggregated_data(players)
+            save_tournament_data(tid, metadata, players, aggregated)
+        update_tournaments_index()
+        print("\nDone.")
+        return
 
     if args.reteam:
         # Re-scrape team lists for existing tournaments

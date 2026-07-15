@@ -366,17 +366,69 @@ def _clean_value(value):
     return "" if value.lower() == "none" else value
 
 
+# Decklists spell the Eternal Flower Floette as plain "Floette"; the
+# Champions game has no regular Floette, and only Floette-Eternal can
+# Mega Evolve.
+_NAME_CANONICAL = {"Floette": "Floette-Eternal"}
+
+# Held Mega stone / Primal orb (normalized) -> pokedex forme entry.
+# Built lazily from the pokedex passed by the app.
+_stone_to_form = None
+
+
+def _base_species(name, pokedex):
+    """A name's pokedex baseSpecies ("Floette-Eternal" -> "Floette")."""
+    entry = pokedex.get(re.sub(r"[^a-z0-9]+", "", name.lower()))
+    if not entry:
+        return name
+    return entry.get("baseSpecies") or entry.get("name") or name
+
+
+def _resolve_battle_form(name, item, pokedex):
+    """Resolve a slot to the form it battles as, via its held stone.
+
+    Decklists record base names ("Charizard"); which Mega it becomes is
+    implied by the held stone, and the Champions metas are defined by
+    that choice — so usage stats count each Mega forme separately, like
+    the Showdown ladder does. The holder check compares pokedex
+    baseSpecies so every decklist spelling of the holder matches.
+    """
+    global _stone_to_form
+    if _stone_to_form is None:
+        _stone_to_form = {}
+        for entry in pokedex.values():
+            required = entry.get("requiredItem")
+            forme = entry.get("forme") or ""
+            if required and ("Mega" in forme or "Primal" in forme):
+                key = re.sub(r"[^a-z0-9]+", "", required.lower())
+                _stone_to_form[key] = entry
+    name = _NAME_CANONICAL.get(name, name)
+    if not item:
+        return name
+    form = _stone_to_form.get(re.sub(r"[^a-z0-9]+", "", item.lower()))
+    if form and _base_species(form.get("name", ""), pokedex) == _base_species(name, pokedex):
+        return form.get("name") or name
+    return name
+
+
 def _normalize_slot(slot, pokedex):
     """Normalize one raw Limitless decklist slot into munchstats terms.
 
-    Every value is interned: the same few hundred Pokemon/item/move names
-    repeat across tens of thousands of cached team slots, and json.loads
-    gives each occurrence its own string object — interning collapses
-    them so the resident teams/aggregate memos stay small.
+    The Pokemon name is resolved to the form it battles as (Mega stones
+    make "Charizard" + Charizardite Y a "Charizard-Mega-Y" slot), so
+    every consumer — aggregates, teams, archetypes — counts formes
+    separately. Every value is interned: the same few hundred
+    Pokemon/item/move names repeat across tens of thousands of cached
+    team slots, and json.loads gives each occurrence its own string
+    object — interning collapses them so the resident teams/aggregate
+    memos stay small.
     """
+    item = _clean_value(slot.get("item"))
     return {
-        "pokemon": sys.intern(normalize_limitless_pokemon(slot, pokedex)),
-        "item": sys.intern(_clean_value(slot.get("item"))),
+        "pokemon": sys.intern(_resolve_battle_form(
+            normalize_limitless_pokemon(slot, pokedex), item, pokedex
+        )),
+        "item": sys.intern(item),
         "ability": sys.intern(_clean_value(slot.get("ability"))),
         # Tera types and natures render raw (CSS classes, tooltip
         # lookups), so force canonical capitalization.

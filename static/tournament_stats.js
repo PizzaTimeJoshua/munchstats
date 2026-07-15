@@ -1204,6 +1204,18 @@ $(document).ready(function () {
     }
   })();
 
+  // Deep link: /limitless/...?view=results&q=... opens the Team Results
+  // view with a pre-filled search (used by the Insights winning-cores
+  // rows to show the actual teams running a core).
+  (function () {
+    var params = new URLSearchParams(window.location.search);
+    var query = params.get("q");
+    if (currentSource === "limitless" && (params.get("view") === "results" || query)) {
+      if (query) $("#resultsSearchInput").val(query);
+      switchView("secondary");
+    }
+  })();
+
   if (currentPokemonName) {
     loadTeams();
     updateMerchSection(currentPokemonName);

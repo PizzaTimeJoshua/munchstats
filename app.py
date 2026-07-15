@@ -6,6 +6,7 @@ import math
 import os
 import re
 import time
+from collections import OrderedDict
 from datetime import datetime
 from functools import lru_cache
 from urllib.parse import quote
@@ -16,6 +17,7 @@ from dotenv import load_dotenv
 from flask import Flask, jsonify, redirect, render_template, request, url_for
 import pyjson5
 
+import insights
 import limitless_stats
 import vgcpastes
 
@@ -3270,6 +3272,248 @@ def api_limitless_results(format_id):
     return jsonify(result)
 
 
+# ─── Meta Insights ────────────────────────────────────────────────────────
+# Cross-source analysis reports (tournament win rate vs usage, ladder vs
+# tournament usage gaps, month-over-month trend movers) built by insights.py
+# from data the other pages already load — no extra fetching or caching.
+
+
+def _ladder_format_for_limitless(format_id):
+    """Map a Limitless format id to its Showdown ladder format code, or None.
+
+    Inverse of limitless_format_for over the current month's formats.
+    Prefers the plain (non-BO3) ladder: it has by far the larger sample
+    and its trend history reaches further back.
+    """
+    candidates = [
+        code for code, _ in availableFormats
+        if limitless_format_for(code) == format_id
+    ]
+    if not candidates:
+        return None
+    candidates.sort(key=lambda c: (c.endswith("bo3"), c))
+    return candidates[0]
+
+
+def _dex_base_species(name):
+    """A name's pokedex baseSpecies ("Floette-Eternal" -> "Floette").
+
+    Falls back to the name itself for base species and unknown names.
+    """
+    entry = pokedexEntries.get(re.sub(r"[^a-z0-9]+", "", name.lower()))
+    if not entry:
+        return name
+    return entry.get("baseSpecies") or entry.get("name") or name
+
+
+def _core_search_query(*names):
+    """Slot-scoped team-results query matching the given (form) names.
+
+    Mega forms exist in decklists only as base name + stone, so
+    "Charizard-Mega-Y" becomes the group "Charizard Charizardite Y" —
+    the same semantics the Teams search uses for held items. The base
+    term is the pokedex baseSpecies so it substring-matches every
+    decklist spelling of the holder.
+    """
+    groups = []
+    for name in names:
+        stone = _mega_required_items.get(name.lower())
+        groups.append(f"{_dex_base_species(name)} {stone}" if stone else name)
+    return ", ".join(groups)
+
+
+# Momentum/cores reports iterate every cached team (tens of thousands of
+# pair accumulations), too much per request; memoized per format/segment
+# on the identity of the teams list, which limitless_stats swaps out
+# whenever the underlying tournament set changes.
+_team_reports_mem = OrderedDict()
+TEAM_REPORTS_MEM_MAX = 8
+
+
+def _insights_team_reports(format_id, segment):
+    """Return (momentum, core stats) for a format/segment, memoized.
+
+    Core stats hold the qualified rows for every core size; per-request
+    sorting stays cheap while the expensive combination expansion runs
+    only when the underlying tournament set changes.
+    """
+    teams = limitless_stats.get_all_teams(format_id, pokedexEntries)
+    if not teams:
+        return None, None
+    key = (format_id, segment)
+    memo = _team_reports_mem.get(key)
+    if memo and memo["teams"] is teams:
+        _team_reports_mem.move_to_end(key)
+        return memo["momentum"], memo["core_stats"]
+
+    # Slot names arrive form-resolved from limitless_stats (Mega stones
+    # make Charizard-Mega-Y its own name), so no slot_name override.
+    min_players = int(segment)
+    seg_teams = [
+        e for e in teams
+        if (e["tournament"].get("players") or 0) >= min_players
+    ]
+    momentum = insights.tournament_momentum_report(
+        seg_teams, limitless_stats.WINDOW_DAYS
+    )
+    core_stats = insights.core_stats(seg_teams)
+    _team_reports_mem[key] = {
+        "teams": teams, "momentum": momentum, "core_stats": core_stats,
+    }
+    while len(_team_reports_mem) > TEAM_REPORTS_MEM_MAX:
+        _team_reports_mem.popitem(last=False)
+    return momentum, core_stats
+
+
+def compile_insights_page_data(format_id="", segment="", rating="",
+                               core_size="", core_sort=""):
+    """Compile all data for the meta insights page, or None when no data."""
+    formats = limitless_stats.get_available_formats()
+    if not formats:
+        return None
+    if format_id not in formats:
+        format_id = next(iter(formats))
+
+    bundle = limitless_stats.build_limitless_aggregate(format_id, pokedexEntries)
+    if not bundle:
+        return None
+    segments = bundle.get("segments", {})
+    segment_options = sorted(segments, key=int)
+    if not segment_options:
+        return None
+    if segment not in segments:
+        segment = segment_options[0]
+    seg_data = segments[segment]
+    pokemon_stats = seg_data.get("pokemon", {})
+
+    momentum, core_stats = _insights_team_reports(format_id, segment)
+
+    # Prefer the teams pass's form-resolved per-Pokemon stats (Mega
+    # stones make Charizard-Mega-Y its own row); fall back to the
+    # base-name aggregate if the teams list is ever unavailable.
+    form_stats = core_stats.get("solo_stats") if core_stats else None
+    performance = insights.performance_report(form_stats or pokemon_stats)
+
+    cores = None
+    if core_stats:
+        if core_size not in [str(s) for s in insights.CORE_SIZES]:
+            core_size = str(insights.CORE_SIZES[0])
+        if core_sort not in insights.CORE_SORTS:
+            core_sort = insights.CORE_SORTS[0]
+        cores = {
+            "rows": insights.sort_cores(
+                core_stats["sizes"].get(int(core_size), []), core_sort
+            ),
+            "size": core_size,
+            "size_options": [str(s) for s in insights.CORE_SIZES],
+            "sort": core_sort,
+            "min_games": core_stats["min_games"],
+            "min_teams": core_stats["min_teams"],
+            "min_top_usage": core_stats["min_top_usage"],
+        }
+
+    # The ladder-side reports need the matching Showdown ladder format;
+    # both use the same rating cutoff (defaulting to the highest, whose
+    # players are closest in skill to tournament entrants).
+    ladder_format = _ladder_format_for_limitless(format_id)
+    divergence = None
+    trend = None
+    rating_options = []
+    if ladder_format:
+        rating_options = get_valid_rating_thresholds(ladder_format)
+        if rating_options:
+            if rating not in rating_options:
+                rating = rating_options[-1]
+            ladder_index = fetch_index_data(ladder_format, rating)
+            ladder_pokemon = (ladder_index or {}).get("pokemon") or {}
+            if ladder_pokemon:
+                # Both sources list Mega formes separately (the ladder
+                # natively, the tournament side resolved from held
+                # stones), so they join per-form with no collapsing.
+                divergence = insights.divergence_report(
+                    ladder_pokemon, form_stats or pokemon_stats
+                )
+            trend = insights.trend_report(load_trend_data(ladder_format, rating))
+
+    if not (performance or momentum or cores or divergence or trend):
+        return None
+
+    # Decorate every report row with its sprite-sheet coordinates.
+    for report, keys in (
+        (performance, ("over", "under")),
+        (momentum, ("rising", "falling")),
+        (divergence, ("tournament_favored", "ladder_favored")),
+        (trend, ("rising", "falling")),
+    ):
+        for key in keys if report else ():
+            for row in report.get(key) or []:
+                row["sprite"] = get_pokemon_sprite(row["name"])
+    for row in cores["rows"] if cores else ():
+        row["sprites"] = [get_pokemon_sprite(n) for n in row["names"]]
+        row["label"] = " + ".join(row["names"])
+        # Deep link into the Team Results search for this exact core.
+        row["query"] = _core_search_query(*row["names"])
+
+    ladder_display = formatDisplayNames.get(ladder_format, ladder_format) if ladder_format else ""
+    tab_format = ladder_format or DEFAULT_META
+    return {
+        "formats": [[code, disp] for code, disp in formats.items()],
+        "selected_format_id": format_id,
+        "selected_format_name": formats.get(format_id, format_id),
+        "segment": segment,
+        "segment_options": segment_options,
+        "rating": rating if rating_options else "",
+        "rating_options": rating_options,
+        "ladder_format": ladder_format or "",
+        "ladder_format_name": ladder_display,
+        "latest_month": get_latest_month(),
+        "performance": performance,
+        "momentum": momentum,
+        "cores": cores,
+        "divergence": divergence,
+        "trend": trend,
+        "total_teams": seg_data.get("total_teams", 0),
+        "tournament_count": len([
+            t for t in bundle.get("tournaments", [])
+            if (t.get("players") or 0) >= int(segment)
+        ]),
+        "window_days": limitless_stats.WINDOW_DAYS,
+        "min_players": int(segment),
+        "attribution": limitless_stats.ATTRIBUTION_TEXT,
+        "attribution_url": limitless_stats.ATTRIBUTION_URL,
+        # Tab-bar links shared with every page template.
+        "selected_format": [tab_format, formatDisplayNames.get(tab_format, tab_format)],
+        "selected_rating": rating or "0",
+        "selected_pokemon": "",
+    }
+
+
+@app.route("/insights/")
+@app.route("/insights/<format_id>/")
+def insights_page(format_id=""):
+    """Meta insight reports for a VGC regulation.
+
+    Query params: ?min= tournament-size tier, ?rating= ladder cutoff,
+    ?cores= core size (2/3/4), ?sort= core sort (wr/usage/lift).
+    """
+    data = compile_insights_page_data(
+        format_id,
+        request.args.get("min", ""),
+        request.args.get("rating", ""),
+        request.args.get("cores", ""),
+        request.args.get("sort", ""),
+    )
+    if data is None:
+        return render_template(
+            "insights.html",
+            no_data=True,
+            selected_format=[DEFAULT_META, formatDisplayNames.get(DEFAULT_META, DEFAULT_META)],
+            selected_rating="0",
+            selected_pokemon="",
+        )
+    return render_template("insights.html", **data)
+
+
 # ─── Pokemon Detail Page: Tournament & Replay Integration ────────────────
 
 
@@ -3352,10 +3596,12 @@ def api_pokemon_tournament_teams(format_code, pokemon_name):
         for player in players:
             if not player.get("team"):
                 continue
-            # Find the slot matching the base Pokemon
+            # Slots carry form-resolved names (Charizard-Mega-Y), so match
+            # on base species; the required-item check below then narrows
+            # a Mega page to its own stone.
             matched_slot = None
             for slot in player["team"]:
-                if slot["pokemon"].lower() == poke_lower:
+                if get_base_pokemon_name(slot["pokemon"]).lower() == poke_lower:
                     matched_slot = slot
                     break
             if not matched_slot:
@@ -3393,9 +3639,12 @@ def api_pokemon_tournament_teams(format_code, pokemon_name):
     lformat = limitless_format_for(source_format)
     if lformat and lformat in limitless_stats.get_available_formats():
         for e in limitless_stats.get_all_teams(lformat, pokedexEntries):
+            # Limitless slots carry form-resolved names (Charizard-Mega-Y),
+            # so match on base species; the required-item check then
+            # narrows a Mega page to its own stone.
             matched_slot = None
             for slot in e["team"]:
-                if slot["pokemon"].lower() == poke_lower:
+                if get_base_pokemon_name(slot["pokemon"]).lower() == poke_lower:
                     matched_slot = slot
                     break
             if not matched_slot:

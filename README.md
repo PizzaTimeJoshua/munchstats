@@ -33,12 +33,14 @@
 ### Tournament Stats
 - Merged tournament hub at `/tournaments/` with two data sources: official (RK9.gg) events and online (Limitless) events
 - **Official (RK9.gg):** per-tournament usage stats with day-based filtering (Day 1, Day 2, Top 16, Top 8), player standings with team compositions, and per-Pokémon win rates
+  - Mega forms are resolved from held stones here too (Champions-regulation events), at scrape/aggregation time; `python scrape_tournaments.py --reaggregate` rebuilds saved tournaments through the current aggregation logic without re-scraping
 - **Online (Limitless):** aggregated usage stats from recent Limitless online VGC tournaments (data from [Limitless TCG](https://play.limitlesstcg.com/)), deep-linkable at `/limitless/`
+  - Mega forms are resolved from held stones at the decklist level (a Charizard holding Charizardite Y counts as Charizard-Mega-Y), so usage stats, win rates, teams, and archetypes all track each forme separately — matching the Showdown ladder's native form listings
   - Rolling 30-day window per regulation format; only formats with recent events and public team data are offered
   - Tournament-size segments (25+/50+/100+/200+ players) to filter for more competitive events
   - Placement-cut filter (`?cut=` — Top 32 / Top 16 / Top 8) to restrict stats, teams, and standings to top finishers
   - Per-Pokémon usage %, win rates, moves, items, abilities, Tera types, natures, and teammates
-  - Team results view grouping identical 6-Pokémon teams into archetypes ranked by usage, with combined win rates and slot-scoped comma-group search (`kingambit focus sash, garchomp` = a Kingambit *holding* Focus Sash alongside a Garchomp; terms also match player/tournament metadata)
+  - Team results view grouping identical 6-Pokémon teams into archetypes ranked by usage, with combined win rates and slot-scoped comma-group search (`kingambit focus sash, garchomp` = a Kingambit *holding* Focus Sash alongside a Garchomp; terms also match player/tournament metadata); deep-linkable via `?view=results&q=`
   - Best-performing teams per Pokémon across all events, ranked by Swiss points
 - **Individual Limitless events:** per-event pages at `/limitless/event/<id>/` with that tournament's own usage stats, teams, and standings (also cut-filterable)
 - Top tournament teams shown on Pokémon detail pages — merges RK9 majors with Limitless online events, ranked by Swiss points, then tournament size, then placement
@@ -52,6 +54,16 @@
 - Team cards with Pokémon and item sprites, player/event/rank metadata, and source/report links
 - In-site team viewer: fetches the raw Showdown paste from Pokepaste (immutable, cached on disk) into a modal
 - Sheet tabs cached on disk for 12 hours with stale fallback; cache warmed in a background thread at startup
+
+### Meta Insights
+- Analysis page at `/insights/` combining the site's data sources into three reports per VGC regulation:
+  - **Tournament Conversion:** highest/lowest win rates from online tournament records (min-games floor so one-off runs don't rank), with usage rank alongside — surfaces overrated and underrated picks; Mega forms resolved from held stones
+  - **Tournament Momentum:** usage movement between the rolling window's earlier and recent halves — a fresher rising/falling signal than the monthly ladder stats
+  - **Cores:** 2–6 Pokémon cores (6 = full team) with pooled tournament records, sortable by best win rate (with a usage floor), most common (what to prepare for), or best synergy (combined win rate beats every member's solo rate); Mega forms are resolved from held stones, each core deep-links into the Team Results search showing the actual teams, and switching size/sort swaps the table in place without a page reload
+  - **Ladder vs Tournament:** biggest gaps between Showdown ladder usage and online tournament usage; tournament Mega forms are resolved from held stones so both sources count each forme separately, matching the ladder's native form listings
+  - **Rising & Falling:** biggest month-over-month ladder usage movers (hidden for formats in their first tracked month)
+- Filters: tournament-size tier (`?min=`) and ladder rating cutoff (`?rating=`)
+- Built entirely from data the other pages already load (Limitless aggregate, Smogon index, trend files) — no extra fetching or caching
 
 ### Replay Search
 - Searchable replay database at `/replays/`
@@ -98,6 +110,7 @@
 - `GET /limitless/` → tournament hub, online Limitless source (also `/limitless/<format_id>/`, `/limitless/<format_id>/<segment>/`, `/limitless/<format_id>/<segment>/<pokemon_name>`; all accept `?cut=8|16|32`)
 - `GET /limitless/event/<tournament_id>/` → single online tournament's stats (also `/<pokemon_name>`, `?cut=`)
 - `GET /teams/` → VGCPastes team search (also `/teams/<repo_id>/`)
+- `GET /insights/` → meta insight reports (also `/insights/<format_id>/`; `?min=` size tier, `?rating=` ladder cutoff, `?cores=` core size 2–6, `?sort=` core sort wr/usage/lift)
 - `GET /replays/` → replay search (also `/replays/<format_code>/`)
 - `GET /replays/watch/<replay_id>` → replay viewer
 - `GET /tools/` → tools page
@@ -140,6 +153,7 @@ templates/
   index.html                  Main stats page
   tournaments.html            Tournament stats page
   teams.html                  VGCPastes team search page
+  insights.html               Meta insights page
   replays.html                Replay search page
   watch.html                  Replay viewer
   tools.html, about.html, 404.html, 500.html
@@ -153,6 +167,7 @@ stats/
   update-replay-stats.yml     Scheduled replay-stats update (GitHub Actions)
 app.py                        Flask application
 limitless_stats.py            Limitless API client + online tournament usage aggregation
+insights.py                   Meta insight report builders (pure functions over loaded data)
 vgcpastes.py                  VGCPastes sheet client + team search
 update_all_data.py            Data pipeline (downloads, splits, generates trends)
 scrape_tournaments.py         Tournament data scraper (RK9.gg)
