@@ -5,6 +5,7 @@ import json
 import math
 import os
 import re
+import threading
 import time
 from collections import OrderedDict
 from datetime import datetime
@@ -64,6 +65,85 @@ REPLAY_FORMATS = [
     "gen9ubers",
     "gen9nationaldexdoubles"
 ]
+
+# Replay JSONs are regenerated every ~6h by the update-replay-stats workflow
+# and published to the repo's replay-data branch (not main, so no Heroku
+# redeploy). They are fetched from raw.githubusercontent.com on demand and
+# cached on disk with ETag revalidation. Set REPLAY_DATA_URL="" to skip
+# fetching and serve the local stats/replays/ copies directly (dev).
+REPLAY_DATA_URL = os.environ.get(
+    "REPLAY_DATA_URL",
+    "https://raw.githubusercontent.com/PizzaTimeJoshua/munchstats/replay-data/stats/replays/",
+)
+REPLAY_CACHE_DIR = os.path.join("cache", "replays")
+os.makedirs(REPLAY_CACHE_DIR, exist_ok=True)
+REPLAY_CACHE_TTL = 30 * 60
+
+_replay_fetch_guard = threading.Lock()
+_replay_fetch_locks = {}
+
+
+def _replay_fetch_lock(filename):
+    with _replay_fetch_guard:
+        return _replay_fetch_locks.setdefault(filename, threading.Lock())
+
+
+def get_replay_data_file(filename):
+    """Return a local path to the freshest available copy of a replay data
+    file, or None if it exists nowhere. Checks the remote at most once per
+    REPLAY_CACHE_TTL; a stored ETag turns unchanged re-checks into cheap 304s.
+    Falls back to a stale cached copy, then to the snapshot bundled in the
+    deploy at stats/replays/."""
+    bundled = os.path.join(REPLAY_DATA_DIR, filename)
+    if not REPLAY_DATA_URL:
+        return bundled if os.path.exists(bundled) else None
+
+    cached = os.path.join(REPLAY_CACHE_DIR, filename)
+    # Sidecar's content is the last ETag; its mtime is the last remote check.
+    marker = cached + ".etag"
+    with _replay_fetch_lock(filename):
+        if (
+            os.path.exists(marker)
+            and time.time() - os.path.getmtime(marker) < REPLAY_CACHE_TTL
+        ):
+            if os.path.exists(cached):
+                return cached
+            # Recent check found nothing remote (404); don't re-ask yet.
+            return bundled if os.path.exists(bundled) else None
+
+        etag = ""
+        if os.path.exists(marker) and os.path.exists(cached):
+            with open(marker, "r", encoding="utf-8") as f:
+                etag = f.read().strip()
+        headers = {"If-None-Match": etag} if etag else {}
+        status = None
+        try:
+            with requests.get(
+                REPLAY_DATA_URL + filename,
+                headers=headers,
+                stream=True,
+                timeout=(6.1, 120),
+            ) as resp:
+                status = resp.status_code
+                if status == 200:
+                    tmp = cached + ".tmp"
+                    with open(tmp, "wb") as f:
+                        for chunk in resp.iter_content(chunk_size=1 << 20):
+                            f.write(chunk)
+                    os.replace(tmp, cached)
+                    with open(marker, "w", encoding="utf-8") as f:
+                        f.write(resp.headers.get("ETag", ""))
+        except (requests.RequestException, OSError):
+            pass
+        if status in (200, 304, 404):
+            # Got a definitive answer — start a fresh TTL window.
+            with open(marker, "a", encoding="utf-8"):
+                pass
+            os.utime(marker, None)
+
+        if os.path.exists(cached):
+            return cached
+        return bundled if os.path.exists(bundled) else None
 
 
 def normalize_format(fmt):
@@ -1583,7 +1663,16 @@ def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
             redirect_args["month"] = month
         return redirect(url_for("display_pokemon_page", **redirect_args))
 
-    return render_template("index.html", **data, availableFormats=data["month_formats"])
+    # Pokemon deep links get the Pokemon's sprite as link-preview thumbnail
+    og = {}
+    if request.path != "/" and data.get("selected_pokemon"):
+        sprite_url = _og_sprite_url(data["selected_pokemon"])
+        if sprite_url:
+            og = {"og_image": sprite_url, "og_card": "summary"}
+
+    return render_template(
+        "index.html", **data, availableFormats=data["month_formats"], **og
+    )
 
 
 # Slug (doubles/singles) -> app format code, for the clean /champions/ URLs.
@@ -1608,7 +1697,13 @@ def champions_page(fmt="doubles", pokemon_name=""):
         return redirect(url_for(
             "champions_page", fmt=fmt.lower(), pokemon_name=data["selected_pokemon"],
         ))
-    return render_template("index.html", **data, availableFormats=data["month_formats"])
+    og = {}
+    sprite_url = _og_sprite_url(data["selected_pokemon"])
+    if sprite_url:
+        og = {"og_image": sprite_url, "og_card": "summary"}
+    return render_template(
+        "index.html", **data, availableFormats=data["month_formats"], **og
+    )
 
 
 def _filter_forme_order(forme_order_raw, base_stats, pokemon_index_lower, champions=False):
@@ -2052,8 +2147,12 @@ def find_replays(poke_search, meta, replay_total=100, filters=None):
             "filter_all_pokemon": True,
         }
 
-    filepath = os.path.join(REPLAY_DATA_DIR, f"search-replays-list-{meta}.json")
-    if not os.path.exists(filepath):
+    # meta comes from query args; restrict to slug characters since it is
+    # interpolated into a cache path and a fetch URL.
+    if not re.fullmatch(r"[a-z0-9]+", meta or ""):
+        return []
+    filepath = get_replay_data_file(f"search-replays-list-{meta}.json")
+    if not filepath:
         return []
 
     search_replays = []
@@ -2158,8 +2257,10 @@ def find_replays(poke_search, meta, replay_total=100, filters=None):
 
 def stream_team_rankings(format_name, poke_filter=None, filter_all_pokemon=True, limit=50):
     """Stream team rankings JSON with ijson for low memory usage."""
-    filepath = os.path.join(REPLAY_DATA_DIR, f"team-rankings-{format_name}.json")
-    if not os.path.exists(filepath):
+    if not re.fullmatch(r"[a-z0-9]+", format_name or ""):
+        return []
+    filepath = get_replay_data_file(f"team-rankings-{format_name}.json")
+    if not filepath:
         return []
 
     results = []
@@ -2192,9 +2293,26 @@ def stream_team_rankings(format_name, poke_filter=None, filter_all_pokemon=True,
     return results
 
 
-# Cache default replays at startup
-_default_replay_path = os.path.join(REPLAY_DATA_DIR, f"search-replays-list-{REPLAY_FORMATS[0]}.json")
-DEFAULT_REPLAYS = find_replays("", REPLAY_FORMATS[0]) if os.path.exists(_default_replay_path) else []
+# Default replay list, memoized on the data file's mtime so it refreshes
+# whenever a newer copy is fetched (the dyno no longer restarts on data
+# updates, so a boot-time constant would go stale).
+_default_replays = {"key": None, "data": []}
+
+
+def get_default_replays():
+    filepath = get_replay_data_file(f"search-replays-list-{REPLAY_FORMATS[0]}.json")
+    if not filepath:
+        return []
+    key = (filepath, os.path.getmtime(filepath))
+    if _default_replays["key"] != key:
+        _default_replays["data"] = find_replays("", REPLAY_FORMATS[0])
+        _default_replays["key"] = key
+    return _default_replays["data"]
+
+
+# Prefetch in the background after (re)start so the first /replays/ visitor
+# doesn't wait on the ~80 MB download.
+threading.Thread(target=get_default_replays, daemon=True).start()
 
 
 @app.route("/tools/")
@@ -2404,7 +2522,7 @@ def replay_search():
 
 @app.route("/replays/api/default")
 def replay_default():
-    return jsonify(DEFAULT_REPLAYS)
+    return jsonify(get_default_replays())
 
 
 @app.route("/replays/api/rankings")
@@ -2638,6 +2756,24 @@ def compile_tournament_teammates(poke_data, total_count):
     ]
 
 
+def _overview_with_sprites(overview):
+    """Attach sprite-sheet coordinates to every overview row.
+
+    Sprites are stored as lists so the dict is JSON-safe as-is (the
+    overview rides along in both the page context and the hub API).
+    """
+    if not overview:
+        return None
+    for stage in overview["stages"]:
+        for row in stage["rows"]:
+            row["sprite"] = list(get_pokemon_sprite(row["name"]))
+    for transition in overview["movers"]:
+        for side in ("gains", "drops"):
+            for row in transition[side]:
+                row["sprite"] = list(get_pokemon_sprite(row["name"]))
+    return overview
+
+
 def compile_tournament_page_data(tournament_id="", day_filter="all", pokemon_name=""):
     """Compile all data needed for the tournament page."""
     tournaments = load_tournament_list()
@@ -2711,9 +2847,14 @@ def compile_tournament_page_data(tournament_id="", day_filter="all", pokemon_nam
             get_pokemon_sprite(name),
         ])
 
+    # Per-stage usage overview (Day 1 / Day 2 / Top Cut with deltas and
+    # biggest movers), shown in the right panel until a Pokemon is picked.
+    overview = _overview_with_sprites(insights.official_stage_usage_report(agg))
+
     return {
         "tournaments": tournaments,
         "selected_tournament": chosen,
+        "overview": overview,
         "day_filter": day_filter,
         "day_options": ["all", "day2", "top16", "top8"],
         "pokemon_names": pokemon_names,
@@ -2732,11 +2873,50 @@ def compile_tournament_page_data(tournament_id="", day_filter="all", pokemon_nam
     }
 
 
-def _render_tournament_hub(source, data):
+_DAY_FILTER_LABELS = {"day2": "Day 2", "top16": "Top 16", "top8": "Top 8"}
+
+
+def _hub_og_description(source, ctx, og_pokemon):
+    """Link-preview description for the tournament hub (Discord/Twitter).
+
+    Names the tournament/format and its team count; adds the selected
+    Pokemon's stats when the link targets one, else the top usage pick.
+    """
+    teams = ctx.get("total_teams", 0)
+    if source == "official":
+        day = _DAY_FILTER_LABELS.get(ctx.get("day_filter", "all"))
+        scope = f"{teams} {day} teams" if day else f"{teams} teams"
+        head = f"{ctx['selected_tournament']['name']} — Pokemon usage stats from {scope}."
+    elif source == "limitless_event":
+        ev = ctx["selected_event"]
+        players = ev.get("players") or 0
+        played = f" ({players} players)" if players else ""
+        head = f"{ev['name']}{played} — Pokemon usage stats from {teams} public teams."
+    else:
+        head = (
+            f"{ctx['selected_format_name']} — online usage stats from {teams} teams "
+            f"across {ctx['tournament_count']} Limitless tournaments "
+            f"in the last {ctx['window_days']} days."
+        )
+    mon = ctx.get("current_pokemon")
+    if not mon:
+        return head
+    name, pct, rank = mon[0], mon[1], mon[2]
+    if og_pokemon:
+        line = f" {name}: {pct:.1f}% usage (#{rank})"
+        if ctx.get("win_rate") not in (None, "—"):
+            line += f", {ctx['win_rate']}% win rate"
+        return head + line + "."
+    return head + f" Top pick: {name} ({pct:.1f}% of teams)."
+
+
+def _render_tournament_hub(source, data, og_pokemon=""):
     """Render the merged tournament stats page for either data source.
 
     The sidebar always lists both official (RK9) tournaments and Limitless
-    online formats, whichever source is currently selected.
+    online formats, whichever source is currently selected. `og_pokemon`
+    marks that the URL targets a specific Pokemon, which switches the
+    link preview to that Pokemon's stats and sprite.
     """
     ctx = dict(data)
     if source == "official":
@@ -2749,13 +2929,24 @@ def _render_tournament_hub(source, data):
     else:
         ctx["limitless_formats"] = ctx.pop("formats")
         ctx["official_tournaments"] = load_tournament_list()
+    og = {"og_description": _hub_og_description(source, ctx, og_pokemon)}
+    if og_pokemon and ctx.get("selected_pokemon"):
+        sprite_url = _og_sprite_url(ctx["selected_pokemon"])
+        if sprite_url:
+            og["og_image"] = sprite_url
+            og["og_card"] = "summary"
     return render_template(
         "tournaments.html",
         source=source,
+        # No Pokemon in the URL: the right panel opens on the
+        # tournament-level view (overview/events) instead of the
+        # defaulted top-usage Pokemon.
+        pokemon_requested=bool(og_pokemon),
         limitless_attribution=limitless_stats.ATTRIBUTION_TEXT,
         limitless_attribution_url=limitless_stats.ATTRIBUTION_URL,
         selected_format=[DEFAULT_META, formatDisplayNames.get(DEFAULT_META, DEFAULT_META)],
         selected_rating="0",
+        **og,
         **ctx,
     )
 
@@ -2778,7 +2969,7 @@ def _render_tournament_hub_empty():
 def tournaments_page(tournament_id="", day_filter="all", pokemon_name=""):
     data = compile_tournament_page_data(tournament_id, day_filter, pokemon_name)
     if data is not None:
-        return _render_tournament_hub("official", data)
+        return _render_tournament_hub("official", data, og_pokemon=pokemon_name)
     # No official data scraped: fall back to the online (Limitless) source
     ldata = compile_limitless_page_data()
     if ldata is not None:
@@ -3058,11 +3249,22 @@ def compile_limitless_event_page_data(tournament_id, pokemon_name="", cut="all")
     if parent_format not in formats:
         parent_format = next(iter(formats)) if formats else ""
 
+    # Per-cut usage overview — the online counterpart of the official
+    # Day 1/Day 2/Top Cut stages (events carry no day-2 information).
+    # Cut aggregates are memoized on the event's LRU bundle.
+    stage_list = [("All Teams", bundle["aggregate"])]
+    for placing, label in ((16, "Top 16"), (8, "Top 8")):
+        stage_list.append((label, limitless_stats.get_event_cut_aggregate(
+            tournament_id, pokedexEntries, placing
+        )))
+    overview = _overview_with_sprites(insights.stage_usage_report(stage_list))
+
     ctx.update({
         "formats": [[code, disp] for code, disp in formats.items()],
         "selected_format_id": parent_format,
         "selected_format_name": formats.get(parent_format, parent_format),
         "selected_event": bundle["meta"],
+        "overview": overview,
         "cut": cut,
         "attribution": limitless_stats.ATTRIBUTION_TEXT,
         "attribution_url": limitless_stats.ATTRIBUTION_URL,
@@ -3080,7 +3282,7 @@ def limitless_page(format_id="", segment="", pokemon_name=""):
         format_id, segment, pokemon_name, request.args.get("cut", "all")
     )
     if data is not None:
-        return _render_tournament_hub("limitless", data)
+        return _render_tournament_hub("limitless", data, og_pokemon=pokemon_name)
     # Limitless data unavailable: fall back to the official source
     odata = compile_tournament_page_data()
     if odata is not None:
@@ -3107,7 +3309,7 @@ def limitless_event_page(tournament_id, pokemon_name=""):
         tournament_id, pokemon_name, request.args.get("cut", "all")
     )
     if data is not None:
-        return _render_tournament_hub("limitless_event", data)
+        return _render_tournament_hub("limitless_event", data, og_pokemon=pokemon_name)
     # Unknown/uncached event: fall back to the regular source chain
     return limitless_page()
 
@@ -3295,6 +3497,28 @@ def _ladder_format_for_limitless(format_id):
     return candidates[0]
 
 
+def _og_sprite_url(name):
+    """Showdown gen5 sprite URL for a Pokemon, for link-preview thumbnails.
+
+    PS sprite filenames are toID(baseSpecies)-toID(forme) for formes and
+    toID(name) otherwise ("Urshifu-Rapid-Strike" -> urshifu-rapidstrike,
+    "Chien-Pao" -> chienpao). Unknown names return None: the preview
+    then simply has no thumbnail.
+    """
+    entry = pokedexEntries.get(re.sub(r"[^a-z0-9]+", "", name.lower()))
+    if not entry:
+        return None
+
+    def to_id(s):
+        return re.sub(r"[^a-z0-9]+", "", s.lower())
+
+    if entry.get("forme") and entry.get("baseSpecies"):
+        sprite_id = f"{to_id(entry['baseSpecies'])}-{to_id(entry['forme'])}"
+    else:
+        sprite_id = to_id(entry.get("name", name))
+    return f"https://play.pokemonshowdown.com/sprites/gen5/{sprite_id}.png"
+
+
 def _dex_base_species(name):
     """A name's pokedex baseSpecies ("Floette-Eternal" -> "Floette").
 
@@ -3366,7 +3590,7 @@ def _insights_team_reports(format_id, segment):
 
 
 def compile_insights_page_data(format_id="", segment="", rating="",
-                               core_size="", core_sort=""):
+                               core_size="", core_sort="", cut=""):
     """Compile all data for the meta insights page, or None when no data."""
     formats = limitless_stats.get_available_formats()
     if not formats:
@@ -3393,6 +3617,19 @@ def compile_insights_page_data(format_id="", segment="", rating="",
     # base-name aggregate if the teams list is ever unavailable.
     form_stats = core_stats.get("solo_stats") if core_stats else None
     performance = insights.performance_report(form_stats or pokemon_stats)
+
+    # Usage-share movers from all entrants to each event's top-X
+    # finishers, mirroring the tournament overview's Biggest Movers.
+    if cut not in LIMITLESS_CUTS:
+        cut = "16"
+    cut_movers = None
+    cut_data = limitless_stats.build_limitless_cut_aggregate(
+        format_id, pokedexEntries, int(segment), int(cut)
+    )
+    if cut_data and cut_data.get("pokemon"):
+        cut_movers = insights.limitless_cut_movers(
+            seg_data, cut_data, f"All teams → Top {cut}"
+        )
 
     cores = None
     if core_stats:
@@ -3444,6 +3681,7 @@ def compile_insights_page_data(format_id="", segment="", rating="",
         (momentum, ("rising", "falling")),
         (divergence, ("tournament_favored", "ladder_favored")),
         (trend, ("rising", "falling")),
+        (cut_movers, ("gains", "drops")),
     ):
         for key in keys if report else ():
             for row in report.get(key) or []:
@@ -3472,6 +3710,10 @@ def compile_insights_page_data(format_id="", segment="", rating="",
         "cores": cores,
         "divergence": divergence,
         "trend": trend,
+        "cut_movers": cut_movers,
+        "cut": cut,
+        "cut_options": list(LIMITLESS_CUTS),
+        "cut_min_usage": insights.MIN_MOVER_USAGE,
         "total_teams": seg_data.get("total_teams", 0),
         "tournament_count": len([
             t for t in bundle.get("tournaments", [])
@@ -3494,7 +3736,8 @@ def insights_page(format_id=""):
     """Meta insight reports for a VGC regulation.
 
     Query params: ?min= tournament-size tier, ?rating= ladder cutoff,
-    ?cores= core size (2/3/4), ?sort= core sort (wr/usage/lift).
+    ?cores= core size (2/3/4), ?sort= core sort (wr/usage/lift),
+    ?cut= top-cut size (8/16/32).
     """
     data = compile_insights_page_data(
         format_id,
@@ -3502,6 +3745,7 @@ def insights_page(format_id=""):
         request.args.get("rating", ""),
         request.args.get("cores", ""),
         request.args.get("sort", ""),
+        request.args.get("cut", ""),
     )
     if data is None:
         return render_template(

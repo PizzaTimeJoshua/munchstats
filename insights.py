@@ -57,6 +57,130 @@ def _norm_key(name):
     return re.sub(r"[^a-z0-9]+", "", name.lower())
 
 
+CONVERSION_TOP_N = 10
+
+
+def limitless_cut_movers(full_data, cut_data, label, top_n=CONVERSION_TOP_N):
+    """Usage-share movers between all entrants and a top-placement cut.
+
+    Same presentation as the tournament overview's Biggest Movers:
+    the largest gains and drops in usage share (percentage points)
+    from the full field to each event's top-X finishers. `full_data`
+    and `cut_data` are limitless aggregates ({"pokemon",
+    "total_teams"}). Returns None when either side is empty.
+    """
+    full_mons = (full_data or {}).get("pokemon") or {}
+    cut_mons = (cut_data or {}).get("pokemon") or {}
+    if not full_mons or not cut_mons:
+        return None
+    movers = _stage_movers(full_mons, cut_mons, label, top_n)
+    if not movers:
+        return None
+    movers["from_teams"] = full_data.get("total_teams") or 0
+    movers["to_teams"] = cut_data.get("total_teams") or 0
+    return movers
+
+
+# Movers below this usage share (in both stages) are noise: at a
+# 156-team Day 2, 2% is a three-team blip.
+MIN_MOVER_USAGE = 2.0
+MOVERS_TOP_N = 5
+
+
+def _stage_movers(prev_mons, cur_mons, label, top_n=MOVERS_TOP_N):
+    """Biggest usage-share changes between two consecutive stages."""
+    rows = []
+    for name in set(prev_mons) | set(cur_mons):
+        prev_pct = prev_mons.get(name, {}).get("usage_pct", 0)
+        pct = cur_mons.get(name, {}).get("usage_pct", 0)
+        if max(prev_pct, pct) < MIN_MOVER_USAGE:
+            continue
+        rows.append({
+            "name": name,
+            "prev_pct": prev_pct,
+            "usage_pct": pct,
+            "delta": pct - prev_pct,
+        })
+    gains = sorted(
+        (r for r in rows if r["delta"] > 0),
+        key=lambda r: -r["delta"],
+    )[:top_n]
+    drops = sorted(
+        (r for r in rows if r["delta"] < 0),
+        key=lambda r: r["delta"],
+    )[:top_n]
+    if not gains and not drops:
+        return None
+    return {"label": label, "gains": gains, "drops": drops}
+
+
+def stage_usage_report(stage_list, top_n=10):
+    """Per-stage usage overview shared by official and online events.
+
+    `stage_list` is an ordered [(label, {"pokemon", "total_teams"})].
+    Empty stages are dropped, as are stages not strictly smaller than
+    the previous kept one (a "cut" the whole field fits in says
+    nothing). Returns None when fewer than two stages survive, else:
+
+      stages — each with its top_n Pokemon by usage share and
+        `delta` = usage_pct minus the previous stage's usage_pct
+        (None on the first stage).
+      movers — the biggest usage gains and drops for each stage
+        transition.
+    """
+    stages = []
+    movers = []
+    prev = None  # (label, mons, total) of the previous kept stage
+    for label, data in stage_list:
+        data = data or {}
+        mons = data.get("pokemon") or {}
+        total = data.get("total_teams") or 0
+        if not mons or total <= 0:
+            continue
+        if prev is not None and total >= prev[2]:
+            continue
+        top = sorted(
+            mons, key=lambda n: mons[n].get("usage_pct", 0), reverse=True
+        )[:top_n]
+        rows = []
+        for name in top:
+            pct = mons[name].get("usage_pct", 0)
+            rows.append({
+                "name": name,
+                "usage_pct": pct,
+                "count": mons[name].get("usage_count", 0),
+                # A Pokemon absent from the previous stage rose from 0%.
+                "delta": None if prev is None
+                else pct - prev[1].get(name, {}).get("usage_pct", 0),
+            })
+        stages.append({"label": label, "total_teams": total, "rows": rows})
+        if prev is not None:
+            m = _stage_movers(prev[1], mons, f"{prev[0]} → {label}")
+            if m:
+                movers.append(m)
+        prev = (label, mons, total)
+
+    # A lone stage carries no story (it's just the sidebar's list).
+    if len(stages) < 2:
+        return None
+    return {"stages": stages, "movers": movers}
+
+
+def official_stage_usage_report(agg, top_n=10):
+    """Day 1 / Day 2 / Top Cut usage overview for one official event.
+
+    `agg` is the tournament's aggregated dict keyed by day filter
+    ("all"/"day2"/"top16"/"top8"). "Top cut" is the single-elimination
+    bracket: top8, with top16 as a stand-in when top8 wasn't scraped.
+    """
+    order = [("Day 1", agg.get("all")), ("Day 2", agg.get("day2"))]
+    for cut_key, cut_label in (("top8", "Top 8"), ("top16", "Top 16")):
+        if (agg.get(cut_key) or {}).get("pokemon"):
+            order.append((cut_label, agg.get(cut_key)))
+            break
+    return stage_usage_report(order, top_n)
+
+
 def performance_report(pokemon_stats, top_n=TOP_N):
     """Rank Pokemon by tournament win rate, best and worst converters.
 

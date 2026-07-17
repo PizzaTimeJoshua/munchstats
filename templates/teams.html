@@ -1,24 +1,12 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Teams | MunchStats | {{ selected_repo_name }}</title>
-<meta property="og:title" content="Teams | MunchStats">
-<meta name="description" content="Search tournament-proven Pokemon teams from the VGCPastes repository: pokepastes, rental codes, players and events.">
-<meta name="twitter:card" content="summary_large_image">
-<meta property="og:image" content="https://www.munchstats.com/static/favicon.png">
-<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+{% extends "base.html" %}
+{% set active_tab = 'teams' %}
+{% set og_description = "Search tournament-proven Pokemon teams from the VGCPastes repository: pokepastes, rental codes, players and events." %}
+
+{% block title %}Teams | MunchStats | {{ selected_repo_name }}{% endblock %}
+
+{% block head %}
 <style>
   .teams-container *, .teams-container *::before, .teams-container *::after { box-sizing: border-box; }
-  body {
-    background-color: #1e1e1e;
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
-    color: #e0e0e0;
-    font-family: Arial, sans-serif;
-  }
   h2 { font-weight: 600; letter-spacing: -0.3px; }
   h3, h4 { font-weight: 500; color: #bbb; }
   input, select, option {
@@ -107,38 +95,6 @@
     transition: background-color 0.15s;
   }
   fieldset label:hover { background-color: #333; }
-
-  /* Tab bar (matches MunchStats index.html exactly) */
-  .top-bar {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    border-bottom: 1px solid #444;
-    margin-bottom: 10px;
-  }
-  .tab-bar { text-align: left; padding-bottom: 0; }
-  .tab-btn {
-    background: #222;
-    color: #aaa;
-    border: 1px solid #444;
-    border-bottom: none;
-    display: inline-block;
-    padding: 6px 18px;
-    cursor: pointer;
-    font-size: 13px;
-    margin-right: 4px;
-    text-decoration: none;
-    transition: color 0.2s, background 0.2s;
-  }
-  .tab-btn:hover { color: #fff; background: #2a2a2a; }
-  .tab-btn.tab-active { background: #1e1e1e; color: #ffd54f; border-color: #888; }
-  .twitter-follow-div {
-    display: flex;
-    padding: 0 5px 6px 0;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
-  }
 
   /* Layout */
   .teams-container {
@@ -516,36 +472,10 @@
     .mon-name, .mon-item { font-size: 11px; }
   }
 </style>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-K1B7P5XXK6"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag() {
-    dataLayer.push(arguments);
-  }
-  gtag("js", new Date());
-  gtag("config", "G-K1B7P5XXK6");
-</script>
-</head>
-<body>
-<div class="top-bar">
-  <div class="tab-bar">
-    <a id="tab-usage-btn" class="tab-btn" href="{{ url_for('display_pokemon_page', format_code=selected_format[0], rating_threshold=selected_rating, pokemon_name=selected_pokemon) }}">Usage Stats</a>
-    <a id="tab-tournaments-btn" class="tab-btn" href="{{ url_for('tournaments_page') }}">Tournaments</a>
-    <a id="tab-teams-btn" class="tab-btn tab-active" href="{{ url_for('teams_page') }}">Teams</a>
-    <a id="tab-calc-btn" class="tab-btn" href="{{ url_for('calc_page', format_code=selected_format[0], rating_threshold=selected_rating) }}">Calc</a>
-    <a id="tab-replays-btn" class="tab-btn" href="{{ url_for('replays_page') }}">Replays</a>
-    <a id="tab-insights-btn" class="tab-btn" href="{{ url_for('insights_page') }}">Insights</a>
-    <a id="tab-tools-btn" class="tab-btn" href="{{ url_for('tools_page') }}">Tools</a>
-  </div>
-  <div class="twitter-follow-div">
-    <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">
-      <img height="29" style="border:0px;height:29px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=3" border="0" alt="Buy Me a Coffee at ko-fi.com" />
-    </a>
-    <a href="https://twitter.com/MunchStats?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large" data-show-screen-name="false" data-dnt="true" data-show-count="false">Follow @MunchStats</a>
-    <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-  </div>
-</div>
+{% endblock %}
+
+{% block content %}
+{% include "_tabs.html" %}
 <div class="teams-container">
   <div class="left">
     <h2>Team Search</h2>
@@ -1063,5 +993,4 @@
   fetchTeams(false);
 })();
 </script>
-</body>
-</html>
+{% endblock %}

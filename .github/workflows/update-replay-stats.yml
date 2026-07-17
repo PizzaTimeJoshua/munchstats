@@ -1,9 +1,12 @@
 name: Update replay stats
 
 # Scrapes new Showdown replays, rebuilds the searcher/team-ranking JSONs,
-# commits them to this repo, which triggers the Heroku auto-deploy.
-# The raw replay cache (~3 GB) is carried between runs via actions/cache,
-# seeded once from a release asset on the (private) scraper repo.
+# and force-pushes them as a single fresh commit to the replay-data branch.
+# The app fetches them from raw.githubusercontent.com at runtime, so data
+# updates no longer touch main and never trigger a Heroku redeploy (and the
+# branch history never grows). The raw replay cache (~3 GB) is carried
+# between runs via actions/cache, seeded once from a release asset on the
+# (private) scraper repo.
 #
 # Requires one repository secret: SCRAPER_TOKEN — a fine-grained PAT with
 # Contents:Read on PizzaTimeJoshua/Pokemon-Showdown-Replay-Scraper.
@@ -41,11 +44,18 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Checkout munchstats
+      # The scraper writes its output JSONs into $MUNCHSTATS_DIRECTORY and
+      # commits there itself (its own push attempt fails harmlessly — no
+      # origin remote). Giving it a fresh throwaway repo instead of a real
+      # munchstats checkout keeps every run a single commit that the publish
+      # step force-pushes to the replay-data branch.
+      - name: Prepare data workspace
         if: steps.cfg.outputs.configured == 'true'
-        uses: actions/checkout@v4
-        with:
-          path: munchstats
+        run: |
+          mkdir -p site-data/stats/replays
+          git -C site-data init -q -b replay-data
+          git -C site-data config user.name "github-actions[bot]"
+          git -C site-data config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Checkout replay scraper
         if: steps.cfg.outputs.configured == 'true'
@@ -88,19 +98,20 @@ jobs:
         if: steps.cfg.outputs.configured == 'true'
         run: pip install -r scraper/requirements.txt
 
-      - name: Configure git identity
-        if: steps.cfg.outputs.configured == 'true'
-        working-directory: munchstats
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-
       - name: Run pipeline
         if: steps.cfg.outputs.configured == 'true'
         working-directory: scraper
         env:
-          MUNCHSTATS_DIRECTORY: ${{ github.workspace }}/munchstats
+          MUNCHSTATS_DIRECTORY: ${{ github.workspace }}/site-data
         run: python replay-downloader-nogui.py
+
+      - name: Publish data to replay-data branch
+        if: steps.cfg.outputs.configured == 'true'
+        working-directory: site-data
+        run: |
+          git add -A
+          git diff --cached --quiet || git commit -q -m "Replay data snapshot $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" replay-data
 
       # Save even on failure/timeout so download progress is never lost;
       # the pipeline is incremental and self-heals on the next run.

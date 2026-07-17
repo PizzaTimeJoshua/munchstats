@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}MunchStats{% endblock %}</title>
+{%- set _desc = og_description | default("Find out latest Pokemon Showdown Usage Statistics. Check out common EVs, Moves, Item, and Abilities!") %}
+<meta property="og:title" content="{{ og_title | default(self.title()) }}">
+<meta property="og:site_name" content="MunchStats">
+<meta property="og:type" content="website">
+<meta property="og:url" content="{{ request.url }}">
+<meta property="og:description" content="{{ _desc }}">
+<meta name="description" content="{{ _desc }}">
+<meta name="twitter:description" content="{{ _desc }}">
+{% if og_image %}
+<meta property="og:image" content="{{ og_image }}">
+<meta name="twitter:card" content="{{ og_card | default('summary') }}">
+<meta name="twitter:image" content="{{ og_image }}">
+{% else %}
+<meta property="og:image" content="https://www.munchstats.com/static/favicon1280x720.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="https://www.munchstats.com/static/favicon1280x720.png">
+{% endif %}
+{% block meta_extra %}{% endblock %}
+<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+{% block head %}{% endblock %}
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-K1B7P5XXK6"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag() {
+    dataLayer.push(arguments);
+  }
+  gtag("js", new Date());
+  gtag("config", "G-K1B7P5XXK6");
+</script>
+</head>
+<body>
+{% block content %}{% endblock %}
+</body>
+</html>

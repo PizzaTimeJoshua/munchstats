@@ -42,6 +42,11 @@ $(document).ready(function () {
   // browser and refreshes with every format response, so newly cached
   // events show up without extra requests.
   var includedTournaments = window.includedTournaments || [];
+  // Official-event overview (per-stage top usage + biggest movers),
+  // shown until the visitor actually picks a Pokemon. pokemonRequested
+  // tracks that choice: URLs only carry a Pokemon segment once made.
+  var hubOverview = window.hubOverview || null;
+  var pokemonRequested = !!window.pokemonRequested;
   var currentView = "usage";
   var isLoading = false;
 
@@ -91,13 +96,16 @@ $(document).ready(function () {
       cut: currentCut,
       pokemon: currentPokemonName,
     };
+    // Until the visitor picks a Pokemon the URL stays tournament-level,
+    // so shared links open on the overview/events view.
+    var urlPokemon = pokemonRequested ? currentPokemonName : "";
     var url;
     if (currentSource === "limitless") {
-      url = "/limitless/" + currentFormatId + "/" + currentSegment + "/" + currentPokemonName;
+      url = "/limitless/" + currentFormatId + "/" + currentSegment + "/" + urlPokemon;
     } else if (currentSource === "limitless_event") {
-      url = "/limitless/event/" + currentEventId + "/" + currentPokemonName;
+      url = "/limitless/event/" + currentEventId + "/" + urlPokemon;
     } else {
-      url = "/tournaments/" + currentTournamentId + "/" + currentDayFilter + "/" + currentPokemonName;
+      url = "/tournaments/" + currentTournamentId + "/" + currentDayFilter + "/" + urlPokemon;
     }
     if (currentSource !== "official" && currentCut !== "all") {
       url += "?cut=" + currentCut;
@@ -178,9 +186,11 @@ $(document).ready(function () {
       // back-navigation anchored while browsing a single event.
       currentFormatId = data.selected_format_id;
       currentCut = data.cut || "all";
+      hubOverview = data.overview || null;
     } else {
       currentTournamentId = data.selected_tournament.id;
       currentDayFilter = data.day_filter;
+      hubOverview = data.overview || null;
     }
 
     // Update pokemon info card
@@ -1021,6 +1031,14 @@ $(document).ready(function () {
   });
 
   // ========== EVENTS BROWSER (individual Limitless tournaments) ==========
+  function eventCard(t) {
+    return '<div class="team-card" onclick="selectEvent(\'' + escapeAttr(t.id) + '\')">' +
+      '<span class="event-date">' + escapeAttr((t.date || "").slice(0, 10)) + '</span>' +
+      '<span class="team-player" style="flex: 1;">' + escapeAttr(t.name || "") + '</span>' +
+      '<span class="team-record">' + (t.players || 0) + ' players</span>' +
+      '</div>';
+  }
+
   function renderEventsList() {
     var container = document.getElementById("events-list");
     if (!container) return;
@@ -1039,19 +1057,105 @@ $(document).ready(function () {
       container.innerHTML = '<p style="color: #666; font-size: 13px;">No tournaments found.</p>';
       return;
     }
-    // Already newest-first from the server
+
+    // Searching: one flat filtered list (already newest-first).
+    if (query) {
+      container.innerHTML = events.map(eventCard).join("");
+      return;
+    }
+
+    // Browsing: the biggest fields first, then everything by date.
     var html = "";
-    events.forEach(function (t) {
-      html += '<div class="team-card" onclick="selectEvent(\'' + escapeAttr(t.id) + '\')">';
-      html += '<span class="event-date">' + escapeAttr((t.date || "").slice(0, 10)) + '</span>';
-      html += '<span class="team-player" style="flex: 1;">' + escapeAttr(t.name || "") + '</span>';
-      html += '<span class="team-record">' + (t.players || 0) + ' players</span>';
-      html += '</div>';
-    });
+    var largest = events.slice().sort(function (a, b) {
+      return (b.players || 0) - (a.players || 0);
+    }).slice(0, 8);
+    if (largest.length > 2) {
+      html += '<h2 class="ov-section-title">Largest Fields</h2>';
+      html += largest.map(eventCard).join("");
+      html += '<h2 class="ov-section-title" style="margin-top: 18px;">Most Recent</h2>';
+    }
+    html += events.map(eventCard).join("");
     container.innerHTML = html;
   }
 
   $("#eventsSearchInput").on("input", renderEventsList);
+
+  // ========== TOURNAMENT OVERVIEW (official events) ==========
+  // Per-stage top-10 usage (Day 1 / Day 2 / Top Cut) with the usage
+  // delta vs the previous stage, plus the biggest movers per transition.
+  // For onclick='selectPokemon(...)' handlers: Pokemon names carry no
+  // HTML metacharacters, but apostrophes (Sirfetch'd) must be escaped
+  // for the JS string, not HTML-escaped (entities would decode back to
+  // raw quotes before the JS parses).
+  function ovName(name) {
+    return String(name).replace(/\\/g, "\\\\").replace(/'/g, "\\'");
+  }
+
+  function ovMonCell(row) {
+    var bg = (row.sprite[1] * -40) + "px " + (row.sprite[0] * -30) + "px";
+    return '<td class="mon-cell"><span class="ov-sprite" style="background-position: ' +
+      bg + ';"></span>' + escapeAttr(row.name) + '</td>';
+  }
+
+  function ovDelta(delta, decorate) {
+    if (delta === null || delta === undefined) return '<td class="ov-dim">—</td>';
+    var cls = delta > 0 ? "ov-pos" : (delta < 0 ? "ov-neg" : "ov-dim");
+    var sign = delta > 0 ? "+" : "";
+    return '<td class="' + (decorate || cls) + '">' + sign + delta.toFixed(1) + '</td>';
+  }
+
+  function renderOverview() {
+    var container = document.getElementById("overview-content");
+    if (!container) return;
+    if (!hubOverview || !hubOverview.stages || !hubOverview.stages.length) {
+      container.innerHTML = '<p style="color: #666; font-size: 13px; text-align: left;">' +
+        'No stage data is available for this tournament yet.</p>';
+      return;
+    }
+
+    var html = '<h2 class="ov-section-title">Top Usage by Stage</h2>' +
+      '<p class="ov-sub">Most used Pokemon at each stage of the tournament. ' +
+      'Δ is the change in usage share (percentage points) from the previous stage. ' +
+      'Click a Pokemon for its full stats.</p>';
+    html += '<div class="ov-panels">';
+    hubOverview.stages.forEach(function (stage) {
+      html += '<div class="ov-panel"><h3>' + escapeAttr(stage.label) + '</h3>';
+      html += '<p class="ov-panel-sub">' + stage.total_teams +
+        (stage.total_teams === 1 ? " team" : " teams") + '</p>';
+      html += '<table><tr><th class="mon-col">Pokemon</th><th>Usage</th><th>Δ</th></tr>';
+      stage.rows.forEach(function (row) {
+        html += '<tr class="ov-row" onclick="selectPokemon(\'' + ovName(row.name) + '\')">';
+        html += ovMonCell(row);
+        html += '<td>' + row.usage_pct.toFixed(1) + '%</td>';
+        html += ovDelta(row.delta);
+        html += '</tr>';
+      });
+      html += '</table></div>';
+    });
+    html += '</div>';
+
+    if (hubOverview.movers && hubOverview.movers.length) {
+      html += '<h2 class="ov-section-title">Biggest Movers</h2>' +
+        '<p class="ov-sub">Largest changes in usage share between stages — ' +
+        'a quick read on what worked and what didn\'t.</p>';
+      html += '<div class="ov-panels">';
+      hubOverview.movers.forEach(function (transition) {
+        html += '<div class="ov-panel"><h3>' + escapeAttr(transition.label) + '</h3>';
+        html += '<table><tr><th class="mon-col">Pokemon</th><th>From</th><th>To</th><th>Δ</th></tr>';
+        transition.gains.concat(transition.drops).forEach(function (row) {
+          html += '<tr class="ov-row" onclick="selectPokemon(\'' + ovName(row.name) + '\')">';
+          html += ovMonCell(row);
+          html += '<td class="ov-dim">' + row.prev_pct.toFixed(1) + '%</td>';
+          html += '<td>' + row.usage_pct.toFixed(1) + '%</td>';
+          html += ovDelta(row.delta);
+          html += '</tr>';
+        });
+        html += '</table></div>';
+      });
+      html += '</div>';
+    }
+    container.innerHTML = html;
+  }
 
   // ========== VIEW TOGGLE ==========
   // The secondary view depends on the source: Standings for official
@@ -1066,6 +1170,10 @@ $(document).ready(function () {
     } else {
       btn.hide();
     }
+    // The overview exists per tournament: official events and single
+    // online events, but not the rolling format aggregate.
+    $("#btn-overview-view").toggle(currentSource !== "limitless")
+      .toggleClass("active", currentView === "overview");
   }
 
   function applyView(load) {
@@ -1073,8 +1181,12 @@ $(document).ready(function () {
     var standingsView = document.getElementById("standings-view");
     var resultsView = document.getElementById("results-view");
     var eventsView = document.getElementById("events-view");
+    var overviewView = document.getElementById("overview-view");
 
     if (currentView === "events" && currentSource !== "limitless") {
+      currentView = "usage";
+    }
+    if (currentView === "overview" && currentSource === "limitless") {
       currentView = "usage";
     }
     var secondary = currentSource === "limitless" ? resultsView : standingsView;
@@ -1083,6 +1195,7 @@ $(document).ready(function () {
     standingsView.style.display = "none";
     resultsView.style.display = "none";
     eventsView.style.display = "none";
+    overviewView.style.display = "none";
 
     if (currentView === "secondary") {
       secondary.style.display = "grid";
@@ -1096,6 +1209,9 @@ $(document).ready(function () {
     } else if (currentView === "events") {
       eventsView.style.display = "grid";
       renderEventsList();
+    } else if (currentView === "overview") {
+      overviewView.style.display = "grid";
+      renderOverview();
     } else {
       usageView.style.display = "grid";
     }
@@ -1105,19 +1221,24 @@ $(document).ready(function () {
   }
 
   window.switchView = function (view) {
-    currentView = view === "secondary" || view === "events" ? view : "usage";
+    currentView = view === "secondary" || view === "events" || view === "overview"
+      ? view : "usage";
     applyView(true);
   };
 
   // ========== GLOBAL SELECTION FUNCTIONS ==========
   // Switching tournament/format/event carries the selected Pokemon
   // along; the server falls back to the top-usage Pokemon when it
-  // isn't present in the new dataset.
+  // isn't present in the new dataset. Until a Pokemon has actually
+  // been picked, sidebar navigation lands on the tournament-level
+  // view: the overview for events, the events browser for a format.
   window.selectTournament = function (id) {
+    if (!pokemonRequested) currentView = "overview";
     fetchOfficialData(id, currentDayFilter || "all", currentPokemonName);
   };
 
   window.selectFormat = function (id) {
+    if (!pokemonRequested) currentView = "events";
     // First visit to the online source in this session: the server
     // clamps an unknown segment to the smallest available tier.
     fetchLimitlessData(id, currentSegment || "25", currentPokemonName);
@@ -1141,7 +1262,7 @@ $(document).ready(function () {
   };
 
   window.selectEvent = function (id) {
-    currentView = "usage";
+    currentView = pokemonRequested ? "usage" : "overview";
     fetchEventData(id, currentPokemonName);
   };
 
@@ -1157,6 +1278,12 @@ $(document).ready(function () {
   };
 
   window.selectPokemon = function (name) {
+    // Picking a Pokemon is the handoff from the tournament-level views
+    // to its usage cards.
+    pokemonRequested = true;
+    if (currentView === "overview" || currentView === "events") {
+      currentView = "usage";
+    }
     if (currentSource === "limitless") {
       fetchLimitlessData(currentFormatId, currentSegment, name);
     } else if (currentSource === "limitless_event") {
@@ -1203,6 +1330,14 @@ $(document).ready(function () {
       if (target > 0) listContainer.scrollTop = target;
     }
   })();
+
+  // No Pokemon in the URL: open on the tournament-level view — the
+  // overview for events, the events browser for a Limitless format —
+  // instead of the defaulted top-usage Pokemon.
+  if (!pokemonRequested) {
+    currentView = currentSource === "limitless" ? "events" : "overview";
+    applyView(false);
+  }
 
   // Deep link: /limitless/...?view=results&q=... opens the Team Results
   // view with a pre-filled search (used by the Insights winning-cores

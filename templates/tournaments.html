@@ -1,25 +1,11 @@
-<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Tournaments | MunchStats{% if not no_data %} | {% if source == "limitless" %}{{ selected_format_name }} (Online){% elif source == "limitless_event" %}{{ selected_event.name }}{% else %}{{ selected_tournament.name }}{% endif %}{% endif %}</title>
-<meta property="og:title" content="Tournaments | MunchStats">
-<meta name="description" content="VGC Tournament usage statistics from Regionals, Internationals, Worlds, and Limitless online tournaments.">
-<meta name="twitter:card" content="summary_large_image">
-<meta property="og:image" content="https://www.munchstats.com/static/favicon.png">
-<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-<link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+{% extends "base.html" %}
+{% set active_tab = 'tournaments' %}
+{% set og_description = og_description | default("VGC Tournament usage statistics from Regionals, Internationals, Worlds, and Limitless online tournaments.") %}
+
+{% block title %}Tournaments | MunchStats{% if not no_data %} | {% if source == "limitless" %}{{ selected_format_name }} (Online){% elif source == "limitless_event" %}{{ selected_event.name }}{% else %}{{ selected_tournament.name }}{% endif %}{% endif %}{% endblock %}
+
+{% block head %}
 <style>
-  body {
-    background-color: #1e1e1e;
-    display: grid;
-    grid-template-columns: 1fr;
-    grid-template-rows: auto 1fr auto;
-    color: #e0e0e0;
-    font-family: Arial, sans-serif;
-  }
   input[type="text"] {
     background-color: #222222;
     color: #e0e0e0;
@@ -40,37 +26,6 @@
     max-width: 300px;
     word-wrap: break-word;
     opacity: 80%;
-  }
-  /* Tab bar */
-  .top-bar {
-    display: flex;
-    align-items: flex-end;
-    justify-content: space-between;
-    border-bottom: 1px solid #444;
-    margin-bottom: 10px;
-  }
-  .tab-bar { text-align: left; padding-bottom: 0; }
-  .tab-btn {
-    background: #222;
-    color: #aaa;
-    border: 1px solid #444;
-    border-bottom: none;
-    display: inline-block;
-    padding: 6px 18px;
-    cursor: pointer;
-    font-size: 13px;
-    margin-right: 4px;
-    text-decoration: none;
-    transition: color 0.2s, background 0.2s;
-  }
-  .tab-btn:hover { color: #fff; background: #2a2a2a; }
-  .tab-btn.tab-active { background: #1e1e1e; color: #ffd54f; border-color: #888; }
-  .twitter-follow-div {
-    display: flex;
-    padding: 0 5px 6px 0;
-    align-items: center;
-    gap: 8px;
-    flex-shrink: 0;
   }
   /* Grid layout */
   .grid-container {
@@ -459,7 +414,7 @@
     background: #333;
     color: #ccc;
   }
-  #usage-view, #standings-view, #results-view, #events-view {
+  #usage-view, #standings-view, #results-view, #events-view, #overview-view {
     grid-column: 1 / -1;
     display: grid;
     grid-template-columns: repeat(auto-fill, 310px);
@@ -467,9 +422,81 @@
     justify-content: space-evenly;
     width: 100%;
   }
-  #standings-view .teams-container, #results-view .teams-container, #events-view .teams-container {
+  #standings-view .teams-container, #results-view .teams-container, #events-view .teams-container, #overview-view .teams-container {
     max-width: 100%;
   }
+  /* Tournament overview (per-stage usage + movers) */
+  .ov-section-title {
+    text-align: left;
+    font-size: 16px;
+    font-weight: 600;
+    color: #ddd;
+    margin: 4px 0 2px 0;
+  }
+  .ov-sub {
+    text-align: left;
+    font-size: 12px;
+    color: #888;
+    margin: 0 0 12px 0;
+    line-height: 1.5;
+  }
+  .ov-panels {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    grid-gap: 16px;
+    align-items: start;
+    margin-bottom: 24px;
+  }
+  .ov-panel {
+    background-color: #222222;
+    border: 1px solid #555;
+    padding: 12px 14px 8px 14px;
+    overflow-x: auto;
+    text-align: left;
+  }
+  .ov-panel h3 { margin: 0 0 2px 0; font-size: 14px; color: #ddd; }
+  .ov-panel .ov-panel-sub { font-size: 11px; color: #777; margin: 0 0 8px 0; }
+  .ov-panel table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  .ov-panel th {
+    text-align: right;
+    color: #888;
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    padding: 3px 6px;
+    border-bottom: 1px solid #444;
+  }
+  .ov-panel th.mon-col { text-align: left; }
+  .ov-panel td {
+    padding: 3px 6px;
+    border-bottom: 1px solid #333;
+    text-align: right;
+    white-space: nowrap;
+  }
+  .ov-panel tr:last-child td { border-bottom: none; }
+  .ov-panel tr.ov-row { cursor: pointer; }
+  .ov-panel tr.ov-row:hover td { background-color: #2a2a2a; color: #ffd54f; }
+  .ov-panel td.mon-cell {
+    text-align: left;
+    padding: 2px 6px 2px 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 160px;
+  }
+  .ov-sprite {
+    display: inline-block;
+    width: 40px;
+    height: 30px;
+    background-image: url({{ url_for('static', filename='pokemonicons-sheet.png') }});
+    background-repeat: no-repeat;
+    vertical-align: middle;
+    margin-right: 2px;
+    flex-shrink: 0;
+  }
+  .ov-dim { color: #888; font-size: 11px; }
+  .ov-pos { color: #81c784; }
+  .ov-neg { color: #e57373; }
   /* Event browser rows */
   .event-date {
     color: #888;
@@ -717,8 +744,8 @@
     .grid-container { grid-template-columns: 1fr; }
     /* Right panel + views: single fluid column */
     .right { grid-template-columns: 1fr; justify-items: stretch; }
-    #usage-view, #standings-view, #results-view, #events-view { grid-template-columns: 1fr; }
-    #usage-view > div, #standings-view > div, #results-view > div, #events-view > div { width: 100%; }
+    #usage-view, #standings-view, #results-view, #events-view, #overview-view { grid-template-columns: 1fr; }
+    #usage-view > div, #standings-view > div, #results-view > div, #events-view > div, #overview-view > div { width: 100%; }
     .team-detail-grid { grid-template-columns: repeat(2, 1fr); }
     .grid-container { grid-gap: 15px; padding: 0 8px; }
     /* Tab bar: shrink padding, hide social buttons */
@@ -756,39 +783,13 @@
     .tab-btn { padding: 5px 7px; font-size: 11px; }
   }
 </style>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-K1B7P5XXK6"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag() {
-    dataLayer.push(arguments);
-  }
-  gtag("js", new Date());
-  gtag("config", "G-K1B7P5XXK6");
-</script>
-</head>
-<body>
+{% endblock %}
+
+{% block content %}
   <div id="loading-overlay">
     <div class="loading-spinner">Loading stats...</div>
   </div>
-  <div class="top-bar">
-    <div class="tab-bar">
-      <a id="tab-usage-btn" class="tab-btn" href="{{ url_for('display_pokemon_page', format_code=selected_format[0], rating_threshold=selected_rating, pokemon_name=selected_pokemon) }}">Usage Stats</a>
-      <a id="tab-tournaments-btn" class="tab-btn tab-active" href="{{ url_for('tournaments_page') }}">Tournaments</a>
-      <a id="tab-teams-btn" class="tab-btn" href="{{ url_for('teams_page') }}">Teams</a>
-      <a id="tab-calc-btn" class="tab-btn" href="{{ url_for('calc_page', format_code=selected_format[0], rating_threshold=selected_rating) }}">Calc</a>
-      <a id="tab-replays-btn" class="tab-btn" href="{{ url_for('replays_page') }}">Replays</a>
-      <a id="tab-insights-btn" class="tab-btn" href="{{ url_for('insights_page') }}">Insights</a>
-      <a id="tab-tools-btn" class="tab-btn" href="{{ url_for('tools_page') }}">Tools</a>
-    </div>
-    <div class="twitter-follow-div">
-      <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">
-        <img height="29" style="border:0px;height:29px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=3" border="0" alt="Buy Me a Coffee at ko-fi.com" />
-      </a>
-      <a href="https://twitter.com/MunchStats?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large" data-show-screen-name="false" data-dnt="true" data-show-count="false">Follow @MunchStats</a>
-      <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-    </div>
-  </div>
+  {% include "_tabs.html" %}
 
   {% if no_data %}
   <div style="text-align: center; padding: 60px 20px;">
@@ -930,6 +931,7 @@
     <div class="right" id="right-panel">
       <!-- View toggle tabs -->
       <div class="view-toggle">
+        <button type="button" class="view-toggle-btn" id="btn-overview-view" onclick="switchView('overview')"{% if source == "limitless" %} style="display:none"{% endif %}>Overview</button>
         <button type="button" class="view-toggle-btn active" id="btn-usage-view" onclick="switchView('usage')">Usage Stats</button>
         <button type="button" class="view-toggle-btn" id="btn-secondary-view" onclick="switchView('secondary')">{% if source == "limitless" %}Top Teams{% else %}Standings{% endif %}</button>
         <!-- Doubles as the events browser (Limitless format) and the
@@ -1140,6 +1142,12 @@
           </div>
         </div>
       </div>
+
+      <!-- TOURNAMENT OVERVIEW (official events): per-stage top usage
+           with deltas + biggest movers; rendered by tournament_stats.js -->
+      <div id="overview-view" style="display: none;">
+        <div class="teams-container" id="overview-content"></div>
+      </div>
     </div>
   </div>
 
@@ -1164,8 +1172,9 @@
     window.currentCut = "{{ cut if source != 'official' else 'all' }}";
     window.currentPokemonName = "{{ selected_pokemon }}";
     window.includedTournaments = {{ (included_tournaments if source == 'limitless' else []) | tojson }};
+    window.hubOverview = {{ overview | default(none) | tojson }};
+    window.pokemonRequested = {{ pokemon_requested | default(false) | tojson }};
   </script>
-  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=12"></script>
+  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=14"></script>
   {% endif %}
-</body>
-</html>
+{% endblock %}
