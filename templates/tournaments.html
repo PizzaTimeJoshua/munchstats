@@ -7,16 +7,18 @@
 {% block head %}
 <style>
   input[type="text"] {
-    background-color: #222222;
-    color: #e0e0e0;
-    border: 1px solid #555;
+    background-color: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border-2);
     padding: 8px 12px;
     margin: 5px;
   }
   .tooltip {
     position: absolute;
-    background-color: black;
-    color: white;
+    background-color: var(--tooltip-bg);
+    color: var(--tooltip-text);
+    border: 1px solid var(--border);
+    box-shadow: 0 2px 10px var(--shadow-2);
     padding: 5px 10px;
     border-radius: 5px;
     font-size: 14px;
@@ -55,8 +57,8 @@
   }
   /* Pokemon info card */
   #pokemon-info {
-    background: #222;
-    border: 1px solid #555;
+    background: var(--surface);
+    border: 1px solid var(--border-2);
     padding: 14px 16px;
     margin-top: 18px;
     margin-bottom: 8px;
@@ -81,7 +83,7 @@
   .info-pokemon-name {
     font-size: 18px;
     font-weight: 700;
-    color: #ffd54f;
+    color: var(--accent);
     line-height: 1.2;
   }
   .info-types {
@@ -93,8 +95,8 @@
     display: flex;
     justify-content: space-around;
     padding: 8px 0;
-    border-top: 1px solid #444;
-    border-bottom: 1px solid #444;
+    border-top: 1px solid var(--border);
+    border-bottom: 1px solid var(--border);
     margin-bottom: 10px;
   }
   .info-stat {
@@ -106,16 +108,16 @@
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #888;
+    color: var(--text-dim);
   }
   .info-stat-value {
     font-size: 16px;
     font-weight: 600;
-    color: #e0e0e0;
+    color: var(--text);
   }
   .info-format {
     font-size: 12px;
-    color: #ccc;
+    color: var(--text-soft);
     text-align: center;
     line-height: 1.3;
   }
@@ -128,27 +130,27 @@
     padding: 5px 0 10px;
   }
   .rating-button {
-    background-color: #222222;
-    color: #e0e0e0;
-    border: 1px solid #555;
+    background-color: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border-2);
     padding: 8px 10px;
     margin: 0;
     cursor: pointer;
     transition: background-color 0.3s;
   }
   .rating-button:hover {
-    background-color: #333333;
-    color: #ffffff;
+    background-color: var(--raised);
+    color: var(--text-strong);
   }
   .rating-button.active {
-    background-color: #333333;
-    color: #ffd54f;
-    border-color: #888;
+    background-color: var(--raised);
+    color: var(--accent);
+    border-color: var(--border-hi);
   }
   .pokemon-button, .export-button {
-    background-color: #222222;
-    color: #e0e0e0;
-    border: 0px solid #555;
+    background-color: var(--surface);
+    color: var(--text);
+    border: 0px solid var(--border-2);
     padding: 8px 8px;
     width: 100%;
     cursor: pointer;
@@ -158,24 +160,24 @@
     display: flex;
   }
   .pokemon-button:hover, .export-button:hover {
-    background-color: #333333;
-    color: #ffffff;
+    background-color: var(--raised);
+    color: var(--text-strong);
   }
   .export-button.selected {
-    background-color: #2a2a2a;
-    border-left: 3px solid #888888;
+    background-color: var(--surface-3);
+    border-left: 3px solid var(--border-hi);
   }
   textarea {
     width: 300px;
     height: 174px;
     font-size: 13px;
     resize: none;
-    background-color: #1e1e1e;
-    color: #ffffff;
+    background-color: var(--bg);
+    color: var(--text-strong);
     overflow-y: scroll;
     overflow-x: scroll;
     white-space: nowrap;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 10px var(--shadow);
     border: 0px;
     text-align: left;
   }
@@ -189,13 +191,13 @@
     margin-right: 10px;
   }
   .Export::-webkit-scrollbar { height: 12px; }
-  .Export::-webkit-scrollbar-track { background: #222222; }
-  .Export::-webkit-scrollbar-thumb { background: #333333; }
-  .Export::-webkit-scrollbar-thumb:hover { background: #111111; }
+  .Export::-webkit-scrollbar-track { background: var(--surface); }
+  .Export::-webkit-scrollbar-thumb { background: var(--raised); }
+  .Export::-webkit-scrollbar-thumb:hover { background: var(--inset-2); }
   .copy-button {
-    background-color: #222222;
-    color: #e0e0e0;
-    border: 0px solid #555;
+    background-color: var(--surface);
+    color: var(--text);
+    border: 0px solid var(--border-2);
     padding: 8px 8px;
     width: 100%;
     cursor: pointer;
@@ -206,8 +208,8 @@
     height: 24px;
   }
   .copy-button:hover {
-    background-color: #333333;
-    color: #ffffff;
+    background-color: var(--raised);
+    color: var(--text-strong);
   }
   .left-text, .right-text { white-space: nowrap; }
   .left-text { margin-right: 10px; padding-left: 10px; }
@@ -219,22 +221,22 @@
     overflow-x: hidden;
     margin-bottom: 20px;
     width: 300px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 10px var(--shadow);
     justify-self: center;
     align-self: center;
     max-height: 210px;
     margin-right: 10px;
   }
   .pokemon-list ul { list-style-type: none; padding: 0; margin: 0; }
-  .pokemon-list li:hover { background-color: #333333; }
+  .pokemon-list li:hover { background-color: var(--raised); }
   .pokemon-list::-webkit-scrollbar { width: 12px; }
-  .pokemon-list::-webkit-scrollbar-track { background: #222222; }
-  .pokemon-list::-webkit-scrollbar-thumb { background: #333333; }
-  .pokemon-list::-webkit-scrollbar-thumb:hover { background: #111111; }
+  .pokemon-list::-webkit-scrollbar-track { background: var(--surface); }
+  .pokemon-list::-webkit-scrollbar-thumb { background: var(--raised); }
+  .pokemon-list::-webkit-scrollbar-thumb:hover { background: var(--inset-2); }
   .meta-button {
-    background-color: #222222;
-    color: #e0e0e0;
-    border: 0px solid #555;
+    background-color: var(--surface);
+    color: var(--text);
+    border: 0px solid var(--border-2);
     padding: 8px 16px;
     width: 300px;
     cursor: pointer;
@@ -242,13 +244,13 @@
     text-align: left;
   }
   .meta-button:hover {
-    background-color: #333333;
-    color: #ffffff;
+    background-color: var(--raised);
+    color: var(--text-strong);
   }
   .meta-button.active {
-    background-color: #2a2a2a;
-    color: #ffd54f;
-    border-left: 3px solid #ffd54f;
+    background-color: var(--surface-3);
+    color: var(--accent);
+    border-left: 3px solid var(--accent);
   }
   .meta-list {
     height: 300px;
@@ -256,18 +258,18 @@
     overflow-x: hidden;
     margin-bottom: 20px;
     width: 300px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 10px var(--shadow);
     justify-self: center;
     align-self: center;
     max-height: 210px;
     margin-right: 10px;
   }
   .meta-list ul { list-style-type: none; padding: 0; margin: 0; }
-  .meta-list li:hover { background-color: #333333; }
+  .meta-list li:hover { background-color: var(--raised); }
   .meta-list::-webkit-scrollbar { width: 12px; }
-  .meta-list::-webkit-scrollbar-track { background: #222222; }
-  .meta-list::-webkit-scrollbar-thumb { background: #333333; }
-  .meta-list::-webkit-scrollbar-thumb:hover { background: #111111; }
+  .meta-list::-webkit-scrollbar-track { background: var(--surface); }
+  .meta-list::-webkit-scrollbar-thumb { background: var(--raised); }
+  .meta-list::-webkit-scrollbar-thumb:hover { background: var(--inset-2); }
   /* Data cards */
   .Data {
     height: 210px;
@@ -275,7 +277,7 @@
     overflow-x: hidden;
     margin-bottom: 20px;
     width: 300px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    box-shadow: 0 0 10px var(--shadow);
     justify-self: center;
     align-self: center;
     max-height: 210px;
@@ -283,16 +285,16 @@
   }
   .Data ul { list-style-type: none; padding: 0; margin: 0; }
   .Data li { padding: 0px; }
-  .Data li:hover { background-color: #333333; }
+  .Data li:hover { background-color: var(--raised); }
   .Data::-webkit-scrollbar { width: 12px; }
-  .Data::-webkit-scrollbar-track { background: #222222; }
-  .Data::-webkit-scrollbar-thumb { background: #333333; }
-  .Data::-webkit-scrollbar-thumb:hover { background: #111111; }
+  .Data::-webkit-scrollbar-track { background: var(--surface); }
+  .Data::-webkit-scrollbar-thumb { background: var(--raised); }
+  .Data::-webkit-scrollbar-thumb:hover { background: var(--inset-2); }
   h3 { margin-top: 5px; margin-bottom: 7px; }
   /* Stats bars */
   .Stats { width: 300px; margin: 0 auto; text-align: center; }
   .bar-container {
-    width: 300px; height: 20px; background-color: #1e1e1e;
+    width: 300px; height: 20px; background-color: var(--bg);
     margin-top: 0px; display: flex; align-items: left;
     justify-content: space-between; padding: 4px 0px;
   }
@@ -325,7 +327,7 @@
   .type-Poison,.type-Electric,.type-Ground,.type-Psychic,.type-Rock,.type-Ice,
   .type-Bug,.type-Dragon,.type-Ghost,.type-Dark,.type-Steel,.type-Fairy,.type-Stellar {
     font-size: 12px; box-shadow: 0 0 0 1px #000; border-radius: 10px;
-    color: #ffffff; text-align: center; display: inline;
+    color: #fff; text-align: center; display: inline;
     padding: 1px 5px 1px 7px; background: #9FA19F;
     text-transform: uppercase; font-weight: bold;
   }
@@ -351,19 +353,19 @@
   /* Tournament group headers */
   .tournament-group-header {
     padding: 6px 16px;
-    color: #ffd54f;
+    color: var(--accent);
     font-size: 11px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-soft);
   }
   /* Filter labels (day cut / min players) */
   .filter-label {
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    color: #888;
+    color: var(--text-dim);
     margin-top: 6px;
   }
   /* Loading overlay */
@@ -375,11 +377,11 @@
   }
   #loading-overlay.active { display: flex; }
   .loading-spinner {
-    color: #e0e0e0; font-size: 18px; text-align: center;
+    color: var(--text); font-size: 18px; text-align: center;
   }
   .loading-spinner::before {
     content: ""; display: block; width: 40px; height: 40px;
-    margin: 0 auto 12px; border: 4px solid #555;
+    margin: 0 auto 12px; border: 4px solid var(--border-2);
     border-top-color: yellow; border-radius: 50%;
     animation: spin 0.8s linear infinite;
   }
@@ -395,9 +397,9 @@
   .view-toggle-btn {
     flex: 1;
     padding: 8px 16px;
-    background: #2a2a2a;
-    border: 1px solid #444;
-    color: #888;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -406,13 +408,13 @@
   .view-toggle-btn:first-child { border-radius: 6px 0 0 6px; }
   .view-toggle-btn:last-child { border-radius: 0 6px 6px 0; }
   .view-toggle-btn.active {
-    background: #ffd54f;
-    color: #1e1e1e;
-    border-color: #ffd54f;
+    background: var(--accent);
+    color: var(--on-accent);
+    border-color: var(--accent);
   }
   .view-toggle-btn:hover:not(.active) {
-    background: #333;
-    color: #ccc;
+    background: var(--raised);
+    color: var(--text-soft);
   }
   #usage-view, #standings-view, #results-view, #events-view, #overview-view {
     grid-column: 1 / -1;
@@ -430,13 +432,13 @@
     text-align: left;
     font-size: 16px;
     font-weight: 600;
-    color: #ddd;
+    color: var(--text-hi);
     margin: 4px 0 2px 0;
   }
   .ov-sub {
     text-align: left;
     font-size: 12px;
-    color: #888;
+    color: var(--text-dim);
     margin: 0 0 12px 0;
     line-height: 1.5;
   }
@@ -448,35 +450,35 @@
     margin-bottom: 24px;
   }
   .ov-panel {
-    background-color: #222222;
-    border: 1px solid #555;
+    background-color: var(--surface);
+    border: 1px solid var(--border-2);
     padding: 12px 14px 8px 14px;
     overflow-x: auto;
     text-align: left;
   }
-  .ov-panel h3 { margin: 0 0 2px 0; font-size: 14px; color: #ddd; }
-  .ov-panel .ov-panel-sub { font-size: 11px; color: #777; margin: 0 0 8px 0; }
+  .ov-panel h3 { margin: 0 0 2px 0; font-size: 14px; color: var(--text-hi); }
+  .ov-panel .ov-panel-sub { font-size: 11px; color: var(--text-dim-2); margin: 0 0 8px 0; }
   .ov-panel table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .ov-panel th {
     text-align: right;
-    color: #888;
+    color: var(--text-dim);
     font-weight: 500;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.4px;
     padding: 3px 6px;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid var(--border);
   }
   .ov-panel th.mon-col { text-align: left; }
   .ov-panel td {
     padding: 3px 6px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-soft);
     text-align: right;
     white-space: nowrap;
   }
   .ov-panel tr:last-child td { border-bottom: none; }
   .ov-panel tr.ov-row { cursor: pointer; }
-  .ov-panel tr.ov-row:hover td { background-color: #2a2a2a; color: #ffd54f; }
+  .ov-panel tr.ov-row:hover td { background-color: var(--surface-3); color: var(--accent); }
   .ov-panel td.mon-cell {
     text-align: left;
     padding: 2px 6px 2px 0;
@@ -494,19 +496,19 @@
     margin-right: 2px;
     flex-shrink: 0;
   }
-  .ov-dim { color: #888; font-size: 11px; }
-  .ov-pos { color: #81c784; }
-  .ov-neg { color: #e57373; }
+  .ov-dim { color: var(--text-dim); font-size: 11px; }
+  .ov-pos { color: var(--pos); }
+  .ov-neg { color: var(--neg); }
   /* Event browser rows */
   .event-date {
-    color: #888;
+    color: var(--text-dim);
     font-size: 12px;
     min-width: 78px;
     text-align: left;
     flex-shrink: 0;
   }
   .events-count {
-    color: #666;
+    color: var(--text-disabled);
     font-size: 12px;
     text-align: left;
     margin: 0 0 8px 0;
@@ -524,8 +526,8 @@
     max-width: 960px;
   }
   .team-card {
-    background: #222;
-    border: 1px solid #444;
+    background: var(--surface);
+    border: 1px solid var(--border);
     padding: 10px 14px;
     margin-bottom: 8px;
     display: flex;
@@ -534,23 +536,23 @@
     cursor: pointer;
     transition: background 0.2s;
   }
-  .team-card:hover { background: #2a2a2a; }
+  .team-card:hover { background: var(--surface-3); }
   .team-placement {
-    font-size: 14px; font-weight: 700; color: #ffd54f;
+    font-size: 14px; font-weight: 700; color: var(--accent);
     min-width: 36px; text-align: center;
   }
   /* Player's final standing inside a team list: muted, not the yellow
      used for the archetype's meta rank. */
-  .team-standing { color: #aaa; font-weight: 600; }
+  .team-standing { color: var(--text-muted); font-weight: 600; }
   .team-player {
-    font-size: 13px; color: #ccc;
+    font-size: 13px; color: var(--text-soft);
     min-width: 120px;
   }
   .team-record {
-    color: #888; font-size: 12px;
+    color: var(--text-dim); font-size: 12px;
   }
   .team-tournament {
-    color: #888; font-size: 11px;
+    color: var(--text-dim); font-size: 11px;
     flex: 1;
     overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
     text-align: left;
@@ -561,8 +563,8 @@
   .team-detail {
     display: none;
     padding: 10px;
-    background: #1e1e1e;
-    border: 1px solid #333;
+    background: var(--bg);
+    border: 1px solid var(--border-soft);
     border-top: none;
     margin-top: -9px;
     margin-bottom: 8px;
@@ -574,8 +576,8 @@
     gap: 6px;
   }
   .team-detail-pokemon {
-    background: #252525;
-    border: 1px solid #444;
+    background: var(--surface-2);
+    border: 1px solid var(--border);
     padding: 8px 10px;
     font-size: 12px;
     text-align: left;
@@ -583,18 +585,18 @@
   }
   .team-detail-pokemon .td-name {
     font-weight: 600;
-    color: #ffd54f;
+    color: var(--accent);
     font-size: 13px;
   }
   .team-detail-pokemon .td-info {
-    color: #aaa;
+    color: var(--text-muted);
     font-size: 11px;
     line-height: 1.6;
   }
   .team-copy-btn {
-    background: #2a2a2a;
-    color: #aaa;
-    border: 1px solid #555;
+    background: var(--surface-3);
+    color: var(--text-muted);
+    border: 1px solid var(--border-2);
     padding: 5px 14px;
     margin-top: 8px;
     cursor: pointer;
@@ -604,13 +606,13 @@
     width: 100%;
     text-align: center;
   }
-  .team-copy-btn:hover { color: #fff; background: #333; }
-  .team-copy-btn.copied { color: #ffd54f; }
+  .team-copy-btn:hover { color: var(--text-strong); background: var(--raised); }
+  .team-copy-btn.copied { color: var(--accent); }
   /* Merch section */
   .merch-toggle {
-    background: #2a2a2a;
-    border: 1px solid #555;
-    color: #aaa;
+    background: var(--surface-3);
+    border: 1px solid var(--border-2);
+    color: var(--text-muted);
     font-size: 12px;
     padding: 4px 14px;
     cursor: pointer;
@@ -619,11 +621,11 @@
     margin-left: 8px;
     vertical-align: middle;
   }
-  .merch-toggle:hover { color: #fff; background: #333; }
+  .merch-toggle:hover { color: var(--text-strong); background: var(--raised); }
   .merch-section.collapsed .merch-carousel { display: none; }
   .merch-collapsed-msg {
     display: none;
-    color: #666;
+    color: var(--text-disabled);
     font-size: 12px;
     text-align: center;
     padding: 10px 0;
@@ -634,8 +636,8 @@
     height: 210px;
     position: relative;
     overflow: hidden;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-    background: #222;
+    box-shadow: 0 0 10px var(--shadow);
+    background: var(--surface);
     margin-bottom: 20px;
     margin-right: 10px;
     justify-self: center;
@@ -655,10 +657,10 @@
     align-items: center;
     justify-content: center;
     text-decoration: none;
-    color: #e0e0e0;
+    color: var(--text);
     padding: 8px 0;
   }
-  .merch-card:hover { background: #2a2a2a; }
+  .merch-card:hover { background: var(--surface-3); }
   .merch-card img {
     width: 110px;
     height: 110px;
@@ -668,7 +670,7 @@
   }
   .merch-card-title {
     font-size: 11px;
-    color: #ccc;
+    color: var(--text-soft);
     text-align: center;
     margin-top: 6px;
     padding: 0 6px;
@@ -680,7 +682,7 @@
   .merch-card-price {
     font-size: 13px;
     font-weight: 700;
-    color: #ffd54f;
+    color: var(--accent);
     margin-top: 3px;
   }
   .merch-nav {
@@ -693,9 +695,9 @@
     gap: 6px;
   }
   .merch-arrow {
-    background: rgba(34,34,34,0.8);
-    border: 1px solid #555;
-    color: #ccc;
+    background: var(--surface-scrim);
+    border: 1px solid var(--border-2);
+    color: var(--text-soft);
     font-size: 16px;
     cursor: pointer;
     padding: 1px 6px;
@@ -703,13 +705,13 @@
     border-radius: 3px;
     transition: color 0.2s, background 0.2s;
   }
-  .merch-arrow:hover { color: #fff; background: #444; }
+  .merch-arrow:hover { color: var(--text-strong); background: var(--raised-3); }
   .merch-loading {
     display: flex;
     align-items: center;
     justify-content: center;
     height: 100%;
-    color: #666;
+    color: var(--text-disabled);
     font-size: 13px;
   }
   /* Responsive */
@@ -787,14 +789,14 @@
 
 {% block content %}
   <div id="loading-overlay">
-    <div class="loading-spinner">Loading stats...</div>
+    <div class="loading-spinner">{{ _('Loading stats...') }}</div>
   </div>
   {% include "_tabs.html" %}
 
   {% if no_data %}
   <div style="text-align: center; padding: 60px 20px;">
-    <h2>No Tournament Data</h2>
-    <p style="color: #888;">Official tournament data has not been scraped and Limitless online data is unavailable &mdash; try again shortly.</p>
+    <h2>{{ _('No Tournament Data') }}</h2>
+    <p style="color: var(--text-dim);">{{ _('Official tournament data has not been scraped and Limitless online data is unavailable — try again shortly.') }}</p>
   </div>
   {% else %}
   <div class="grid-container">
@@ -814,19 +816,19 @@
         </div>
         <div class="info-stats-row">
           <div class="info-stat">
-            <span class="info-stat-label">Usage</span>
+            <span class="info-stat-label">{{ _('Usage') }}</span>
             <span class="info-stat-value" id="info-usage">{{ current_pokemon[1] }}%</span>
           </div>
           <div class="info-stat">
-            <span class="info-stat-label">Rank</span>
+            <span class="info-stat-label">{{ _('Rank') }}</span>
             <span class="info-stat-value" id="info-rank">#{{ current_pokemon[2] }}</span>
           </div>
           <div class="info-stat" id="info-winrate-stat">
-            <span class="info-stat-label">Win Rate</span>
+            <span class="info-stat-label">{{ _('Win Rate') }}</span>
             <span class="info-stat-value" id="info-winrate">{{ win_rate }}{% if win_rate != "—" %}%{% endif %}</span>
           </div>
           <div class="info-stat">
-            <span class="info-stat-label">Teams</span>
+            <span class="info-stat-label">{{ _('Teams') }}</span>
             <span class="info-stat-value" id="info-teams">{{ total_teams }}</span>
           </div>
         </div>
@@ -835,14 +837,14 @@
 
       <!-- Tournament / format search -->
       <div class="source-search" style="height: 50px;">
-        <input type="text" id="tournamentSearchInput" placeholder="Search for a Tournament">
+        <input type="text" id="tournamentSearchInput" placeholder="{{ _('Search for a Tournament') }}">
       </div>
 
       <!-- Merged selector: online formats + official events -->
       <div class="meta-list" id="source-list-container">
         <ul id="source-list">
           {% if limitless_formats %}
-          <li class="tournament-group-header">Online (Limitless)</li>
+          <li class="tournament-group-header">{{ _('Online (Limitless)') }}</li>
           {% for fmt in limitless_formats %}
           <li>
             <button type="button" onclick='selectFormat("{{ fmt[0] }}")' data-source="limitless" data-id="{{ fmt[0] }}" class="meta-button{% if source != "official" and fmt[0] == selected_format_id %} active{% endif %}">
@@ -876,15 +878,15 @@
       <!-- Day filter buttons (official events) -->
       <div class="rating-buttons" id="day-filter-container"{% if source != "official" %} style="display:none"{% endif %}>
         {% set current_day = day_filter if source == "official" else "all" %}
-        <button type="button" onclick="selectDayFilter('all')" class="rating-button{% if current_day == 'all' %} active{% endif %}">All</button>
-        <button type="button" onclick="selectDayFilter('day2')" class="rating-button{% if current_day == 'day2' %} active{% endif %}">Day 2</button>
+        <button type="button" onclick="selectDayFilter('all')" class="rating-button{% if current_day == 'all' %} active{% endif %}">{{ _('All') }}</button>
+        <button type="button" onclick="selectDayFilter('day2')" class="rating-button{% if current_day == 'day2' %} active{% endif %}">{{ _('Day 2') }}</button>
         <button type="button" onclick="selectDayFilter('top16')" class="rating-button{% if current_day == 'top16' %} active{% endif %}">Top 16</button>
         <button type="button" onclick="selectDayFilter('top8')" class="rating-button{% if current_day == 'top8' %} active{% endif %}">Top 8</button>
       </div>
 
       <!-- Player-count filter (Limitless online formats) -->
       <div id="segment-filter-wrap"{% if source != "limitless" %} style="display:none"{% endif %}>
-        <div class="filter-label">Min. players per tournament</div>
+        <div class="filter-label">{{ _('Min. players per tournament') }}</div>
         <div class="rating-buttons" id="segment-filter-container">
           {% if source == "limitless" %}
           {% for opt in segment_options %}
@@ -897,10 +899,10 @@
       <!-- Placement-cut filter (Limitless sources; online events have no
            day data, so top-placement cuts stand in for day filters) -->
       <div id="cut-filter-wrap"{% if source == "official" %} style="display:none"{% endif %}>
-        <div class="filter-label">Placement cut</div>
+        <div class="filter-label">{{ _('Placement cut') }}</div>
         <div class="rating-buttons" id="cut-filter-container">
           {% set current_cut = cut if source != "official" else "all" %}
-          <button type="button" onclick="selectCut('all')" class="rating-button{% if current_cut == 'all' %} active{% endif %}">All</button>
+          <button type="button" onclick="selectCut('all')" class="rating-button{% if current_cut == 'all' %} active{% endif %}">{{ _('All') }}</button>
           <button type="button" onclick="selectCut('32')" class="rating-button{% if current_cut == '32' %} active{% endif %}">Top 32</button>
           <button type="button" onclick="selectCut('16')" class="rating-button{% if current_cut == '16' %} active{% endif %}">Top 16</button>
           <button type="button" onclick="selectCut('8')" class="rating-button{% if current_cut == '8' %} active{% endif %}">Top 8</button>
@@ -909,7 +911,7 @@
 
       <!-- Pokemon search + list -->
       <div class="pokemon-search" style="height: 50px;">
-        <input type="text" id="pokemonSearchInput" placeholder="Search for a Pokemon">
+        <input type="text" id="pokemonSearchInput" placeholder="{{ _('Search for a Pokemon') }}">
       </div>
       <div class="pokemon-list">
         <ul id="pokemon-list">
@@ -931,8 +933,8 @@
     <div class="right" id="right-panel">
       <!-- View toggle tabs -->
       <div class="view-toggle">
-        <button type="button" class="view-toggle-btn" id="btn-overview-view" onclick="switchView('overview')"{% if source == "limitless" %} style="display:none"{% endif %}>Overview</button>
-        <button type="button" class="view-toggle-btn active" id="btn-usage-view" onclick="switchView('usage')">Usage Stats</button>
+        <button type="button" class="view-toggle-btn" id="btn-overview-view" onclick="switchView('overview')"{% if source == "limitless" %} style="display:none"{% endif %}>{{ _('Overview') }}</button>
+        <button type="button" class="view-toggle-btn active" id="btn-usage-view" onclick="switchView('usage')">{{ _('Usage Stats') }}</button>
         <button type="button" class="view-toggle-btn" id="btn-secondary-view" onclick="switchView('secondary')">{% if source == "limitless" %}Top Teams{% else %}Standings{% endif %}</button>
         <!-- Doubles as the events browser (Limitless format) and the
              back-to-events navigation (single event). -->
@@ -943,7 +945,7 @@
       <div id="usage-view">
         <!-- Base Stats -->
         <div class="Stats">
-          <h2>Base Stats</h2>
+          <h2>{{ _('Base Stats') }}</h2>
           {% if base_stats|length > 0 %}
           {% set stat_names = ['HP', 'Atk', 'Def', 'SpA', 'SpD', 'Spe'] %}
           {% set stat_fills = ['hp', 'atk', 'def', 'spa', 'spd', 'spe'] %}
@@ -961,7 +963,7 @@
 
         <!-- Moves -->
         <div id="moves-section"{% if not moves_list %} style="display:none"{% endif %}>
-          <h2>Moves</h2>
+          <h2>{{ _('Moves') }}</h2>
           <div class="Data" id="moves-container">
             {% if moves_list|length > 0 %}
             <ul>
@@ -980,7 +982,7 @@
 
         <!-- Teammates -->
         <div id="teammates-section"{% if not teammates_list %} style="display:none"{% endif %}>
-          <h2>Teammates</h2>
+          <h2>{{ _('Teammates') }}</h2>
           <div class="Data" id="teammates-container">
             {% if teammates_list|length > 0 %}
             <ul>
@@ -1001,7 +1003,7 @@
 
         <!-- Items -->
         <div id="items-section"{% if not items_list %} style="display:none"{% endif %}>
-          <h2>Items</h2>
+          <h2>{{ _('Items') }}</h2>
           <div class="Data" id="items-container">
             {% if items_list|length > 0 %}
             <ul>
@@ -1022,7 +1024,7 @@
 
         <!-- Abilities -->
         <div id="abilities-section"{% if not abilities_list %} style="display:none"{% endif %}>
-          <h2>Abilities</h2>
+          <h2>{{ _('Abilities') }}</h2>
           <div class="Data" id="abilities-container">
             {% if abilities_list|length > 0 %}
             <ul>
@@ -1041,7 +1043,7 @@
 
         <!-- Tera Types -->
         <div id="tera-section"{% if not tera_types_list %} style="display:none"{% endif %}>
-          <h2>Tera Types</h2>
+          <h2>{{ _('Tera Types') }}</h2>
           <div class="Data" id="tera-container">
             {% if tera_types_list|length > 0 %}
             <ul>
@@ -1060,7 +1062,7 @@
 
         <!-- Natures -->
         <div id="natures-section"{% if not natures_list %} style="display:none"{% endif %}>
-          <h2>Natures</h2>
+          <h2>{{ _('Natures') }}</h2>
           <div class="Data" id="natures-container">
             {% if natures_list|length > 0 %}
             <ul>
@@ -1079,16 +1081,16 @@
 
         <!-- Export Pokemon -->
         <div id="export-section"{% if not moves_list %} style="display:none"{% endif %}>
-          <h2>Export Pokemon <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Click on Moves, Items, Abilities, Tera Types and Natures to change the Export!">&#xf059;</span></h2>
+          <h2>{{ _('Export Pokemon') }} <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Click on Moves, Items, Abilities, Tera Types and Natures to change the Export!">&#xf059;</span></h2>
           <textarea class="Export" id="showdown-set" spellcheck="false"></textarea>
-          <button type="button" class="copy-button" id="copy-button" style="text-align: center;">Copy Pokemon to Clipboard</button>
+          <button type="button" class="copy-button" id="copy-button" style="text-align: center;">{{ _('Copy Pokemon to Clipboard') }}</button>
         </div>
 
         <!-- Merch -->
         <div class="merch-section" id="merch-section">
-          <h2>Merch <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="These are affiliate eBay links that help support the website.">&#xf059;</span> <button type="button" class="merch-toggle" id="merch-toggle">Hide</button></h2>
+          <h2>{{ _('Merch') }} <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="These are affiliate eBay links that help support the website.">&#xf059;</span> <button type="button" class="merch-toggle" id="merch-toggle">{{ _('Hide') }}</button></h2>
           <div class="merch-carousel" id="merch-carousel">
-            <div class="merch-loading">Loading merch...</div>
+            <div class="merch-loading">{{ _('Loading merch...') }}</div>
           </div>
           <div class="merch-collapsed-msg">Merch hidden &mdash; click Show to browse</div>
         </div>
@@ -1097,7 +1099,7 @@
         <div class="teams-container">
           <h2 id="teams-heading">Teams with {{ selected_pokemon }}</h2>
           <div id="teams-list">
-            <p style="color: #666; font-size: 13px;">Loading teams...</p>
+            <p style="color: var(--text-disabled); font-size: 13px;">{{ _('Loading teams...') }}</p>
           </div>
         </div>
       </div>
@@ -1106,13 +1108,12 @@
       <div id="standings-view" style="display: none;">
         <div class="teams-container">
           <input type="text" id="standingsSearchInput" placeholder='e.g. "Kingambit Focus Sash, Garchomp" or a player' style="width: 100%; box-sizing: border-box; margin-bottom: 4px;">
-          <p style="color: #666; font-size: 12px; margin: 0 0 10px;">
-            Separate Pok&eacute;mon with commas; words in one group must match the
-            same team member, so "Kingambit Focus Sash" means a Kingambit
-            <b>holding</b> a Focus Sash. Player names work too.
+          <p style="color: var(--text-disabled); font-size: 12px; margin: 0 0 10px;">
+            {{ _('Separate Pokémon with commas; words in one group must match the same team member, so "Kingambit Focus Sash" means a Kingambit') }}
+            <b>{{ _('holding') }}</b> {{ _('a Focus Sash. Player names work too.') }}
           </p>
           <div id="standings-list">
-            <p style="color: #666; font-size: 13px;">Loading standings...</p>
+            <p style="color: var(--text-disabled); font-size: 13px;">{{ _('Loading standings...') }}</p>
           </div>
         </div>
       </div>
@@ -1121,13 +1122,12 @@
       <div id="results-view" style="display: none;">
         <div class="teams-container">
           <input type="text" id="resultsSearchInput" placeholder='e.g. "Kingambit Focus Sash, Garchomp" or a player' style="width: 100%; box-sizing: border-box; margin-bottom: 4px;">
-          <p style="color: #666; font-size: 12px; margin: 0 0 10px;">
-            Separate Pok&eacute;mon with commas; words in one group must match the
-            same team member, so "Kingambit Focus Sash" means a Kingambit
-            <b>holding</b> a Focus Sash. Players and tournaments work too.
+          <p style="color: var(--text-disabled); font-size: 12px; margin: 0 0 10px;">
+            {{ _('Separate Pokémon with commas; words in one group must match the same team member, so "Kingambit Focus Sash" means a Kingambit') }}
+            <b>{{ _('holding') }}</b> {{ _('a Focus Sash. Players and tournaments work too.') }}
           </p>
           <div id="results-list">
-            <p style="color: #666; font-size: 13px;">Loading teams...</p>
+            <p style="color: var(--text-disabled); font-size: 13px;">{{ _('Loading teams...') }}</p>
           </div>
         </div>
       </div>
@@ -1135,10 +1135,10 @@
       <!-- EVENTS BROWSER (individual Limitless tournaments) -->
       <div id="events-view" style="display: none;">
         <div class="teams-container">
-          <input type="text" id="eventsSearchInput" placeholder="Search tournaments..." style="width: 100%; box-sizing: border-box; margin-bottom: 10px;">
+          <input type="text" id="eventsSearchInput" placeholder="{{ _('Search tournaments...') }}" style="width: 100%; box-sizing: border-box; margin-bottom: 10px;">
           <p class="events-count" id="events-count"></p>
           <div id="events-list">
-            <p style="color: #666; font-size: 13px;">No tournaments found.</p>
+            <p style="color: var(--text-disabled); font-size: 13px;">{{ _('No tournaments found.') }}</p>
           </div>
         </div>
       </div>
@@ -1152,9 +1152,9 @@
   </div>
 
   <div style="text-align: center; padding: 20px; margin-top: 20px;">
-    <h6 style="color: #888;">
-      <span id="attribution-official"{% if source != "official" %} style="display:none"{% endif %}>Tournament data from <a href="https://rk9.gg" target="_blank" style="color: #ffd54f;">RK9.gg</a></span>
-      <span id="attribution-limitless"{% if source == "official" %} style="display:none"{% endif %}>{{ limitless_attribution }} &mdash; <a href="{{ limitless_attribution_url }}" target="_blank" style="color: #ffd54f;">play.limitlesstcg.com</a></span>
+    <h6 style="color: var(--text-dim);">
+      <span id="attribution-official"{% if source != "official" %} style="display:none"{% endif %}>{{ _('Tournament data from') }} <a href="https://rk9.gg" target="_blank" style="color: var(--accent);">RK9.gg</a></span>
+      <span id="attribution-limitless"{% if source == "official" %} style="display:none"{% endif %}>{{ limitless_attribution }} &mdash; <a href="{{ limitless_attribution_url }}" target="_blank" style="color: var(--accent);">play.limitlesstcg.com</a></span>
     </h6>
   </div>
   {% endif %}
@@ -1175,6 +1175,6 @@
     window.hubOverview = {{ overview | default(none) | tojson }};
     window.pokemonRequested = {{ pokemon_requested | default(false) | tojson }};
   </script>
-  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=14"></script>
+  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=17"></script>
   {% endif %}
 {% endblock %}

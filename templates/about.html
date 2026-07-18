@@ -7,6 +7,16 @@
     <meta property="og:title" content="About | MunchStats">
     <meta name="description" content="Learn about MunchStats - a free, ad-free Pokemon Showdown usage statistics site.">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
+    <script>
+      (function () {
+        try {
+          if (localStorage.getItem("theme") === "light") {
+            document.documentElement.setAttribute("data-theme", "light");
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
     <style>
       * {
         margin: 0;
@@ -14,8 +24,8 @@
         box-sizing: border-box;
       }
       body {
-        background-color: #1e1e1e;
-        color: #e0e0e0;
+        background-color: var(--bg);
+        color: var(--text);
         font-family: Arial, sans-serif;
         min-height: 100vh;
         display: flex;
@@ -29,13 +39,13 @@
       }
       h1 {
         font-size: 36px;
-        color: #ffffff;
+        color: var(--text-strong);
         text-align: center;
         margin-bottom: 24px;
       }
       .intro {
         font-size: 16px;
-        color: #cccccc;
+        color: var(--text-soft);
         line-height: 1.6;
         margin-bottom: 36px;
         text-align: center;
@@ -45,9 +55,9 @@
       }
       .faq-section h2 {
         font-size: 24px;
-        color: #ffffff;
+        color: var(--text-strong);
         margin-bottom: 20px;
-        border-bottom: 1px solid #333;
+        border-bottom: 1px solid var(--border-soft);
         padding-bottom: 8px;
       }
       .faq-item {
@@ -55,35 +65,35 @@
       }
       .faq-item h3 {
         font-size: 16px;
-        color: #ffffff;
+        color: var(--text-strong);
         margin-bottom: 6px;
       }
       .faq-item p {
         font-size: 15px;
-        color: #999999;
+        color: var(--text-faint);
         line-height: 1.5;
       }
       .contact-section {
         text-align: center;
         margin-bottom: 36px;
         padding: 20px;
-        background-color: #222222;
+        background-color: var(--surface);
         border-radius: 4px;
       }
       .contact-section h3 {
         font-size: 16px;
-        color: #ffffff;
+        color: var(--text-strong);
         margin-bottom: 10px;
       }
       .contact-email {
         font-size: 16px;
-        color: #cccccc;
+        color: var(--text-soft);
         font-family: monospace;
       }
       .home-button {
-        background-color: #222222;
-        color: #e0e0e0;
-        border: 1px solid #555;
+        background-color: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border-2);
         padding: 12px 24px;
         font-size: 16px;
         cursor: pointer;
@@ -92,8 +102,8 @@
         display: inline-block;
       }
       .home-button:hover {
-        background-color: #333333;
-        color: #ffffff;
+        background-color: var(--raised);
+        color: var(--text-strong);
       }
       .button-container {
         text-align: center;
@@ -102,16 +112,16 @@
       .footer {
         text-align: center;
         font-size: 12px;
-        color: #666666;
+        color: var(--text-disabled);
         margin-top: auto;
         padding-top: 20px;
       }
       .footer a {
-        color: #999999;
+        color: var(--text-faint);
         text-decoration: none;
       }
       .footer a:hover {
-        color: #ffffff;
+        color: var(--text-strong);
       }
     </style>
     <!-- Google tag (gtag.js) -->
@@ -127,73 +137,70 @@
   </head>
   <body>
     <div class="container">
-      <h1>About MunchStats</h1>
+      <h1>{{ _('About MunchStats') }}</h1>
       <p class="intro">
-        This here is a side project that I've worked on just for fun. It runs ad-free!
-        The site does include affiliate eBay merch links &mdash; if you happen to buy something, a small commission helps keep the site running.
-        If I receive any kind of donation, it'll go directly to keeping this site up.
-        This site was the product of "Pikalytics is taking a while to update its usage stats." So instead of waiting, I made this site.
+        {{ _("This here is a side project that I've worked on just for fun. It runs ad-free! The site does include affiliate eBay merch links — if you happen to buy something, a small commission helps keep the site running. If I receive any kind of donation, it'll go directly to keeping this site up. This site was the product of \"Pikalytics is taking a while to update its usage stats.\" So instead of waiting, I made this site.") }}
       </p>
 
       <div class="faq-section">
-        <h2>FAQ</h2>
+        <h2>{{ _('FAQ') }}</h2>
         <div class="faq-item">
-          <h3>Where does the data come from?</h3>
-          <p>It comes from Pokemon Showdown's Monthly Usage Stats, the same place as Pikalytics!</p>
+          <h3>{{ _('Where does the data come from?') }}</h3>
+          <p>{{ _("It comes from Pokemon Showdown's Monthly Usage Stats, the same place as Pikalytics!") }}</p>
         </div>
         <div class="faq-item">
-          <h3>How often does this get updated?</h3>
-          <p>Once a month. Near the beginning of the month when Showdown releases its usage stats.</p>
+          <h3>{{ _('How often does this get updated?') }}</h3>
+          <p>{{ _('Once a month. Near the beginning of the month when Showdown releases its usage stats.') }}</p>
         </div>
         <div class="faq-item">
-          <h3>Pokemon Showdown doesn't provide Tera Data, where do you get it from?</h3>
-          <p>Starting September 1st 2024, Pokemon Showdown DOES show Tera Data. Previously, this used to be based off public replay data.</p>
+          <h3>{{ _("Pokemon Showdown doesn't provide Tera Data, where do you get it from?") }}</h3>
+          <p>{{ _('Starting September 1st 2024, Pokemon Showdown DOES show Tera Data. Previously, this used to be based off public replay data.') }}</p>
         </div>
         <div class="faq-item">
-          <h3>I found a bug! / I want to suggest a feature!</h3>
-          <p>Contact me below!</p>
-        </div>
-      </div>
-
-      <div class="faq-section">
-        <h2>Pokémon Champions FAQ</h2>
-        <div class="faq-item">
-          <h3>Where does the Pokémon Champions in-game data come from?</h3>
-          <p>The in-game usage data (the "[Champions] In-Game" formats) is not from Pokemon Showdown. It comes from the <a href="https://championsbattledata.com/" target="_blank" rel="noopener" style="color: #cccccc;">Pokémon Champions Battle Data</a> API (championsbattledata.com), the only reliable source for real in-game battle data. The data is not stored on our end &mdash; it is cached directly from their API.</p>
-        </div>
-        <div class="faq-item">
-          <h3>How often does the Pokémon Champions data get updated?</h3>
-          <p>It is cached from their API and refreshed every 12 hours. Each Champions page also shows when the source last scraped the data, so you always know how current it is.</p>
-        </div>
-        <div class="faq-item">
-          <h3>Attribution</h3>
-          <p>Battle data provided by <a href="https://championsbattledata.com/" target="_blank" rel="noopener" style="color: #cccccc;">Pokémon Champions Battle Data</a>. MunchStats is not affiliated with Pokémon, Nintendo, GAME FREAK, Creatures Inc., or The Pokémon Company.</p>
+          <h3>{{ _('I found a bug! / I want to suggest a feature!') }}</h3>
+          <p>{{ _('Contact me below!') }}</p>
         </div>
       </div>
 
       <div class="faq-section">
-        <h2>Replays FAQ</h2>
+        <h2>{{ _('Pokémon Champions FAQ') }}</h2>
         <div class="faq-item">
-          <h3>What replays are available here?</h3>
-          <p>Only publicly available replays from Pokemon Showdown. We do not collect private replays. If a replay should not be shown, please contact us.</p>
+          <h3>{{ _('Where does the Pokémon Champions in-game data come from?') }}</h3>
+          <p>{{ _('The in-game usage data (the "[Champions] In-Game" formats) is not from Pokemon Showdown. It comes from the') }} <a href="https://championsbattledata.com/" target="_blank" rel="noopener" style="color: var(--text-soft);">Pokémon Champions Battle Data</a> {{ _('API (championsbattledata.com), the only reliable source for real in-game battle data. The data is not stored on our end — it is cached directly from their API.') }}</p>
         </div>
         <div class="faq-item">
-          <h3>How often does the replay data get updated?</h3>
-          <p>Every 12 hours automatically.</p>
+          <h3>{{ _('How often does the Pokémon Champions data get updated?') }}</h3>
+          <p>{{ _('It is cached from their API and refreshed every 12 hours. Each Champions page also shows when the source last scraped the data, so you always know how current it is.') }}</p>
         </div>
         <div class="faq-item">
-          <h3>Can you show replays from over a month ago?</h3>
-          <p>No. Due to memory constraints, only the last month of replays is available.</p>
+          <h3>{{ _('Attribution') }}</h3>
+          <p>{{ _('Battle data provided by') }} <a href="https://championsbattledata.com/" target="_blank" rel="noopener" style="color: var(--text-soft);">Pokémon Champions Battle Data</a>. {{ _('MunchStats is not affiliated with Pokémon, Nintendo, GAME FREAK, Creatures Inc., or The Pokémon Company.') }}</p>
+        </div>
+      </div>
+
+      <div class="faq-section">
+        <h2>{{ _('Replays FAQ') }}</h2>
+        <div class="faq-item">
+          <h3>{{ _('What replays are available here?') }}</h3>
+          <p>{{ _('Only publicly available replays from Pokemon Showdown. We do not collect private replays. If a replay should not be shown, please contact us.') }}</p>
+        </div>
+        <div class="faq-item">
+          <h3>{{ _('How often does the replay data get updated?') }}</h3>
+          <p>{{ _('Every 12 hours automatically.') }}</p>
+        </div>
+        <div class="faq-item">
+          <h3>{{ _('Can you show replays from over a month ago?') }}</h3>
+          <p>{{ _('No. Due to memory constraints, only the last month of replays is available.') }}</p>
         </div>
       </div>
 
       <div class="contact-section">
-        <h3>Contact</h3>
+        <h3>{{ _('Contact') }}</h3>
         <span class="contact-email"><tt>cont</tt><tt>act@</tt><tt>munc</tt><tt>hstat</tt><tt>s.com</tt></span>
       </div>
 
       <div class="button-container">
-        <a href="{{ url_for('index') }}" class="home-button">Go back to the homepage</a>
+        <a href="{{ url_for('index') }}" class="home-button">{{ _('Go back to the homepage') }}</a>
       </div>
     </div>
     <div class="footer">

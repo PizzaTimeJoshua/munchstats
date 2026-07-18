@@ -3,12 +3,141 @@
    Element-level selectors (input, h2, ...) deliberately do NOT go
    here: they would restyle pages that never opted into them. */
 
+/* Theme tokens. Dark is the default (no data-theme attribute) and
+   matches the site's original palette exactly. Light mode is applied
+   by setting data-theme="light" on <html> (see base.html pre-paint
+   script + the toggle in _tabs.html). Pokemon type colors and shiny/
+   nature accents are intentionally NOT tokens - they are the same in
+   both themes. */
+:root {
+  /* backgrounds */
+  --bg: #1e1e1e;
+  --surface: #222;
+  --surface-2: #252525;
+  --surface-3: #2a2a2a;
+  --raised: #333;
+  --raised-2: #3a3a3a;
+  --raised-3: #444;
+  --inset: #1a1a1a;
+  --inset-2: #111;
+  /* borders */
+  --border-soft: #333;
+  --border: #444;
+  --border-2: #555;
+  --border-3: #666;
+  --border-4: #777;
+  --border-hi: #888;
+  /* text */
+  --text: #e0e0e0;
+  --text-strong: #fff;
+  --text-hi: #ddd;
+  --text-soft: #ccc;
+  --text-sub: #bbb;
+  --text-muted: #aaa;
+  --text-faint: #999;
+  --text-dim: #888;
+  --text-dim-2: #777;
+  --text-disabled: #666;
+  --text-ghost: #555;
+  --text-ghost-2: #444;
+  /* accent (MunchStats gold) */
+  --accent: #ffd54f;
+  --accent-2: #ffca28;
+  --accent-tint: rgba(255, 213, 79, 0.15);
+  --accent-tint-2: rgba(255, 213, 79, 0.3);
+  --on-accent: #1e1e1e;
+  /* semantic */
+  --pos: #81c784;
+  --pos-2: #4caf50;
+  --pos-soft: #a5d6a7;
+  --neg: #e57373;
+  --neg-soft: #ef9a9a;
+  --warn: #ffeb3b;
+  /* emphasis borders (selected/hover states brighter than --border-hi) */
+  --border-focus: #bbb;
+  --border-focus-2: #f0f0f0;
+  --divider: rgba(255, 255, 255, 0.12);
+  /* shadows / overlays */
+  --shadow: rgba(0, 0, 0, 0.3);
+  --shadow-2: rgba(0, 0, 0, 0.5);
+  --scrim: rgba(0, 0, 0, 0.75);
+  --surface-scrim: rgba(34, 34, 34, 0.8);
+  /* tinted panels (info/danger/notice) */
+  --info-bg: #1a2230;
+  --info-border: #2a3a4a;
+  --info-text: #81d4fa;
+  --danger-bg: #3a2424;
+  --danger-text: #ffd0d0;
+  --banner-bg: #3a2a00;
+  --banner-border: #665500;
+  /* hover tooltips */
+  --tooltip-bg: rgba(10, 10, 10, 0.92);
+  --tooltip-text: #fff;
+}
+
+html[data-theme="light"] {
+  --bg: #f1f1f4;
+  --surface: #fff;
+  --surface-2: #fafafa;
+  --surface-3: #ececef;
+  --raised: #e4e4e8;
+  --raised-2: #dcdce0;
+  --raised-3: #cfcfd4;
+  --inset: #e8e8ec;
+  --inset-2: #e0e0e4;
+  --border-soft: #e0e0e4;
+  --border: #c8c8ce;
+  --border-2: #b6b6be;
+  --border-3: #9a9aa2;
+  --border-4: #90909a;
+  --border-hi: #7a7a84;
+  --text: #26262b;
+  --text-strong: #000;
+  --text-hi: #333;
+  --text-soft: #3f3f45;
+  --text-sub: #4a4a52;
+  --text-muted: #5a5a62;
+  --text-faint: #63636b;
+  --text-dim: #6e6e76;
+  --text-dim-2: #7a7a82;
+  --text-disabled: #8a8a92;
+  --text-ghost: #a0a0a8;
+  --text-ghost-2: #b0b0b8;
+  --accent: #9a6700;
+  --accent-2: #7a5200;
+  --accent-tint: rgba(154, 103, 0, 0.1);
+  --accent-tint-2: rgba(154, 103, 0, 0.25);
+  --on-accent: #fff;
+  --pos: #2e7d32;
+  --pos-2: #1b5e20;
+  --pos-soft: #388e3c;
+  --neg: #c62828;
+  --neg-soft: #d32f2f;
+  --warn: #b26a00;
+  --border-focus: #55555e;
+  --border-focus-2: #26262b;
+  --divider: rgba(0, 0, 0, 0.12);
+  --shadow: rgba(0, 0, 0, 0.12);
+  --shadow-2: rgba(0, 0, 0, 0.22);
+  --scrim: rgba(0, 0, 0, 0.5);
+  --surface-scrim: rgba(255, 255, 255, 0.85);
+  --info-bg: #e7f1fb;
+  --info-border: #b9d5ee;
+  --info-text: #1565c0;
+  --danger-bg: #fdecec;
+  --danger-text: #b71c1c;
+  --banner-bg: #fff3d6;
+  --banner-border: #e2c168;
+  --tooltip-bg: rgba(255, 255, 255, 0.98);
+  --tooltip-text: #1e1e1e;
+}
+
 body {
-  background-color: #1e1e1e;
+  background-color: var(--bg);
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: auto 1fr auto;
-  color: #e0e0e0;
+  color: var(--text);
   font-family: Arial, sans-serif;
 }
 
@@ -17,14 +146,14 @@ body {
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  border-bottom: 1px solid #444;
+  border-bottom: 1px solid var(--border);
   margin-bottom: 10px;
 }
 .tab-bar { text-align: left; padding-bottom: 0; }
 .tab-btn {
-  background: #222;
-  color: #aaa;
-  border: 1px solid #444;
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
   border-bottom: none;
   display: inline-block;
   padding: 6px 18px;
@@ -34,15 +163,50 @@ body {
   text-decoration: none;
   transition: color 0.2s, background 0.2s;
 }
-.tab-btn:hover { color: #fff; background: #2a2a2a; }
-.tab-btn.tab-active { background: #1e1e1e; color: #ffd54f; border-color: #888; }
+.tab-btn:hover { color: var(--text-strong); background: var(--surface-3); }
+.tab-btn.tab-active { background: var(--bg); color: var(--accent); border-color: var(--border-hi); }
+.top-bar-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 5px 6px 0;
+  flex-shrink: 0;
+}
 .twitter-follow-div {
   display: flex;
-  padding: 0 5px 6px 0;
   align-items: center;
   gap: 8px;
   flex-shrink: 0;
 }
+.theme-toggle {
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  width: 30px;
+  height: 29px;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
+  padding: 0;
+  transition: color 0.2s, background 0.2s;
+}
+.theme-toggle:hover { color: var(--accent); background: var(--surface-3); }
+.lang-select {
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  height: 29px;
+  width: auto;
+  padding: 2px 4px;
+  margin: 0;
+  font-size: 12px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.lang-select:hover { color: var(--text-strong); }
 
 @media (max-width: 700px) {
   .tab-btn { padding: 6px 10px; font-size: 12px; margin-right: 2px; border-radius: 0; }

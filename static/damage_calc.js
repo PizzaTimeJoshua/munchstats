@@ -1,4 +1,5 @@
 // MunchStats Damage Calculator
+var t = window.msT || function (s) { return s; };
 // Attacker = your Pokemon (fully editable stats/move/item/ability).
 // Defender = average opponent based on usage-weighted stat distributions.
 
@@ -689,9 +690,9 @@ function renderWeightedNHKORow(entries) {
   if (o > 0)      { label = "OHKO"; pct = o; }
   else if (t > 0) { label = "2HKO"; pct = t; }
   else if (h > 0) { label = "3HKO"; pct = h; }
-  else return `<span style="color:#444;font-size:11px">Cannot 3HKO</span>`;
-  const col = pct >= 100 ? "#4caf50" : pct >= 93.75 ? "#66bb6a" : pct >= 50 ? "#ffd54f" : "#ff9800";
-  const txt = pct >= 100 ? `${label}: Guaranteed` : `${label}: ${pct.toFixed(1)}%`;
+  else return `<span style="color:var(--text-ghost-2);font-size:11px">Cannot 3HKO</span>`;
+  const col = pct >= 100 ? "var(--pos-2)" : pct >= 93.75 ? "#66bb6a" : pct >= 50 ? "var(--accent)" : "#ff9800";
+  const txt = pct >= 100 ? `${label}: ${t("Guaranteed")}` : `${label}: ${pct.toFixed(1)}%`;
   return `<span class="calc-nhko-badge" style="color:${col}">${txt}</span>`;
 }
 
@@ -855,9 +856,9 @@ function renderNHKORow(rolls, hp) {
   if (o > 0)      { label = "OHKO"; pct = o; }
   else if (t > 0) { label = "2HKO"; pct = t; }
   else if (h > 0) { label = "3HKO"; pct = h; }
-  else return `<span style="color:#444;font-size:11px">Cannot 3HKO</span>`;
-  const col = pct >= 100 ? "#4caf50" : pct >= 93.75 ? "#66bb6a" : pct >= 50 ? "#ffd54f" : "#ff9800";
-  const txt = pct >= 100 ? `${label}: Guaranteed` : `${label}: ${pct.toFixed(1)}%`;
+  else return `<span style="color:var(--text-ghost-2);font-size:11px">Cannot 3HKO</span>`;
+  const col = pct >= 100 ? "var(--pos-2)" : pct >= 93.75 ? "#66bb6a" : pct >= 50 ? "var(--accent)" : "#ff9800";
+  const txt = pct >= 100 ? `${label}: ${t("Guaranteed")}` : `${label}: ${pct.toFixed(1)}%`;
   return `<span class="calc-nhko-badge" style="color:${col}">${txt}</span>`;
 }
 
@@ -1119,7 +1120,7 @@ function applyEffectiveStat(el, base, boost) {
   if (boost !== 0) {
     const eff = Math.floor(base * (boost >= 0 ? (2 + boost) / 2 : 2 / (2 + Math.abs(boost))));
     el.textContent = eff;
-    el.style.color = boost > 0 ? "#a5d6a7" : "#ef9a9a";
+    el.style.color = boost > 0 ? "var(--pos-soft)" : "var(--neg-soft)";
   } else {
     el.textContent = base;
     el.style.color = el.dataset.natColor || "";
@@ -1162,7 +1163,7 @@ function computeStatsFromInputs() {
     if (finalEl) {
       let natColor = "";
       if (!isHP) {
-        if (mods[k] === 1.1) natColor = "#ef9a9a";
+        if (mods[k] === 1.1) natColor = "var(--neg-soft)";
         else if (mods[k] === 0.9) natColor = "#90caf9";
       }
       if (isHP) {
@@ -1247,7 +1248,7 @@ function computeDefenderStatsFromInputs() {
     if (finalEl) {
       let natColor = "";
       if (!isHP) {
-        if (mods[k] === 1.1) natColor = "#ef9a9a";
+        if (mods[k] === 1.1) natColor = "var(--neg-soft)";
         else if (mods[k] === 0.9) natColor = "#90caf9";
       }
       if (isHP) {
@@ -1694,7 +1695,7 @@ function renderAttackerMoveList() {
     const critBtn = isStatus ? "" : `<button type="button" class="move-crit-btn${isCrit ? " crit-on" : ""}" data-moveid="${escapeHTML(m.id)}" aria-pressed="${isCrit}" onclick="onMoveCritToggle(this.dataset.moveid, true)">Crit</button>`;
     return `<div class="calc-move-row">
       <div class="calc-move-btn${isSel ? " selected" : ""}" data-moveid="${escapeHTML(m.id)}" onclick="onMoveClick(this.dataset.moveid, true)">
-        <span class="move-name">${m.name}</span>${m.id.startsWith("custom") ? " <span style='color:#555;font-size:10px'>(custom)</span>" : ""}
+        <span class="move-name">${m.name}</span>${m.id.startsWith("custom") ? " <span style='color:var(--text-ghost);font-size:10px'>(custom)</span>" : ""}
         ${typeBadgeHTML(m.type)}
         <span class="move-meta">${moveBasePowerLabel(m, moveField)} ${catLabel}</span>
         ${dmgLabel}
@@ -1702,7 +1703,7 @@ function renderAttackerMoveList() {
       ${renderHitsDropdown(m, "attacker", true)}
       ${critBtn}
     </div>`;
-  }).join("") || '<div style="color:#555;font-size:12px">No moves</div>';
+  }).join("") || '<div style="color:var(--text-ghost);font-size:12px">No moves</div>';
 }
 
 function renderDefenderMoveList() {
@@ -1727,7 +1728,7 @@ function renderDefenderMoveList() {
     const critBtn = isStatus ? "" : `<button type="button" class="move-crit-btn${isCrit ? " crit-on" : ""}" data-moveid="${escapeHTML(m.id)}" aria-pressed="${isCrit}" onclick="onMoveCritToggle(this.dataset.moveid, false)">Crit</button>`;
     return `<div class="calc-move-row">
       <div class="calc-move-btn${isSel ? " selected" : ""}" data-moveid="${escapeHTML(m.id)}" onclick="onMoveClick(this.dataset.moveid, false)">
-        <span class="move-name">${m.name}</span>${m.id.startsWith("custom") ? " <span style='color:#555;font-size:10px'>(custom)</span>" : ""}
+        <span class="move-name">${m.name}</span>${m.id.startsWith("custom") ? " <span style='color:var(--text-ghost);font-size:10px'>(custom)</span>" : ""}
         ${typeBadgeHTML(m.type)}
         <span class="move-meta">${moveBasePowerLabel(m, moveField)} ${catLabel}</span>
         ${dmgLabel}
@@ -1735,7 +1736,7 @@ function renderDefenderMoveList() {
       ${renderHitsDropdown(m, "defender", false)}
       ${critBtn}
     </div>`;
-  }).join("") || '<div style="color:#555;font-size:12px">No moves</div>';
+  }).join("") || '<div style="color:var(--text-ghost);font-size:12px">No moves</div>';
 }
 
 // ─── RESULTS RENDERING ────────────────────────────────────────────────────────
@@ -1778,14 +1779,14 @@ function renderFactorChips(atkObj, move, defObj, field) {
   if (atkObj.ability === "Gorilla Tactics" && isPhys) chips.push(["Gorilla Tactics ×1.5", "#b0bec5"]);
   if (atkObj.ability === "Hustle" && isPhys) chips.push(["Hustle ×1.5", "#b0bec5"]);
 
-  if (atkObj.item === "Life Orb") chips.push(["Life Orb ×1.3", "#ccc"]);
-  if (atkObj.item === "Choice Band" && isPhys) chips.push(["Choice Band ×1.5", "#ccc"]);
-  if (atkObj.item === "Choice Specs" && !isPhys) chips.push(["Choice Specs ×1.5", "#ccc"]);
-  if (atkObj.item === "Expert Belt" && typeEff > 1) chips.push(["Expert Belt ×1.2", "#ccc"]);
-  if (atkObj.item === "Muscle Band" && isPhys) chips.push(["Muscle Band ×1.1", "#ccc"]);
-  if (atkObj.item === "Wise Glasses" && !isPhys) chips.push(["Wise Glasses ×1.1", "#ccc"]);
+  if (atkObj.item === "Life Orb") chips.push(["Life Orb ×1.3", "var(--text-soft)"]);
+  if (atkObj.item === "Choice Band" && isPhys) chips.push(["Choice Band ×1.5", "var(--text-soft)"]);
+  if (atkObj.item === "Choice Specs" && !isPhys) chips.push(["Choice Specs ×1.5", "var(--text-soft)"]);
+  if (atkObj.item === "Expert Belt" && typeEff > 1) chips.push(["Expert Belt ×1.2", "var(--text-soft)"]);
+  if (atkObj.item === "Muscle Band" && isPhys) chips.push(["Muscle Band ×1.1", "var(--text-soft)"]);
+  if (atkObj.item === "Wise Glasses" && !isPhys) chips.push(["Wise Glasses ×1.1", "var(--text-soft)"]);
   const tboost = TYPE_BOOST_ITEMS[atkObj.item];
-  if (tboost && tboost === moveType) chips.push([`${atkObj.item} ×1.2`, "#ccc"]);
+  if (tboost && tboost === moveType) chips.push([`${atkObj.item} ×1.2`, "var(--text-soft)"]);
 
   const da = defObj.ability || "";
   if ((da === "Filter" || da === "Solid Rock" || da === "Prism Armor") && typeEff > 1) chips.push([`${da} ×0.75`, "#ef9a9a"]);
@@ -1819,7 +1820,7 @@ function renderFactorChips(atkObj, move, defObj, field) {
     else if (field.isReflect && isPhys) chips.push(["Reflect ÷2", "#90caf9"]);
     else if (field.isLightScreen && !isPhys) chips.push(["Light Screen ÷2", "#f8d030"]);
   }
-  if (move.isSpread && field.format !== "Singles") chips.push(["Spread ×0.75", "#aaa"]);
+  if (move.isSpread && field.format !== "Singles") chips.push(["Spread ×0.75", "var(--text-muted)"]);
   if (field.isHelpingHand) chips.push(["Helping Hand ×1.5", "#a5d6a7"]);
   if (field.isBattery && !isPhys) chips.push(["Battery ×1.3", "#a5d6a7"]);
   if (field.isPowerSpot) chips.push(["Power Spot ×1.3", "#a5d6a7"]);
@@ -1869,7 +1870,7 @@ function renderFactorChips(atkObj, move, defObj, field) {
     if (act.target === "opponent") {
       const ta = opponent?.ability || "";
       if (act.immuneAbilities?.includes(ta)) {
-        chips.push([`${pfx}${pokemon.ability} blocked (${ta})`, "#666"]);
+        chips.push([`${pfx}${pokemon.ability} blocked (${ta})`, "var(--text-disabled)"]);
       } else {
         const rx = act.reactions?.[ta];
         if (rx?.reflect)  { chips.push([`${pfx}${pokemon.ability} \u2192 Mirror Armor`, isOpp ? "#a5d6a7" : "#ef9a9a"]); }
@@ -1889,11 +1890,11 @@ function renderFactorChips(atkObj, move, defObj, field) {
 }
 
 function renderKOLabel(koPct, label = "OHKO") {
-  if (koPct >= 100) return `<span style="color:#4caf50;font-weight:bold">Guaranteed ${label}</span>`;
+  if (koPct >= 100) return `<span style="color:var(--pos-2);font-weight:bold">Guaranteed ${label}</span>`;
   if (koPct >= 93.75) return `<span style="color:#66bb6a;font-weight:bold">${koPct.toFixed(1)}% ${label} (${Math.round(koPct/6.25)}/16)</span>`;
-  if (koPct >= 6.25) return `<span style="color:#ffd54f;font-weight:bold">${koPct.toFixed(1)}% ${label} (${Math.round(koPct/6.25)}/16)</span>`;
+  if (koPct >= 6.25) return `<span style="color:var(--accent);font-weight:bold">${koPct.toFixed(1)}% ${label} (${Math.round(koPct/6.25)}/16)</span>`;
   if (koPct > 0) return `<span style="color:#ff9800;font-weight:bold">&lt;6.25% ${label}</span>`;
-  return `<span style="color:#555">0% ${label}</span>`;
+  return `<span style="color:var(--text-ghost)">0% ${label}</span>`;
 }
 
 function renderPrimaryResult(title, damageText, koHTML, note = "") {
@@ -1911,7 +1912,7 @@ function renderBestKOLabelForRolls(rolls, hp) {
   if (o1 > 0) return renderKOLabel(o1, "OHKO");
   if (o2 > 0) return renderKOLabel(o2, "2HKO");
   if (o3 > 0) return renderKOLabel(o3, "3HKO");
-  return `<span style="color:#555">Cannot 3HKO</span>`;
+  return `<span style="color:var(--text-ghost)">Cannot 3HKO</span>`;
 }
 
 function doesAtkItemBoostDamage(item, move, isPhys, typeEff) {
@@ -2020,9 +2021,9 @@ function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, 
 }
 
 function renderForwardResults(koDist, move, attacker, defenderData, field, hits = 1) {
-  if (!koDist) return `<div style="color:#666;padding:6px 0">No data.</div>`;
+  if (!koDist) return `<div style="color:var(--text-disabled);padding:6px 0">No data.</div>`;
   const moveName = move.name, defenderName = defenderData.name;
-  if (koDist.immune) return renderPrimaryResult(`${moveName} -> ${defenderName}`, "No effect", `<span style="color:#666">${defenderName} is immune</span>`);
+  if (koDist.immune) return renderPrimaryResult(`${moveName} -> ${defenderName}`, "No effect", `<span style="color:var(--text-disabled)">${defenderName} is immune</span>`);
 
   const defLabel = koDist.isPhys ? "Def" : "SpD";
   let html = renderFactorChips(attacker, move, defenderData, field);
@@ -2056,7 +2057,7 @@ function renderForwardResults(koDist, move, attacker, defenderData, field, hits 
       // Show KO chance within bucket for context
       const bucketKO = tier.rollResults ? calcWeightedNHKOChance(tier.rollResults, name === "ohko" ? 1 : name === "2hko" ? 2 : 3) : 0;
       const koDetail = name !== "survives" && bucketKO > 0
-        ? `<span style="color:#888;font-size:11px">${bucketKO >= 100 ? "guaranteed" : `avg ${bucketKO.toFixed(1)}% chance`}</span>`
+        ? `<span style="color:var(--text-dim);font-size:11px">${bucketKO >= 100 ? "guaranteed" : `avg ${bucketKO.toFixed(1)}% chance`}</span>`
         : "";
       html += `<div class="calc-tier-row" style="border-left:3px solid ${cfg.color}">
         <div class="calc-tier-left">
@@ -2073,7 +2074,7 @@ function renderForwardResults(koDist, move, attacker, defenderData, field, hits 
   }
 
   if (!hasTiers) {
-    html += `<div style="color:#666;font-size:12px;padding:6px 0">No spread distribution available.</div>`;
+    html += `<div style="color:var(--text-disabled);font-size:12px;padding:6px 0">No spread distribution available.</div>`;
   }
 
   const overall2 = wTotal > 0 ? w2 / wTotal : 0;
@@ -2082,10 +2083,10 @@ function renderForwardResults(koDist, move, attacker, defenderData, field, hits 
   if (koDist.koPct > 0)   { ovLabel = "OHKO"; ovPct = koDist.koPct; }
   else if (overall2 > 0)  { ovLabel = "2HKO"; ovPct = overall2; }
   else if (overall3 > 0)  { ovLabel = "3HKO"; ovPct = overall3; }
-  const ovHTML = ovLabel ? renderKOLabel(ovPct, ovLabel) : `<span style="color:#444">Cannot 3HKO</span>`;
+  const ovHTML = ovLabel ? renderKOLabel(ovPct, ovLabel) : `<span style="color:var(--text-ghost-2)">Cannot 3HKO</span>`;
   // Show the weighted overall line only when there are multiple tiers to aggregate
   if (activeTierCount > 1) {
-    html += `<div class="calc-overall-ko"><strong>Weighted overall:</strong>${tipHTML("KO chance averaged across all opponent spreads, weighted by how often each spread is used on ladder.")} ${ovHTML} <span style="color:#555;font-size:11px">across all usage sets</span></div>`;
+    html += `<div class="calc-overall-ko"><strong>Weighted overall:</strong>${tipHTML("KO chance averaged across all opponent spreads, weighted by how often each spread is used on ladder.")} ${ovHTML} <span style="color:var(--text-ghost);font-size:11px">across all usage sets</span></div>`;
   }
 
   const damageSummary = isFinite(allMinPct) && isFinite(allMaxPct)
@@ -2114,13 +2115,13 @@ function renderSingleResult(result, move, atkObj, defObj, field, hits = 1) {
   const hp = defObj.customStats?.hp || 1;
   let detailHTML = renderFactorChips(atkObj, move, defObj, field);
   if (!result || result.immune) {
-    return renderPrimaryResult(`${atkObj.name}'s ${move.name} -> ${defObj.name}`, "No effect", `<span style="color:#666">Immune</span>`);
+    return renderPrimaryResult(`${atkObj.name}'s ${move.name} -> ${defObj.name}`, "No effect", `<span style="color:var(--text-disabled)">Immune</span>`);
   }
   const rolls = result.rolls;
   const minD = rolls[0], maxD = rolls[rolls.length - 1];
   const damageText = `${minD}-${maxD} (${(minD/hp*100).toFixed(1)}-${(maxD/hp*100).toFixed(1)}%)`;
   const primaryHTML = renderPrimaryResult(`${atkObj.name}'s ${move.name} -> ${defObj.name}`, damageText, renderBestKOLabelForRolls(rolls, hp));
-  detailHTML += `<div class="calc-tier-row" style="border-left:3px solid #a5d6a7">
+  detailHTML += `<div class="calc-tier-row" style="border-left:3px solid var(--pos-soft)">
     <div class="calc-tier-left">
       <span class="calc-tier-stats">HP ${hp}</span>
     </div>
@@ -2143,13 +2144,13 @@ function renderSingleForwardResult(result, move, attacker, defender, field, hits
   const hp = defender.customStats?.hp || 1;
   let detailHTML = renderFactorChips(attacker, move, defender, field);
   if (!result || result.immune) {
-    return renderPrimaryResult(`${move.name} -> ${defender.name}`, "No effect", `<span style="color:#666">Immune</span>`);
+    return renderPrimaryResult(`${move.name} -> ${defender.name}`, "No effect", `<span style="color:var(--text-disabled)">Immune</span>`);
   }
   const rolls = result.rolls;
   const minD = rolls[0], maxD = rolls[rolls.length - 1];
   const damageText = `${minD}-${maxD} (${(minD/hp*100).toFixed(1)}-${(maxD/hp*100).toFixed(1)}%)`;
   const primaryHTML = renderPrimaryResult(`${move.name} -> ${defender.name}`, damageText, renderBestKOLabelForRolls(rolls, hp));
-  detailHTML += `<div class="calc-tier-row" style="border-left:3px solid #a5d6a7">
+  detailHTML += `<div class="calc-tier-row" style="border-left:3px solid var(--pos-soft)">
     <div class="calc-tier-left">
       <span class="calc-tier-stats">HP ${hp}</span>
     </div>
@@ -2271,31 +2272,31 @@ function runCalc() {
     if (sc.isManual) {
       const defSpeLabel = sc.defSpe || "?";
       let atkResult, oppResult;
-      if (sc.outPct === 100) { atkResult = `<span style="color:#a5d6a7">Outspeeds</span>`; oppResult = `<span style="color:#ef9a9a">Slower</span>`; }
-      else if (sc.tiePct === 100) { atkResult = `<span style="color:#ffd54f">Speed tie</span>`; oppResult = `<span style="color:#ffd54f">Speed tie</span>`; }
-      else { atkResult = `<span style="color:#ef9a9a">Slower</span>`; oppResult = `<span style="color:#a5d6a7">Outspeeds</span>`; }
-      if (scEl) scEl.innerHTML = `<span style="color:#666">Spe ${sc.userSpe}${atkTwHtml} vs ${sc.defName} ${defSpeLabel}${defTwHtml}${trHtml} — </span>${atkResult}`;
-      if (scOppEl) scOppEl.innerHTML = `<span style="color:#666">Spe ${defSpeLabel}${defTwHtml} vs ${atkName} ${sc.userSpe}${atkTwHtml}${trHtml} — </span>${oppResult}`;
+      if (sc.outPct === 100) { atkResult = `<span style="color:var(--pos-soft)">${t("Outspeeds")}</span>`; oppResult = `<span style="color:var(--neg-soft)">${t("Slower")}</span>`; }
+      else if (sc.tiePct === 100) { atkResult = `<span style="color:var(--accent)">${t("Speed tie")}</span>`; oppResult = `<span style="color:var(--accent)">${t("Speed tie")}</span>`; }
+      else { atkResult = `<span style="color:var(--neg-soft)">${t("Slower")}</span>`; oppResult = `<span style="color:var(--pos-soft)">${t("Outspeeds")}</span>`; }
+      if (scEl) scEl.innerHTML = `<span style="color:var(--text-disabled)">Spe ${sc.userSpe}${atkTwHtml} vs ${sc.defName} ${defSpeLabel}${defTwHtml}${trHtml} — </span>${atkResult}`;
+      if (scOppEl) scOppEl.innerHTML = `<span style="color:var(--text-disabled)">Spe ${defSpeLabel}${defTwHtml} vs ${atkName} ${sc.userSpe}${atkTwHtml}${trHtml} — </span>${oppResult}`;
     } else {
       // Attacker panel: your speed vs opponent spreads
-      const outColor = sc.outPct >= 75 ? "#a5d6a7" : sc.outPct >= 40 ? "#ffd54f" : "#ef9a9a";
-      const tieHtml = sc.tiePct >= 1 ? ` | <span style="color:#ffd54f">Ties ${sc.tiePct.toFixed(0)}%</span>` : "";
-      const sloHtml = ` | <span style="color:#ef9a9a">Slower ${sc.sloPct.toFixed(0)}%</span>`;
-      if (scEl) scEl.innerHTML = `<span style="color:#666">Spe ${sc.userSpe}${atkTwHtml} vs ${sc.defName}${defTwHtml}${trHtml} — </span><span style="color:${outColor}">Outspeeds ${sc.outPct.toFixed(0)}%</span>${tieHtml}${sloHtml} <span style="color:#444">of sets</span>`;
+      const outColor = sc.outPct >= 75 ? "var(--pos-soft)" : sc.outPct >= 40 ? "var(--accent)" : "var(--neg-soft)";
+      const tieHtml = sc.tiePct >= 1 ? ` | <span style="color:var(--accent)">${t("Ties")} ${sc.tiePct.toFixed(0)}%</span>` : "";
+      const sloHtml = ` | <span style="color:var(--neg-soft)">${t("Slower")} ${sc.sloPct.toFixed(0)}%</span>`;
+      if (scEl) scEl.innerHTML = `<span style="color:var(--text-disabled)">Spe ${sc.userSpe}${atkTwHtml} vs ${sc.defName}${defTwHtml}${trHtml} — </span><span style="color:${outColor}">${t("Outspeeds")} ${sc.outPct.toFixed(0)}%</span>${tieHtml}${sloHtml} <span style="color:var(--text-ghost-2)">${t("of sets")}</span>`;
       // Opponent panel: opponent's perspective (inverted percentages)
-      const oppOutColor = sc.sloPct >= 75 ? "#a5d6a7" : sc.sloPct >= 40 ? "#ffd54f" : "#ef9a9a";
-      const oppTieHtml = sc.tiePct >= 1 ? ` | <span style="color:#ffd54f">Ties ${sc.tiePct.toFixed(0)}%</span>` : "";
-      const oppSloHtml = ` | <span style="color:#ef9a9a">Slower ${sc.outPct.toFixed(0)}%</span>`;
-      if (scOppEl) scOppEl.innerHTML = `<span style="color:#666">${sc.defName}${defTwHtml} vs ${atkName} ${sc.userSpe}${atkTwHtml}${trHtml} — </span><span style="color:${oppOutColor}">Outspeeds ${sc.sloPct.toFixed(0)}%</span>${oppTieHtml}${oppSloHtml} <span style="color:#444">of sets</span>`;
+      const oppOutColor = sc.sloPct >= 75 ? "var(--pos-soft)" : sc.sloPct >= 40 ? "var(--accent)" : "var(--neg-soft)";
+      const oppTieHtml = sc.tiePct >= 1 ? ` | <span style="color:var(--accent)">${t("Ties")} ${sc.tiePct.toFixed(0)}%</span>` : "";
+      const oppSloHtml = ` | <span style="color:var(--neg-soft)">${t("Slower")} ${sc.outPct.toFixed(0)}%</span>`;
+      if (scOppEl) scOppEl.innerHTML = `<span style="color:var(--text-disabled)">${sc.defName}${defTwHtml} vs ${atkName} ${sc.userSpe}${atkTwHtml}${trHtml} — </span><span style="color:${oppOutColor}">${t("Outspeeds")} ${sc.sloPct.toFixed(0)}%</span>${oppTieHtml}${oppSloHtml} <span style="color:var(--text-ghost-2)">${t("of sets")}</span>`;
     }
   }
 
   if (!attacker || !defender) {
-    resultsEl.innerHTML = `<div style="color:#888;padding:10px 0;">Select both a Pokémon and an opponent to see results.</div>`;
+    resultsEl.innerHTML = `<div style="color:var(--text-dim);padding:10px 0;">Select both a Pokémon and an opponent to see results.</div>`;
     return;
   }
   if (!selectedMove) {
-    resultsEl.innerHTML = `<div style="color:#888;padding:10px 0;">Click a move from either side to see the damage breakdown.</div>`;
+    resultsEl.innerHTML = `<div style="color:var(--text-dim);padding:10px 0;">Click a move from either side to see the damage breakdown.</div>`;
     return;
   }
 
@@ -2307,7 +2308,7 @@ function runCalc() {
   if (source === "attacker") {
     if (!isDamagingMove(move)) {
       const reason = move.category === "Status" ? "is a status move" : "does not have supported damage data";
-      html = `<div class="calc-result-section"><div style="color:#888">${move.name} ${reason} — no damage to calculate.</div></div>`;
+      html = `<div class="calc-result-section"><div style="color:var(--text-dim)">${move.name} ${reason} — no damage to calculate.</div></div>`;
     } else if (defender.defenderMode === "manual" && defender.customStats) {
       // Manual mode: single-result calc against specific stats
       const official = calcOfficialResult(attacker, move, defender, effectiveField, hits, attacker.customStats, defender.customStats);
@@ -2322,7 +2323,7 @@ function runCalc() {
   } else {
     if (!isDamagingMove(move)) {
       const reason = move.category === "Status" ? "is a status move" : "does not have supported damage data";
-      html = `<div class="calc-result-section"><div style="color:#888">${move.name} ${reason} — no damage to calculate.</div></div>`;
+      html = `<div class="calc-result-section"><div style="color:var(--text-dim)">${move.name} ${reason} — no damage to calculate.</div></div>`;
     } else {
       const defStats = (defender.defenderMode === "manual" && defender.customStats)
         ? defender.customStats : defender.averageStats;
@@ -2424,7 +2425,7 @@ async function searchMoves(query, isAttacker) {
       `<div class="calc-ac-item" data-moveid="${m.id}" onmousedown="selectSearchedMove('${m.id}',${isAttacker})">
         ${typeBadgeHTML(m.type)}
         <span>${m.name}</span>
-        <span style="color:#555;font-size:10px;margin-left:4px">${moveBasePowerLabel(m)} ${m.category}</span>
+        <span style="color:var(--text-ghost);font-size:10px;margin-left:4px">${moveBasePowerLabel(m)} ${m.category}</span>
        </div>`
     ).join("");
     dropdown.style.display = "block";
@@ -2895,7 +2896,7 @@ function toggleFieldMore(id, btn) {
   if (!el) return;
   const hidden = el.style.display === "none";
   el.style.display = hidden ? "" : "none";
-  btn.textContent = hidden ? "Less \u25b4" : "More \u25be";
+  btn.textContent = (hidden ? t("Less") + " \u25b4" : t("More") + " \u25be");
 }
 
 function onFieldChange() {
@@ -2937,7 +2938,7 @@ function onFieldChange() {
 // ─── TAB SWITCHING ────────────────────────────────────────────────────────────
 function setCalcMessage(text) {
   const resultsEl = document.getElementById("calc-results");
-  if (resultsEl) resultsEl.innerHTML = `<div style="color:#888;padding:10px 0;">${text}</div>`;
+  if (resultsEl) resultsEl.innerHTML = `<div style="color:var(--text-dim);padding:10px 0;">${text}</div>`;
 }
 
 function resetCalcPokemonState() {
@@ -2954,8 +2955,8 @@ function resetCalcPokemonState() {
 
   const atkMoves = document.getElementById("calc-atk-movelist");
   const defMoves = document.getElementById("calc-def-movelist");
-  if (atkMoves) atkMoves.innerHTML = '<div style="color:#444;font-size:11px">Load a Pokémon to see moves</div>';
-  if (defMoves) defMoves.innerHTML = '<div style="color:#444;font-size:11px">Load an opponent to see moves</div>';
+  if (atkMoves) atkMoves.innerHTML = '<div style="color:var(--text-ghost-2);font-size:11px">Load a Pokémon to see moves</div>';
+  if (defMoves) defMoves.innerHTML = '<div style="color:var(--text-ghost-2);font-size:11px">Load an opponent to see moves</div>';
 
   const atkPresetDisplay = document.getElementById("calc-attacker-preset-display");
   const atkPresetDrop = document.getElementById("calc-attacker-preset-dropdown");
@@ -2976,7 +2977,7 @@ function resetDefenderUI() {
   if (defInput) defInput.value = "";
 
   const defMoves = document.getElementById("calc-def-movelist");
-  if (defMoves) defMoves.innerHTML = '<div style="color:#444;font-size:11px">Load an opponent to see moves</div>';
+  if (defMoves) defMoves.innerHTML = '<div style="color:var(--text-ghost-2);font-size:11px">Load an opponent to see moves</div>';
 
   const defPresetDisplay = document.getElementById("calc-defender-preset-display");
   const defPresetDrop = document.getElementById("calc-defender-preset-dropdown");

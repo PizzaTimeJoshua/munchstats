@@ -8,12 +8,12 @@
 <style>
   .insights-container *, .insights-container *::before, .insights-container *::after { box-sizing: border-box; }
   h2 { font-weight: 600; letter-spacing: -0.3px; }
-  h3, h4 { font-weight: 500; color: #bbb; }
+  h3, h4 { font-weight: 500; color: var(--text-sub); }
   select, option {
-    background-color: #222222;
+    background-color: var(--surface);
     accent-color: #ffd54f;
-    color: #e0e0e0;
-    border: 1px solid #555;
+    color: var(--text);
+    border: 1px solid var(--border-2);
     padding: 10px 14px;
     margin: 4px 0;
     border-radius: 0;
@@ -21,8 +21,8 @@
     transition: border-color 0.2s, background-color 0.2s, box-shadow 0.2s;
     width: 100%;
   }
-  select:focus { outline: none; border-color: #ffd54f; box-shadow: 0 0 0 3px rgba(255, 213, 79, 0.15); }
-  select:hover { border-color: #666; }
+  select:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-tint); }
+  select:hover { border-color: var(--border-3); }
 
   /* Layout */
   .insights-container {
@@ -39,8 +39,8 @@
   }
   .left {
     width: 300px;
-    background-color: #222222;
-    border: 1px solid #555;
+    background-color: var(--surface);
+    border: 1px solid var(--border-2);
     border-radius: 0;
     padding: 20px;
     position: sticky;
@@ -48,16 +48,16 @@
   }
   .left h2 { margin-top: 0; margin-bottom: 4px; }
   .left h4 { margin: 12px 0 4px 0; }
-  .search-hint { font-size: 12px; color: #888; margin: 6px 0 0 0; line-height: 1.5; }
+  .search-hint { font-size: 12px; color: var(--text-dim); margin: 6px 0 0 0; line-height: 1.5; }
   .attribution-note {
     font-size: 12px;
-    color: #888;
+    color: var(--text-dim);
     margin-top: 16px;
     padding-top: 12px;
-    border-top: 1px solid #444;
+    border-top: 1px solid var(--border);
     line-height: 1.6;
   }
-  .attribution-note a { color: #ffd54f; text-decoration: none; }
+  .attribution-note a { color: var(--accent); text-decoration: none; }
   .attribution-note a:hover { text-decoration: underline; }
 
   .sprite {
@@ -79,13 +79,13 @@
     align-items: center;
     margin: 0 0 12px 0;
     font-size: 12px;
-    color: #888;
+    color: var(--text-dim);
     flex-wrap: wrap;
   }
   .core-controls label { display: flex; align-items: center; gap: 8px; }
   .core-controls select { width: auto; margin: 0; padding: 6px 10px; }
   .report-section > h2 { margin-bottom: 2px; }
-  .report-sub { font-size: 12px; color: #888; margin: 0 0 14px 0; line-height: 1.5; }
+  .report-sub { font-size: 12px; color: var(--text-dim); margin: 0 0 14px 0; line-height: 1.5; }
   .report-panels {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -93,51 +93,51 @@
     align-items: start;
   }
   .report-panel {
-    background-color: #222222;
-    border: 1px solid #555;
+    background-color: var(--surface);
+    border: 1px solid var(--border-2);
     padding: 14px 16px 10px 16px;
     overflow-x: auto;
   }
-  .report-panel h3 { margin: 0 0 10px 0; font-size: 15px; color: #ddd; }
+  .report-panel h3 { margin: 0 0 10px 0; font-size: 15px; color: var(--text-hi); }
   .report-panel table { width: 100%; border-collapse: collapse; font-size: 13px; }
   .report-panel th {
     text-align: right;
-    color: #888;
+    color: var(--text-dim);
     font-weight: 500;
     font-size: 11px;
     text-transform: uppercase;
     letter-spacing: 0.4px;
     padding: 4px 8px;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid var(--border);
     white-space: nowrap;
   }
   .report-panel th.mon-col { text-align: left; }
   .report-panel td {
     padding: 3px 8px;
-    border-bottom: 1px solid #333;
+    border-bottom: 1px solid var(--border-soft);
     text-align: right;
     white-space: nowrap;
   }
   .report-panel tr:last-child td { border-bottom: none; }
-  .report-panel tr:hover td { background-color: #2a2a2a; }
+  .report-panel tr:hover td { background-color: var(--surface-3); }
   td.mon-cell { text-align: left; padding: 2px 8px 2px 0; }
   .mon-cell a {
     display: flex;
     align-items: center;
     gap: 4px;
-    color: #e0e0e0;
+    color: var(--text);
     text-decoration: none;
   }
-  .mon-cell a:hover { color: #ffd54f; }
-  .dim { color: #888; font-size: 11px; }
-  .pos { color: #81c784; }
-  .neg { color: #e57373; }
-  .win-good { color: #81c784; }
-  .win-bad { color: #e57373; }
-  .no-data-msg { color: #888; padding: 40px 0; text-align: center; }
+  .mon-cell a:hover { color: var(--accent); }
+  .dim { color: var(--text-dim); font-size: 11px; }
+  .pos { color: var(--pos); }
+  .neg { color: var(--neg); }
+  .win-good { color: var(--pos); }
+  .win-bad { color: var(--neg); }
+  .no-data-msg { color: var(--text-dim); padding: 40px 0; text-align: center; }
 
-  footer { text-align: center; font-size: 12px; color: #777; }
-  footer a { color: #ffd54f; text-decoration: none; }
+  footer { text-align: center; font-size: 12px; color: var(--text-dim-2); }
+  footer a { color: var(--accent); text-decoration: none; }
 
   @media (max-width: 1100px) {
     .report-panels { grid-template-columns: 1fr; }
@@ -174,8 +174,8 @@
 {% if no_data %}
 <div class="insights-container">
   <div class="no-data-msg" style="grid-column: 1 / -1;">
-    <h2>No insight data available yet</h2>
-    <p>Insights need recent online tournament data, which is still being fetched. Check back in a few minutes.</p>
+    <h2>{{ _('No insight data available yet') }}</h2>
+    <p>{{ _('Insights need recent online tournament data, which is still being fetched. Check back in a few minutes.') }}</p>
   </div>
 </div>
 {% else %}
@@ -187,21 +187,21 @@
 {%- endmacro %}
 <div class="insights-container">
   <div class="left">
-    <h2>Meta Insights</h2>
-    <h4>Regulation</h4>
+    <h2>{{ _('Meta Insights') }}</h2>
+    <h4>{{ _('Regulation') }}</h4>
     <select id="formatSelect">
       {% for code, disp in formats %}
         <option value="{{ code }}"{% if code == selected_format_id %} selected{% endif %}>{{ disp }}</option>
       {% endfor %}
     </select>
-    <h4>Tournament Size</h4>
+    <h4>{{ _('Tournament Size') }}</h4>
     <select id="segmentSelect">
       {% for opt in segment_options %}
         <option value="{{ opt }}"{% if opt == segment %} selected{% endif %}>{{ opt }}+ players</option>
       {% endfor %}
     </select>
     {% if rating_options %}
-    <h4>Ladder Rating Cutoff</h4>
+    <h4>{{ _('Ladder Rating Cutoff') }}</h4>
     <select id="ratingSelect">
       {% for opt in rating_options %}
         <option value="{{ opt }}"{% if opt == rating %} selected{% endif %}>{% if opt == '0' %}All ratings{% else %}{{ opt }}+{% endif %}</option>
@@ -209,34 +209,28 @@
     </select>
     {% endif %}
     <p class="search-hint">
-      Tournament data covers {{ tournament_count }} online event{{ 's' if tournament_count != 1 else '' }}
-      ({{ min_players }}+ players) from the last {{ window_days }} days:
-      {{ total_teams }} public team lists.
-      {% if ladder_format %}Ladder data is the Showdown {{ ladder_format_name }} ladder for {{ latest_month }}.{% endif %}
-      Click any Pok&eacute;mon for its full stats.
+      {{ _('Tournament data covers %(count)s online events (%(min)s+ players) from the last %(days)s days: %(teams)s public team lists.', count=tournament_count, min=min_players, days=window_days, teams=total_teams) }}
+      {% if ladder_format %}{{ _('Ladder data is the Showdown %(fmt)s ladder for %(month)s.', fmt=ladder_format_name, month=latest_month) }}{% endif %}
+      {{ _('Click any Pokémon for its full stats.') }}
     </p>
     <div class="attribution-note">
-      Tournament data: <a href="{{ attribution_url }}" target="_blank" rel="noopener">{{ attribution }}</a>.
-      Ladder data: <a href="https://www.smogon.com/stats/" target="_blank" rel="noopener">Smogon usage stats</a>.
+      {{ _('Tournament data:') }} <a href="{{ attribution_url }}" target="_blank" rel="noopener">{{ attribution }}</a>.
+      {{ _('Ladder data:') }} <a href="https://www.smogon.com/stats/" target="_blank" rel="noopener">{{ _('Smogon usage stats') }}</a>.
     </div>
   </div>
   <div class="right">
 
     {% if performance %}
     <div class="report-section">
-      <h2>Tournament Conversion</h2>
+      <h2>{{ _('Tournament Conversion') }}</h2>
       <p class="report-sub">
-        Win rates from tournament records (a tie counts half), with Mega forms resolved from
-        held stones &mdash; Charizard-Mega-Y and -X count separately. Only Pok&eacute;mon with at least
-        {{ performance.min_games }} games and {{ performance.min_teams }} teams are ranked
-        ({{ performance.qualified_count }} qualify). The underperforming list is limited to
-        Pok&eacute;mon with at least {{ '%g' % performance.min_under_usage }}% usage.
+        {{ _('Win rates from tournament records (a tie counts half), with Mega forms resolved from held stones — Charizard-Mega-Y and -X count separately. Only Pokémon with at least %(min_games)s games and %(min_teams)s teams are ranked (%(qualified)s qualify). The underperforming list is limited to Pokémon with at least %(min_usage)s%% usage.', min_games=performance.min_games, min_teams=performance.min_teams, qualified=performance.qualified_count, min_usage='%g' % performance.min_under_usage) }}
       </p>
       <div class="report-panels">
         <div class="report-panel">
-          <h3>&#9650; Overperforming <span class="dim">highest win rates</span></h3>
+          <h3>&#9650; Overperforming <span class="dim">{{ _('highest win rates') }}</span></h3>
           <table>
-            <tr><th class="mon-col">Pok&eacute;mon</th><th>Usage</th><th>Win %</th><th>Games</th></tr>
+            <tr><th class="mon-col">{{ _('Pokémon') }}</th><th>{{ _('Usage') }}</th><th>{{ _('Win %%') }}</th><th>{{ _('Games') }}</th></tr>
             {% for row in performance.over %}
             <tr>
               {{ mon_cell(row, url_for('limitless_page', format_id=selected_format_id, segment=segment, pokemon_name=row.name)) }}
@@ -248,9 +242,9 @@
           </table>
         </div>
         <div class="report-panel">
-          <h3>&#9660; Underperforming <span class="dim">popular picks, lowest win rates</span></h3>
+          <h3>&#9660; Underperforming <span class="dim">{{ _('popular picks, lowest win rates') }}</span></h3>
           <table>
-            <tr><th class="mon-col">Pok&eacute;mon</th><th>Usage</th><th>Win %</th><th>Games</th></tr>
+            <tr><th class="mon-col">{{ _('Pokémon') }}</th><th>{{ _('Usage') }}</th><th>{{ _('Win %%') }}</th><th>{{ _('Games') }}</th></tr>
             {% for row in performance.under %}
             <tr>
               {{ mon_cell(row, url_for('limitless_page', format_id=selected_format_id, segment=segment, pokemon_name=row.name)) }}
@@ -267,9 +261,9 @@
 
     {% if cut_movers %}
     <div class="report-section" id="cut-section">
-      <h2>Top Cut Conversion</h2>
+      <h2>{{ _('Top Cut Conversion') }}</h2>
       <div class="core-controls">
-        <label>Cut size
+        <label>{{ _('Cut size') }}
           <select id="cutSelect">
             {% for opt in cut_options %}
             <option value="{{ opt }}"{% if opt == cut %} selected{% endif %}>Top {{ opt }}</option>
@@ -278,16 +272,13 @@
         </label>
       </div>
       <p class="report-sub">
-        Usage share among all {{ cut_movers.from_teams }} public teams versus the {{ cut_movers.to_teams }}
-        that finished in their event's Top {{ cut }} &mdash; the biggest gains and drops in usage share,
-        like the tournament overview's Biggest Movers. Only Pok&eacute;mon with at least
-        {{ '%g' % cut_min_usage }}% usage on one side are ranked.
+        {{ _("Usage share among all %(from_teams)s public teams versus the %(to_teams)s that finished in their event's Top %(cut)s — the biggest gains and drops in usage share, like the tournament overview's Biggest Movers. Only Pokémon with at least %(min_usage)s%% usage on one side are ranked.", from_teams=cut_movers.from_teams, to_teams=cut_movers.to_teams, cut=cut, min_usage='%g' % cut_min_usage) }}
       </p>
       <div class="report-panels">
         <div class="report-panel">
-          <h3>&#9650; Rising <span class="dim">more common in the top cut</span></h3>
+          <h3>&#9650; Rising <span class="dim">{{ _('more common in the top cut') }}</span></h3>
           <table>
-            <tr><th class="mon-col">Pok&eacute;mon</th><th>All</th><th>Top {{ cut }}</th><th>&Delta;</th></tr>
+            <tr><th class="mon-col">{{ _('Pokémon') }}</th><th>{{ _('All') }}</th><th>Top {{ cut }}</th><th>&Delta;</th></tr>
             {% for row in cut_movers.gains %}
             <tr>
               {{ mon_cell(row, url_for('limitless_page', format_id=selected_format_id, segment=segment, pokemon_name=row.name)) }}
@@ -299,9 +290,9 @@
           </table>
         </div>
         <div class="report-panel">
-          <h3>&#9660; Falling <span class="dim">less common in the top cut</span></h3>
+          <h3>&#9660; Falling <span class="dim">{{ _('less common in the top cut') }}</span></h3>
           <table>
-            <tr><th class="mon-col">Pok&eacute;mon</th><th>All</th><th>Top {{ cut }}</th><th>&Delta;</th></tr>
+            <tr><th class="mon-col">{{ _('Pokémon') }}</th><th>{{ _('All') }}</th><th>Top {{ cut }}</th><th>&Delta;</th></tr>
             {% for row in cut_movers.drops %}
             <tr>
               {{ mon_cell(row, url_for('limitless_page', format_id=selected_format_id, segment=segment, pokemon_name=row.name)) }}
@@ -318,17 +309,15 @@
 
     {% if momentum %}
     <div class="report-section">
-      <h2>Tournament Momentum</h2>
+      <h2>{{ _('Tournament Momentum') }}</h2>
       <p class="report-sub">
-        Share of tournament teams including each Pok&eacute;mon in the last {{ momentum.half_days }} days
-        ({{ momentum.recent_teams }} teams) versus the {{ momentum.half_days }} days before
-        ({{ momentum.earlier_teams }} teams).
+        {{ _('Share of tournament teams including each Pokémon in the last %(days)s days (%(recent)s teams) versus the %(days)s days before (%(earlier)s teams).', days=momentum.half_days, recent=momentum.recent_teams, earlier=momentum.earlier_teams) }}
       </p>
       <div class="report-panels">
         <div class="report-panel">
           <h3>&#9650; Rising</h3>
           <table>
-            <tr><th class="mon-col">Pok&eacute;mon</th><th>Earlier</th><th>Recent</th><th>Change</th></tr>
+            <tr><th class="mon-col">{{ _('Pokémon') }}</th><th>{{ _('Earlier') }}</th><th>{{ _('Recent') }}</th><th>{{ _('Change') }}</th></tr>
             {% for row in momentum.rising %}
             <tr>
               {{ mon_cell(row, url_for('limitless_page', format_id=selected_format_id, segment=segment, pokemon_name=row.name)) }}
@@ -342,7 +331,7 @@
         <div class="report-panel">
           <h3>&#9660; Falling</h3>
           <table>
-            <tr><th class="mon-col">Pok&eacute;mon</th><th>Earlier</th><th>Recent</th><th>Change</th></tr>
+            <tr><th class="mon-col">{{ _('Pokémon') }}</th><th>{{ _('Earlier') }}</th><th>{{ _('Recent') }}</th><th>{{ _('Change') }}</th></tr>
             {% for row in momentum.falling %}
             <tr>
               {{ mon_cell(row, url_for('limitless_page', format_id=selected_format_id, segment=segment, pokemon_name=row.name)) }}
@@ -359,34 +348,33 @@
 
     {% if cores %}
     <div class="report-section" id="cores-section">
-      <h2>Cores</h2>
+      <h2>{{ _('Cores') }}</h2>
       <p class="report-sub">
-        Pok&eacute;mon cores pooled across tournament teams (at least {{ cores.min_games }} games
-        and {{ cores.min_teams }} teams). <b>Best win rate</b> ranks established cores
-        (at least {{ '%g' % cores.min_top_usage }}% of teams); <b>most common</b> shows what to
-        prepare for; <b>best synergy</b> surfaces cores whose combined win rate beats <em>both</em>
-        members' overall win rates, however niche. Click a core to see the teams running it.
+        {{ _('Pokémon cores pooled across tournament teams (at least %(min_games)s games and %(min_teams)s teams).', min_games=cores.min_games, min_teams=cores.min_teams) }}
+        <b>{{ _('Best win rate') }}</b> {{ _('ranks established cores (at least %(pct)s%% of teams);', pct='%g' % cores.min_top_usage) }}
+        <b>{{ _('most common') }}</b> {{ _('shows what to prepare for;') }}
+        <b>{{ _('best synergy') }}</b> {{ _("surfaces cores whose combined win rate beats both members' overall win rates, however niche. Click a core to see the teams running it.") }}
       </p>
       <div class="core-controls">
-        <label>Core size
+        <label>{{ _('Core size') }}
           <select id="coreSizeSelect">
             {% for opt in cores.size_options %}
               <option value="{{ opt }}"{% if opt == cores.size %} selected{% endif %}>{% if opt == '6' %}Full team{% else %}{{ opt }} Pok&eacute;mon{% endif %}</option>
             {% endfor %}
           </select>
         </label>
-        <label>Sort by
+        <label>{{ _('Sort by') }}
           <select id="coreSortSelect">
-            <option value="wr"{% if cores.sort == 'wr' %} selected{% endif %}>Best win rate</option>
-            <option value="usage"{% if cores.sort == 'usage' %} selected{% endif %}>Most common</option>
-            <option value="lift"{% if cores.sort == 'lift' %} selected{% endif %}>Best synergy</option>
+            <option value="wr"{% if cores.sort == 'wr' %} selected{% endif %}>{{ _('Best win rate') }}</option>
+            <option value="usage"{% if cores.sort == 'usage' %} selected{% endif %}>{{ _('Most common') }}</option>
+            <option value="lift"{% if cores.sort == 'lift' %} selected{% endif %}>{{ _('Best synergy') }}</option>
           </select>
         </label>
       </div>
       <div class="report-panel">
         {% if cores.rows %}
         <table>
-          <tr><th class="mon-col">Core</th><th>Usage</th><th>Win %</th><th>Games</th><th>Lift</th></tr>
+          <tr><th class="mon-col">{{ _('Core') }}</th><th>{{ _('Usage') }}</th><th>{{ _('Win %%') }}</th><th>{{ _('Games') }}</th><th>{{ _('Lift') }}</th></tr>
           {% for row in cores.rows %}
           <tr>
             <td class="mon-cell"><a href="{{ url_for('limitless_page', format_id=selected_format_id, segment=segment) }}?view=results&q={{ row.query|urlencode }}">{% for sp in row.sprites %}<span class="sprite" style="background-position: {{ sp[1] * -40 }}px {{ sp[0] * -30 }}px;"></span>{% endfor %}{{ row.label }}</a></td>
@@ -398,7 +386,7 @@
           {% endfor %}
         </table>
         {% else %}
-        <p class="dim" style="margin: 6px 0;">No {{ cores.size }}-Pok&eacute;mon cores meet the sample-size floors for this sort.</p>
+        <p class="dim" style="margin: 6px 0;">{{ _('No %(size)s-Pokémon cores meet the sample-size floors for this sort.', size=cores.size) }}</p>
         {% endif %}
       </div>
     </div>
@@ -406,18 +394,16 @@
 
     {% if divergence %}
     <div class="report-section">
-      <h2>Ladder vs Tournament</h2>
+      <h2>{{ _('Ladder vs Tournament') }}</h2>
       <p class="report-sub">
-        Share of teams including each Pok&eacute;mon on the Showdown ladder
-        ({% if rating == '0' %}all ratings{% else %}{{ rating }}+ rated{% endif %}, {{ latest_month }})
-        versus in online tournaments. Big gaps show where ladder practice and tournament
-        reality part ways.
+        {% set _scope = _('all ratings') if rating == '0' else _('%(r)s+ rated', r=rating) %}
+        {{ _('Share of teams including each Pokémon on the Showdown ladder (%(scope)s, %(month)s) versus in online tournaments. Big gaps show where ladder practice and tournament reality part ways.', scope=_scope, month=latest_month) }}
       </p>
       <div class="report-panels">
         <div class="report-panel">
-          <h3>Tournament staples the ladder underrates</h3>
+          <h3>{{ _('Tournament staples the ladder underrates') }}</h3>
           <table>
-            <tr><th class="mon-col">Pok&eacute;mon</th><th>Ladder</th><th>Tournament</th><th>Gap</th></tr>
+            <tr><th class="mon-col">{{ _('Pokémon') }}</th><th>{{ _('Ladder') }}</th><th>{{ _('Tournament') }}</th><th>{{ _('Gap') }}</th></tr>
             {% for row in divergence.tournament_favored %}
             <tr>
               {{ mon_cell(row, url_for('display_pokemon_page', format_code=ladder_format, rating_threshold=rating, pokemon_name=row.name)) }}
@@ -429,9 +415,9 @@
           </table>
         </div>
         <div class="report-panel">
-          <h3>Ladder favorites tournaments skip</h3>
+          <h3>{{ _('Ladder favorites tournaments skip') }}</h3>
           <table>
-            <tr><th class="mon-col">Pok&eacute;mon</th><th>Ladder</th><th>Tournament</th><th>Gap</th></tr>
+            <tr><th class="mon-col">{{ _('Pokémon') }}</th><th>{{ _('Ladder') }}</th><th>{{ _('Tournament') }}</th><th>{{ _('Gap') }}</th></tr>
             {% for row in divergence.ladder_favored %}
             <tr>
               {{ mon_cell(row, url_for('display_pokemon_page', format_code=ladder_format, rating_threshold=rating, pokemon_name=row.name)) }}
@@ -448,16 +434,15 @@
 
     {% if trend %}
     <div class="report-section">
-      <h2>Rising &amp; Falling</h2>
+      <h2>{{ _('Rising & Falling') }}</h2>
       <p class="report-sub">
-        Biggest ladder usage moves from {{ trend.prev_month }} to {{ trend.last_month }}
-        on the {{ ladder_format_name }} ladder.
+        {{ _('Biggest ladder usage moves from %(prev)s to %(last)s on the %(fmt)s ladder.', prev=trend.prev_month, last=trend.last_month, fmt=ladder_format_name) }}
       </p>
       <div class="report-panels">
         <div class="report-panel">
           <h3>&#9650; Rising</h3>
           <table>
-            <tr><th class="mon-col">Pok&eacute;mon</th><th>{{ trend.prev_month }}</th><th>{{ trend.last_month }}</th><th>Change</th></tr>
+            <tr><th class="mon-col">{{ _('Pokémon') }}</th><th>{{ trend.prev_month }}</th><th>{{ trend.last_month }}</th><th>{{ _('Change') }}</th></tr>
             {% for row in trend.rising %}
             <tr>
               {{ mon_cell(row, url_for('display_pokemon_page', format_code=ladder_format, rating_threshold=rating, pokemon_name=row.name)) }}
@@ -471,7 +456,7 @@
         <div class="report-panel">
           <h3>&#9660; Falling</h3>
           <table>
-            <tr><th class="mon-col">Pok&eacute;mon</th><th>{{ trend.prev_month }}</th><th>{{ trend.last_month }}</th><th>Change</th></tr>
+            <tr><th class="mon-col">{{ _('Pokémon') }}</th><th>{{ trend.prev_month }}</th><th>{{ trend.last_month }}</th><th>{{ _('Change') }}</th></tr>
             {% for row in trend.falling %}
             <tr>
               {{ mon_cell(row, url_for('display_pokemon_page', format_code=ladder_format, rating_threshold=rating, pokemon_name=row.name)) }}
@@ -490,8 +475,8 @@
 </div>
 {% endif %}
 <footer>
-  <p><a href="{{ url_for('about') }}">About</a></p>
-  <p>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</p>
+  <p><a href="{{ url_for('about') }}">{{ _('About') }}</a></p>
+  <p>{{ _('Pokémon and All Respective Names are Trademark & © of Nintendo 1996-2026') }}</p>
 </footer>
 {% if not no_data %}
 <script>

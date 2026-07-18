@@ -18,36 +18,36 @@
     margin-bottom: 8px;
   }
   .tools-subtitle {
-    color: #888;
+    color: var(--text-dim);
     font-size: 14px;
     margin-bottom: 30px;
   }
   .tool-card {
-    background: #2a2a2a;
-    border: 1px solid #444;
+    background: var(--surface-3);
+    border: 1px solid var(--border);
     padding: 24px;
     margin-bottom: 16px;
     transition: border-color 0.2s;
   }
   .tool-card:hover {
-    border-color: #ffd54f;
+    border-color: var(--accent);
   }
   .tool-card h3 {
     margin: 0 0 8px;
     font-size: 18px;
     font-weight: 600;
-    color: #e0e0e0;
+    color: var(--text);
   }
   .tool-card p {
     margin: 0 0 16px;
     font-size: 14px;
-    color: #aaa;
+    color: var(--text-muted);
     line-height: 1.5;
   }
   .tool-card a.tool-link {
     display: inline-block;
-    background: #ffd54f;
-    color: #1e1e1e;
+    background: var(--accent);
+    color: var(--on-accent);
     padding: 8px 18px;
     font-size: 13px;
     font-weight: 700;
@@ -56,13 +56,13 @@
     transition: background 0.2s;
   }
   .tool-card a.tool-link:hover {
-    background: #ffca28;
+    background: var(--accent-2);
   }
   .chrome-badge {
     display: inline-block;
     font-size: 11px;
-    color: #888;
-    border: 1px solid #555;
+    color: var(--text-dim);
+    border: 1px solid var(--border-2);
     padding: 2px 8px;
     margin-left: 10px;
     vertical-align: middle;
@@ -80,19 +80,19 @@
 {% include "_tabs.html" %}
 
 <div class="tools-container">
-  <h2>Tools</h2>
-  <p class="tools-subtitle">Chrome extensions for Pokemon Showdown</p>
+  <h2>{{ _('Tools') }}</h2>
+  <p class="tools-subtitle">{{ _('Chrome extensions for Pokemon Showdown') }}</p>
 
   <div class="tool-card">
-    <h3>VGC Replay Analyzer <span class="chrome-badge">Chrome Extension</span></h3>
-    <p>Save, watch, and analyze Pokemon Showdown VGC replays locally with PASRS-inspired analysis. Automatic replay saving, a local replay library grouped by team, and deep stats including usage/win rates, lead combos, Tera frequency, move usage, matchup breakdowns, and ELO graphs &mdash; all fully private in your browser.</p>
-    <a class="tool-link" href="https://chromewebstore.google.com/detail/ikildimeghigegckdcdjbedfapehdimm" target="_blank" rel="noopener">Get Extension</a>
+    <h3>VGC Replay Analyzer <span class="chrome-badge">{{ _('Chrome Extension') }}</span></h3>
+    <p>{{ _('Save, watch, and analyze Pokemon Showdown VGC replays locally with PASRS-inspired analysis. Automatic replay saving, a local replay library grouped by team, and deep stats including usage/win rates, lead combos, Tera frequency, move usage, matchup breakdowns, and ELO graphs — all fully private in your browser.') }}</p>
+    <a class="tool-link" href="https://chromewebstore.google.com/detail/ikildimeghigegckdcdjbedfapehdimm" target="_blank" rel="noopener">{{ _('Get Extension') }}</a>
   </div>
 
   <div class="tool-card">
-    <h3>VGC Practice Extension <span class="chrome-badge">Chrome Extension</span></h3>
-    <p>Train smarter for VGC on Pokemon Showdown. Toggleable features that simulate real competitive conditions &mdash; hide battle info for hardcore mode, lock in moves with no take-backs, force animations, hide Elo/identities, and pin Open Team Sheets. Build practice habits that translate directly to in-person play.</p>
-    <a class="tool-link" href="https://chromewebstore.google.com/detail/jhgkjapmjgajikjoncoehmcgfbpmophc" target="_blank" rel="noopener">Get Extension</a>
+    <h3>VGC Practice Extension <span class="chrome-badge">{{ _('Chrome Extension') }}</span></h3>
+    <p>{{ _('Train smarter for VGC on Pokemon Showdown. Toggleable features that simulate real competitive conditions — hide battle info for hardcore mode, lock in moves with no take-backs, force animations, hide Elo/identities, and pin Open Team Sheets. Build practice habits that translate directly to in-person play.') }}</p>
+    <a class="tool-link" href="https://chromewebstore.google.com/detail/jhgkjapmjgajikjoncoehmcgfbpmophc" target="_blank" rel="noopener">{{ _('Get Extension') }}</a>
   </div>
 </div>
 {% endblock %}

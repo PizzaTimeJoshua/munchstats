@@ -1,0 +1,913 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: MunchStats\n"
+"Language: es\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=utf-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+
+msgid "%(r)s+ rated"
+msgstr "%(r)s+ de puntuación"
+
+msgid "API (championsbattledata.com), the only reliable source for real in-game battle data. The data is not stored on our end — it is cached directly from their API."
+msgstr "(championsbattledata.com), la única fuente fiable de datos reales de combates del juego. Los datos no se almacenan en nuestro servidor: se cachean directamente desde su API."
+
+msgid "Abilities"
+msgstr "Habilidades"
+
+msgid "Ability"
+msgstr "Habilidad"
+
+msgid "About"
+msgstr "Acerca de"
+
+msgid "About MunchStats"
+msgstr "Acerca de MunchStats"
+
+msgid "All"
+msgstr "Todos"
+
+msgid "All Events"
+msgstr "Todos los eventos"
+
+msgid "All Teams"
+msgstr "Todos los equipos"
+
+msgid "Asleep"
+msgstr "Dormido"
+
+msgid "Attacker's Side"
+msgstr "Lado del atacante"
+
+msgid "Attribution"
+msgstr "Atribución"
+
+msgid "Average Opponent"
+msgstr "Oponente promedio"
+
+msgid "Badly Poisoned"
+msgstr "Gravemente envenenado"
+
+msgid "Base Stats"
+msgstr "Estadísticas base"
+
+msgid "Battle data provided by"
+msgstr "Datos de combate proporcionados por"
+
+msgid "Best synergy"
+msgstr "Mejor sinergia"
+
+msgid "Best win rate"
+msgstr "Mejor tasa de victorias"
+
+msgid "Biggest Movers"
+msgstr "Mayores cambios"
+
+msgid "Biggest ladder usage moves from %(prev)s to %(last)s on the %(fmt)s ladder."
+msgstr "Mayores cambios de uso en el ladder de %(prev)s a %(last)s en el ladder %(fmt)s."
+
+msgid "Burned"
+msgstr "Quemado"
+
+msgid "Calc"
+msgstr "Calculadora"
+
+msgid "Can you show replays from over a month ago?"
+msgstr "¿Pueden mostrar replays de hace más de un mes?"
+
+msgid "Cancel"
+msgstr "Cancelar"
+
+msgid "Change"
+msgstr "Cambio"
+
+msgid "Checks and Counters"
+msgstr "Checks y counters"
+
+msgid "Chrome Extension"
+msgstr "Extensión de Chrome"
+
+msgid "Chrome extensions for Pokemon Showdown"
+msgstr "Extensiones de Chrome para Pokemon Showdown"
+
+msgid "Click any Pokémon for its full stats."
+msgstr "Haz clic en cualquier Pokémon para ver sus estadísticas completas."
+
+msgid "Click on Moves, Items, EV Spreads and Abilities to change the Export!"
+msgstr "¡Haz clic en Movimientos, Objetos, Distribuciones de EVs y Habilidades para cambiar la exportación!"
+
+msgid "Click on Moves, Items, Stat Point Spreads and Abilities to change the Export!"
+msgstr "¡Haz clic en Movimientos, Objetos, Distribuciones de puntos y Habilidades para cambiar la exportación!"
+
+msgid "Click to copy"
+msgstr "Haz clic para copiar"
+
+msgid "Close"
+msgstr "Cerrar"
+
+msgid "Contact"
+msgstr "Contacto"
+
+msgid "Contact me below!"
+msgstr "¡Contáctame abajo!"
+
+msgid "Copy Pokemon to Clipboard"
+msgstr "Copiar Pokémon al portapapeles"
+
+msgid "Copy Team"
+msgstr "Copiar equipo"
+
+msgid "Copy Team to Clipboard"
+msgstr "Copiar equipo al portapapeles"
+
+msgid "Core"
+msgstr "Núcleo"
+
+msgid "Core size"
+msgstr "Tamaño del núcleo"
+
+msgid "Cores"
+msgstr "Núcleos"
+
+msgid "Could not load merch"
+msgstr "No se pudo cargar el merch"
+
+msgid "Could not load replays"
+msgstr "No se pudieron cargar los replays"
+
+msgid "Could not load tournament data"
+msgstr "No se pudieron cargar los datos de torneos"
+
+msgid "Cumulative"
+msgstr "Acumulado"
+
+msgid "Cut size"
+msgstr "Tamaño del corte"
+
+msgid "Data refreshes every 12 hours."
+msgstr "Los datos se actualizan cada 12 horas."
+
+msgid "Date"
+msgstr "Fecha"
+
+msgid "Day 1"
+msgstr "Día 1"
+
+msgid "Day 2"
+msgstr "Día 2"
+
+msgid "Defender's Side"
+msgstr "Lado del defensor"
+
+msgid "Doubles"
+msgstr "Dobles"
+
+msgid "EV Spreads"
+msgstr "Distribuciones de EVs"
+
+msgid "Earlier"
+msgstr "Antes"
+
+msgid "Error: Unable to get rankings."
+msgstr "Error: no se pudieron obtener las clasificaciones."
+
+msgid "Error: Unable to get replays."
+msgstr "Error: no se pudieron obtener los replays."
+
+msgid "Error: Unable to load teams."
+msgstr "Error: no se pudieron cargar los equipos."
+
+msgid "Events"
+msgstr "Eventos"
+
+msgid "Every 12 hours automatically."
+msgstr "Cada 12 horas, automáticamente."
+
+msgid "Export"
+msgstr "Exportar"
+
+msgid "Export Pokemon"
+msgstr "Exportar Pokémon"
+
+msgid "FAQ"
+msgstr "Preguntas frecuentes"
+
+msgid "Failed to load standings."
+msgstr "Error al cargar la clasificación."
+
+msgid "Failed to load teams."
+msgstr "Error al cargar los equipos."
+
+msgid "Field"
+msgstr "Campo"
+
+msgid "Filter By Players"
+msgstr "Filtrar por jugadores"
+
+msgid "Filter By Pokemon"
+msgstr "Filtrar por Pokémon"
+
+msgid "Filter By Rating"
+msgstr "Filtrar por puntuación"
+
+msgid "Filter By Usage Score"
+msgstr "Filtrar por puntuación de uso"
+
+msgid "Filters"
+msgstr "Filtros"
+
+msgid "Find All Pokemon on a Team"
+msgstr "Buscar todos los Pokémon del equipo"
+
+msgid "Find Any Pokemon on a Team"
+msgstr "Buscar cualquier Pokémon del equipo"
+
+msgid "Form"
+msgstr "Forma"
+
+msgid "Format"
+msgstr "Formato"
+
+msgid "Frozen"
+msgstr "Congelado"
+
+msgid "Game data last scraped:"
+msgstr "Últimos datos del juego obtenidos:"
+
+msgid "Games"
+msgstr "Partidas"
+
+msgid "Gap"
+msgstr "Diferencia"
+
+msgid "Get Extension"
+msgstr "Obtener extensión"
+
+msgid "Global"
+msgstr "Global"
+
+msgid "Go back to the homepage"
+msgstr "Volver a la página principal"
+
+msgid "Guaranteed"
+msgstr "Garantizado"
+
+msgid "Has"
+msgstr "Con"
+
+msgid "Has EV Spreads"
+msgstr "Con EVs"
+
+msgid "Has Team Report"
+msgstr "Con informe de equipo"
+
+msgid "Healthy"
+msgstr "Sano"
+
+msgid "Hide"
+msgstr "Ocultar"
+
+msgid "High-rated replays where this Pokemon was used."
+msgstr "Replays de alta puntuación donde se usó este Pokémon."
+
+msgid "How does this damage calculator work?"
+msgstr "¿Cómo funciona esta calculadora de daño?"
+
+msgid "How often does the Pokémon Champions data get updated?"
+msgstr "¿Con qué frecuencia se actualizan los datos de Pokémon Champions?"
+
+msgid "How often does the replay data get updated?"
+msgstr "¿Con qué frecuencia se actualizan los datos de replays?"
+
+msgid "How often does this get updated?"
+msgstr "¿Con qué frecuencia se actualiza?"
+
+msgid "I found a bug! / I want to suggest a feature!"
+msgstr "¡Encontré un error! / ¡Quiero sugerir una función!"
+
+msgid "Insights"
+msgstr "Análisis"
+
+msgid "Insights need recent online tournament data, which is still being fetched. Check back in a few minutes."
+msgstr "El análisis necesita datos recientes de torneos en línea, que todavía se están obteniendo. Vuelve en unos minutos."
+
+msgid "It comes from Pokemon Showdown's Monthly Usage Stats, the same place as Pikalytics!"
+msgstr "Vienen de las estadísticas de uso mensuales de Pokemon Showdown, ¡el mismo lugar que Pikalytics!"
+
+msgid "It is cached from their API and refreshed every 12 hours. Each Champions page also shows when the source last scraped the data, so you always know how current it is."
+msgstr "Se cachean desde su API y se actualizan cada 12 horas. Cada página de Champions también muestra cuándo la fuente obtuvo los datos por última vez, para que siempre sepas qué tan actuales son."
+
+msgid "Item"
+msgstr "Objeto"
+
+msgid "Items"
+msgstr "Objetos"
+
+msgid "Jump to latest"
+msgstr "Ir al más reciente"
+
+msgid "KO breakpoints:"
+msgstr "Umbrales de KO:"
+
+msgid "KO%% is weighted across usage spreads. Frail/Average/Bulky tiers are split by defensive stat percentile."
+msgstr "El %% de KO se pondera entre las distribuciones de uso. Los niveles Frágil/Promedio/Defensivo se dividen por percentil de estadística defensiva."
+
+msgid "Ladder"
+msgstr "Ladder"
+
+msgid "Ladder Rating Cutoff"
+msgstr "Corte de puntuación de ladder"
+
+msgid "Ladder data is the Showdown %(fmt)s ladder for %(month)s."
+msgstr "Los datos de ladder provienen del ladder %(fmt)s de Showdown de %(month)s."
+
+msgid "Ladder data:"
+msgstr "Datos de ladder:"
+
+msgid "Ladder favorites tournaments skip"
+msgstr "Favoritos del ladder que los torneos evitan"
+
+msgid "Ladder vs Tournament"
+msgstr "Ladder vs. torneos"
+
+msgid "Largest Fields"
+msgstr "Mayores participaciones"
+
+msgid "Largest changes in usage share between stages — a quick read on what worked and what didn't."
+msgstr "Los mayores cambios en cuota de uso entre fases: una lectura rápida de qué funcionó y qué no."
+
+msgid "Leaving MunchStats"
+msgstr "Saliendo de MunchStats"
+
+msgid "Less"
+msgstr "Menos"
+
+msgid "Lift"
+msgstr "Sinergia"
+
+msgid "Load More"
+msgstr "Cargar más"
+
+msgid "Loading merch..."
+msgstr "Cargando merch..."
+
+msgid "Loading replays..."
+msgstr "Cargando replays..."
+
+msgid "Loading sets..."
+msgstr "Cargando sets..."
+
+msgid "Loading standings..."
+msgstr "Cargando clasificación..."
+
+msgid "Loading stats..."
+msgstr "Cargando estadísticas..."
+
+msgid "Loading teams..."
+msgstr "Cargando equipos..."
+
+msgid "Loading tournament data..."
+msgstr "Cargando datos de torneos..."
+
+msgid "Loading..."
+msgstr "Cargando..."
+
+msgid "Max Rating (eg. '1500')"
+msgstr "Puntuación máxima (ej. '1500')"
+
+msgid "Merch"
+msgstr "Merch"
+
+msgid "Meta Insights"
+msgstr "Análisis del meta"
+
+msgid "Min. players per tournament"
+msgstr "Mín. de jugadores por torneo"
+
+msgid "More"
+msgstr "Más"
+
+msgid "Most Recent"
+msgstr "Más recientes"
+
+msgid "Most common"
+msgstr "Más común"
+
+msgid "Most used Pokemon at each stage of the tournament. Δ is the change in usage share (percentage points) from the previous stage. Click a Pokemon for its full stats."
+msgstr "Pokémon más usados en cada fase del torneo. Δ es el cambio en cuota de uso (puntos porcentuales) respecto a la fase anterior. Haz clic en un Pokémon para ver sus estadísticas completas."
+
+msgid "Moves"
+msgstr "Movimientos"
+
+msgid "MunchStats is not affiliated with Pokémon, Nintendo, GAME FREAK, Creatures Inc., or The Pokémon Company."
+msgstr "MunchStats no está afiliado a Pokémon, Nintendo, GAME FREAK, Creatures Inc. ni The Pokémon Company."
+
+msgid "Nature"
+msgstr "Naturaleza"
+
+msgid "Natures"
+msgstr "Naturalezas"
+
+msgid "Newest First"
+msgstr "Más recientes primero"
+
+msgid "No %(size)s-Pokémon cores meet the sample-size floors for this sort."
+msgstr "Ningún núcleo de %(size)s Pokémon cumple los mínimos de muestra para este orden."
+
+msgid "No EVs"
+msgstr "Sin EVs"
+
+msgid "No Replays Found."
+msgstr "No se encontraron replays."
+
+msgid "No Tournament Data"
+msgstr "Sin datos de torneos"
+
+msgid "No insight data available yet"
+msgstr "Aún no hay datos de análisis disponibles"
+
+msgid "No merch found"
+msgstr "No se encontró merch"
+
+msgid "No replays found"
+msgstr "No se encontraron replays"
+
+msgid "No standings available."
+msgstr "No hay clasificación disponible."
+
+msgid "No team data found."
+msgstr "No se encontraron datos de equipos."
+
+msgid "No teams found."
+msgstr "No se encontraron equipos."
+
+msgid "No tournament data found"
+msgstr "No se encontraron datos de torneos"
+
+msgid "No tournaments found."
+msgstr "No se encontraron torneos."
+
+msgid "No. Due to memory constraints, only the last month of replays is available."
+msgstr "No. Por limitaciones de memoria, solo está disponible el último mes de replays."
+
+msgid "None"
+msgstr "Ninguno"
+
+msgid "Official tournament data has not been scraped and Limitless online data is unavailable — try again shortly."
+msgstr "Los datos de torneos oficiales aún no se han recopilado y los datos en línea de Limitless no están disponibles; inténtalo de nuevo en unos minutos."
+
+msgid "Oldest First"
+msgstr "Más antiguos primero"
+
+msgid "Once a month. Near the beginning of the month when Showdown releases its usage stats."
+msgstr "Una vez al mes. Hacia principios de mes, cuando Showdown publica sus estadísticas de uso."
+
+msgid "Online (Limitless)"
+msgstr "En línea (Limitless)"
+
+msgid "Only publicly available replays from Pokemon Showdown. We do not collect private replays. If a replay should not be shown, please contact us."
+msgstr "Solo replays públicos de Pokemon Showdown. No recopilamos replays privados. Si un replay no debería mostrarse, contáctanos."
+
+msgid "Open in New Tab"
+msgstr "Abrir en una pestaña nueva"
+
+msgid "Open on Pokepaste"
+msgstr "Abrir en Pokepaste"
+
+msgid "Opponent spreads are grouped by outcome — which sets you can OHKO, which need two hits (2HKO), three hits (3HKO), and which survive. Each group shows what percentage of ladder sets fall into that range."
+msgstr "Las distribuciones del oponente se agrupan por resultado: cuáles puedes dejar KO de un golpe (OHKO), cuáles necesitan dos (2HKO) o tres (3HKO) y cuáles sobreviven. Cada grupo muestra qué porcentaje de los sets del ladder cae en ese rango."
+
+msgid "Opponent's Moves"
+msgstr "Movimientos del oponente"
+
+msgid "Options"
+msgstr "Opciones"
+
+msgid "Outspeeds"
+msgstr "Más rápido"
+
+msgid "Overview"
+msgstr "Resumen"
+
+msgid "Paralyzed"
+msgstr "Paralizado"
+
+msgid "Placement cut"
+msgstr "Corte de clasificación"
+
+msgid "Player 1"
+msgstr "Jugador 1"
+
+msgid "Player 2"
+msgstr "Jugador 2"
+
+msgid "Poisoned"
+msgstr "Envenenado"
+
+msgid "Pokemon Participated in Battle"
+msgstr "El Pokémon participó en el combate"
+
+msgid "Pokemon Showdown doesn't provide Tera Data, where do you get it from?"
+msgstr "Pokemon Showdown no proporciona datos de Tera, ¿de dónde los sacas?"
+
+msgid "Pokemon is on Winning Team"
+msgstr "El Pokémon está en el equipo ganador"
+
+msgid "Pokémon"
+msgstr "Pokémon"
+
+msgid "Pokémon Champions FAQ"
+msgstr "Preguntas frecuentes de Pokémon Champions"
+
+msgid "Pokémon and All Respective Names are Trademark & © of Nintendo 1996-2026"
+msgstr "Pokémon y todos los nombres respectivos son marcas registradas y © de Nintendo 1996-2026"
+
+msgid "Pokémon cores pooled across tournament teams (at least %(min_games)s games and %(min_teams)s teams)."
+msgstr "Núcleos de Pokémon agrupados entre los equipos de torneo (al menos %(min_games)s partidas y %(min_teams)s equipos)."
+
+msgid "Rain"
+msgstr "Lluvia"
+
+msgid "Random Order"
+msgstr "Orden aleatorio"
+
+msgid "Rank"
+msgstr "Puesto"
+
+msgid "Rating"
+msgstr "Elo"
+
+msgid "Recent"
+msgstr "Reciente"
+
+msgid "Recent Replays"
+msgstr "Replays recientes"
+
+msgid "Regulation"
+msgstr "Regulación"
+
+msgid "Rental Code"
+msgstr "Código de alquiler"
+
+msgid "Replay Searcher"
+msgstr "Buscador de replays"
+
+msgid "Replay Viewer"
+msgstr "Visor de replays"
+
+msgid "Replays"
+msgstr "Replays"
+
+msgid "Replays FAQ"
+msgstr "Preguntas frecuentes de replays"
+
+msgid "Replays show base form only and may not reflect this specific form."
+msgstr "Los replays muestran solo la forma base y pueden no reflejar esta forma específica."
+
+msgid "Replica Code"
+msgstr "Código de réplica"
+
+msgid "Report"
+msgstr "Informe"
+
+msgid "Repository"
+msgstr "Repositorio"
+
+msgid "Reverse"
+msgstr "Invertir"
+
+msgid "Reverse Cumulative"
+msgstr "Acumulado inverso"
+
+msgid "Rising & Falling"
+msgstr "En alza y en baja"
+
+msgid "Sand"
+msgstr "Arena"
+
+msgid "Save, watch, and analyze Pokemon Showdown VGC replays locally with PASRS-inspired analysis. Automatic replay saving, a local replay library grouped by team, and deep stats including usage/win rates, lead combos, Tera frequency, move usage, matchup breakdowns, and ELO graphs — all fully private in your browser."
+msgstr "Guarda, mira y analiza replays de VGC de Pokemon Showdown localmente con un análisis inspirado en PASRS. Guardado automático de replays, una biblioteca local agrupada por equipo y estadísticas detalladas: uso y tasas de victoria, combinaciones iniciales, frecuencia de Tera, uso de movimientos, análisis de enfrentamientos y gráficos de ELO — todo totalmente privado en tu navegador."
+
+msgid "Score"
+msgstr "Marcador"
+
+msgid "Search"
+msgstr "Búsqueda"
+
+msgid "Search Replays"
+msgstr "Buscar replays"
+
+msgid "Search Teams"
+msgstr "Buscar equipos"
+
+msgid "Search for a Format"
+msgstr "Buscar un formato"
+
+msgid "Search for a Pokemon"
+msgstr "Buscar un Pokémon"
+
+msgid "Search for a Tournament"
+msgstr "Buscar un torneo"
+
+msgid "Search tournaments..."
+msgstr "Buscar torneos..."
+
+msgid "Select Format"
+msgstr "Seleccionar formato"
+
+msgid "Select a Pokémon and opponent, then click a move to see the full damage breakdown."
+msgstr "Selecciona un Pokémon y un oponente, luego haz clic en un movimiento para ver el desglose completo de daño."
+
+msgid "Separate Pokémon with commas; words in one group must match the same team member, so \"Kingambit Focus Sash\" means a Kingambit"
+msgstr "Separa los Pokémon con comas; las palabras de un mismo grupo deben coincidir con el mismo miembro del equipo, así que \"Kingambit Focus Sash\" significa un Kingambit"
+
+msgid "Share of teams including each Pokémon on the Showdown ladder (%(scope)s, %(month)s) versus in online tournaments. Big gaps show where ladder practice and tournament reality part ways."
+msgstr "Proporción de equipos que incluyen cada Pokémon en el ladder de Showdown (%(scope)s, %(month)s) frente a los torneos en línea. Las grandes diferencias muestran dónde se separan la práctica en ladder y la realidad de los torneos."
+
+msgid "Share of tournament teams including each Pokémon in the last %(days)s days (%(recent)s teams) versus the %(days)s days before (%(earlier)s teams)."
+msgstr "Proporción de equipos de torneo que incluyen cada Pokémon en los últimos %(days)s días (%(recent)s equipos) frente a los %(days)s días anteriores (%(earlier)s equipos)."
+
+msgid "Show"
+msgstr "Mostrar"
+
+msgid "Show Random Team"
+msgstr "Mostrar equipo aleatorio"
+
+msgid "Show Usage Score (Beta)"
+msgstr "Mostrar puntuación de uso (Beta)"
+
+msgid "Show all"
+msgstr "Mostrar todo"
+
+msgid "Singles"
+msgstr "Individuales"
+
+msgid "Slower"
+msgstr "Más lento"
+
+msgid "Smogon usage stats"
+msgstr "estadísticas de uso de Smogon"
+
+msgid "Snow"
+msgstr "Nieve"
+
+msgid "Sort Results"
+msgstr "Ordenar resultados"
+
+msgid "Sort by"
+msgstr "Ordenar por"
+
+msgid "Source"
+msgstr "Fuente"
+
+msgid "Spread"
+msgstr "Distribución"
+
+msgid "Standings"
+msgstr "Clasificación"
+
+msgid "Starting September 1st 2024, Pokemon Showdown DOES show Tera Data. Previously, this used to be based off public replay data."
+msgstr "Desde el 1 de septiembre de 2024, Pokemon Showdown SÍ muestra datos de Tera. Antes, se basaban en datos de replays públicos."
+
+msgid "Stat Point Spreads"
+msgstr "Distribuciones de puntos"
+
+msgid "Stats Graph (Beta)"
+msgstr "Gráfico de estadísticas (Beta)"
+
+msgid "Status"
+msgstr "Estado"
+
+msgid "Sun"
+msgstr "Sol"
+
+msgid "Team Details"
+msgstr "Detalles del equipo"
+
+msgid "Team Search"
+msgstr "Búsqueda de equipos"
+
+msgid "Team Viewer"
+msgstr "Visor de equipos"
+
+msgid "Team data from the VGCPastes Repository"
+msgstr "Datos de equipos del repositorio VGCPastes"
+
+msgid "Teammates"
+msgstr "Compañeros de equipo"
+
+msgid "Teams"
+msgstr "Equipos"
+
+msgid "Tera"
+msgstr "Tera"
+
+msgid "Tera Types"
+msgstr "Tipos Tera"
+
+msgid "Terrain"
+msgstr "Terreno"
+
+msgid "The final KO chance is averaged across all spreads by usage weight — giving you a single realistic number for how often you'll get the KO on ladder."
+msgstr "La probabilidad final de KO se promedia entre todas las distribuciones según su peso de uso, dándote un único número realista de la frecuencia con la que conseguirás el KO en el ladder."
+
+msgid "The in-game usage data (the \"[Champions] In-Game\" formats) is not from Pokemon Showdown. It comes from the"
+msgstr "Los datos de uso del juego (los formatos \"[Champions] In-Game\") no provienen de Pokemon Showdown. Vienen de la API de"
+
+msgid "These are affiliate eBay links that help support the website."
+msgstr "Estos son enlaces de afiliado de eBay que ayudan a mantener el sitio web."
+
+msgid "This here is a side project that I've worked on just for fun. It runs ad-free! The site does include affiliate eBay merch links — if you happen to buy something, a small commission helps keep the site running. If I receive any kind of donation, it'll go directly to keeping this site up. This site was the product of \"Pikalytics is taking a while to update its usage stats.\" So instead of waiting, I made this site."
+msgstr "Este es un proyecto personal en el que trabajo solo por diversión. ¡Funciona sin anuncios! El sitio incluye enlaces de afiliado de eBay para merch: si compras algo, una pequeña comisión ayuda a mantener el sitio en marcha. Si recibo cualquier tipo de donación, irá directamente a mantener el sitio en línea. Este sitio nació de \"Pikalytics está tardando en actualizar sus estadísticas de uso.\" Así que en vez de esperar, hice este sitio."
+
+msgid "This will open an external link in a new tab:"
+msgstr "Esto abrirá un enlace externo en una pestaña nueva:"
+
+msgid "Ties"
+msgstr "Empata"
+
+msgid "Tools"
+msgstr "Herramientas"
+
+msgid "Top 16"
+msgstr "Top 16"
+
+msgid "Top 32"
+msgstr "Top 32"
+
+msgid "Top 8"
+msgstr "Top 8"
+
+msgid "Top Cut"
+msgstr "Corte final"
+
+msgid "Top Cut Conversion"
+msgstr "Conversión al corte"
+
+msgid "Top EVs By Category"
+msgstr "Mejores EVs por categoría"
+
+msgid "Top Points By Category"
+msgstr "Mejores puntos por categoría"
+
+msgid "Top Replays"
+msgstr "Mejores replays"
+
+msgid "Top Team Compositions"
+msgstr "Composiciones de equipo más usadas"
+
+msgid "Top Teams"
+msgstr "Mejores equipos"
+
+msgid "Top Usage by Stage"
+msgstr "Uso principal por fase"
+
+msgid "Tournament"
+msgstr "Torneo"
+
+msgid "Tournament Conversion"
+msgstr "Conversión en torneos"
+
+msgid "Tournament Momentum"
+msgstr "Impulso en torneos"
+
+msgid "Tournament Size"
+msgstr "Tamaño del torneo"
+
+msgid "Tournament data covers %(count)s online events (%(min)s+ players) from the last %(days)s days: %(teams)s public team lists."
+msgstr "Los datos de torneos cubren %(count)s eventos en línea (%(min)s+ jugadores) de los últimos %(days)s días: %(teams)s listas de equipos públicas."
+
+msgid "Tournament data from"
+msgstr "Datos de torneos de"
+
+msgid "Tournament data:"
+msgstr "Datos de torneos:"
+
+msgid "Tournament staples the ladder underrates"
+msgstr "Fijos de torneo que el ladder subestima"
+
+msgid "Tournaments"
+msgstr "Torneos"
+
+msgid "Train smarter for VGC on Pokemon Showdown. Toggleable features that simulate real competitive conditions — hide battle info for hardcore mode, lock in moves with no take-backs, force animations, hide Elo/identities, and pin Open Team Sheets. Build practice habits that translate directly to in-person play."
+msgstr "Entrena mejor para VGC en Pokemon Showdown. Funciones activables que simulan condiciones competitivas reales: ocultar información del combate para el modo hardcore, bloquear movimientos sin poder deshacerlos, forzar animaciones, ocultar Elo e identidades y fijar las Open Team Sheets. Crea hábitos de práctica que se trasladan directamente al juego presencial."
+
+msgid "Type"
+msgstr "Tipo"
+
+msgid "Unlike a standard damage calc,"
+msgstr "A diferencia de una calculadora de daño estándar,"
+
+msgid "Untitled Team"
+msgstr "Equipo sin título"
+
+msgid "Usage"
+msgstr "Uso"
+
+msgid "Usage Score is the collective percentage usage of a team based on usage statistics."
+msgstr "La puntuación de uso es el porcentaje de uso colectivo de un equipo según las estadísticas de uso."
+
+msgid "Usage Stats"
+msgstr "Estadísticas de Uso"
+
+msgid "Usage Trend"
+msgstr "Tendencia de uso"
+
+msgid "Usage share among all %(from_teams)s public teams versus the %(to_teams)s that finished in their event's Top %(cut)s — the biggest gains and drops in usage share, like the tournament overview's Biggest Movers. Only Pokémon with at least %(min_usage)s%% usage on one side are ranked."
+msgstr "Cuota de uso entre los %(from_teams)s equipos públicos frente a los %(to_teams)s que terminaron en el Top %(cut)s de su evento — las mayores subidas y bajadas en cuota de uso, como los Mayores cambios del resumen de torneos. Solo se clasifican los Pokémon con al menos %(min_usage)s%% de uso en alguno de los dos lados."
+
+msgid "Usage stats data from"
+msgstr "Datos de uso de"
+
+msgid "View Team"
+msgstr "Ver equipo"
+
+msgid "Weather"
+msgstr "Clima"
+
+msgid "Weighted overall:"
+msgstr "Total ponderado:"
+
+msgid "What replays are available here?"
+msgstr "¿Qué replays están disponibles aquí?"
+
+msgid "Where does the Pokémon Champions in-game data come from?"
+msgstr "¿De dónde vienen los datos del juego de Pokémon Champions?"
+
+msgid "Where does the data come from?"
+msgstr "¿De dónde vienen los datos?"
+
+msgid "Win %%"
+msgstr "%% Vict."
+
+msgid "Win Rate"
+msgstr "Tasa de victorias"
+
+msgid "Win rates from tournament records (a tie counts half), with Mega forms resolved from held stones — Charizard-Mega-Y and -X count separately. Only Pokémon with at least %(min_games)s games and %(min_teams)s teams are ranked (%(qualified)s qualify). The underperforming list is limited to Pokémon with at least %(min_usage)s%% usage."
+msgstr "Las tasas de victoria provienen de los resultados de torneos (un empate cuenta la mitad), con las formas Mega resueltas por las piedras equipadas — Charizard-Mega-Y y -X cuentan por separado. Solo se clasifican los Pokémon con al menos %(min_games)s partidas y %(min_teams)s equipos (%(qualified)s califican). La lista de bajo rendimiento se limita a Pokémon con al menos %(min_usage)s%% de uso."
+
+msgid "You are viewing data from"
+msgstr "Estás viendo datos de"
+
+msgid "Your Pokémon"
+msgstr "Tu Pokémon"
+
+msgid "a Focus Sash. Player names work too."
+msgstr "una Focus Sash. Los nombres de jugadores también funcionan."
+
+msgid "a Focus Sash. Player, tournament, rank and team ID work too. Click a team to view its full sets."
+msgstr "una Focus Sash. Jugador, torneo, puesto e ID de equipo también funcionan. Haz clic en un equipo para ver sus sets completos."
+
+msgid "a Focus Sash. Players and tournaments work too."
+msgstr "una Focus Sash. Jugadores y torneos también funcionan."
+
+msgid "all ratings"
+msgstr "todas las puntuaciones"
+
+msgid "best synergy"
+msgstr "mejor sinergia"
+
+msgid "follow"
+msgstr "sigue a"
+
+msgid "full spreadsheet"
+msgstr "hoja de cálculo completa"
+
+msgid "highest win rates"
+msgstr "mayores tasas de victoria"
+
+msgid "holding"
+msgstr "que lleva"
+
+msgid "less common in the top cut"
+msgstr "menos común en el corte"
+
+msgid "more common in the top cut"
+msgstr "más común en el corte"
+
+msgid "most common"
+msgstr "más común"
+
+msgid "of sets"
+msgstr "de los sets"
+
+msgid "or browse the"
+msgstr "o consulta la"
+
+msgid "players"
+msgstr "jugadores"
+
+msgid "popular picks, lowest win rates"
+msgstr "elecciones populares, menores tasas de victoria"
+
+msgid "ranks established cores (at least %(pct)s%% of teams);"
+msgstr "clasifica los núcleos establecidos (al menos %(pct)s%% de los equipos);"
+
+msgid "shows what to prepare for;"
+msgstr "muestra para qué prepararse;"
+
+msgid "surfaces cores whose combined win rate beats both members' overall win rates, however niche. Click a core to see the teams running it."
+msgstr "destaca núcleos cuya tasa de victorias combinada supera la tasa general de ambos miembros, por nicho que sea. Haz clic en un núcleo para ver los equipos que lo usan."
+
+msgid "this calculator runs your move against every spread your opponent actually uses on ladder, weighted by popularity. Instead of guessing one EV spread, you see your real odds of getting the KO."
+msgstr "esta calculadora ejecuta tu movimiento contra todas las distribuciones que tu oponente realmente usa en el ladder, ponderadas por popularidad. En vez de adivinar una distribución de EVs, ves tus probabilidades reales de conseguir el KO."

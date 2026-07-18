@@ -12,3 +12,5 @@ Werkzeug>=3.0.3
 gunicorn==22.0.0
 ijson>=3.3.0
 python-dotenv>=1.0.0
+Pillow==11.3.0
+Flask-Babel==4.0.0

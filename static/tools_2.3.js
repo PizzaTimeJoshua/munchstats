@@ -1,4 +1,44 @@
 $(document).ready(function () {
+  var t = window.msT || function (s) { return s; };
+
+  // Theme-aware chart colors (light/dark). ct() is read at chart creation;
+  // applyChartTheme() restyles live charts when the toggle fires.
+  function ct() {
+    var light = document.documentElement.getAttribute("data-theme") === "light";
+    return light ? {
+      axis: "rgba(0, 0, 0, 0.3)", grid: "rgba(0, 0, 0, 0.09)",
+      gridFaint: "rgba(0, 0, 0, 0.055)", ticks: "rgba(35, 35, 40, 0.78)",
+      ticksFaint: "rgba(35, 35, 40, 0.66)",
+      gold: "rgba(140, 94, 0, 0.95)", goldBorder: "rgba(140, 94, 0, 0.5)",
+    } : {
+      axis: "rgba(255, 255, 255, 0.12)", grid: "rgba(255, 255, 255, 0.055)",
+      gridFaint: "rgba(255, 255, 255, 0.035)", ticks: "rgba(224, 224, 224, 0.58)",
+      ticksFaint: "rgba(224, 224, 224, 0.5)",
+      gold: "rgba(245, 193, 84, 0.78)", goldBorder: "rgba(245, 193, 84, 0.4)",
+    };
+  }
+  function applyChartTheme(ch) {
+    if (!ch || !ch.options || !ch.options.scales) return;
+    var TH = ct();
+    Object.keys(ch.options.scales).forEach(function (k) {
+      var sc = ch.options.scales[k];
+      var gold = k === "yCumulative";
+      var hidden = /,\s*0\)\s*$/;
+      if (sc.ticks && sc.ticks.color && !hidden.test(sc.ticks.color)) {
+        sc.ticks.color = gold ? TH.gold : TH.ticks;
+      }
+      if (sc.border && sc.border.color && !hidden.test(sc.border.color)) {
+        sc.border.color = gold ? TH.goldBorder : TH.axis;
+      }
+      if (sc.grid && sc.grid.color) sc.grid.color = TH.grid;
+    });
+    ch.update();
+  }
+  document.addEventListener("ms-theme-change", function () {
+    applyChartTheme(evChart);
+    applyChartTheme(trendChart);
+  });
+
   // ========== TOOLTIP (event delegation - works with dynamic elements) ==========
   var tooltip = document.getElementById("tooltip");
   document.addEventListener("mouseover", function (event) {
@@ -102,19 +142,19 @@ $(document).ready(function () {
         scales: {
           y: {
             beginAtZero: true,
-            border: { color: "rgba(255, 255, 255, 0.12)" },
-            grid: { color: "rgba(255, 255, 255, 0.055)" },
+            border: { color: ct().axis },
+            grid: { color: ct().grid },
             ticks: {
-              color: "rgba(224, 224, 224, 0.58)",
+              color: ct().ticks,
               font: { size: 11 },
               callback: function(value) { return value + "%"; }
             }
           },
           x: {
-            border: { color: "rgba(255, 255, 255, 0.12)" },
-            grid: { color: "rgba(255, 255, 255, 0.035)" },
+            border: { color: ct().axis },
+            grid: { color: ct().gridFaint },
             ticks: {
-              color: "rgba(224, 224, 224, 0.5)",
+              color: ct().ticksFaint,
               font: { size: 10 },
               maxRotation: 45,
             }
@@ -211,16 +251,16 @@ $(document).ready(function () {
         );
       });
       evChart.options.scales.y.ticks.color = graphDatasetVisibility.usage
-        ? "rgba(224, 224, 224, 0.58)"
+        ? ct().ticks
         : "rgba(224, 224, 224, 0)";
       evChart.options.scales.y.border.color = graphDatasetVisibility.usage
-        ? "rgba(255, 255, 255, 0.12)"
+        ? ct().axis
         : "rgba(255, 255, 255, 0)";
       evChart.options.scales.yCumulative.ticks.color = cumulativeVisible
-        ? "rgba(245, 193, 84, 0.78)"
+        ? ct().gold
         : "rgba(245, 193, 84, 0)";
       evChart.options.scales.yCumulative.border.color = cumulativeVisible
-        ? "rgba(245, 193, 84, 0.4)"
+        ? ct().goldBorder
         : "rgba(245, 193, 84, 0)";
       if (redraw !== false) evChart.update();
     }
@@ -254,7 +294,7 @@ $(document).ready(function () {
         datasets: [
           {
             type: "bar",
-            label: "Usage",
+            label: t("Usage"),
             data: convertChartData(currentChartData),
             backgroundColor: "rgba(75, 192, 192, 0.2)",
             borderColor: "rgba(75, 192, 192, 1)",
@@ -267,7 +307,7 @@ $(document).ready(function () {
           },
           {
             type: "line",
-            label: "Cumulative",
+            label: t("Cumulative"),
             data: convertCumulativeChartData(currentChartData),
             borderColor: "rgba(245, 193, 84, 0.95)",
             backgroundColor: "rgba(245, 193, 84, 0.12)",
@@ -284,7 +324,7 @@ $(document).ready(function () {
           },
           {
             type: "line",
-            label: "Reverse Cumulative",
+            label: t("Reverse Cumulative"),
             data: convertReverseCumulativeChartData(currentChartData),
             borderColor: "rgba(180, 150, 255, 0.95)",
             backgroundColor: "rgba(180, 150, 255, 0.12)",
@@ -327,10 +367,10 @@ $(document).ready(function () {
             beginAtZero: true,
             display: true,
             max: limits.maxY,
-            border: { color: "rgba(255, 255, 255, 0.12)" },
-            grid: { color: "rgba(255, 255, 255, 0.055)" },
+            border: { color: ct().axis },
+            grid: { color: ct().grid },
             ticks: {
-              color: "rgba(224, 224, 224, 0.58)",
+              color: ct().ticks,
               font: { size: 11 },
               maxTicksLimit: 5,
               padding: 4,
@@ -344,10 +384,10 @@ $(document).ready(function () {
             display: true,
             max: 100,
             position: "right",
-            border: { color: "rgba(245, 193, 84, 0.4)" },
+            border: { color: ct().goldBorder },
             grid: { drawOnChartArea: false },
             ticks: {
-              color: "rgba(245, 193, 84, 0.78)",
+              color: ct().gold,
               font: { size: 11, weight: "bold" },
               padding: 4,
               stepSize: 25,
@@ -361,11 +401,11 @@ $(document).ready(function () {
             position: "bottom",
             min: limits.minX,
             max: limits.maxX,
-            border: { color: "rgba(255, 255, 255, 0.12)" },
-            grid: { color: "rgba(255, 255, 255, 0.035)" },
+            border: { color: ct().axis },
+            grid: { color: ct().gridFaint },
             ticks: {
               autoSkip: true,
-              color: "rgba(224, 224, 224, 0.5)",
+              color: ct().ticksFaint,
               font: { size: 10 },
               maxRotation: 0,
               maxTicksLimit: 6,
@@ -1174,10 +1214,10 @@ $(document).ready(function () {
   }
 
   function buildBaseStatsHTML(stats) {
-    if (!stats || stats.length === 0) return "<h2>Base Stats</h2>";
+    if (!stats || stats.length === 0) return "<h2>" + t("Base Stats") + "</h2>";
     var labels = ["HP", "Atk", "Def", "SpA", "SpD", "Spe"];
     var fills = ["hp", "atk", "def", "spa", "spd", "spe"];
-    var html = "<h2>Base Stats</h2>";
+    var html = "<h2>" + t("Base Stats") + "</h2>";
     labels.forEach(function (label, i) {
       html +=
         '<div class="bar-container">' +
@@ -1201,7 +1241,7 @@ $(document).ready(function () {
 
   function buildMovesHTML(moves) {
     if (!moves || moves.length === 0) return "";
-    var html = "<h2>Moves</h2><div class=\"Data\"><ul>";
+    var html = "<h2>" + t("Moves") + "</h2><div class=\"Data\"><ul>";
     moves.forEach(function (move) {
       html +=
         '<li><button type="button" class="export-button has-tooltip" export-data=\'' +
@@ -1223,7 +1263,7 @@ $(document).ready(function () {
 
   function buildTeammatesHTML(teammates) {
     if (!teammates || teammates.length === 0) return "";
-    var html = "<h2>Teammates</h2><div class=\"Data\"><ul>";
+    var html = "<h2>" + t("Teammates") + "</h2><div class=\"Data\"><ul>";
     teammates.forEach(function (team) {
       var sprite = team[2];
       html +=
@@ -1257,7 +1297,7 @@ $(document).ready(function () {
       abilities[0][0] === "Nothing"
     )
       return "";
-    var html = "<h2>Items</h2><div class=\"Data\"><ul>";
+    var html = "<h2>" + t("Items") + "</h2><div class=\"Data\"><ul>";
     items.forEach(function (item) {
       var sprite = item[3];
       html +=
@@ -1291,7 +1331,7 @@ $(document).ready(function () {
       abilities[0][0] === "Nothing"
     )
       return "";
-    var html = "<h2>Abilities</h2><div class=\"Data\"><ul>";
+    var html = "<h2>" + t("Abilities") + "</h2><div class=\"Data\"><ul>";
     abilities.forEach(function (ability) {
       html +=
         '<li><button type="button" class="export-button has-tooltip" export-data=\'' +
@@ -1315,7 +1355,7 @@ $(document).ready(function () {
     if (!spreads || spreads.length === 0) return "";
     var html =
       "<h2>" +
-      (isChampions ? "Stat Point Spreads" : "EV Spreads") +
+      t(isChampions ? "Stat Point Spreads" : "EV Spreads") +
       "</h2><div class=\"Data\"><ul>";
     spreads.forEach(function (spread) {
       html +=
@@ -1336,7 +1376,7 @@ $(document).ready(function () {
 
   function buildNaturesHTML(natures) {
     if (!natures || natures.length === 0) return "";
-    var html = "<h2>Natures</h2><div class=\"Data\"><ul>";
+    var html = "<h2>" + t("Natures") + "</h2><div class=\"Data\"><ul>";
     natures.forEach(function (nature) {
       html +=
         '<li><button type="button" class="export-button has-tooltip" export-data=\'' +
@@ -1361,7 +1401,7 @@ $(document).ready(function () {
     var categories = ["atk", "spa", "spe", "def", "spd"];
     var html =
       '<h2 style="margin-bottom: 5px;">' +
-      (isChampions ? "Top Points By Category" : "Top EVs By Category") +
+      t(isChampions ? "Top Points By Category" : "Top EVs By Category") +
       "</h2>";
     html +=
       '<button type="button" id="atk_evs" onclick="selectEVs(\'atk\')" value="atk" class="ev-button">ATK</button>';
@@ -1429,7 +1469,7 @@ $(document).ready(function () {
 
   function buildTeraTypesHTML(tera) {
     if (!tera || tera.length === 0 || tera[0][0] === "Nothing") return "";
-    var html = "<h2>Tera Types</h2><div class=\"Data\"><ul>";
+    var html = "<h2>" + t("Tera Types") + "</h2><div class=\"Data\"><ul>";
     tera.forEach(function (t) {
       html +=
         "<li><button type=\"button\" class=\"export-button\" export-data='" +
@@ -1454,8 +1494,8 @@ $(document).ready(function () {
     if (!hasEvs && !data.is_champions_game) return "";
     var isChampions = data.is_champions;
     var html =
-      '<h2>Export Pokemon <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Click on Moves, Items, ' +
-      (isChampions ? "Stat Point Spreads" : "EV Spreads") +
+      '<h2>' + t("Export Pokemon") + ' <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Click on Moves, Items, ' +
+      t(isChampions ? "Stat Point Spreads" : "EV Spreads") +
       ' and Abilities to change the Export!">&#xf059;</span></h2>';
     html +=
       '<textarea class="Export" id="showdown-set" spellcheck="false"></textarea>';
@@ -1467,7 +1507,7 @@ $(document).ready(function () {
   function buildCountersHTML(counters) {
     if (!counters || counters.length === 0) return "";
     var html =
-      "<h2>Checks and Counters</h2><div class=\"Data\"><ul>";
+      "<h2>" + t("Checks and Counters") + "</h2><div class=\"Data\"><ul>";
     counters.forEach(function (counter) {
       var sprite = counter[2];
       html +=
@@ -1497,7 +1537,7 @@ $(document).ready(function () {
     var nonNull = data.trend_usage.filter(function(v) { return v !== null && v > 0; });
     if (nonNull.length < 2) return "";
     var html = "<div>";
-    html += "<h2>Usage Trend</h2>";
+    html += "<h2>" + t("Usage Trend") + "</h2>";
     html += '<div class="Data" style="max-height: 210px; height: 210px; margin-bottom: 0px; overflow: hidden;">';
     html += '<div id="trend-chart-container" style="width: 100%; height: 190px; position: relative;">';
     html += '<canvas id="trendChart"></canvas>';
@@ -1556,10 +1596,10 @@ $(document).ready(function () {
 
   function buildMerchSectionHTML() {
     return '<div class="merch-section" id="merch-section">' +
-      '<h2>Merch <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="These are affiliate eBay links that help support the website.">&#xf059;</span> ' +
-      '<button type="button" class="merch-toggle" id="merch-toggle">Hide</button></h2>' +
+      '<h2>' + t("Merch") + ' <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="' + t("These are affiliate eBay links that help support the website.") + '">&#xf059;</span> ' +
+      '<button type="button" class="merch-toggle" id="merch-toggle">' + t("Hide") + '</button></h2>' +
       '<div class="merch-carousel" id="merch-carousel">' +
-      '<div class="merch-loading">Loading merch...</div>' +
+      '<div class="merch-loading">' + t("Loading merch...") + '</div>' +
       '</div>' +
       '<div class="merch-collapsed-msg">Merch hidden &mdash; click Show to browse</div>' +
       '</div>';
@@ -1864,7 +1904,7 @@ $(document).ready(function () {
     clearInterval(merchInterval);
     var carousel = document.getElementById("merch-carousel");
     if (carousel) {
-      carousel.innerHTML = '<div class="merch-loading">Loading merch...</div>';
+      carousel.innerHTML = '<div class="merch-loading">' + t("Loading merch...") + '</div>';
     }
     if (!section.classList.contains("collapsed")) {
       fetchMerchListings(pokemonName);
@@ -1880,13 +1920,13 @@ $(document).ready(function () {
       .then(function (listings) {
         merchLoaded = true;
         if (!listings || listings.length === 0) {
-          carousel.innerHTML = '<div class="merch-loading">No merch found</div>';
+          carousel.innerHTML = '<div class="merch-loading">' + t("No merch found") + '</div>';
           return;
         }
         renderMerchCarousel(carousel, listings);
       })
       .catch(function () {
-        carousel.innerHTML = '<div class="merch-loading">Could not load merch</div>';
+        carousel.innerHTML = '<div class="merch-loading">' + t("Could not load merch") + '</div>';
       });
   }
 
@@ -1977,11 +2017,11 @@ $(document).ready(function () {
     if (!section || !toggle) return;
     if (localStorage.getItem("merchCollapsed") === "true") {
       section.classList.add("collapsed");
-      toggle.textContent = "Show";
+      toggle.textContent = t("Show");
     }
     toggle.addEventListener("click", function () {
       var collapsed = section.classList.toggle("collapsed");
-      toggle.textContent = collapsed ? "Show" : "Hide";
+      toggle.textContent = collapsed ? t("Show") : t("Hide");
       localStorage.setItem("merchCollapsed", collapsed);
       if (!collapsed && !merchLoaded && merchPokemon) {
         fetchMerchListings(merchPokemon);
@@ -2012,13 +2052,13 @@ $(document).ready(function () {
       .then(function (res) { return res.json(); })
       .then(function (teams) {
         if (!teams || teams.length === 0) {
-          container.innerHTML = '<div class="section-loading">No tournament data found</div>';
+          container.innerHTML = '<div class="section-loading">' + t("No tournament data found") + '</div>';
           return;
         }
         renderTournamentTeams(container, teams);
       })
       .catch(function () {
-        container.innerHTML = '<div class="section-loading">Could not load tournament data</div>';
+        container.innerHTML = '<div class="section-loading">' + t("Could not load tournament data") + '</div>';
       });
   }
 
@@ -2071,20 +2111,20 @@ $(document).ready(function () {
       .then(function (res) { return res.json(); })
       .then(function (replays) {
         if (!replays || replays.length === 0) {
-          container.innerHTML = '<div class="section-loading">No replays found</div>';
+          container.innerHTML = '<div class="section-loading">' + t("No replays found") + '</div>';
           return;
         }
         renderRecentReplays(container, replays, formatCode);
       })
       .catch(function () {
-        container.innerHTML = '<div class="section-loading">Could not load replays</div>';
+        container.innerHTML = '<div class="section-loading">' + t("Could not load replays") + '</div>';
       });
   }
 
   function renderRecentReplays(container, replays, formatCode) {
     var html = "";
     if (window.isTransformed) {
-      html += '<div style="color: #b08d57; font-size: 11px; padding: 4px 8px; border-bottom: 1px solid #2a2a2a;">Replays show base form only and may not reflect this specific form.</div>';
+      html += '<div style="color: #b08d57; font-size: 11px; padding: 4px 8px; border-bottom: 1px solid var(--border-soft);">' + t("Replays show base form only and may not reflect this specific form.") + '</div>';
     }
     for (var i = 0; i < replays.length; i++) {
       var r = replays[i];
@@ -2350,17 +2390,17 @@ $(document).ready(function () {
 
   function buildTournamentTeamsSectionHTML() {
     return '<div id="tournament-teams-section">' +
-      '<h2>Top Teams <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Teams from recent VGC events (majors and Limitless online tournaments) that used this Pokemon, ranked by record and event size.">&#xf059;</span></h2>' +
+      '<h2>' + t("Top Teams") + ' <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="' + t("High-rated replays where this Pokemon was used.") + '">&#xf059;</span></h2>' +
       '<div class="Data" style="height: auto; max-height: 210px;">' +
-      '<div class="section-loading" id="tournament-teams-loading">Loading tournament data...</div>' +
+      '<div class="section-loading" id="tournament-teams-loading">' + t("Loading tournament data...") + '</div>' +
       '</div></div>';
   }
 
   function buildRecentReplaysSectionHTML() {
     return '<div id="recent-replays-section">' +
-      '<h2>Recent Replays <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="High-rated replays where this Pokemon was used.">&#xf059;</span></h2>' +
+      '<h2>' + t("Recent Replays") + ' <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="' + t("High-rated replays where this Pokemon was used.") + '">&#xf059;</span></h2>' +
       '<div class="Data" style="height: auto; max-height: 210px;">' +
-      '<div class="section-loading" id="recent-replays-loading">Loading replays...</div>' +
+      '<div class="section-loading" id="recent-replays-loading">' + t("Loading replays...") + '</div>' +
       '</div></div>';
   }
 

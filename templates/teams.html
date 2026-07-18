@@ -8,12 +8,12 @@
 <style>
   .teams-container *, .teams-container *::before, .teams-container *::after { box-sizing: border-box; }
   h2 { font-weight: 600; letter-spacing: -0.3px; }
-  h3, h4 { font-weight: 500; color: #bbb; }
+  h3, h4 { font-weight: 500; color: var(--text-sub); }
   input, select, option {
-    background-color: #222222;
+    background-color: var(--surface);
     accent-color: #ffd54f;
-    color: #e0e0e0;
-    border: 1px solid #555;
+    color: var(--text);
+    border: 1px solid var(--border-2);
     padding: 10px 14px;
     margin: 4px 0;
     border-radius: 0;
@@ -23,10 +23,10 @@
   }
   input:focus, select:focus {
     outline: none;
-    border-color: #ffd54f;
-    box-shadow: 0 0 0 3px rgba(255, 213, 79, 0.15);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px var(--accent-tint);
   }
-  input:hover, select:hover { border-color: #666; }
+  input:hover, select:hover { border-color: var(--border-3); }
   input[type="checkbox"], input[type="radio"] {
     width: auto;
     margin: 0 6px 0 0;
@@ -45,18 +45,18 @@
     padding: 12px;
     font-size: 15px;
     font-weight: 600;
-    background: #333;
-    color: #e0e0e0;
-    border: 1px solid #555;
+    background: var(--raised);
+    color: var(--text);
+    border: 1px solid var(--border-2);
   }
   #randomButton:hover {
-    background: #3a3a3a;
-    border-color: #ffd54f;
+    background: var(--raised-2);
+    border-color: var(--accent);
     box-shadow: none;
   }
   button {
-    background-color: #ffd54f;
-    color: #1e1e1e;
+    background-color: var(--accent);
+    color: var(--on-accent);
     border: none;
     padding: 10px 18px;
     margin: 4px 0;
@@ -67,22 +67,22 @@
     transition: background-color 0.2s, transform 0.1s, box-shadow 0.2s;
   }
   button:hover {
-    background-color: #ffca28;
-    box-shadow: 0 4px 12px rgba(255, 213, 79, 0.3);
+    background-color: var(--accent-2);
+    box-shadow: 0 4px 12px var(--accent-tint-2);
   }
   button:active { transform: scale(0.98); }
   fieldset {
-    border: 1px solid #555;
+    border: 1px solid var(--border-2);
     border-radius: 0;
     font-size: 12px;
     margin: 8px 0;
     padding: 10px 12px;
-    background-color: #2a2a2a;
+    background-color: var(--surface-3);
   }
   legend {
     font-size: 14px;
     font-weight: 500;
-    color: #aaa;
+    color: var(--text-muted);
     padding: 0 6px;
   }
   fieldset label {
@@ -94,7 +94,7 @@
     cursor: pointer;
     transition: background-color 0.15s;
   }
-  fieldset label:hover { background-color: #333; }
+  fieldset label:hover { background-color: var(--raised); }
 
   /* Layout */
   .teams-container {
@@ -111,8 +111,8 @@
   }
   .left {
     width: 300px;
-    background-color: #222222;
-    border: 1px solid #555;
+    background-color: var(--surface);
+    border: 1px solid var(--border-2);
     border-radius: 0;
     padding: 20px;
     position: sticky;
@@ -121,16 +121,16 @@
   .left h2 { margin-top: 0; margin-bottom: 4px; }
   .left h4 { margin: 12px 0 4px 0; }
   .right { text-align: left; }
-  .search-hint { font-size: 12px; color: #888; margin: 6px 0 0 0; line-height: 1.5; }
+  .search-hint { font-size: 12px; color: var(--text-dim); margin: 6px 0 0 0; line-height: 1.5; }
   .attribution-note {
     font-size: 12px;
-    color: #888;
+    color: var(--text-dim);
     margin-top: 16px;
     padding-top: 12px;
-    border-top: 1px solid #444;
+    border-top: 1px solid var(--border);
     line-height: 1.6;
   }
-  .attribution-note a { color: #ffd54f; text-decoration: none; }
+  .attribution-note a { color: var(--accent); text-decoration: none; }
   .attribution-note a:hover { text-decoration: underline; }
 
   .sprite {
@@ -160,12 +160,12 @@
     margin: 4px 0 10px 0;
   }
   .result-summary h2 { margin: 0; }
-  .result-count { font-size: 13px; color: #888; white-space: nowrap; }
+  .result-count { font-size: 13px; color: var(--text-dim); white-space: nowrap; }
 
   /* Team cards */
   .team-card {
-    background: #222222;
-    border: 1px solid #555;
+    background: var(--surface);
+    border: 1px solid var(--border-2);
     border-radius: 0;
     margin-bottom: 12px;
     padding: 12px 16px;
@@ -173,8 +173,8 @@
     transition: border-color 0.2s, box-shadow 0.2s;
   }
   .team-card:hover {
-    border-color: #ffd54f;
-    box-shadow: 0 4px 20px rgba(255, 213, 79, 0.15);
+    border-color: var(--accent);
+    box-shadow: 0 4px 20px var(--accent-tint);
   }
   .team-card-top {
     display: flex;
@@ -185,25 +185,25 @@
   .team-card-id {
     font-size: 11px;
     font-weight: 700;
-    color: #1e1e1e;
-    background: #ffd54f;
+    color: var(--on-accent);
+    background: var(--accent);
     padding: 2px 6px;
     flex-shrink: 0;
   }
   .team-card-title {
     font-size: 15px;
     font-weight: 600;
-    color: #e0e0e0;
+    color: var(--text);
     flex: 1;
     min-width: 200px;
   }
-  .team-card-date { font-size: 12px; color: #888; white-space: nowrap; }
+  .team-card-date { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
   .team-card-meta {
     font-size: 13px;
-    color: #aaa;
+    color: var(--text-muted);
     margin: 4px 0 8px 0;
   }
-  .team-card-meta .meta-rank { color: #ffd54f; font-weight: 600; }
+  .team-card-meta .meta-rank { color: var(--accent); font-weight: 600; }
 
   /* Roster grid: sprite + names + item per Pokémon.
      3x2 by default, 6x1 when the card is wide enough, 2x3 on mobile. */
@@ -226,7 +226,7 @@
   .mon-name {
     font-size: 13px;
     font-weight: 600;
-    color: #e0e0e0;
+    color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -236,7 +236,7 @@
     align-items: center;
     gap: 3px;
     font-size: 11px;
-    color: #999;
+    color: var(--text-faint);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -251,8 +251,8 @@
   }
   .team-link-btn {
     display: inline-block;
-    background: #ffd54f;
-    color: #1e1e1e;
+    background: var(--accent);
+    color: var(--on-accent);
     font-size: 12px;
     font-weight: 600;
     padding: 6px 12px;
@@ -262,38 +262,38 @@
     cursor: pointer;
     transition: background-color 0.2s, box-shadow 0.2s;
   }
-  .team-link-btn:hover { background: #ffca28; box-shadow: 0 4px 12px rgba(255, 213, 79, 0.3); }
+  .team-link-btn:hover { background: var(--accent-2); box-shadow: 0 4px 12px var(--accent-tint-2); }
   .team-link-btn.secondary {
-    background: #333;
-    color: #e0e0e0;
-    border: 1px solid #555;
+    background: var(--raised);
+    color: var(--text);
+    border: 1px solid var(--border-2);
   }
-  .team-link-btn.secondary:hover { border-color: #ffd54f; box-shadow: none; }
+  .team-link-btn.secondary:hover { border-color: var(--accent); box-shadow: none; }
   .team-code-chip {
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    background: #2a2a2a;
-    border: 1px dashed #666;
-    color: #e0e0e0;
+    background: var(--surface-3);
+    border: 1px dashed var(--border-3);
+    color: var(--text);
     font-size: 12px;
     font-family: monospace;
     padding: 5px 10px;
     cursor: pointer;
     transition: border-color 0.2s, background-color 0.2s;
   }
-  .team-code-chip:hover { border-color: #ffd54f; background: #333; }
+  .team-code-chip:hover { border-color: var(--accent); background: var(--raised); }
   .team-code-chip .code-label {
     font-family: Arial, sans-serif;
-    color: #888;
+    color: var(--text-dim);
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
   }
   .no-evs-tag {
     font-size: 10px;
-    color: #888;
-    border: 1px solid #555;
+    color: var(--text-dim);
+    border: 1px solid var(--border-2);
     padding: 2px 6px;
     text-transform: uppercase;
     letter-spacing: 0.5px;
@@ -301,7 +301,7 @@
   }
 
   #loadMoreBtn { width: 100%; margin-top: 4px; }
-  .status-text { color: #bbb; }
+  .status-text { color: var(--text-sub); }
 
   /* Team viewer modal */
   .team-modal-overlay {
@@ -309,22 +309,22 @@
     position: fixed;
     top: 0; left: 0;
     width: 100%; height: 100%;
-    background: rgba(0, 0, 0, 0.75);
+    background: var(--scrim);
     z-index: 1000;
     align-items: center;
     justify-content: center;
   }
   .team-modal-overlay.active { display: flex; }
   .team-modal {
-    background: #1e1e1e;
-    border: 1px solid #555;
+    background: var(--bg);
+    border: 1px solid var(--border-2);
     width: 95%;
     max-width: 1000px;
     max-height: 90vh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 32px var(--shadow-2);
   }
   .team-modal-header {
     display: flex;
@@ -332,14 +332,14 @@
     flex-wrap: wrap;
     gap: 8px;
     padding: 10px 16px;
-    background: #222222;
-    border-bottom: 1px solid #555;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border-2);
     flex-shrink: 0;
   }
   .team-modal-title {
     font-size: 14px;
     font-weight: 600;
-    color: #e0e0e0;
+    color: var(--text);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -349,8 +349,8 @@
   .team-modal-header .team-link-btn { flex-shrink: 0; }
   .team-modal-close {
     background: none;
-    border: 1px solid #555;
-    color: #e0e0e0;
+    border: 1px solid var(--border-2);
+    color: var(--text);
     font-size: 20px;
     width: 32px;
     height: 32px;
@@ -363,27 +363,27 @@
     transition: background-color 0.2s;
     flex-shrink: 0;
   }
-  .team-modal-close:hover { background: #333; box-shadow: none; }
+  .team-modal-close:hover { background: var(--raised); box-shadow: none; }
   .team-modal-body {
     overflow-y: auto;
     padding: 16px;
   }
   .team-modal-meta {
     font-size: 13px;
-    color: #aaa;
+    color: var(--text-muted);
     margin: 0 0 12px 0;
   }
-  .team-modal-meta .meta-rank { color: #ffd54f; font-weight: 600; }
+  .team-modal-meta .meta-rank { color: var(--accent); font-weight: 600; }
   #teamModalLinks { margin-bottom: 12px; }
-  .team-modal-status { color: #bbb; font-size: 14px; padding: 20px 0; text-align: center; }
+  .team-modal-status { color: var(--text-sub); font-size: 14px; padding: 20px 0; text-align: center; }
   .set-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 12px;
   }
   .set-card {
-    background: #222222;
-    border: 1px solid #555;
+    background: var(--surface);
+    border: 1px solid var(--border-2);
     padding: 10px 14px;
     font-size: 13px;
     line-height: 1.55;
@@ -392,43 +392,43 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid var(--border);
     padding-bottom: 6px;
     margin-bottom: 6px;
   }
-  .set-card-name { font-weight: 700; font-size: 14px; color: #e0e0e0; min-width: 0; }
+  .set-card-name { font-weight: 700; font-size: 14px; color: var(--text); min-width: 0; }
   .set-card-item {
     display: flex;
     align-items: center;
     gap: 4px;
     font-size: 12px;
-    color: #999;
+    color: var(--text-faint);
     margin-left: auto;
     white-space: nowrap;
   }
-  .set-line { color: #bbb; }
-  .set-line b { color: #e0e0e0; font-weight: 600; }
-  .set-move { color: #e0e0e0; }
+  .set-line { color: var(--text-sub); }
+  .set-line b { color: var(--text); font-weight: 600; }
+  .set-move { color: var(--text); }
   .set-move::before { content: "- "; }
 
   /* External link confirmation dialog */
   .link-modal {
-    background: #1e1e1e;
-    border: 1px solid #555;
+    background: var(--bg);
+    border: 1px solid var(--border-2);
     width: 95%;
     max-width: 460px;
     padding: 20px 24px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    box-shadow: 0 8px 32px var(--shadow-2);
     text-align: left;
   }
-  .link-modal h3 { margin: 0 0 8px 0; color: #e0e0e0; }
-  .link-modal p { margin: 0 0 8px 0; font-size: 13px; color: #aaa; }
+  .link-modal h3 { margin: 0 0 8px 0; color: var(--text); }
+  .link-modal p { margin: 0 0 8px 0; font-size: 13px; color: var(--text-muted); }
   .link-modal-url {
     font-family: monospace;
     font-size: 12px;
-    color: #ffd54f;
-    background: #2a2a2a;
-    border: 1px solid #444;
+    color: var(--accent);
+    background: var(--surface-3);
+    border: 1px solid var(--border);
     padding: 8px 10px;
     margin: 0 0 14px 0;
     word-break: break-all;
@@ -442,10 +442,10 @@
   footer {
     text-align: center;
     padding: 20px;
-    color: #666;
+    color: var(--text-disabled);
     font-size: 12px;
   }
-  footer a { color: #ffd54f; text-decoration: none; }
+  footer a { color: var(--accent); text-decoration: none; }
   footer a:hover { text-decoration: underline; }
 
   /* Tablet: stack sidebar */
@@ -478,45 +478,43 @@
 {% include "_tabs.html" %}
 <div class="teams-container">
   <div class="left">
-    <h2>Team Search</h2>
-    <h4>Repository</h4>
+    <h2>{{ _('Team Search') }}</h2>
+    <h4>{{ _('Repository') }}</h4>
     <select id="repoSelect">
       {% for repo_id, repo_name in repositories %}
         <option value="{{ repo_id }}"{% if repo_id == selected_repo %} selected{% endif %}>{{ repo_name }}</option>
       {% endfor %}
     </select>
     <fieldset>
-      <legend>Search</legend>
+      <legend>{{ _('Search') }}</legend>
       <input id="searchInput" type="text" placeholder='e.g. "Kingambit Focus Sash, Garchomp"' autocomplete="off">
-      <label><input checked id="allPokemon" name="pokeFilter" type="radio" value="all"> Find All Pokemon on a Team</label>
-      <label><input id="anyPokemon" name="pokeFilter" type="radio" value="any"> Find Any Pokemon on a Team</label>
+      <label><input checked id="allPokemon" name="pokeFilter" type="radio" value="all"> {{ _('Find All Pokemon on a Team') }}</label>
+      <label><input id="anyPokemon" name="pokeFilter" type="radio" value="any"> {{ _('Find Any Pokemon on a Team') }}</label>
     </fieldset>
     <fieldset>
-      <legend>Filters</legend>
-      <label><input id="evsToggle" type="checkbox"> Has EV Spreads</label>
-      <label><input id="codeToggle" type="checkbox"> <span>Has <span id="codeToggleLabel">{{ code_label }}</span></span></label>
-      <label><input id="reportToggle" type="checkbox"> Has Team Report</label>
+      <legend>{{ _('Filters') }}</legend>
+      <label><input id="evsToggle" type="checkbox"> {{ _('Has EV Spreads') }}</label>
+      <label><input id="codeToggle" type="checkbox"> <span>{{ _('Has') }} <span id="codeToggleLabel">{{ _(code_label) }}</span></span></label>
+      <label><input id="reportToggle" type="checkbox"> {{ _('Has Team Report') }}</label>
     </fieldset>
-    <h4>Sort Results</h4>
+    <h4>{{ _('Sort Results') }}</h4>
     <select id="sortSelect">
-      <option value="newest" selected>Newest First</option>
-      <option value="oldest">Oldest First</option>
-      <option value="random">Random Order</option>
+      <option value="newest" selected>{{ _('Newest First') }}</option>
+      <option value="oldest">{{ _('Oldest First') }}</option>
+      <option value="random">{{ _('Random Order') }}</option>
     </select>
-    <button id="searchButton">Search Teams</button>
-    <button id="randomButton" type="button">Show Random Team</button>
+    <button id="searchButton">{{ _('Search Teams') }}</button>
+    <button id="randomButton" type="button">{{ _('Show Random Team') }}</button>
     <p class="search-hint">
-      Separate Pok&eacute;mon with commas; words in one group must match the
-      same team member, so "Kingambit Focus Sash" means a Kingambit
-      <b>holding</b> a Focus Sash. Player, tournament, rank and team ID work too.
-      Click a team to view its full sets.
+      {{ _('Separate Pokémon with commas; words in one group must match the same team member, so "Kingambit Focus Sash" means a Kingambit') }}
+      <b>{{ _('holding') }}</b> {{ _('a Focus Sash. Player, tournament, rank and team ID work too. Click a team to view its full sets.') }}
     </p>
     <div class="attribution-note">
-      {{ vgcpastes_attribution }} &mdash; follow
+      {{ _(vgcpastes_attribution) }} &mdash; {{ _('follow') }}
       <a href="{{ vgcpastes_attribution_url }}" target="_blank" rel="noopener">@VGCPastes</a>
-      or browse the
-      <a href="{{ vgcpastes_sheet_url }}" target="_blank" rel="noopener">full spreadsheet</a>.
-      Data refreshes every 12 hours.
+      {{ _('or browse the') }}
+      <a href="{{ vgcpastes_sheet_url }}" target="_blank" rel="noopener">{{ _('full spreadsheet') }}</a>.
+      {{ _('Data refreshes every 12 hours.') }}
     </div>
   </div>
   <div class="right">
@@ -524,44 +522,44 @@
       <h2 id="resultsHeading">{{ selected_repo_name }} Teams</h2>
       <span class="result-count" id="resultCount"></span>
     </div>
-    <h3 class="status-text" id="loadingText" style="display: none;">Loading...</h3>
-    <h3 class="status-text" id="noTeamsText" style="display: none;">No teams found.</h3>
-    <h3 class="status-text" id="errorText" style="display: none;">Error: Unable to load teams.</h3>
+    <h3 class="status-text" id="loadingText" style="display: none;">{{ _('Loading...') }}</h3>
+    <h3 class="status-text" id="noTeamsText" style="display: none;">{{ _('No teams found.') }}</h3>
+    <h3 class="status-text" id="errorText" style="display: none;">{{ _('Error: Unable to load teams.') }}</h3>
     <div id="teamsList"></div>
-    <button id="loadMoreBtn" style="display: none;">Load More</button>
+    <button id="loadMoreBtn" style="display: none;">{{ _('Load More') }}</button>
   </div>
 </div>
 <div class="team-modal-overlay" id="teamModal">
   <div class="team-modal">
     <div class="team-modal-header">
-      <span class="team-modal-title" id="teamModalTitle">Team Viewer</span>
-      <button class="team-link-btn" id="teamModalCopy" type="button">Copy Team</button>
-      <a class="team-link-btn secondary" href="#" id="teamModalPaste" target="_blank" rel="noopener">Open on Pokepaste</a>
-      <button class="team-modal-close" id="teamModalClose" title="Close">&times;</button>
+      <span class="team-modal-title" id="teamModalTitle">{{ _('Team Viewer') }}</span>
+      <button class="team-link-btn" id="teamModalCopy" type="button">{{ _('Copy Team') }}</button>
+      <a class="team-link-btn secondary" href="#" id="teamModalPaste" target="_blank" rel="noopener">{{ _('Open on Pokepaste') }}</a>
+      <button class="team-modal-close" id="teamModalClose" title="{{ _('Close') }}">&times;</button>
     </div>
     <div class="team-modal-body">
       <p class="team-modal-meta" id="teamModalMeta"></p>
       <div class="team-card-actions" id="teamModalLinks"></div>
-      <div class="team-modal-status" id="teamModalStatus" style="display: none;">Loading sets...</div>
+      <div class="team-modal-status" id="teamModalStatus" style="display: none;">{{ _('Loading sets...') }}</div>
       <div class="set-grid" id="teamModalSets"></div>
     </div>
   </div>
 </div>
 <div class="team-modal-overlay" id="linkModal">
   <div class="link-modal">
-    <h3>Leaving MunchStats</h3>
-    <p>This will open an external link in a new tab:</p>
+    <h3>{{ _('Leaving MunchStats') }}</h3>
+    <p>{{ _('This will open an external link in a new tab:') }}</p>
     <p class="link-modal-url" id="linkModalUrl"></p>
     <div class="link-modal-actions">
-      <a class="team-link-btn" id="linkModalOpen" href="#" target="_blank" rel="noopener noreferrer">Open in New Tab</a>
-      <button class="team-link-btn secondary" id="linkModalCancel" type="button">Cancel</button>
+      <a class="team-link-btn" id="linkModalOpen" href="#" target="_blank" rel="noopener noreferrer">{{ _('Open in New Tab') }}</a>
+      <button class="team-link-btn secondary" id="linkModalCancel" type="button">{{ _('Cancel') }}</button>
     </div>
   </div>
 </div>
 <footer>
   <p><a href="{{ vgcpastes_attribution_url }}" target="_blank" rel="noopener">{{ vgcpastes_attribution }}</a></p>
-  <p><a href="{{ url_for('about') }}">About</a></p>
-  <p>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</p>
+  <p><a href="{{ url_for('about') }}">{{ _('About') }}</a></p>
+  <p>{{ _('Pokémon and All Respective Names are Trademark & © of Nintendo 1996-2026') }}</p>
 </footer>
 <script>
 (function() {
@@ -644,22 +642,22 @@
   function codeChipHtml(team) {
     if (!team.code) return '';
     return '<span class="team-code-chip" data-code="' + esc(team.code) +
-      '" title="Click to copy"><span class="code-label">' + esc(codeLabel) +
+      '" title="' + msT('Click to copy') + '"><span class="code-label">' + esc(msT(codeLabel)) +
       '</span>' + esc(team.code) + '</span>';
   }
 
   function teamLinksHtml(team) {
-    return linkBtn(team.source_link, 'Source') +
-      linkBtn(team.report_link, 'Report') +
-      linkBtn(team.other_link, 'More') +
+    return linkBtn(team.source_link, msT('Source')) +
+      linkBtn(team.report_link, msT('Report')) +
+      linkBtn(team.other_link, msT('More')) +
       codeChipHtml(team);
   }
 
   function teamCardHtml(team) {
-    var actions = '<button class="team-link-btn view-team-btn" type="button">View Team</button>' +
+    var actions = '<button class="team-link-btn view-team-btn" type="button">' + msT('View Team') + '</button>' +
       teamLinksHtml(team);
     if (!team.has_evs) {
-      actions += '<span class="no-evs-tag" title="The Pokepaste for this team has no EV spreads">No EVs</span>';
+      actions += '<span class="no-evs-tag" title="The Pokepaste for this team has no EV spreads">' + msT('No EVs') + '</span>';
     }
     return '<div class="team-card" data-team-id="' + esc(team.team_id) + '">' +
       '<div class="team-card-top">' +
@@ -715,7 +713,7 @@
         if (seq !== requestSeq) return;
         loadingText.style.display = 'none';
         codeLabel = data.code_label || codeLabel;
-        document.getElementById('codeToggleLabel').textContent = codeLabel;
+        document.getElementById('codeToggleLabel').textContent = msT(codeLabel);
         totalCount = data.total;
         loadedCount = offset + data.teams.length;
         data.teams.forEach(function(t) { teamsById[t.team_id] = t; });
@@ -799,7 +797,7 @@
 
   function openTeamModal(team) {
     var seq = ++modalSeq;
-    modalTitle.textContent = team.team_id + ' — ' + (team.description || 'Untitled Team');
+    modalTitle.textContent = team.team_id + ' — ' + (team.description || msT('Untitled Team'));
     modalMeta.innerHTML = metaHtml(team) +
       (team.date_display ? (metaHtml(team) ? ' &middot; ' : '') + esc(team.date_display) : '');
     modalLinks.innerHTML = teamLinksHtml(team);

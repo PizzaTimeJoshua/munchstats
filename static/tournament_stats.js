@@ -1,4 +1,6 @@
 $(document).ready(function () {
+  var t = window.msT || function (s) { return s; };
+
   // ========== TOOLTIP ==========
   var tooltip = document.getElementById("tooltip");
   document.addEventListener("mouseover", function (event) {
@@ -303,7 +305,7 @@ $(document).ready(function () {
     updateMerchSection(data.selected_pokemon);
 
     // Reload teams for the selected Pokemon
-    $("#teams-heading").text("Teams with " + currentPokemonName);
+    $("#teams-heading").text(t("Teams with") + " " + currentPokemonName);
     loadTeams();
 
     // Attribution follows the data source
@@ -311,7 +313,7 @@ $(document).ready(function () {
     $("#attribution-limitless").toggle(source !== "official");
 
     // Relabel the secondary view for the source and refresh it if open
-    $("#btn-secondary-view").text(source === "limitless" ? "Top Teams" : "Standings");
+    $("#btn-secondary-view").text(source === "limitless" ? t("Top Teams") : t("Standings"));
     applyView(currentView === "secondary");
   }
 
@@ -675,7 +677,7 @@ $(document).ready(function () {
     navigator.clipboard.writeText(textToCopy).then(function () {
       document.getElementById("copy-button").textContent = "Copied!";
       setTimeout(function () {
-        document.getElementById("copy-button").textContent = "Copy Pokemon to Clipboard";
+        document.getElementById("copy-button").textContent = t("Copy Pokemon to Clipboard");
       }, 2000);
     });
   });
@@ -748,7 +750,7 @@ $(document).ready(function () {
 
   function renderTeamEntries(entries, container, prefix, opts) {
     if (!entries || entries.length === 0) {
-      container.innerHTML = '<p style="color: #666; font-size: 13px;">No teams found.</p>';
+      container.innerHTML = '<p style="color: var(--text-disabled); font-size: 13px;">' + t("No teams found.") + '</p>';
       return;
     }
     var html = "";
@@ -777,7 +779,7 @@ $(document).ready(function () {
       btn.textContent = "Copied!";
       btn.classList.add("copied");
       setTimeout(function () {
-        btn.textContent = "Copy Team to Clipboard";
+        btn.textContent = t("Copy Team to Clipboard");
         btn.classList.remove("copied");
       }, 2000);
     });
@@ -787,7 +789,7 @@ $(document).ready(function () {
   async function loadTeams() {
     var container = document.getElementById("teams-list");
     if (!container) return;
-    container.innerHTML = '<p style="color: #666; font-size: 13px;">Loading teams...</p>';
+    container.innerHTML = '<p style="color: var(--text-disabled); font-size: 13px;">' + t("Loading teams...") + '</p>';
 
     var url;
     var opts;
@@ -813,12 +815,12 @@ $(document).ready(function () {
     try {
       var res = await fetch(url);
       if (!res.ok) {
-        container.innerHTML = '<p style="color: #666; font-size: 13px;">No teams found.</p>';
+        container.innerHTML = '<p style="color: var(--text-disabled); font-size: 13px;">' + t("No teams found.") + '</p>';
         return;
       }
       renderTeamEntries(await res.json(), container, "teams", opts);
     } catch (e) {
-      container.innerHTML = '<p style="color: #666; font-size: 13px;">Failed to load teams.</p>';
+      container.innerHTML = '<p style="color: var(--text-disabled); font-size: 13px;">' + t("Failed to load teams.") + '</p>';
     }
   }
 
@@ -834,7 +836,7 @@ $(document).ready(function () {
   async function loadStandings() {
     var container = document.getElementById("standings-list");
     if (!container) return;
-    container.innerHTML = '<p style="color: #666; font-size: 13px;">Loading standings...</p>';
+    container.innerHTML = '<p style="color: var(--text-disabled); font-size: 13px;">' + t("Loading standings...") + '</p>';
 
     var url;
     if (currentSource === "limitless_event") {
@@ -848,7 +850,7 @@ $(document).ready(function () {
     try {
       var res = await fetch(url);
       if (!res.ok) {
-        container.innerHTML = '<p style="color: #666; font-size: 13px;">No standings available.</p>';
+        container.innerHTML = '<p style="color: var(--text-disabled); font-size: 13px;">' + t("No standings available.") + '</p>';
         return;
       }
       standingsData = await res.json();
@@ -858,7 +860,7 @@ $(document).ready(function () {
       standingsLimit = STANDINGS_PAGE;
       renderStandings();
     } catch (e) {
-      container.innerHTML = '<p style="color: #666; font-size: 13px;">Failed to load standings.</p>';
+      container.innerHTML = '<p style="color: var(--text-disabled); font-size: 13px;">Failed to load standings.</p>';
     }
   }
 
@@ -911,7 +913,7 @@ $(document).ready(function () {
       : standingsData;
 
     if (matched.length === 0) {
-      container.innerHTML = '<p style="color: #666; font-size: 13px;">No standings available.</p>';
+      container.innerHTML = '<p style="color: var(--text-disabled); font-size: 13px;">' + t("No standings available.") + '</p>';
       window._teamEntries = window._teamEntries || {};
       window._teamEntries["standings"] = [];
       return;
@@ -926,7 +928,7 @@ $(document).ready(function () {
       html += '<div class="show-more-row">';
       html += '<button type="button" class="team-copy-btn" onclick="showMoreStandings(false)">Show ' +
         Math.min(100, matched.length - shown.length) + ' more</button>';
-      html += '<button type="button" class="team-copy-btn" onclick="showMoreStandings(true)">Show all ' +
+      html += '<button type="button" class="team-copy-btn" onclick="showMoreStandings(true)">' + t("Show all") + ' ' +
         matched.length + '</button>';
       html += '</div>';
     }
@@ -951,7 +953,7 @@ $(document).ready(function () {
 
   function renderArchetypes(archetypes, container) {
     if (!archetypes || archetypes.length === 0) {
-      container.innerHTML = '<p style="color: #666; font-size: 13px;">No teams found.</p>';
+      container.innerHTML = '<p style="color: var(--text-disabled); font-size: 13px;">' + t("No teams found.") + '</p>';
       return;
     }
 
@@ -993,7 +995,7 @@ $(document).ready(function () {
       if (!a) return;
       renderTeamEntries(a.players, playersEl, "arch" + idx, { muted: true, showTournament: true });
       if (a.count > a.players.length) {
-        playersEl.innerHTML += '<p style="color: #666; font-size: 12px;">Showing the top ' +
+        playersEl.innerHTML += '<p style="color: var(--text-disabled); font-size: 12px;">Showing the top ' +
           a.players.length + ' of ' + a.count + ' teams.</p>';
       }
     }
@@ -1006,7 +1008,7 @@ $(document).ready(function () {
     var cacheKey = currentFormatId + " " + currentSegment + " " + currentCut + " " + query;
     if (resultsLoadedFor === cacheKey) return;
 
-    container.innerHTML = '<p style="color: #666; font-size: 13px;">Loading teams...</p>';
+    container.innerHTML = '<p style="color: var(--text-disabled); font-size: 13px;">' + t("Loading teams...") + '</p>';
     var url = "/limitless/api/" + encodeURIComponent(currentFormatId) +
               "/results/?min=" + encodeURIComponent(currentSegment) +
               "&cut=" + encodeURIComponent(currentCut) +
@@ -1014,13 +1016,13 @@ $(document).ready(function () {
     try {
       var res = await fetch(url);
       if (!res.ok) {
-        container.innerHTML = '<p style="color: #666; font-size: 13px;">No teams found.</p>';
+        container.innerHTML = '<p style="color: var(--text-disabled); font-size: 13px;">' + t("No teams found.") + '</p>';
         return;
       }
       renderArchetypes(await res.json(), container);
       resultsLoadedFor = cacheKey;
     } catch (e) {
-      container.innerHTML = '<p style="color: #666; font-size: 13px;">Failed to load teams.</p>';
+      container.innerHTML = '<p style="color: var(--text-disabled); font-size: 13px;">' + t("Failed to load teams.") + '</p>';
     }
   }
 
@@ -1054,7 +1056,7 @@ $(document).ready(function () {
       (minPlayers ? " · " + minPlayers + "+ players" : "")
     );
     if (events.length === 0) {
-      container.innerHTML = '<p style="color: #666; font-size: 13px;">No tournaments found.</p>';
+      container.innerHTML = '<p style="color: var(--text-disabled); font-size: 13px;">' + t("No tournaments found.") + '</p>';
       return;
     }
 
@@ -1070,9 +1072,9 @@ $(document).ready(function () {
       return (b.players || 0) - (a.players || 0);
     }).slice(0, 8);
     if (largest.length > 2) {
-      html += '<h2 class="ov-section-title">Largest Fields</h2>';
+      html += '<h2 class="ov-section-title">' + t("Largest Fields") + '</h2>';
       html += largest.map(eventCard).join("");
-      html += '<h2 class="ov-section-title" style="margin-top: 18px;">Most Recent</h2>';
+      html += '<h2 class="ov-section-title" style="margin-top: 18px;">' + t("Most Recent") + '</h2>';
     }
     html += events.map(eventCard).join("");
     container.innerHTML = html;
@@ -1108,18 +1110,16 @@ $(document).ready(function () {
     var container = document.getElementById("overview-content");
     if (!container) return;
     if (!hubOverview || !hubOverview.stages || !hubOverview.stages.length) {
-      container.innerHTML = '<p style="color: #666; font-size: 13px; text-align: left;">' +
+      container.innerHTML = '<p style="color: var(--text-disabled); font-size: 13px; text-align: left;">' +
         'No stage data is available for this tournament yet.</p>';
       return;
     }
 
-    var html = '<h2 class="ov-section-title">Top Usage by Stage</h2>' +
-      '<p class="ov-sub">Most used Pokemon at each stage of the tournament. ' +
-      'Δ is the change in usage share (percentage points) from the previous stage. ' +
-      'Click a Pokemon for its full stats.</p>';
+    var html = '<h2 class="ov-section-title">' + t("Top Usage by Stage") + '</h2>' +
+      '<p class="ov-sub">' + t("Most used Pokemon at each stage of the tournament. Δ is the change in usage share (percentage points) from the previous stage. Click a Pokemon for its full stats.") + '</p>';
     html += '<div class="ov-panels">';
     hubOverview.stages.forEach(function (stage) {
-      html += '<div class="ov-panel"><h3>' + escapeAttr(stage.label) + '</h3>';
+      html += '<div class="ov-panel"><h3>' + escapeAttr(t(stage.label)) + '</h3>';
       html += '<p class="ov-panel-sub">' + stage.total_teams +
         (stage.total_teams === 1 ? " team" : " teams") + '</p>';
       html += '<table><tr><th class="mon-col">Pokemon</th><th>Usage</th><th>Δ</th></tr>';
@@ -1135,12 +1135,11 @@ $(document).ready(function () {
     html += '</div>';
 
     if (hubOverview.movers && hubOverview.movers.length) {
-      html += '<h2 class="ov-section-title">Biggest Movers</h2>' +
-        '<p class="ov-sub">Largest changes in usage share between stages — ' +
-        'a quick read on what worked and what didn\'t.</p>';
+      html += '<h2 class="ov-section-title">' + t("Biggest Movers") + '</h2>' +
+        '<p class="ov-sub">' + t("Largest changes in usage share between stages — a quick read on what worked and what didn't.") + '</p>';
       html += '<div class="ov-panels">';
       hubOverview.movers.forEach(function (transition) {
-        html += '<div class="ov-panel"><h3>' + escapeAttr(transition.label) + '</h3>';
+        html += '<div class="ov-panel"><h3>' + escapeAttr(t(transition.label)) + '</h3>';
         html += '<table><tr><th class="mon-col">Pokemon</th><th>From</th><th>To</th><th>Δ</th></tr>';
         transition.gains.concat(transition.drops).forEach(function (row) {
           html += '<tr class="ov-row" onclick="selectPokemon(\'' + ovName(row.name) + '\')">';
@@ -1164,9 +1163,9 @@ $(document).ready(function () {
   function updateEventsButton() {
     var btn = $("#btn-events-view");
     if (currentSource === "limitless") {
-      btn.show().text("Events").toggleClass("active", currentView === "events");
+      btn.show().text(t("Events")).toggleClass("active", currentView === "events");
     } else if (currentSource === "limitless_event") {
-      btn.show().html("&#8249; All Events").removeClass("active");
+      btn.show().html("&#8249; " + t("All Events")).removeClass("active");
     } else {
       btn.hide();
     }

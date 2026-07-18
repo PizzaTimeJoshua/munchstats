@@ -8,11 +8,24 @@
 <link rel="stylesheet" href="/static/replay_assets/style/battle.css?v=2" />
 <link rel="stylesheet" href="/static/replay_assets/style/replay.css?v=2" />
 <link rel="stylesheet" href="/static/replay_assets/style/utilichart.css?v=2" />
-<link rel="stylesheet" href="/static/replay_assets/style/replay-override.css?v=2" />
+<link rel="stylesheet" href="/static/replay_assets/style/replay-override.css?v=3" />
+<script>
+  (function () {
+    try {
+      if (localStorage.getItem("theme") === "light") {
+        document.documentElement.setAttribute("data-theme", "light");
+      }
+    } catch (e) {}
+  })();
+</script>
 <style>
+/* Theme tokens only - the full style.css must NOT load here: its body
+   grid layout breaks the Showdown replay viewer's own styles. */
+:root { --bg: #1e1e1e; --text: #e0e0e0; --text-soft: #ccc; --accent: #ffd54f; }
+html[data-theme="light"] { --bg: #f1f1f4; --text: #26262b; --text-soft: #3f3f45; --accent: #9a6700; }
 body {
-  background: #1e1e1e;
-  color: #ccc;
+  background: var(--bg);
+  color: var(--text-soft);
   margin: 0;
   padding: 0;
   overflow-x: hidden;
@@ -23,7 +36,7 @@ body {
   justify-content: center;
   height: 100vh;
   font-family: 'Segoe UI', system-ui, sans-serif;
-  color: #e0e0e0;
+  color: var(--text);
   font-size: 16px;
 }
 .error-state {
@@ -32,13 +45,13 @@ body {
   justify-content: center;
   height: 100vh;
   font-family: 'Segoe UI', system-ui, sans-serif;
-  color: #e0e0e0;
+  color: var(--text);
   font-size: 16px;
   flex-direction: column;
   gap: 12px;
 }
 .error-state a {
-  color: #ffd54f;
+  color: var(--accent);
   text-decoration: none;
 }
 </style>
@@ -53,7 +66,29 @@ body {
   gtag("config", "G-K1B7P5XXK6");
 </script>
 </head>
-<body class="dark">
+<body>
+<script>
+  /* Showdown's battle/replay CSS keys its dark skin off body.dark; apply it
+     only in dark mode, and follow live toggles from the parent page (the
+     storage event fires here when the main site writes the theme key). */
+  (function () {
+    function applyReplayTheme() {
+      var light = false;
+      try { light = localStorage.getItem("theme") === "light"; } catch (e) {}
+      if (light) {
+        document.documentElement.setAttribute("data-theme", "light");
+        document.body.classList.remove("dark");
+      } else {
+        document.documentElement.removeAttribute("data-theme");
+        document.body.classList.add("dark");
+      }
+    }
+    applyReplayTheme();
+    window.addEventListener("storage", function (e) {
+      if (e.key === "theme") applyReplayTheme();
+    });
+  })();
+</script>
 <div class="loading-state" id="loadingState">Loading replay...</div>
 <div class="error-state" id="errorState">
   <div>Failed to load replay.</div>

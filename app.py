@@ -15,16 +15,79 @@ from urllib.parse import quote
 import ijson
 import requests
 from dotenv import load_dotenv
-from flask import Flask, jsonify, redirect, render_template, request, url_for
+from flask import Flask, Response, jsonify, redirect, render_template, request, url_for
+from flask_babel import Babel, get_locale, gettext
 import pyjson5
 
 import insights
 import limitless_stats
+import og_card
 import vgcpastes
 
 load_dotenv()
 
 app = Flask(__name__)
+
+# i18n: UI chrome only -- Pokemon/move/item/ability names stay English.
+LANGUAGES = ["en", "es"]
+
+
+def _select_locale():
+    lang = request.args.get("lang")
+    if lang in LANGUAGES:
+        return lang
+    lang = request.cookies.get("lang")
+    if lang in LANGUAGES:
+        return lang
+    return request.accept_languages.best_match(LANGUAGES, "en")
+
+
+babel = Babel(app, locale_selector=_select_locale)
+
+# Strings rendered by static JS (client-side HTML builders). Served to the
+# page as window.I18N so JS can translate via msT(); English pages get an
+# empty dict and msT() falls back to the key.
+JS_UI_STRINGS = [
+    # usage page sections (tools_2.3.js rebuilds the right panel on click)
+    "Base Stats", "Moves", "Teammates", "Items", "Abilities", "Natures",
+    "Tera Types", "EV Spreads", "Stat Point Spreads", "Top EVs By Category",
+    "Top Points By Category", "Export Pokemon", "Checks and Counters",
+    "Usage Trend", "Merch", "Top Teams", "Recent Replays",
+    "Copy Pokemon to Clipboard", "Copy Team", "Copy Team to Clipboard",
+    "Show", "Hide", "Show all", "Export", "Usage", "Rank",
+    "Cumulative", "Reverse Cumulative",
+    "Loading merch...", "No merch found", "Could not load merch",
+    "Loading tournament data...", "No tournament data found",
+    "Could not load tournament data", "Loading replays...",
+    "No replays found", "Could not load replays",
+    # damage calc
+    "Outspeeds", "Ties", "Slower", "of sets", "More", "Less", "Guaranteed",
+    # teams page cards
+    "View Team", "Source", "Report", "Untitled Team", "No EVs",
+    "Click to copy", "Rental Code", "Replica Code",
+    # tournaments hub
+    "Loading teams...", "No teams found.", "Failed to load teams.",
+    "Loading standings...", "No standings available.",
+    "Failed to load standings.", "No tournaments found.",
+    "Largest Fields", "Most Recent", "Top Usage by Stage", "Biggest Movers",
+    "players", "Standings", "Events", "All Events",
+    "Day 1", "Day 2", "Top Cut", "All Teams", "Top 8", "Top 16", "Top 32",
+    "Most used Pokemon at each stage of the tournament. Δ is the change in usage share (percentage points) from the previous stage. Click a Pokemon for its full stats.",
+    "Largest changes in usage share between stages — a quick read on what worked and what didn't.",
+    # tooltips injected by JS
+    "These are affiliate eBay links that help support the website.",
+    "High-rated replays where this Pokemon was used.",
+    "Replays show base form only and may not reflect this specific form.",
+]
+
+
+@app.context_processor
+def _inject_locale():
+    lang = str(get_locale())
+    js_i18n = {}
+    if lang != "en":
+        js_i18n = {s: gettext(s) for s in JS_UI_STRINGS}
+    return {"current_lang": lang, "languages": LANGUAGES, "js_i18n": js_i18n}
 
 # Directory and global data definitions
 DATA_DIRECTORY = "stats"
@@ -1663,12 +1726,20 @@ def display_pokemon_page(format_code, rating_threshold="", pokemon_name=""):
             redirect_args["month"] = month
         return redirect(url_for("display_pokemon_page", **redirect_args))
 
-    # Pokemon deep links get the Pokemon's sprite as link-preview thumbnail
+    # Pokemon deep links get a generated stat card as link-preview image
     og = {}
     if request.path != "/" and data.get("selected_pokemon"):
-        sprite_url = _og_sprite_url(data["selected_pokemon"])
-        if sprite_url:
-            og = {"og_image": sprite_url, "og_card": "summary"}
+        og = {
+            "og_image": url_for(
+                "og_card_png",
+                format_code=data["selected_format"][0],
+                rating_threshold=data["selected_rating"],
+                pokemon_name=data["selected_pokemon"],
+                month=month if month and month != get_latest_month() else None,
+                v=OG_CARD_REV, _external=True,
+            ),
+            "og_card": "summary_large_image",
+        }
 
     return render_template(
         "index.html", **data, availableFormats=data["month_formats"], **og
@@ -1697,10 +1768,14 @@ def champions_page(fmt="doubles", pokemon_name=""):
         return redirect(url_for(
             "champions_page", fmt=fmt.lower(), pokemon_name=data["selected_pokemon"],
         ))
-    og = {}
-    sprite_url = _og_sprite_url(data["selected_pokemon"])
-    if sprite_url:
-        og = {"og_image": sprite_url, "og_card": "summary"}
+    og = {
+        "og_image": url_for(
+            "og_card_champions", fmt=fmt.lower(),
+            pokemon_name=data["selected_pokemon"],
+            v=OG_CARD_REV, _external=True,
+        ),
+        "og_card": "summary_large_image",
+    }
     return render_template(
         "index.html", **data, availableFormats=data["month_formats"], **og
     )
@@ -2931,10 +3006,31 @@ def _render_tournament_hub(source, data, og_pokemon=""):
         ctx["official_tournaments"] = load_tournament_list()
     og = {"og_description": _hub_og_description(source, ctx, og_pokemon)}
     if og_pokemon and ctx.get("selected_pokemon"):
-        sprite_url = _og_sprite_url(ctx["selected_pokemon"])
-        if sprite_url:
-            og["og_image"] = sprite_url
-            og["og_card"] = "summary"
+        mon = ctx["selected_pokemon"]
+        if source == "official":
+            card_url = url_for(
+                "og_card_tournament",
+                tournament_id=ctx["selected_tournament"]["id"],
+                day_filter=ctx.get("day_filter", "all"),
+                pokemon_name=mon, v=OG_CARD_REV, _external=True,
+            )
+        elif source == "limitless_event":
+            card_url = url_for(
+                "og_card_limitless_event",
+                event_id=ctx["selected_event"]["id"], pokemon_name=mon,
+                cut=ctx.get("cut") if ctx.get("cut") not in (None, "all") else None,
+                v=OG_CARD_REV, _external=True,
+            )
+        else:
+            card_url = url_for(
+                "og_card_limitless",
+                format_id=ctx["selected_format_id"], segment=ctx.get("segment", ""),
+                pokemon_name=mon,
+                cut=ctx.get("cut") if ctx.get("cut") not in (None, "all") else None,
+                v=OG_CARD_REV, _external=True,
+            )
+        og["og_image"] = card_url
+        og["og_card"] = "summary_large_image"
     return render_template(
         "tournaments.html",
         source=source,
@@ -3517,6 +3613,205 @@ def _og_sprite_url(name):
     else:
         sprite_id = to_id(entry.get("name", name))
     return f"https://play.pokemonshowdown.com/sprites/gen5/{sprite_id}.png"
+
+
+# OG stat cards: generated on demand, small LRUs keep the dyno RAM-safe
+# (~150KB per card PNG, ~10KB per cached sprite).
+# OG_CARD_REV is appended to og:image URLs (?v=): Discord caches embed
+# images per URL, so bump it whenever card rendering changes materially.
+OG_CARD_REV = 2
+_og_card_mem = OrderedDict()
+OG_CARD_MEM_MAX = 24
+_og_sprite_png_mem = OrderedDict()
+OG_SPRITE_PNG_MEM_MAX = 64
+
+
+def _fetch_sprite_png(name):
+    """Raw PNG bytes of a Pokemon's card art: Showdown gen5 sprite, falling
+    back to the local pokemonicons sheet for mons the gen5 set lacks
+    (Champions-only Megas etc.). Failures are cached as b"" so a dead CDN
+    can't stall every card render."""
+    cached = _og_sprite_png_mem.get(name)
+    if cached is not None:
+        _og_sprite_png_mem.move_to_end(name)
+        return cached or None
+    data = b""
+    url = _og_sprite_url(name)
+    if url:
+        try:
+            resp = requests.get(
+                url, timeout=4,
+                headers={"User-Agent": "MunchStats link-preview card generator"},
+            )
+            if resp.ok and resp.headers.get("Content-Type", "").startswith("image"):
+                data = resp.content
+        except requests.RequestException:
+            pass
+    if not data:
+        row, col = get_pokemon_sprite(name)
+        if (row, col) != (0, 0):
+            data = og_card.icon_from_sheet(
+                os.path.join("static", "pokemonicons-sheet.png"), row, col
+            ) or b""
+    _og_sprite_png_mem[name] = data
+    while len(_og_sprite_png_mem) > OG_SPRITE_PNG_MEM_MAX:
+        _og_sprite_png_mem.popitem(last=False)
+    return data or None
+
+
+def _og_card_facts(format_code, rating_threshold, pokemon_name, month):
+    """Light-weight stats lookup for an OG card. Strict (no format/rating
+    fallbacks): card URLs are built from already-resolved page params."""
+    index_data = fetch_index_data(format_code, rating_threshold, month)
+    if not index_data or not index_data.get("pokemon"):
+        return None
+    pokemon_index = index_data["pokemon"]
+    matched = fuzzy_match(pokemon_name, pokemon_index.keys())
+    if not matched:
+        return None
+    poke_data = fetch_pokemon_data(format_code, rating_threshold, matched, month)
+    if not poke_data:
+        return None
+    sorted_pokemon = sorted(
+        pokemon_index.keys(), key=lambda n: pokemon_index[n]["usage"], reverse=True
+    )
+    moves = [
+        (m[0], m[1])
+        for m in compile_top_data(poke_data, matched, "Moves", format_code)[:4]
+    ]
+    items = compile_top_data(poke_data, matched, "Items")
+    abilities = compile_top_data(poke_data, matched, "Abilities", format_code)
+    return {
+        "name": matched,
+        "format_name": formatDisplayNames.get(format_code, format_code),
+        "month": month,
+        "usage_percent": round(pokemon_index[matched].get("usage", 0) * 100, 2),
+        "rank": sorted_pokemon.index(matched) + 1,
+        "total": len(sorted_pokemon),
+        "types": compile_top_data(poke_data, matched, "Types"),
+        "moves": moves,
+        "item": (items[0][0], items[0][1]) if items and items[0][0] != "Nothing" else None,
+        "ability": (abilities[0][0], abilities[0][1]) if abilities else None,
+        "sprite_png": _fetch_sprite_png(matched),
+    }
+
+
+def _serve_og_card(key, facts_fn):
+    """LRU-cached PNG response for a card; 404 when facts are unavailable."""
+    png = _og_card_mem.get(key)
+    if png is None:
+        facts = facts_fn()
+        if facts is None:
+            return "Not found", 404
+        png = og_card.render_card(facts)
+        _og_card_mem[key] = png
+        while len(_og_card_mem) > OG_CARD_MEM_MAX:
+            _og_card_mem.popitem(last=False)
+    else:
+        _og_card_mem.move_to_end(key)
+    return Response(
+        png, mimetype="image/png",
+        headers={"Cache-Control": "public, max-age=21600"},
+    )
+
+
+def _ctx_card_facts(ctx, format_name):
+    """Map a compiled page-data dict (tournament hub / champions page --
+    they share key names) onto og_card facts."""
+    if not ctx or not ctx.get("current_pokemon"):
+        return None
+    mon = ctx["current_pokemon"]
+    name = ctx.get("selected_pokemon") or mon[0]
+
+    def top_pair(lst):
+        if lst and lst[0] and lst[0][0] and lst[0][0] != "Nothing":
+            return (lst[0][0], lst[0][1])
+        return None
+
+    rank = mon[2] if len(mon) > 2 and isinstance(mon[2], int) else None
+    win_rate = ctx.get("win_rate")
+    return {
+        "name": name,
+        "format_name": format_name,
+        "usage_percent": mon[1] if len(mon) > 1 else None,
+        "rank": rank,
+        "total": len(ctx.get("pokemon_names") or []) or None,
+        "win_rate": win_rate if win_rate not in (None, "", "—") else None,
+        "types": ctx.get("pokemon_types") or [],
+        "moves": [(m[0], m[1]) for m in (ctx.get("moves_list") or [])[:4]],
+        "item": top_pair(ctx.get("items_list")),
+        "ability": top_pair(ctx.get("abilities_list")),
+        "sprite_png": _fetch_sprite_png(name),
+    }
+
+
+@app.route("/og-card/<format_code>/<rating_threshold>/<pokemon_name>.png")
+def og_card_png(format_code, rating_threshold, pokemon_name):
+    """Link-preview stat card, referenced by og:image on Pokemon deep links."""
+    month = request.args.get("month") or get_latest_month()
+    key = (format_code, rating_threshold, pokemon_name, month)
+    return _serve_og_card(
+        key, lambda: _og_card_facts(format_code, rating_threshold, pokemon_name, month)
+    )
+
+
+@app.route("/og-card/tournaments/<tournament_id>/<day_filter>/<pokemon_name>.png")
+def og_card_tournament(tournament_id, day_filter, pokemon_name):
+    def facts():
+        ctx = compile_tournament_page_data(tournament_id, day_filter, pokemon_name)
+        if not ctx:
+            return None
+        label = _DAY_FILTER_LABELS.get(ctx.get("day_filter", "all"))
+        sub = ctx["selected_tournament"]["name"] + (f"  ·  {label}" if label else "")
+        return _ctx_card_facts(ctx, sub)
+
+    return _serve_og_card(("t", tournament_id, day_filter, pokemon_name), facts)
+
+
+@app.route("/og-card/limitless/<format_id>/<segment>/<pokemon_name>.png")
+def og_card_limitless(format_id, segment, pokemon_name):
+    cut = request.args.get("cut", "all")
+
+    def facts():
+        ctx = compile_limitless_page_data(format_id, segment, pokemon_name, cut)
+        if not ctx:
+            return None
+        sub = ctx["selected_format_name"] + " (Online)"
+        if ctx.get("cut") and ctx["cut"] != "all":
+            sub += f"  ·  Top {ctx['cut']}"
+        return _ctx_card_facts(ctx, sub)
+
+    return _serve_og_card(("l", format_id, segment, pokemon_name, cut), facts)
+
+
+@app.route("/og-card/limitless-event/<event_id>/<pokemon_name>.png")
+def og_card_limitless_event(event_id, pokemon_name):
+    cut = request.args.get("cut", "all")
+
+    def facts():
+        ctx = compile_limitless_event_page_data(event_id, pokemon_name, cut)
+        if not ctx:
+            return None
+        sub = ctx["selected_event"]["name"]
+        if ctx.get("cut") and ctx["cut"] != "all":
+            sub += f"  ·  Top {ctx['cut']}"
+        return _ctx_card_facts(ctx, sub)
+
+    return _serve_og_card(("e", event_id, pokemon_name, cut), facts)
+
+
+@app.route("/og-card/champions/<fmt>/<pokemon_name>.png")
+def og_card_champions(fmt, pokemon_name):
+    def facts():
+        format_code = CHAMPIONS_SLUG_TO_FORMAT.get(fmt.lower())
+        if not format_code:
+            return None
+        ctx = compile_champions_page_data(format_code, pokemon_name)
+        if not ctx:
+            return None
+        return _ctx_card_facts(ctx, ctx["selected_format"][1])
+
+    return _serve_og_card(("c", fmt.lower(), pokemon_name), facts)
 
 
 def _dex_base_species(name):

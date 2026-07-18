@@ -19,14 +19,14 @@
       }
       input[type="text"],
       input[type="submit"] {
-        background-color: #222222;
-        color: #e0e0e0;
-        border: 1px solid #555;
+        background-color: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border-2);
         padding: 8px 12px;
         margin: 5px;
       }
       input[type="submit"]:hover {
-        background-color: #333333;
+        background-color: var(--raised);
       }
       .rating-buttons {
         text-align: center;
@@ -36,9 +36,9 @@
       .rating-button,
       .ev-button,
       .stat-button {
-        background-color: #222222;
-        color: #e0e0e0;
-        border: 1px solid #555;
+        background-color: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border-2);
         padding: 8px 12px;
         margin: 5px;
         cursor: pointer;
@@ -57,16 +57,16 @@
         margin: 0 0 2px;
       }
       .graph-toggle-button {
-        background-color: #222222;
-        border: 1px solid #555;
-        color: #999;
+        background-color: var(--surface);
+        border: 1px solid var(--border-2);
+        color: var(--text-faint);
         cursor: pointer;
         font-size: 11px;
         padding: 3px 8px;
       }
       .graph-toggle-button.selected {
-        border-color: #888888;
-        color: #ffffff;
+        border-color: var(--border-hi);
+        color: var(--text-strong);
       }
       #graph-toggle-usage.selected {
         border-color: rgba(56, 189, 201, 0.9);
@@ -79,8 +79,10 @@
       }
       .tooltip {
         position: absolute;
-        background-color: black;
-        color: white;
+        background-color: var(--tooltip-bg);
+        color: var(--tooltip-text);
+        border: 1px solid var(--border);
+        box-shadow: 0 2px 10px var(--shadow-2);
         padding: 5px 10px;
         border-radius: 5px;
         font-size: 14px;
@@ -92,13 +94,13 @@
         opacity: 80%;
       }
       .rating-button:hover {
-        background-color: #333333;
-        color: #ffffff;
+        background-color: var(--raised);
+        color: var(--text-strong);
       }
       .rating-button.active {
-        background-color: #333333;
-        color: #ffd54f;
-        border-color: #888;
+        background-color: var(--raised);
+        color: var(--accent);
+        border-color: var(--border-hi);
       }
       .pokemon-buttons {
         text-align: left;
@@ -106,9 +108,9 @@
       .pokemon-button,
       .export-button,
       .copy-button {
-        background-color: #222222;
-        color: #e0e0e0;
-        border: 0px solid #555;
+        background-color: var(--surface);
+        color: var(--text);
+        border: 0px solid var(--border-2);
         padding: 8px 8px;
         width: 100%;
         cursor: pointer;
@@ -120,12 +122,12 @@
       .pokemon-button:hover,
       .export-button:hover,
       .copy-button:hover {
-        background-color: #333333;
-        color: #ffffff;
+        background-color: var(--raised);
+        color: var(--text-strong);
       }
       .export-button.selected {
-        background-color: #2a2a2a;
-        border-left: 3px solid #888888;
+        background-color: var(--surface-3);
+        border-left: 3px solid var(--border-hi);
       }
       .copy-button {
         justify-content: center;
@@ -137,7 +139,7 @@
         overflow-x: hidden;
         margin-bottom: 20px;
         width: 300px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 0 10px var(--shadow);
         justify-self: center;
         align-self: center;
         max-height: 210px;
@@ -152,30 +154,30 @@
         padding: 0px;
       }
       .pokemon-list li:hover {
-        background-color: #333333;
+        background-color: var(--raised);
       }
       .pokemon-list::-webkit-scrollbar {
         width: 12px;
       }
       .pokemon-list::-webkit-scrollbar-track {
-        background: #222222;
+        background: var(--surface);
       }
       .pokemon-list::-webkit-scrollbar-thumb {
-        background: #333333;
+        background: var(--raised);
       }
       .pokemon-list::-webkit-scrollbar-thumb:hover {
-        background: #111111;
+        background: var(--inset-2);
       }
-      .trend-up { color: #4caf50; font-size: 8px; vertical-align: middle; }
+      .trend-up { color: var(--pos-2); font-size: 8px; vertical-align: middle; }
       .trend-down { color: #f44336; font-size: 8px; vertical-align: middle; }
-      .trend-same { color: #ffeb3b; font-size: 10px; vertical-align: middle; }
+      .trend-same { color: var(--warn); font-size: 10px; vertical-align: middle; }
       .meta-buttons {
         padding-left: 10px;
       }
       .meta-button {
-        background-color: #222222;
-        color: #e0e0e0;
-        border: 0px solid #555;
+        background-color: var(--surface);
+        color: var(--text);
+        border: 0px solid var(--border-2);
         padding: 8px 16px;
         width: 300px;
         cursor: pointer;
@@ -183,8 +185,8 @@
         text-align: left;
       }
       .meta-button:hover {
-        background-color: #333333;
-        color: #ffffff;
+        background-color: var(--raised);
+        color: var(--text-strong);
       }
       .meta-list {
         height: 300px;
@@ -192,7 +194,7 @@
         overflow-x: hidden;
         margin-bottom: 20px;
         width: 300px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 0 10px var(--shadow);
         justify-self: center;
         align-self: center;
         max-height: 210px;
@@ -207,19 +209,19 @@
         padding: 0px;
       }
       .meta-list li:hover {
-        background-color: #333333;
+        background-color: var(--raised);
       }
       .meta-list::-webkit-scrollbar {
         width: 12px;
       }
       .meta-list::-webkit-scrollbar-track {
-        background: #222222;
+        background: var(--surface);
       }
       .meta-list::-webkit-scrollbar-thumb {
-        background: #333333;
+        background: var(--raised);
       }
       .meta-list::-webkit-scrollbar-thumb:hover {
-        background: #111111;
+        background: var(--inset-2);
       }
       .left-text,
       .right-text {
@@ -260,7 +262,7 @@
         overflow-x: hidden;
         margin-bottom: 20px;
         width: 300px;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 0 10px var(--shadow);
         justify-self: center;
         align-self: center;
         max-height: 210px;
@@ -281,7 +283,7 @@
         padding: 0px;
       }
       .Data li:hover {
-        background-color: #333333;
+        background-color: var(--raised);
       }
       .Data::-webkit-scrollbar {
         width: 12px;
@@ -291,20 +293,20 @@
       }
       .Data::-webkit-scrollbar-track,
       .Export::-webkit-scrollbar-track {
-        background: #222222;
+        background: var(--surface);
       }
       .Data::-webkit-scrollbar-thumb,
       .Export::-webkit-scrollbar-thumb {
-        background: #333333;
+        background: var(--raised);
       }
       .Data::-webkit-scrollbar-thumb:hover,
       .Export::-webkit-scrollbar-thumb:hover {
-        background: #111111;
+        background: var(--inset-2);
       }
       .bar-container {
         width: 300px;
         height: 20px;
-        background-color: #1e1e1e;
+        background-color: var(--bg);
         margin-top: 0px;
         display: flex;
         align-items: left;
@@ -386,12 +388,12 @@
         height: 174px;
         font-size: 13px;
         resize: none;
-        background-color: #1e1e1e;
-        color: #ffffff;
+        background-color: var(--bg);
+        color: var(--text-strong);
         overflow-y: scroll;
         overflow-x: scroll;
         white-space: nowrap;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+        box-shadow: 0 0 10px var(--shadow);
         border: 0px;
         text-align: left;
       }
@@ -403,8 +405,8 @@
         text-decoration: underline;
       }
       #pokemon-info {
-        background: #222;
-        border: 1px solid #555;
+        background: var(--surface);
+        border: 1px solid var(--border-2);
         padding: 14px 16px;
         margin-top: 18px;
         margin-bottom: 8px;
@@ -429,7 +431,7 @@
       .info-pokemon-name {
         font-size: 18px;
         font-weight: 700;
-        color: #ffd54f;
+        color: var(--accent);
         line-height: 1.2;
       }
       .info-types {
@@ -441,8 +443,8 @@
         display: flex;
         justify-content: space-around;
         padding: 8px 0;
-        border-top: 1px solid #444;
-        border-bottom: 1px solid #444;
+        border-top: 1px solid var(--border);
+        border-bottom: 1px solid var(--border);
         margin-bottom: 10px;
       }
       .info-stat {
@@ -454,16 +456,16 @@
         font-size: 11px;
         text-transform: uppercase;
         letter-spacing: 0.5px;
-        color: #888;
+        color: var(--text-dim);
       }
       .info-stat-value {
         font-size: 16px;
         font-weight: 600;
-        color: #e0e0e0;
+        color: var(--text);
       }
       .info-format {
         font-size: 12px;
-        color: #ccc;
+        color: var(--text-soft);
         text-align: center;
         line-height: 1.3;
       }
@@ -489,7 +491,7 @@
         font-size: 12px;
         box-shadow: 0 0 0 1px #000;
         border-radius: 10px;
-        color: #ffffff;
+        color: #fff;
         letter-spacing: 0;
         text-align: center;
         display: inline;
@@ -560,9 +562,9 @@
         padding: 6px 0;
       }
       .month-toggle {
-        background: #2a2a2a;
-        color: #e0e0e0;
-        border: 1px solid #555;
+        background: var(--surface-3);
+        color: var(--text);
+        border: 1px solid var(--border-2);
         border-radius: 4px;
         padding: 5px 14px;
         cursor: pointer;
@@ -570,7 +572,7 @@
         width: 100%;
       }
       .month-toggle:hover {
-        background: #333;
+        background: var(--raised);
       }
       .month-toggle i {
         margin-left: 6px;
@@ -578,8 +580,8 @@
       .month-dropdown {
         max-height: 200px;
         overflow-y: auto;
-        background: #222;
-        border: 1px solid #555;
+        background: var(--surface);
+        border: 1px solid var(--border-2);
         border-radius: 4px;
         margin-top: 4px;
       }
@@ -587,7 +589,7 @@
         display: block;
         width: 100%;
         background: none;
-        color: #e0e0e0;
+        color: var(--text);
         border: none;
         padding: 5px 10px;
         cursor: pointer;
@@ -595,7 +597,7 @@
         font-size: 13px;
       }
       .month-option:hover {
-        background: #333;
+        background: var(--raised);
       }
       .month-option.active {
         color: yellow;
@@ -616,7 +618,7 @@
         display: flex;
       }
       .loading-spinner {
-        color: #e0e0e0;
+        color: var(--text);
         font-size: 18px;
         text-align: center;
       }
@@ -626,7 +628,7 @@
         width: 40px;
         height: 40px;
         margin: 0 auto 12px;
-        border: 4px solid #555;
+        border: 4px solid var(--border-2);
         border-top-color: yellow;
         border-radius: 50%;
         animation: spin 0.8s linear infinite;
@@ -638,8 +640,8 @@
       #calc-panel { grid-column: 1 / -1; width: 100%; }
       .calc-source-controls {
         align-items: end;
-        background: #1c1c1c;
-        border: 1px solid #333;
+        background: var(--bg);
+        border: 1px solid var(--border-soft);
         display: flex;
         flex-wrap: wrap;
         gap: 10px;
@@ -657,13 +659,13 @@
         min-width: 320px;
       }
       .calc-source-control label {
-        color: #888;
+        color: var(--text-dim);
         font-size: 11px;
       }
       .calc-source-control select {
-        background: #252525;
-        border: 1px solid #444;
-        color: #e0e0e0;
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        color: var(--text);
         font-size: 12px;
         padding: 5px 24px 5px 7px;
         appearance: none;
@@ -675,8 +677,8 @@
 
       /* Explainer banner */
       .calc-explainer {
-        background: #1a2230;
-        border: 1px solid #2a3a4a;
+        background: var(--info-bg);
+        border: 1px solid var(--info-border);
         border-radius: 6px;
         margin-bottom: 10px;
         overflow: hidden;
@@ -687,7 +689,7 @@
         justify-content: space-between;
         padding: 8px 12px;
         cursor: pointer;
-        color: #81d4fa;
+        color: var(--info-text);
         font-size: 12px;
         font-weight: bold;
         user-select: none;
@@ -696,18 +698,18 @@
         width: 100%;
         text-align: left;
       }
-      .calc-explainer-toggle:hover { color: #ddd; }
+      .calc-explainer-toggle:hover { color: var(--text-hi); }
       .calc-explainer-toggle .chevron { transition: transform 0.2s; font-size: 10px; }
       .calc-explainer-toggle.open .chevron { transform: rotate(180deg); }
       .calc-explainer-body {
         display: none;
         padding: 0 12px 10px;
-        color: #bbb;
+        color: var(--text-sub);
         font-size: 12px;
         line-height: 1.6;
       }
       .calc-explainer-body p { margin: 0 0 6px; }
-      .calc-explainer-body strong { color: #e0e0e0; }
+      .calc-explainer-body strong { color: var(--text); }
 
       /* Info tooltips */
       .calc-tip {
@@ -718,8 +720,8 @@
         width: 14px;
         height: 14px;
         border-radius: 50%;
-        background: #333;
-        color: #999;
+        background: var(--raised);
+        color: var(--text-faint);
         font-size: 9px;
         font-weight: bold;
         cursor: help;
@@ -727,20 +729,20 @@
         flex-shrink: 0;
         vertical-align: middle;
       }
-      .calc-tip:hover { background: #444; color: #ddd; }
+      .calc-tip:hover { background: var(--raised-3); color: var(--text-hi); }
       .calc-tip-text {
         display: none;
         position: absolute;
         bottom: calc(100% + 6px);
         left: 50%;
         transform: translateX(-50%);
-        background: #1a1a1a;
-        border: 1px solid #555;
+        background: var(--inset);
+        border: 1px solid var(--border-2);
         border-radius: 4px;
         padding: 6px 10px;
         font-size: 11px;
         font-weight: normal;
-        color: #ccc;
+        color: var(--text-soft);
         white-space: normal;
         width: 220px;
         z-index: 1000;
@@ -760,34 +762,34 @@
       }
       .calc-poke-panel {
         min-width: 0;
-        background: #1c1c1c;
-        border: 1px solid #333;
+        background: var(--bg);
+        border: 1px solid var(--border-soft);
         padding: 10px 12px;
         box-sizing: border-box;
       }
       .calc-field-panel {
         min-width: 0;
-        background: #1a1a1a;
-        border: 1px solid #333;
-        border-bottom: 1px solid #333;
+        background: var(--inset);
+        border: 1px solid var(--border-soft);
+        border-bottom: 1px solid var(--border-soft);
         padding: 10px 12px;
         box-sizing: border-box;
       }
       .calc-field-panel h4 {
         margin: 0 0 10px;
-        color: #e0e0e0;
+        color: var(--text);
         font-size: 13px;
         font-weight: bold;
       }
       .calc-poke-panel h4 { margin: 0 0 8px; font-size: 13px; font-weight: bold; }
-      .calc-poke-panel h4.your-pokemon { color: #81d4fa; }
-      .calc-poke-panel h4.avg-pokemon  { color: #a5d6a7; }
+      .calc-poke-panel h4.your-pokemon { color: var(--info-text); }
+      .calc-poke-panel h4.avg-pokemon  { color: var(--pos-soft); }
       .calc-poke-panel input[type=text],
       .calc-poke-panel select:not(.calc-boost-sel) {
         width: 100%;
-        background: #252525;
-        color: #e0e0e0;
-        border: 1px solid #444;
+        background: var(--surface-2);
+        color: var(--text);
+        border: 1px solid var(--border);
         padding: 4px 24px 4px 7px;
         font-size: 12px;
         box-sizing: border-box;
@@ -800,16 +802,16 @@
       }
       .calc-preset-wrap { position: relative; margin-bottom: 5px; }
       .calc-preset-selected {
-        width: 100%; background: #252525; color: #e0e0e0; border: 1px solid #444;
+        width: 100%; background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
         padding: 4px 7px; font-size: 12px; box-sizing: border-box; cursor: pointer;
         white-space: nowrap; overflow: visible;
       }
-      .calc-preset-selected:focus { border-color: #666; outline: none; }
+      .calc-preset-selected:focus { border-color: var(--border-3); outline: none; }
       .calc-preset-dropdown { max-height: 240px; }
       .calc-preset-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
       .calc-preset-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-      .calc-preset-usage { flex: 0 0 auto; color: #ffd54f; font-family: monospace; font-size: 11px; }
-      .calc-poke-panel label { font-size: 11px; color: #888; display: block; margin-bottom: 2px; }
+      .calc-preset-usage { flex: 0 0 auto; color: var(--accent); font-family: monospace; font-size: 11px; }
+      .calc-poke-panel label { font-size: 11px; color: var(--text-dim); display: block; margin-bottom: 2px; }
       .calc-type-row {
         display: grid;
         grid-template-columns: 64px 1fr 1fr;
@@ -818,7 +820,7 @@
         margin: 5px 0 8px;
         max-width: 290px;
       }
-      .calc-type-row label { margin: 0; color: #ddd; font-size: 12px; }
+      .calc-type-row label { margin: 0; color: var(--text-hi); font-size: 12px; }
       .calc-type-row select { margin-bottom: 0 !important; width: 100%; }
       .calc-tera-row {
         display: grid;
@@ -828,15 +830,15 @@
         margin: 0 0 8px;
         max-width: 290px;
       }
-      .calc-tera-row label { margin: 0; color: #888; font-size: 11px; }
+      .calc-tera-row label { margin: 0; color: var(--text-dim); font-size: 11px; }
       .calc-tera-row select { margin-bottom: 0 !important; width: 100%; }
       .tera-toggle-btn {
-        background: #171717; border: 1px solid #3a3a3a; color: #888;
+        background: var(--inset); border: 1px solid var(--raised-2); color: var(--text-dim);
         cursor: pointer; font-size: 10px; font-weight: bold;
         padding: 3px 5px; text-transform: uppercase; white-space: nowrap;
       }
-      .tera-toggle-btn:hover { background: #222; border-color: #777; color: #ddd; }
-      .tera-toggle-btn.tera-on { background: #2a2a2a; border-color: #aaa; color: #ddd; }
+      .tera-toggle-btn:hover { background: var(--surface); border-color: var(--border-4); color: var(--text-hi); }
+      .tera-toggle-btn.tera-on { background: var(--surface-3); border-color: var(--border-focus); color: var(--text-hi); }
       .calc-control-stack { margin: 5px 0 8px; }
       .calc-control-row {
         display: grid;
@@ -848,7 +850,7 @@
       }
       .calc-control-row label {
         margin: 0;
-        color: #ddd;
+        color: var(--text-hi);
         font-size: 12px;
       }
       .calc-control-row select,
@@ -886,7 +888,7 @@
         height: 14px;
       }
       .calc-field-section {
-        border-top: 1px solid rgba(255,255,255,0.12);
+        border-top: 1px solid var(--divider);
         padding-top: 9px;
         margin-top: 9px;
       }
@@ -896,7 +898,7 @@
         margin-top: 0;
       }
       .calc-field-label {
-        color: #ddd;
+        color: var(--text-hi);
         font-size: 11px;
         font-weight: bold;
         margin-bottom: 5px;
@@ -926,24 +928,24 @@
         justify-content: center;
         min-height: 22px;
         padding: 3px 9px;
-        background: #2b2b33;
-        border: 1px solid #6a6a78;
+        background: var(--surface-3);
+        border: 1px solid var(--border-3);
         border-radius: 6px;
-        color: #f0f0f0;
+        color: var(--text-strong);
         font-size: 11px;
         line-height: 1.1;
         white-space: nowrap;
       }
       .calc-field-radio input:checked + span,
       .calc-field-toggle input:checked + span {
-        background: #3a3a3a;
-        border-color: #bbb;
-        color: #fff;
+        background: var(--raised-2);
+        border-color: var(--border-focus);
+        color: var(--text-strong);
         font-weight: bold;
       }
       .calc-field-radio:hover span,
       .calc-field-toggle:hover span {
-        border-color: #f0f0f0;
+        border-color: var(--border-focus-2);
       }
       .calc-field-sides {
         display: grid;
@@ -951,7 +953,7 @@
         gap: 8px;
       }
       .calc-field-side-head {
-        color: #777;
+        color: var(--text-dim-2);
         font-size: 10px;
         font-weight: bold;
         letter-spacing: 0.4px;
@@ -970,9 +972,9 @@
       }
       .calc-field-expand-btn {
         background: none;
-        border: 1px solid #444;
+        border: 1px solid var(--border);
         border-radius: 4px;
-        color: #888;
+        color: var(--text-dim);
         font-size: 10px;
         padding: 2px 0;
         margin-top: 3px;
@@ -982,14 +984,14 @@
         transition: color 0.15s, border-color 0.15s;
       }
       .calc-field-expand-btn:hover {
-        color: #ccc;
-        border-color: #888;
+        color: var(--text-soft);
+        border-color: var(--border-hi);
       }
       /* Merch section */
       .merch-toggle {
-        background: #2a2a2a;
-        border: 1px solid #555;
-        color: #aaa;
+        background: var(--surface-3);
+        border: 1px solid var(--border-2);
+        color: var(--text-muted);
         font-size: 12px;
         padding: 4px 14px;
         cursor: pointer;
@@ -998,11 +1000,11 @@
         margin-left: 8px;
         vertical-align: middle;
       }
-      .merch-toggle:hover { color: #fff; background: #333; }
+      .merch-toggle:hover { color: var(--text-strong); background: var(--raised); }
       .merch-section.collapsed .merch-carousel { display: none; }
       .merch-collapsed-msg {
         display: none;
-        color: #666;
+        color: var(--text-disabled);
         font-size: 12px;
         text-align: center;
         padding: 10px 0;
@@ -1013,8 +1015,8 @@
         height: 210px;
         position: relative;
         overflow: hidden;
-        box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-        background: #222;
+        box-shadow: 0 0 10px var(--shadow);
+        background: var(--surface);
         margin-bottom: 20px;
         margin-right: 10px;
         justify-self: center;
@@ -1034,10 +1036,10 @@
         align-items: center;
         justify-content: center;
         text-decoration: none;
-        color: #e0e0e0;
+        color: var(--text);
         padding: 8px 0;
       }
-      .merch-card:hover { background: #2a2a2a; }
+      .merch-card:hover { background: var(--surface-3); }
       .merch-card img {
         width: 110px;
         height: 110px;
@@ -1047,7 +1049,7 @@
       }
       .merch-card-title {
         font-size: 11px;
-        color: #ccc;
+        color: var(--text-soft);
         text-align: center;
         margin-top: 6px;
         padding: 0 6px;
@@ -1059,7 +1061,7 @@
       .merch-card-price {
         font-size: 13px;
         font-weight: 700;
-        color: #ffd54f;
+        color: var(--accent);
         margin-top: 3px;
       }
       .merch-nav {
@@ -1072,9 +1074,9 @@
         gap: 6px;
       }
       .merch-arrow {
-        background: rgba(34,34,34,0.8);
-        border: 1px solid #555;
-        color: #ccc;
+        background: var(--surface-scrim);
+        border: 1px solid var(--border-2);
+        color: var(--text-soft);
         font-size: 16px;
         cursor: pointer;
         padding: 1px 6px;
@@ -1082,31 +1084,31 @@
         border-radius: 3px;
         transition: color 0.2s, background 0.2s;
       }
-      .merch-arrow:hover { color: #fff; background: #444; }
+      .merch-arrow:hover { color: var(--text-strong); background: var(--raised-3); }
       .merch-loading {
         display: flex;
         align-items: center;
         justify-content: center;
         height: 100%;
-        color: #666;
+        color: var(--text-disabled);
         font-size: 13px;
       }
       /* Tournament Teams & Recent Replays sections */
       .section-loading {
-        color: #666;
+        color: var(--text-disabled);
         font-size: 13px;
         padding: 20px;
         text-align: center;
       }
       .team-entry {
         padding: 6px 8px;
-        border-bottom: 1px solid #2a2a2a;
+        border-bottom: 1px solid var(--border-soft);
         text-align: left;
         cursor: pointer;
         transition: background-color 0.2s;
       }
       .team-entry:hover {
-        background-color: #2a2a2a;
+        background-color: var(--surface-3);
       }
       .team-entry:last-child {
         border-bottom: none;
@@ -1120,10 +1122,10 @@
       }
       .team-entry-header .placement {
         font-weight: bold;
-        color: #e0e0e0;
+        color: var(--text);
       }
       .team-entry-header .tournament-info {
-        color: #888;
+        color: var(--text-dim);
         font-size: 11px;
         text-align: right;
         overflow: hidden;
@@ -1137,7 +1139,7 @@
       }
       .replay-entry {
         padding: 6px 8px;
-        border-bottom: 1px solid #2a2a2a;
+        border-bottom: 1px solid var(--border-soft);
         text-align: left;
         cursor: pointer;
         transition: background-color 0.2s;
@@ -1146,7 +1148,7 @@
         border-bottom: none;
       }
       .replay-entry:hover {
-        background-color: #2a2a2a;
+        background-color: var(--surface-3);
       }
       .replay-entry-header {
         display: flex;
@@ -1157,10 +1159,10 @@
       }
       .replay-entry-header .rating {
         font-weight: bold;
-        color: #e0e0e0;
+        color: var(--text);
       }
       .replay-entry-header .players {
-        color: #888;
+        color: var(--text-dim);
         font-size: 11px;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1188,37 +1190,37 @@
         position: fixed;
         top: 0; left: 0;
         width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.75);
+        background: var(--scrim);
         z-index: 1000;
         align-items: center;
         justify-content: center;
       }
       .replay-modal-overlay.active { display: flex; }
       .replay-modal {
-        background: #1e1e1e;
-        border: 1px solid #555;
+        background: var(--bg);
+        border: 1px solid var(--border-2);
         width: 95%;
         max-width: 1200px;
         height: 90vh;
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 8px 32px var(--shadow-2);
       }
       .replay-modal-header {
         display: flex;
         align-items: center;
         flex-wrap: wrap;
         padding: 10px 16px;
-        background: #222222;
-        border-bottom: 1px solid #555;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border-2);
         flex-shrink: 0;
         gap: 6px;
       }
       .replay-modal-title {
         font-size: 14px;
         font-weight: 600;
-        color: #e0e0e0;
+        color: var(--text);
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -1227,8 +1229,8 @@
       }
       .replay-modal-close {
         background: none;
-        border: 1px solid #555;
-        color: #e0e0e0;
+        border: 1px solid var(--border-2);
+        color: var(--text);
         font-size: 20px;
         width: 32px;
         height: 32px;
@@ -1240,9 +1242,9 @@
         margin: 0;
         flex-shrink: 0;
       }
-      .replay-modal-close:hover { background: #333; }
+      .replay-modal-close:hover { background: var(--raised); }
       .replay-modal-external {
-        color: #ffd54f;
+        color: var(--accent);
         text-decoration: none;
         font-size: 13px;
         margin-right: 8px;
@@ -1270,17 +1272,17 @@
         flex-shrink: 0;
       }
       .replay-modal-game-btn {
-        background: #333;
-        color: #e0e0e0;
-        border: 1px solid #555;
+        background: var(--raised);
+        color: var(--text);
+        border: 1px solid var(--border-2);
         padding: 4px 12px;
         margin: 0;
         font-size: 12px;
         cursor: pointer;
         transition: background-color 0.2s, border-color 0.2s;
       }
-      .replay-modal-game-btn:hover { background: #444; border-color: #ffd54f; }
-      .replay-modal-game-btn.active { background: #ffd54f; border-color: #ffd54f; color: #1e1e1e; }
+      .replay-modal-game-btn:hover { background: var(--raised-3); border-color: var(--accent); }
+      .replay-modal-game-btn.active { background: var(--accent); border-color: var(--accent); color: var(--on-accent); }
       .replay-modal-game-btn.disabled { opacity: 0.35; pointer-events: none; }
       .replay-modal-iframe { flex: 1; width: 100%; border: none; }
       /* Team detail modal */
@@ -1289,35 +1291,35 @@
         position: fixed;
         top: 0; left: 0;
         width: 100%; height: 100%;
-        background: rgba(0, 0, 0, 0.75);
+        background: var(--scrim);
         z-index: 1000;
         align-items: center;
         justify-content: center;
       }
       .team-modal-overlay.active { display: flex; }
       .team-modal {
-        background: #1e1e1e;
-        border: 1px solid #555;
+        background: var(--bg);
+        border: 1px solid var(--border-2);
         width: 95%;
         max-width: 1000px;
         max-height: 90vh;
         display: flex;
         flex-direction: column;
         overflow: hidden;
-        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 8px 32px var(--shadow-2);
       }
       .team-modal-header {
         display: flex;
         align-items: center;
         padding: 10px 16px;
-        background: #222222;
-        border-bottom: 1px solid #555;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border-2);
         flex-shrink: 0;
       }
       .team-modal-title {
         font-size: 14px;
         font-weight: 600;
-        color: #e0e0e0;
+        color: var(--text);
         flex: 1;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -1325,8 +1327,8 @@
       }
       .team-modal-close {
         background: none;
-        border: 1px solid #555;
-        color: #e0e0e0;
+        border: 1px solid var(--border-2);
+        color: var(--text);
         font-size: 20px;
         width: 32px;
         height: 32px;
@@ -1338,7 +1340,7 @@
         margin: 0;
         flex-shrink: 0;
       }
-      .team-modal-close:hover { background: #333; }
+      .team-modal-close:hover { background: var(--raised); }
       .team-modal-body {
         padding: 12px 16px;
         overflow-y: auto;
@@ -1351,8 +1353,8 @@
         gap: 12px;
       }
       .set-card {
-        background: #222222;
-        border: 1px solid #555;
+        background: var(--surface);
+        border: 1px solid var(--border-2);
         padding: 10px 14px;
         font-size: 13px;
         line-height: 1.55;
@@ -1363,30 +1365,30 @@
         display: flex;
         align-items: center;
         gap: 8px;
-        border-bottom: 1px solid #444;
+        border-bottom: 1px solid var(--border);
         padding-bottom: 6px;
         margin-bottom: 6px;
       }
       .set-card-header .image-pokemon { flex-shrink: 0; }
-      .set-card-name { font-weight: 700; font-size: 14px; color: #e0e0e0; min-width: 0; }
+      .set-card-name { font-weight: 700; font-size: 14px; color: var(--text); min-width: 0; }
       .set-card-item {
         display: flex;
         align-items: center;
         gap: 4px;
         font-size: 12px;
-        color: #999;
+        color: var(--text-faint);
         margin-left: auto;
         white-space: nowrap;
       }
       .set-card-item .image-item { flex-shrink: 0; }
-      .set-line { color: #bbb; }
-      .set-line b { color: #e0e0e0; font-weight: 600; }
-      .set-move { color: #e0e0e0; }
+      .set-line { color: var(--text-sub); }
+      .set-line b { color: var(--text); font-weight: 600; }
+      .set-move { color: var(--text); }
       .set-move::before { content: "- "; }
       /* Yellow header copy button, same as the Teams page viewer */
       .team-modal-copy {
-        background: #ffd54f;
-        color: #1e1e1e;
+        background: var(--accent);
+        color: var(--on-accent);
         font-size: 12px;
         font-weight: 600;
         padding: 6px 12px;
@@ -1397,20 +1399,20 @@
         transition: background-color 0.2s, box-shadow 0.2s;
       }
       .team-modal-copy:hover {
-        background: #ffca28;
-        box-shadow: 0 4px 12px rgba(255, 213, 79, 0.3);
+        background: var(--accent-2);
+        box-shadow: 0 4px 12px var(--accent-tint-2);
       }
       .section-more-link {
         display: block;
         text-align: center;
         padding: 6px;
-        color: #888;
+        color: var(--text-dim);
         font-size: 12px;
         text-decoration: none;
         transition: color 0.2s;
       }
       .section-more-link:hover {
-        color: #e0e0e0;
+        color: var(--text);
       }
       /* Medium screens: two Pokémon side-by-side, field full-width above */
       /* ── Responsive: Tablet (701–1100px) ── */
@@ -1488,86 +1490,86 @@
       }
 
       .calc-stats-display {
-        font-size: 11px; color: #999; margin: 4px 0 6px;
+        font-size: 11px; color: var(--text-faint); margin: 4px 0 6px;
         font-family: monospace; line-height: 1.4;
-        background: #141414; border: 1px solid #2a2a2a; padding: 4px 6px;
+        background: var(--inset); border: 1px solid var(--border-soft); padding: 4px 6px;
       }
       /* Move list */
-      .calc-moves-label { font-size: 10px; color: #666; text-transform: uppercase; letter-spacing: 0.5px; margin: 6px 0 3px; }
+      .calc-moves-label { font-size: 10px; color: var(--text-disabled); text-transform: uppercase; letter-spacing: 0.5px; margin: 6px 0 3px; }
       .calc-move-list { display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
       .calc-move-row {
         display: flex; align-items: stretch; gap: 4px; min-width: 0;
       }
       .calc-move-btn {
         display: flex; align-items: center; gap: 5px;
-        background: #1a1a1a; border: 1px solid #2e2e2e;
-        padding: 5px 7px; cursor: pointer; font-size: 12px; color: #ccc;
+        background: var(--inset); border: 1px solid var(--border-soft);
+        padding: 5px 7px; cursor: pointer; font-size: 12px; color: var(--text-soft);
         transition: border-color 0.15s, background 0.15s;
         flex: 1 1 auto; flex-wrap: wrap; min-width: 0;
       }
-      .calc-move-btn:hover { background: #222; border-color: #555; color: #e0e0e0; }
-      .calc-move-btn.selected { background: #252525; border-color: #888; color: #e0e0e0; }
+      .calc-move-btn:hover { background: var(--surface); border-color: var(--border-2); color: var(--text); }
+      .calc-move-btn.selected { background: var(--surface-2); border-color: var(--border-hi); color: var(--text); }
       .calc-move-btn .move-name { font-weight: bold; min-width: 90px; }
-      .calc-move-btn .move-meta { color: #666; font-size: 11px; }
+      .calc-move-btn .move-meta { color: var(--text-disabled); font-size: 11px; }
       .calc-type-badge {
         display: inline-block; padding: 1px 5px; border-radius: 2px;
         font-size: 10px; font-weight: bold; white-space: nowrap;
       }
       .move-dmg-badge {
-        margin-left: auto; color: #ffd54f; font-size: 11px;
+        margin-left: auto; color: var(--accent); font-size: 11px;
         font-weight: bold; font-family: monospace; white-space: nowrap;
       }
       .move-hits-select {
-        background: #171717; border: 1px solid #3a3a3a; color: #ccc;
+        background: var(--inset); border: 1px solid var(--raised-2); color: var(--text-soft);
         cursor: pointer; flex: 0 0 38px; font-size: 10px; font-weight: bold;
         padding: 0 2px; text-align: center; appearance: none;
         -webkit-appearance: none; -moz-appearance: none;
       }
       .move-hits-select:hover {
-        background: #222; border-color: #777; color: #ddd;
+        background: var(--surface); border-color: var(--border-4); color: var(--text-hi);
       }
       .move-crit-btn {
-        background: #171717; border: 1px solid #3a3a3a; color: #888;
+        background: var(--inset); border: 1px solid var(--raised-2); color: var(--text-dim);
         cursor: pointer; flex: 0 0 42px; font-size: 10px; font-weight: bold;
         padding: 0 6px; text-transform: uppercase;
       }
       .move-crit-btn:hover {
-        background: #222; border-color: #777; color: #ddd;
+        background: var(--surface); border-color: var(--border-4); color: var(--text-hi);
       }
       .move-crit-btn.crit-on {
-        background: #3a2424; border-color: #ef9a9a; color: #ffd0d0;
+        background: var(--danger-bg); border-color: var(--neg-soft); color: var(--danger-text);
       }
 
       /* Results */
       #calc-results { min-height: 80px; font-size: 13px; }
       .calc-result-section {
-        background: #1c1c1c; border: 1px solid #333; padding: 10px 12px; margin-bottom: 8px;
+        background: var(--bg); border: 1px solid var(--border-soft); padding: 10px 12px; margin-bottom: 8px;
       }
       .calc-result-header {
-        color: #ffd54f; font-weight: bold; font-size: 12px;
+        color: var(--accent); font-weight: bold; font-size: 12px;
         text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 8px;
       }
       .calc-primary-result {
-        background: #1a1a1a; border: 1px solid #444; border-radius: 4px;
+        background: var(--inset); border: 1px solid var(--border); border-radius: 4px;
         margin-bottom: 8px; padding: 10px 12px;
       }
       .calc-primary-title {
-        color: #ffd54f; font-size: 12px; font-weight: bold;
+        color: var(--accent); font-size: 12px; font-weight: bold;
         letter-spacing: 0.4px; margin-bottom: 4px; text-transform: uppercase;
       }
       .calc-primary-main {
-        color: #fff; font-family: "Consolas", "Courier New", monospace;
+        color: var(--text-strong); font-family: "Consolas", "Courier New", monospace;
         font-size: 20px; font-weight: bold; line-height: 1.25;
       }
       .calc-primary-ko {
-        color: #aaa; font-size: 13px; margin-top: 4px;
+        color: var(--text-muted); font-size: 13px; margin-top: 4px;
       }
 
       /* Tier rows */
       .calc-tier-row {
         display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
         padding: 5px 8px; margin-bottom: 4px;
-        background: #141414; border-left: 3px solid #555;
+        background: var(--inset); border-left: 3px solid var(--border-2);
       }
       .calc-tier-left { display: flex; align-items: center; gap: 6px; flex: 1; min-width: 160px; }
       .calc-tier-right { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -1575,26 +1577,26 @@
         display: inline-block; padding: 1px 6px; font-size: 10px; font-weight: bold;
         border-radius: 2px; white-space: nowrap;
       }
-      .calc-tier-stats { font-family: monospace; font-size: 12px; color: #bbb; white-space: nowrap; }
-      .calc-tier-freq { font-size: 11px; color: #555; white-space: nowrap; }
-      .calc-tier-dmg { font-family: monospace; font-size: 12px; color: #e0e0e0; white-space: nowrap; }
+      .calc-tier-stats { font-family: monospace; font-size: 12px; color: var(--text-sub); white-space: nowrap; }
+      .calc-tier-freq { font-size: 11px; color: var(--text-ghost); white-space: nowrap; }
+      .calc-tier-dmg { font-family: monospace; font-size: 12px; color: var(--text); white-space: nowrap; }
       .calc-overall-ko {
-        margin-top: 8px; padding-top: 6px; border-top: 1px solid #2a2a2a;
-        font-size: 12px; color: #aaa;
+        margin-top: 8px; padding-top: 6px; border-top: 1px solid var(--border-soft);
+        font-size: 12px; color: var(--text-muted);
       }
 
       /* Reverse calc rows */
       .calc-reverse-row {
         display: flex; flex-wrap: wrap; align-items: center; gap: 6px;
-        padding: 4px 0; border-bottom: 1px solid #222; font-size: 12px;
+        padding: 4px 0; border-bottom: 1px solid var(--surface); font-size: 12px;
       }
       .calc-reverse-row:last-child { border-bottom: none; }
 
       /* Factor chips */
       .calc-factors { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 8px; }
       .calc-factor-chip {
-        font-size: 10px; padding: 1px 6px; background: #1a1a1a;
-        border: 1px solid #333; border-radius: 2px; white-space: nowrap;
+        font-size: 10px; padding: 1px 6px; background: var(--inset);
+        border: 1px solid var(--border-soft); border-radius: 2px; white-space: nowrap;
       }
       /* nHKO row */
       .calc-nhko-row { display: flex; gap: 8px; font-size: 11px; flex-wrap: wrap; margin-top: 2px; }
@@ -1606,12 +1608,12 @@
         display: flex; align-items: center; flex-wrap: wrap; gap: 5px;
         margin: 4px 0 6px; font-size: 11px;
       }
-      .calc-boost-label { color: #666; white-space: nowrap; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
-      .calc-boost-row label { color: #888; display: flex; align-items: center; gap: 3px; cursor: pointer; }
+      .calc-boost-label { color: var(--text-disabled); white-space: nowrap; font-size: 10px; text-transform: uppercase; letter-spacing: 0.3px; }
+      .calc-boost-row label { color: var(--text-dim); display: flex; align-items: center; gap: 3px; cursor: pointer; }
       /* Custom move / move search form */
-      .calc-custom-move-form { margin-top: 6px; border-top: 1px solid #222; padding-top: 6px; }
+      .calc-custom-move-form { margin-top: 6px; border-top: 1px solid var(--surface); padding-top: 6px; }
       .calc-custom-move-form .cm-label {
-        font-size: 10px; color: #555; text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px;
+        font-size: 10px; color: var(--text-ghost); text-transform: uppercase; letter-spacing: 0.4px; margin-bottom: 4px;
       }
       .calc-custom-move-form input[type=text],
       .calc-custom-move-form .calc-ac-dropdown,
@@ -1626,40 +1628,40 @@
       .calc-autocomplete-wrap input[type=text] { margin-bottom: 0; }
       .calc-ac-dropdown {
         position: absolute; top: 100%; left: 0; right: 0; z-index: 999;
-        background: #252525; border: 1px solid #555; max-height: 200px;
+        background: var(--surface-2); border: 1px solid var(--border-2); max-height: 200px;
         overflow-y: auto; display: none;
       }
       .calc-ac-dropdown::-webkit-scrollbar { width: 12px; }
-      .calc-ac-dropdown::-webkit-scrollbar-track { background: #222222; }
-      .calc-ac-dropdown::-webkit-scrollbar-thumb { background: #333333; }
-      .calc-ac-dropdown::-webkit-scrollbar-thumb:hover { background: #111111; }
+      .calc-ac-dropdown::-webkit-scrollbar-track { background: var(--surface); }
+      .calc-ac-dropdown::-webkit-scrollbar-thumb { background: var(--raised); }
+      .calc-ac-dropdown::-webkit-scrollbar-thumb:hover { background: var(--inset-2); }
 
       /* Custom select dropdown (dark scrollbar replacement) */
       .csel-wrap { position: relative; display: inline-block; width: 100%; }
       .csel-display {
-        background: #252525; color: #e0e0e0; border: 1px solid #444;
+        background: var(--surface-2); color: var(--text); border: 1px solid var(--border);
         padding: 5px 24px 5px 7px; font-size: 12px; cursor: pointer;
         width: 100%; box-sizing: border-box; white-space: nowrap;
         overflow: hidden; text-overflow: ellipsis;
         background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%23888'/%3E%3C/svg%3E");
         background-repeat: no-repeat; background-position: right 8px center;
       }
-      .csel-display:focus { outline: 1px solid #ffd54f; }
+      .csel-display:focus { outline: 1px solid var(--accent); }
       .csel-dropdown {
         display: none; position: absolute; top: 100%; left: 0; right: 0;
-        z-index: 1000; background: #252525; border: 1px solid #555;
+        z-index: 1000; background: var(--surface-2); border: 1px solid var(--border-2);
         max-height: 200px; overflow-y: auto;
       }
       .csel-dropdown::-webkit-scrollbar { width: 12px; }
-      .csel-dropdown::-webkit-scrollbar-track { background: #222222; }
-      .csel-dropdown::-webkit-scrollbar-thumb { background: #333333; }
-      .csel-dropdown::-webkit-scrollbar-thumb:hover { background: #111111; }
+      .csel-dropdown::-webkit-scrollbar-track { background: var(--surface); }
+      .csel-dropdown::-webkit-scrollbar-thumb { background: var(--raised); }
+      .csel-dropdown::-webkit-scrollbar-thumb:hover { background: var(--inset-2); }
       .csel-item {
-        padding: 5px 8px; font-size: 12px; cursor: pointer; color: #e0e0e0;
+        padding: 5px 8px; font-size: 12px; cursor: pointer; color: var(--text);
       }
-      .csel-item:hover, .csel-item.active { background: #333; color: #fff; }
+      .csel-item:hover, .csel-item.active { background: var(--raised); color: var(--text-strong); }
       .csel-group-label {
-        padding: 4px 8px; font-size: 10px; color: #888; font-weight: bold;
+        padding: 4px 8px; font-size: 10px; color: var(--text-dim); font-weight: bold;
         text-transform: uppercase; letter-spacing: 0.3px;
       }
       .csel-wrap select { display: none !important; }
@@ -1672,30 +1674,30 @@
         padding: 5px 24px 5px 7px;
       }
 
-      .calc-ac-item { padding: 5px 8px; font-size: 12px; cursor: pointer; color: #e0e0e0; }
-      .calc-ac-item:hover, .calc-ac-item.active { background: #333; color: #fff; }
+      .calc-ac-item { padding: 5px 8px; font-size: 12px; cursor: pointer; color: var(--text); }
+      .calc-ac-item:hover, .calc-ac-item.active { background: var(--raised); color: var(--text-strong); }
       .calc-pokemon-ac-item { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
       .calc-ac-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: bold; }
-      .calc-ac-usage { flex: 0 0 auto; color: #ffd54f; font-family: monospace; font-size: 11px; }
+      .calc-ac-usage { flex: 0 0 auto; color: var(--accent); font-family: monospace; font-size: 11px; }
       .calc-option-ac-item { display: flex; align-items: center; justify-content: space-between; gap: 8px; text-align: left; }
 
       /* EV / SP table */
       .calc-ev-table { border-collapse: collapse; margin: 5px 0 8px; font-size: 12px; }
-      .calc-ev-header th { padding: 2px 4px; font-size: 10px; color: #777; font-weight: normal;
+      .calc-ev-header th { padding: 2px 4px; font-size: 10px; color: var(--text-dim-2); font-weight: normal;
         text-transform: uppercase; letter-spacing: 0.3px; text-align: center; }
       .calc-ev-header th:nth-child(1) { text-align: left; }
       .calc-ev-row td { padding: 2px 4px; text-align: center; }
-      .calc-ev-row td:first-child { text-align: left; font-size: 10px; color: #888; }
-      .ev-base { color: #555; font-size: 11px; }
+      .calc-ev-row td:first-child { text-align: left; font-size: 10px; color: var(--text-dim); }
+      .ev-base { color: var(--text-ghost); font-size: 11px; }
       .calc-ev-input {
-        background: #1a1a1a; color: #e0e0e0; border: 1px solid #3a3a3a;
+        background: var(--inset); color: var(--text); border: 1px solid var(--raised-2);
         padding: 2px 4px; font-size: 11px; width: 42px; box-sizing: border-box;
         -moz-appearance: textfield; text-align: center;
       }
       .calc-ev-input::-webkit-outer-spin-button,
       .calc-ev-input::-webkit-inner-spin-button { -webkit-appearance: none; }
       .calc-iv-input {
-        background: #1a1a1a; color: #e0e0e0; border: 1px solid #3a3a3a;
+        background: var(--inset); color: var(--text); border: 1px solid var(--raised-2);
         padding: 2px 2px; font-size: 11px; width: 30px; box-sizing: border-box;
         -moz-appearance: textfield; text-align: center;
       }
@@ -1704,18 +1706,18 @@
       .ev-final {
         text-align: right; font-family: monospace; font-size: 12px;
       }
-      .calc-ev-total-row td { border-top: 1px solid #3a3a3a; font-size: 11px; color: #aaa; }
-      .ev-boosted { color: #a5d6a7; font-size: 11px; white-space: nowrap; }
+      .calc-ev-total-row td { border-top: 1px solid var(--raised-2); font-size: 11px; color: var(--text-muted); }
+      .ev-boosted { color: var(--pos-soft); font-size: 11px; white-space: nowrap; }
       .calc-boost-sel {
-        background: #1a1a1a; color: #e0e0e0; border: 1px solid #3a3a3a;
+        background: var(--inset); color: var(--text); border: 1px solid var(--raised-2);
         font-size: 10px; padding: 1px 2px; width: 42px; box-sizing: border-box; cursor: pointer;
       }
       .calc-speed-comp {
         font-size: 11px;
         margin: 6px 0 8px;
         line-height: 1.4;
-        background: #1a1a1a;
-        border: 1px solid #333;
+        background: var(--inset);
+        border: 1px solid var(--border-soft);
         border-radius: 6px;
         padding: 5px 8px;
         text-align: center;
@@ -1726,31 +1728,31 @@
       /* Calc string output */
       .calc-string {
         display: flex; align-items: flex-start; gap: 8px;
-        margin: 8px 0 2px; padding: 8px 10px; background: #111; border: 1px solid #333; border-radius: 4px;
+        margin: 8px 0 2px; padding: 8px 10px; background: var(--inset-2); border: 1px solid var(--border-soft); border-radius: 4px;
       }
       .calc-string-primary {
-        border-color: #555; margin: 0 0 10px; padding: 9px 10px;
+        border-color: var(--border-2); margin: 0 0 10px; padding: 9px 10px;
       }
       .calc-string code {
         flex: 1; font-family: "Consolas", "Courier New", monospace; font-size: 11px;
-        color: #bbb; white-space: pre-wrap; word-break: break-all; line-height: 1.5;
+        color: var(--text-sub); white-space: pre-wrap; word-break: break-all; line-height: 1.5;
       }
-      .calc-string-primary code { color: #ddd; font-size: 12px; }
+      .calc-string-primary code { color: var(--text-hi); font-size: 12px; }
       .calc-copy-btn {
-        flex-shrink: 0; background: #222; border: 1px solid #555; color: #aaa; border-radius: 3px;
+        flex-shrink: 0; background: var(--surface); border: 1px solid var(--border-2); color: var(--text-muted); border-radius: 3px;
         padding: 3px 8px; font-size: 10px; cursor: pointer; white-space: nowrap;
       }
-      .calc-copy-btn:hover { background: #2a2a2a; color: #ccc; }
+      .calc-copy-btn:hover { background: var(--surface-3); color: var(--text-soft); }
     </style>
 {% endblock %}
 
 {% block content %}
     <div id="loading-overlay">
-      <div class="loading-spinner">Loading stats...</div>
+      <div class="loading-spinner">{{ _('Loading stats...') }}</div>
     </div>
-    <div id="old-month-banner" style="display: {% if selected_month != available_months[-1] %}block{% else %}none{% endif %}; background: #3a2a00; color: #ffd54f; text-align: center; padding: 6px 12px; font-size: 13px; border-bottom: 1px solid #665500;">
-      You are viewing data from <strong id="banner-month">{{ selected_month }}</strong>.
-      <button type="button" onclick="selectMonth('{{ available_months[-1] }}')" id="banner-jump-btn" style="background: none; border: 1px solid #ffd54f; color: #ffd54f; border-radius: 3px; padding: 2px 10px; margin-left: 8px; cursor: pointer; font-size: 12px;">Jump to latest</button>
+    <div id="old-month-banner" style="display: {% if selected_month != available_months[-1] %}block{% else %}none{% endif %}; background: var(--banner-bg); color: var(--accent); text-align: center; padding: 6px 12px; font-size: 13px; border-bottom: 1px solid var(--banner-border);">
+      {{ _('You are viewing data from') }} <strong id="banner-month">{{ selected_month }}</strong>.
+      <button type="button" onclick="selectMonth('{{ available_months[-1] }}')" id="banner-jump-btn" style="background: none; border: 1px solid var(--accent); color: var(--accent); border-radius: 3px; padding: 2px 10px; margin-left: 8px; cursor: pointer; font-size: 12px;">{{ _('Jump to latest') }}</button>
     </div>
     {% include "_tabs.html" %}
     <div class="grid-container{% if calc_only %} calc-page{% endif %}">
@@ -1771,19 +1773,19 @@
           <div class="info-stats-row">
             {% if current_pokemon[1] != '' %}
             <div class="info-stat">
-              <span class="info-stat-label">Usage</span>
+              <span class="info-stat-label">{{ _('Usage') }}</span>
               <span class="info-stat-value">{{ current_pokemon[1] }}%</span>
             </div>
             {% endif %}
             {% if current_pokemon[2] != '' %}
             <div class="info-stat">
-              <span class="info-stat-label">Rank</span>
+              <span class="info-stat-label">{{ _('Rank') }}</span>
               <span class="info-stat-value">#{{ current_pokemon[2] }}</span>
             </div>
             {% endif %}
             {% if rating_options %}
             <div class="info-stat">
-              <span class="info-stat-label">Rating</span>
+              <span class="info-stat-label">{{ _('Rating') }}</span>
               <span class="info-stat-value">{{ selected_rating }}+</span>
             </div>
             {% endif %}
@@ -1791,7 +1793,7 @@
           <div class="info-format">{{ selected_format[1] }}</div>
         </div>
         <div style="height: 50px;">
-          <input type="text" id="metaSearchInput" placeholder="Search for a Format">
+          <input type="text" id="metaSearchInput" placeholder="{{ _('Search for a Format') }}">
         </div>
         <div class="meta-list">
           <input type="hidden" name="meta_value" id="selectedMeta" value="{{ selected_format }}">
@@ -1810,7 +1812,7 @@
           {% endfor %}
         </div>
         <div style="height: 50px;">
-          <input type="text" id="pokemonSearchInput" placeholder="Search for a Pokemon">
+          <input type="text" id="pokemonSearchInput" placeholder="{{ _('Search for a Pokemon') }}">
         </div>
         <div class="pokemon-list">
           <input type="hidden" name="pokemon_value" id="selectedPokemon" value="{{ selected_pokemon }}">
@@ -1837,7 +1839,7 @@
 
           <div class="calc-source-controls">
             <div class="calc-source-control">
-              <label for="calc-format-select">Format</label>
+              <label for="calc-format-select">{{ _('Format') }}</label>
               <select id="calc-format-select" onchange="onCalcFormatChange()">
                 {% for format in availableFormats %}
                 <option value="{{ format[0] }}" {% if format[0] == selected_format[0] %}selected{% endif %}>{{ format[1] }}</option>
@@ -1845,7 +1847,7 @@
               </select>
             </div>
             <div class="calc-source-control">
-              <label for="calc-rating-select">Rating</label>
+              <label for="calc-rating-select">{{ _('Rating') }}</label>
               <select id="calc-rating-select" onchange="onCalcRatingChange()">
                 {% for rate in rating_options %}
                 <option value="{{ rate }}" {% if rate == selected_rating %}selected{% endif %}>{{ rate }}+</option>
@@ -1856,12 +1858,12 @@
 
           <div class="calc-explainer" id="calc-explainer">
             <button type="button" class="calc-explainer-toggle" onclick="toggleCalcExplainer()" id="calc-explainer-btn">
-              How does this damage calculator work? <span class="chevron">&#9660;</span>
+              {{ _('How does this damage calculator work?') }} <span class="chevron">&#9660;</span>
             </button>
             <div class="calc-explainer-body" id="calc-explainer-body">
-              <p><strong>Unlike a standard damage calc,</strong> this calculator runs your move against every spread your opponent actually uses on ladder, weighted by popularity. Instead of guessing one EV spread, you see your real odds of getting the KO.</p>
-              <p><strong>KO breakpoints:</strong> Opponent spreads are grouped by outcome — which sets you can OHKO, which need two hits (2HKO), three hits (3HKO), and which survive. Each group shows what percentage of ladder sets fall into that range.</p>
-              <p><strong>Weighted overall:</strong> The final KO chance is averaged across all spreads by usage weight — giving you a single realistic number for how often you'll get the KO on ladder.</p>
+              <p><strong>{{ _('Unlike a standard damage calc,') }}</strong> {{ _('this calculator runs your move against every spread your opponent actually uses on ladder, weighted by popularity. Instead of guessing one EV spread, you see your real odds of getting the KO.') }}</p>
+              <p><strong>{{ _('KO breakpoints:') }}</strong> {{ _('Opponent spreads are grouped by outcome — which sets you can OHKO, which need two hits (2HKO), three hits (3HKO), and which survive. Each group shows what percentage of ladder sets fall into that range.') }}</p>
+              <p><strong>{{ _('Weighted overall:') }}</strong> {{ _("The final KO chance is averaged across all spreads by usage weight — giving you a single realistic number for how often you'll get the KO on ladder.") }}</p>
             </div>
           </div>
 
@@ -1870,7 +1872,7 @@
 
             <!-- YOUR Pokemon (attacker — fully editable) -->
             <div class="calc-poke-panel">
-              <h4 class="your-pokemon">Your Pokémon</h4>
+              <h4 class="your-pokemon">{{ _('Your Pokémon') }}</h4>
 
               <div class="calc-control-row">
                 <label>Pokémon</label>
@@ -1882,7 +1884,7 @@
 
               <div id="calc-attacker-form-wrap" class="calc-control-stack" style="display:none;">
                 <div class="calc-control-row">
-                  <label for="calc-attacker-form">Form</label>
+                  <label for="calc-attacker-form">{{ _('Form') }}</label>
                   <select id="calc-attacker-form" onchange="onAttackerFormChange()">
                     <option value="">—</option>
                   </select>
@@ -1890,18 +1892,18 @@
               </div>
 
               <div class="calc-type-row">
-                <label>Type</label>
+                <label>{{ _('Type') }}</label>
                 <select id="calc-attacker-type1" onchange="onAttackerTypeChange()"><option value="">—</option></select>
-                <select id="calc-attacker-type2" onchange="onAttackerTypeChange()"><option value="None">None</option></select>
+                <select id="calc-attacker-type2" onchange="onAttackerTypeChange()"><option value="None">{{ _('None') }}</option></select>
               </div>
               <div class="calc-tera-row">
-                <label>Tera</label>
-                <select id="calc-attacker-tera" onchange="onAttackerTeraChange()"><option value="None">None</option></select>
-                <button type="button" class="tera-toggle-btn" id="calc-attacker-tera-btn" onclick="onTeraToggle(true)" aria-pressed="false">Tera</button>
+                <label>{{ _('Tera') }}</label>
+                <select id="calc-attacker-tera" onchange="onAttackerTeraChange()"><option value="None">{{ _('None') }}</option></select>
+                <button type="button" class="tera-toggle-btn" id="calc-attacker-tera-btn" onclick="onTeraToggle(true)" aria-pressed="false">{{ _('Tera') }}</button>
               </div>
 
               <div class="calc-control-row">
-                <label>Spread</label>
+                <label>{{ _('Spread') }}</label>
                 <div class="calc-preset-wrap" id="calc-attacker-preset-wrap">
                   <div class="calc-preset-selected" id="calc-attacker-preset-display" tabindex="0">— load a Pokémon first —</div>
                   <div class="calc-ac-dropdown calc-preset-dropdown" id="calc-attacker-preset-dropdown"></div>
@@ -1909,7 +1911,7 @@
               </div>
 
               <div class="calc-control-row">
-                <label for="calc-atk-nature">Nature</label>
+                <label for="calc-atk-nature">{{ _('Nature') }}</label>
                 <select id="calc-atk-nature" onchange="onAttackerStatChange()"></select>
               </div>
 
@@ -1929,7 +1931,7 @@
                 </tbody>
                 <tfoot>
                   <tr class="calc-ev-row calc-ev-total-row">
-                    <td>Total</td><td></td><td class="calc-atk-iv-col"></td><td><span id="calc-atk-ev-total">0</span><span id="calc-atk-ev-max" style="color:#666;font-size:10px"> / 510</span></td><td></td><td></td>
+                    <td>Total</td><td></td><td class="calc-atk-iv-col"></td><td><span id="calc-atk-ev-total">0</span><span id="calc-atk-ev-max" style="color:var(--text-disabled);font-size:10px"> / 510</span></td><td></td><td></td>
                   </tr>
                 </tfoot>
               </table>
@@ -1938,7 +1940,7 @@
 
               <div class="calc-control-stack">
                 <div class="calc-control-row">
-                  <label>Ability</label>
+                  <label>{{ _('Ability') }}</label>
                   <div class="calc-ability-cell">
                     <div class="calc-autocomplete-wrap">
                       <input type="text" id="calc-attacker-ability" placeholder="—" autocomplete="off">
@@ -1950,29 +1952,29 @@
                   </div>
                 </div>
                 <div class="calc-control-row">
-                  <label>Item</label>
+                  <label>{{ _('Item') }}</label>
                   <div class="calc-autocomplete-wrap">
                     <input type="text" id="calc-attacker-item" placeholder="None" autocomplete="off">
                     <div class="calc-ac-dropdown" id="calc-attacker-item-dropdown"></div>
                   </div>
                 </div>
                 <div class="calc-control-row">
-                  <label for="calc-attacker-status">Status</label>
+                  <label for="calc-attacker-status">{{ _('Status') }}</label>
                   <select id="calc-attacker-status" onchange="onAttackerStatusChange()">
-                    <option value="Healthy">Healthy</option>
-                    <option value="Burned">Burned</option>
-                    <option value="Poisoned">Poisoned</option>
-                    <option value="Badly Poisoned">Badly Poisoned</option>
-                    <option value="Paralyzed">Paralyzed</option>
-                    <option value="Asleep">Asleep</option>
-                    <option value="Frozen">Frozen</option>
+                    <option value="Healthy">{{ _('Healthy') }}</option>
+                    <option value="Burned">{{ _('Burned') }}</option>
+                    <option value="Poisoned">{{ _('Poisoned') }}</option>
+                    <option value="Badly Poisoned">{{ _('Badly Poisoned') }}</option>
+                    <option value="Paralyzed">{{ _('Paralyzed') }}</option>
+                    <option value="Asleep">{{ _('Asleep') }}</option>
+                    <option value="Frozen">{{ _('Frozen') }}</option>
                   </select>
                 </div>
               </div>
 
-              <div class="calc-moves-label">Moves <span style="color:#555">— click to analyze</span></div>
+              <div class="calc-moves-label">Moves <span style="color:var(--text-ghost)">— click to analyze</span></div>
               <div class="calc-move-list" id="calc-atk-movelist">
-                <div style="color:#444;font-size:11px">Load a Pokémon to see moves</div>
+                <div style="color:var(--text-ghost-2);font-size:11px">Load a Pokémon to see moves</div>
               </div>
 
               <div class="calc-custom-move-form">
@@ -1986,26 +1988,26 @@
             </div>
 
             <div class="calc-field-panel">
-              <h4>Field</h4>
+              <h4>{{ _('Field') }}</h4>
 
               <div class="calc-field-section">
-                <div class="calc-field-label">Format</div>
+                <div class="calc-field-label">{{ _('Format') }}</div>
                 <div class="calc-field-buttons">
                   <label class="calc-field-radio">
                     <input type="radio" name="calc-field-format-mode" value="Singles" onchange="onFieldChange()">
-                    <span>Singles</span>
+                    <span>{{ _('Singles') }}</span>
                   </label>
                   <label class="calc-field-radio">
                     <input type="radio" name="calc-field-format-mode" value="Doubles" checked onchange="onFieldChange()">
-                    <span>Doubles</span>
+                    <span>{{ _('Doubles') }}</span>
                   </label>
                 </div>
               </div>
 
               <div class="calc-field-section">
-                <div class="calc-field-label">Terrain</div>
+                <div class="calc-field-label">{{ _('Terrain') }}</div>
                 <div class="calc-field-buttons">
-                  <label class="calc-field-radio"><input type="radio" name="calc-field-terrain-mode" value="None" checked onchange="onFieldChange()"><span>None</span></label>
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-terrain-mode" value="None" checked onchange="onFieldChange()"><span>{{ _('None') }}</span></label>
                   <label class="calc-field-radio"><input type="radio" name="calc-field-terrain-mode" value="Electric" onchange="onFieldChange()"><span>Electric</span></label>
                   <label class="calc-field-radio"><input type="radio" name="calc-field-terrain-mode" value="Grassy" onchange="onFieldChange()"><span>Grassy</span></label>
                   <label class="calc-field-radio"><input type="radio" name="calc-field-terrain-mode" value="Misty" onchange="onFieldChange()"><span>Misty</span></label>
@@ -2014,18 +2016,18 @@
               </div>
 
               <div class="calc-field-section">
-                <div class="calc-field-label">Weather</div>
+                <div class="calc-field-label">{{ _('Weather') }}</div>
                 <div class="calc-field-buttons">
-                  <label class="calc-field-radio"><input type="radio" name="calc-field-weather-mode" value="None" checked onchange="onFieldChange()"><span>None</span></label>
-                  <label class="calc-field-radio"><input type="radio" name="calc-field-weather-mode" value="Sun" onchange="onFieldChange()"><span>Sun</span></label>
-                  <label class="calc-field-radio"><input type="radio" name="calc-field-weather-mode" value="Rain" onchange="onFieldChange()"><span>Rain</span></label>
-                  <label class="calc-field-radio"><input type="radio" name="calc-field-weather-mode" value="Sand" onchange="onFieldChange()"><span>Sand</span></label>
-                  <label class="calc-field-radio"><input type="radio" name="calc-field-weather-mode" value="Snow" onchange="onFieldChange()"><span>Snow</span></label>
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-weather-mode" value="None" checked onchange="onFieldChange()"><span>{{ _('None') }}</span></label>
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-weather-mode" value="Sun" onchange="onFieldChange()"><span>{{ _('Sun') }}</span></label>
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-weather-mode" value="Rain" onchange="onFieldChange()"><span>{{ _('Rain') }}</span></label>
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-weather-mode" value="Sand" onchange="onFieldChange()"><span>{{ _('Sand') }}</span></label>
+                  <label class="calc-field-radio"><input type="radio" name="calc-field-weather-mode" value="Snow" onchange="onFieldChange()"><span>{{ _('Snow') }}</span></label>
                 </div>
               </div>
 
               <div class="calc-field-section">
-                <div class="calc-field-label">Global</div>
+                <div class="calc-field-label">{{ _('Global') }}</div>
                 <div class="calc-field-buttons">
                   <label class="calc-field-toggle"><input type="checkbox" id="calc-field-gravity" onchange="onFieldChange()"><span>Gravity</span></label>
                   <label class="calc-field-toggle"><input type="checkbox" id="calc-field-trickroom" onchange="onFieldChange()"><span>Trick Room</span></label>
@@ -2035,12 +2037,12 @@
               <div class="calc-field-section">
                 <div class="calc-field-sides">
                   <div class="calc-field-side">
-                    <div class="calc-field-side-head">Attacker's Side</div>
+                    <div class="calc-field-side-head">{{ _("Attacker's Side") }}</div>
                     <label class="calc-field-toggle"><input type="checkbox" id="calc-your-reflect" onchange="onFieldChange()"><span>Reflect</span></label>
                     <label class="calc-field-toggle"><input type="checkbox" id="calc-your-lightscreen" onchange="onFieldChange()"><span>Light Screen</span></label>
                   </div>
                   <div class="calc-field-side">
-                    <div class="calc-field-side-head">Defender's Side</div>
+                    <div class="calc-field-side-head">{{ _("Defender's Side") }}</div>
                     <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-reflect" onchange="onFieldChange()"><span>Reflect</span></label>
                     <label class="calc-field-toggle"><input type="checkbox" id="calc-opp-lightscreen" onchange="onFieldChange()"><span>Light Screen</span></label>
                   </div>
@@ -2073,7 +2075,7 @@
 
             <!-- OPPONENT (defender — stats from usage data or manual) -->
             <div class="calc-poke-panel">
-              <h4 id="calc-defender-header" class="avg-pokemon">Average Opponent</h4>
+              <h4 id="calc-defender-header" class="avg-pokemon">{{ _('Average Opponent') }}</h4>
 
               <div class="calc-control-row">
                 <label>Pokémon</label>
@@ -2085,7 +2087,7 @@
 
               <div id="calc-defender-form-wrap" class="calc-control-stack" style="display:none;">
                 <div class="calc-control-row">
-                  <label for="calc-defender-form">Form</label>
+                  <label for="calc-defender-form">{{ _('Form') }}</label>
                   <select id="calc-defender-form" onchange="onDefenderFormChange()">
                     <option value="">—</option>
                   </select>
@@ -2093,18 +2095,18 @@
               </div>
 
               <div class="calc-type-row">
-                <label>Type</label>
+                <label>{{ _('Type') }}</label>
                 <select id="calc-defender-type1" onchange="onDefenderTypeChange()"><option value="">—</option></select>
-                <select id="calc-defender-type2" onchange="onDefenderTypeChange()"><option value="None">None</option></select>
+                <select id="calc-defender-type2" onchange="onDefenderTypeChange()"><option value="None">{{ _('None') }}</option></select>
               </div>
               <div class="calc-tera-row">
-                <label>Tera</label>
-                <select id="calc-defender-tera" onchange="onDefenderTeraChange()"><option value="None">None</option></select>
-                <button type="button" class="tera-toggle-btn" id="calc-defender-tera-btn" onclick="onTeraToggle(false)" aria-pressed="false">Tera</button>
+                <label>{{ _('Tera') }}</label>
+                <select id="calc-defender-tera" onchange="onDefenderTeraChange()"><option value="None">{{ _('None') }}</option></select>
+                <button type="button" class="tera-toggle-btn" id="calc-defender-tera-btn" onclick="onTeraToggle(false)" aria-pressed="false">{{ _('Tera') }}</button>
               </div>
 
               <div class="calc-control-row">
-                <label>Spread</label>
+                <label>{{ _('Spread') }}</label>
                 <div class="calc-preset-wrap" id="calc-defender-preset-wrap">
                   <div class="calc-preset-selected" id="calc-defender-preset-display" tabindex="0">— load a Pokémon first —</div>
                   <div class="calc-ac-dropdown calc-preset-dropdown" id="calc-defender-preset-dropdown"></div>
@@ -2112,7 +2114,7 @@
               </div>
 
               <div class="calc-control-row">
-                <label>Nature</label>
+                <label>{{ _('Nature') }}</label>
                 <select id="calc-defender-nature" disabled onchange="onDefenderStatChange()">
                   <option>Average</option>
                 </select>
@@ -2134,7 +2136,7 @@
                 </tbody>
                 <tfoot id="calc-def-ev-total-row" style="display:none">
                   <tr class="calc-ev-row calc-ev-total-row">
-                    <td>Total</td><td></td><td class="calc-def-iv-col"></td><td><span id="calc-def-ev-total">0</span><span id="calc-def-ev-max" style="color:#666;font-size:10px"> / 510</span></td><td></td><td></td>
+                    <td>Total</td><td></td><td class="calc-def-iv-col"></td><td><span id="calc-def-ev-total">0</span><span id="calc-def-ev-max" style="color:var(--text-disabled);font-size:10px"> / 510</span></td><td></td><td></td>
                   </tr>
                 </tfoot>
               </table>
@@ -2143,7 +2145,7 @@
 
               <div class="calc-control-stack">
                 <div class="calc-control-row">
-                  <label>Ability</label>
+                  <label>{{ _('Ability') }}</label>
                   <div class="calc-ability-cell">
                     <div class="calc-autocomplete-wrap">
                       <input type="text" id="calc-defender-ability" placeholder="—" autocomplete="off">
@@ -2155,29 +2157,29 @@
                   </div>
                 </div>
                 <div class="calc-control-row">
-                  <label>Item</label>
+                  <label>{{ _('Item') }}</label>
                   <div class="calc-autocomplete-wrap">
                     <input type="text" id="calc-defender-item" placeholder="None" autocomplete="off">
                     <div class="calc-ac-dropdown" id="calc-defender-item-dropdown"></div>
                   </div>
                 </div>
                 <div class="calc-control-row">
-                  <label for="calc-defender-status">Status</label>
+                  <label for="calc-defender-status">{{ _('Status') }}</label>
                   <select id="calc-defender-status" onchange="onDefenderStatusChange()">
-                    <option value="Healthy">Healthy</option>
-                    <option value="Burned">Burned</option>
-                    <option value="Poisoned">Poisoned</option>
-                    <option value="Badly Poisoned">Badly Poisoned</option>
-                    <option value="Paralyzed">Paralyzed</option>
-                    <option value="Asleep">Asleep</option>
-                    <option value="Frozen">Frozen</option>
+                    <option value="Healthy">{{ _('Healthy') }}</option>
+                    <option value="Burned">{{ _('Burned') }}</option>
+                    <option value="Poisoned">{{ _('Poisoned') }}</option>
+                    <option value="Badly Poisoned">{{ _('Badly Poisoned') }}</option>
+                    <option value="Paralyzed">{{ _('Paralyzed') }}</option>
+                    <option value="Asleep">{{ _('Asleep') }}</option>
+                    <option value="Frozen">{{ _('Frozen') }}</option>
                   </select>
                 </div>
               </div>
 
-              <div class="calc-moves-label">Opponent's Moves <span style="color:#555">— click to analyze</span></div>
+              <div class="calc-moves-label">{{ _("Opponent's Moves") }} <span style="color:var(--text-ghost)">— click to analyze</span></div>
               <div class="calc-move-list" id="calc-def-movelist">
-                <div style="color:#444;font-size:11px">Load an opponent to see moves</div>
+                <div style="color:var(--text-ghost-2);font-size:11px">Load an opponent to see moves</div>
               </div>
 
               <div class="calc-custom-move-form">
@@ -2193,13 +2195,13 @@
 
           <!-- Results: tiered breakdown for selected move -->
           <div id="calc-results">
-            <div style="color:#555;padding:6px 0;font-size:12px;">
-              Select a Pokémon and opponent, then click a move to see the full damage breakdown.
+            <div style="color:var(--text-ghost);padding:6px 0;font-size:12px;">
+              {{ _('Select a Pokémon and opponent, then click a move to see the full damage breakdown.') }}
             </div>
           </div>
 
-          <p style="color:#444;font-size:11px;margin-top:6px;">
-            KO% is weighted across usage spreads. Frail/Average/Bulky tiers are split by defensive stat percentile.
+          <p style="color:var(--text-ghost-2);font-size:11px;margin-top:6px;">
+            {{ _('KO%% is weighted across usage spreads. Frail/Average/Bulky tiers are split by defensive stat percentile.') }}
           </p>
         </div>
         {% endif %}
@@ -2208,7 +2210,7 @@
         <!-- Usage Stats panel (existing content) -->
         <div id="usage-panel" style="display:contents;">
         <div class="Stats">
-          <h2>Base Stats</h2>
+          <h2>{{ _('Base Stats') }}</h2>
           {% if base_stats|length > 0 %}
           <div class="bar-container">
             <div class="left-container">
@@ -2256,7 +2258,7 @@
         </div>
         {% if show_trend %}
         <div>
-          <h2>Usage Trend</h2>
+          <h2>{{ _('Usage Trend') }}</h2>
           <div class="Data" style="max-height: 210px; height: 210px; margin-bottom: 0px; overflow: hidden;">
             <div id="trend-chart-container" style="width: 100%; height: 190px; position: relative;">
               <canvas id="trendChart"></canvas>
@@ -2265,7 +2267,7 @@
         </div>
         {% endif %}
         <div>
-          <h2>Moves</h2>
+          <h2>{{ _('Moves') }}</h2>
           <div class="Data">
             {% if moves_list|length > 0 %}
             <ul>
@@ -2282,7 +2284,7 @@
           </div>
         </div>
         <div>
-          <h2>Teammates</h2>
+          <h2>{{ _('Teammates') }}</h2>
           <div class="Data">
             {% if teammates_list|length > 0 %}
             <ul>
@@ -2303,7 +2305,7 @@
         {% if items_list|length > 0 %}
         {% if (abilities_list[0][0] != 'Nothing') %}
         <div>
-          <h2>Items</h2>
+          <h2>{{ _('Items') }}</h2>
           <div class="Data">
             <ul>
               {% for item in items_list %}
@@ -2324,7 +2326,7 @@
         {% if abilities_list|length > 0 %}
         {% if (abilities_list[0][0] != 'Nothing') %}
         <div>
-          <h2>Abilities</h2>
+          <h2>{{ _('Abilities') }}</h2>
           <div class="Data">
             <ul>
               {% for ability in abilities_list %}
@@ -2342,7 +2344,7 @@
         {% endif %}
         {% if spreads_list|length > 0 %}
         <div>
-          <h2>{% if is_champions %}Stat Point Spreads{% else %}EV Spreads{% endif %}</h2>
+          <h2>{% if is_champions %}{{ _('Stat Point Spreads') }}{% else %}{{ _('EV Spreads') }}{% endif %}</h2>
           <div class="Data">
             <ul>
               {% for spread in spreads_list %}
@@ -2359,7 +2361,7 @@
         {% endif %}
         {% if natures_list|length > 0 %}
         <div>
-          <h2>Natures</h2>
+          <h2>{{ _('Natures') }}</h2>
           <div class="Data">
             {% if natures_list|length > 0 %}
             <ul>
@@ -2378,7 +2380,7 @@
         {% endif %}
         {% if evs_list[0]|length > 0 %}
         <div>
-          <h2 style="margin-bottom: 5px;">{% if is_champions %}Top Points By Category{% else %}Top EVs By Category{% endif %}</h2>
+          <h2 style="margin-bottom: 5px;">{% if is_champions %}{{ _('Top Points By Category') }}{% else %}{{ _('Top EVs By Category') }}{% endif %}</h2>
           <input type="hidden" name="rating_value" id="selectedEVs" value="spe">
           <button type="button" id="atk_evs" onclick="selectEVs('atk')" value="atk" class="ev-button">ATK</button>
           <button type="button" id="spa_evs" onclick="selectEVs('spa')" value="spa" class="ev-button">SPA</button>
@@ -2438,7 +2440,7 @@
         {% else %}
         <div>
         {% endif %}
-          <h2 style="margin-bottom: 5px;">Stats Graph (Beta)</h2>
+          <h2 style="margin-bottom: 5px;">{{ _('Stats Graph (Beta)') }}</h2>
           <div class="Data" style="max-height: 225px; height: 225px; margin-bottom: 0px; overflow: hidden;">
             <div>
               <button type="button" class="stat-button" onclick="updateChartData(event, 0)" id="stat-HP">HP</button>
@@ -2449,9 +2451,9 @@
               <button type="button" class="stat-button underline" onclick="updateChartData(event, 5)" id="stat-Speed">SPE</button>
             </div>
             <div class="graph-toggle-row">
-              <button type="button" class="graph-toggle-button selected" id="graph-toggle-usage" onclick="toggleGraphDataset(event, 'usage')" aria-pressed="true">Usage</button>
-              <button type="button" class="graph-toggle-button" id="graph-toggle-cumulative" onclick="toggleGraphDataset(event, 'cumulative')" aria-pressed="false">Cumulative</button>
-              <button type="button" class="graph-toggle-button" id="graph-toggle-reverseCumulative" onclick="toggleGraphDataset(event, 'reverseCumulative')" aria-pressed="false">Reverse</button>
+              <button type="button" class="graph-toggle-button selected" id="graph-toggle-usage" onclick="toggleGraphDataset(event, 'usage')" aria-pressed="true">{{ _('Usage') }}</button>
+              <button type="button" class="graph-toggle-button" id="graph-toggle-cumulative" onclick="toggleGraphDataset(event, 'cumulative')" aria-pressed="false">{{ _('Cumulative') }}</button>
+              <button type="button" class="graph-toggle-button" id="graph-toggle-reverseCumulative" onclick="toggleGraphDataset(event, 'reverseCumulative')" aria-pressed="false">{{ _('Reverse') }}</button>
             </div>
             <div id="chart-container">
               <canvas id="evChart"></canvas>
@@ -2460,7 +2462,7 @@
         </div>
         {% if tera_types_list|length > 0 and tera_types_list[0][0] != 'Nothing' %}
         <div>
-          <h2>Tera Types</h2>
+          <h2>{{ _('Tera Types') }}</h2>
           <div class="Data">
             <ul>
               {% for tera in tera_types_list %}
@@ -2477,30 +2479,30 @@
         {% endif %}
         {% if has_tournament_data %}
         <div id="tournament-teams-section">
-          <h2>Top Teams <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Teams from recent VGC events (majors and Limitless online tournaments) that used this Pokemon, ranked by record and event size.">&#xf059;</span></h2>
+          <h2>{{ _('Top Teams') }} <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Teams from recent VGC events (majors and Limitless online tournaments) that used this Pokemon, ranked by record and event size.">&#xf059;</span></h2>
           <div class="Data" style="height: auto; max-height: 210px;">
-            <div class="section-loading" id="tournament-teams-loading">Loading tournament data...</div>
+            <div class="section-loading" id="tournament-teams-loading">{{ _('Loading tournament data...') }}</div>
           </div>
         </div>
         {% endif %}
         {% if has_replay_data %}
         <div id="recent-replays-section">
-          <h2>Recent Replays <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="High-rated replays where this Pokemon was used.">&#xf059;</span></h2>
+          <h2>{{ _('Recent Replays') }} <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="High-rated replays where this Pokemon was used.">&#xf059;</span></h2>
           <div class="Data" style="height: auto; max-height: 210px;">
-            <div class="section-loading" id="recent-replays-loading">Loading replays...</div>
+            <div class="section-loading" id="recent-replays-loading">{{ _('Loading replays...') }}</div>
           </div>
         </div>
         {% endif %}
         {% if evs_list[0]|length > 0 or is_champions_game | default(false) %}
         <div>
-          <h2>Export Pokemon <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="Click on Moves, Items, {% if is_champions %}Stat Point Spreads{% else %}EV Spreads{% endif %} and Abilities to change the Export!">&#xf059;</span></h2>
+          <h2>{{ _('Export Pokemon') }} <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="{% if is_champions %}{{ _('Click on Moves, Items, Stat Point Spreads and Abilities to change the Export!') }}{% else %}{{ _('Click on Moves, Items, EV Spreads and Abilities to change the Export!') }}{% endif %}">&#xf059;</span></h2>
           <textarea class="Export" id="showdown-set" spellcheck="false"></textarea>
-          <button type="button" class="copy-button" id="copy-button" style="text-align: center;">Copy Pokemon to Clipboard</button>
+          <button type="button" class="copy-button" id="copy-button" style="text-align: center;">{{ _('Copy Pokemon to Clipboard') }}</button>
         </div>
         {% endif %}
         {% if counters_list|length > 0 %}
         <div>
-          <h2>Checks and Counters</h2>
+          <h2>{{ _('Checks and Counters') }}</h2>
           <div class="Data">
             <ul>
               {% for counter in counters_list %}
@@ -2519,9 +2521,9 @@
         {% endif %}
         <!-- Merch -->
         <div class="merch-section" id="merch-section">
-          <h2>Merch <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="These are affiliate eBay links that help support the website.">&#xf059;</span> <button type="button" class="merch-toggle" id="merch-toggle">Hide</button></h2>
+          <h2>{{ _('Merch') }} <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="These are affiliate eBay links that help support the website.">&#xf059;</span> <button type="button" class="merch-toggle" id="merch-toggle">{{ _('Hide') }}</button></h2>
           <div class="merch-carousel" id="merch-carousel">
-            <div class="merch-loading">Loading merch...</div>
+            <div class="merch-loading">{{ _('Loading merch...') }}</div>
           </div>
           <div class="merch-collapsed-msg">Merch hidden &mdash; click Show to browse</div>
         </div>
@@ -2530,7 +2532,7 @@
       </div><!-- end .right -->
     </div><!-- end .grid-container -->
     <div style="text-align: center; position: relative; display: inline-block; width: 100%; margin-top: 20px;{% if is_champions_game | default(false) %} display: none;{% endif %}" id="footer-month-container">
-      <h6 style="display: inline;">Usage stats data from </h6>
+      <h6 style="display: inline;">{{ _('Usage stats data from') }} </h6>
       {% if calc_only %}
       <h6 style="display: inline;" id="month-display">{{ selected_month }}</h6>
       {% else %}
@@ -2549,11 +2551,11 @@
       </div>
       {% endif %}
     </div>
-    <footer style="text-align: center; padding: 6px 20px 20px; color: #666; font-size: 12px;">
-      <p><a href="/about" style="color: #ffd54f; text-decoration: none;">About</a></p>
-      <p id="champions-updated" style="display: {% if is_champions_game | default(false) %}block{% else %}none{% endif %}; color: #888;">Game data last scraped: <span id="champions-updated-value">{{ champions_updated | default('') }}</span></p>
-      <p id="champions-attribution" style="display: {% if is_champions_game | default(false) %}block{% else %}none{% endif %};">{{ champions_attribution | default('Battle data provided by Pokémon Champions Battle Data') }} &mdash; <a href="{{ champions_attribution_url | default('https://championsbattledata.com/') }}" target="_blank" rel="noopener" style="color: #ffd54f; text-decoration: none;">championsbattledata.com</a></p>
-      <p>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</p>
+    <footer style="text-align: center; padding: 6px 20px 20px; color: var(--text-disabled); font-size: 12px;">
+      <p><a href="/about" style="color: var(--accent); text-decoration: none;">{{ _('About') }}</a></p>
+      <p id="champions-updated" style="display: {% if is_champions_game | default(false) %}block{% else %}none{% endif %}; color: var(--text-dim);">{{ _('Game data last scraped:') }} <span id="champions-updated-value">{{ champions_updated | default('') }}</span></p>
+      <p id="champions-attribution" style="display: {% if is_champions_game | default(false) %}block{% else %}none{% endif %};">{{ champions_attribution | default('Battle data provided by Pokémon Champions Battle Data') }} &mdash; <a href="{{ champions_attribution_url | default('https://championsbattledata.com/') }}" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: none;">championsbattledata.com</a></p>
+      <p>{{ _('Pokémon and All Respective Names are Trademark & © of Nintendo 1996-2026') }}</p>
     </footer>
     <div class="tooltip" id="tooltip"></div>
     <script>
@@ -2598,11 +2600,11 @@
 
     <!-- External JavaScript files -->
     {% if not calc_only %}
-    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=18"></script>
+    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=20"></script>
     {% endif %}
     {% if calc_only %}
     <script src="{{ url_for('static', filename='vendor/smogon-calc.js') }}"></script>
-    <script src="{{ url_for('static', filename='damage_calc.js') }}"></script>
+    <script src="{{ url_for('static', filename='damage_calc.js') }}?v=3"></script>
     <script>
     (function() {
       // Custom select replacement for dark-themed scrollbars
@@ -2753,9 +2755,9 @@
     <div class="replay-modal-overlay" id="replayModal">
       <div class="replay-modal">
         <div class="replay-modal-header">
-          <span class="replay-modal-title" id="replayModalTitle">Replay Viewer</span>
+          <span class="replay-modal-title" id="replayModalTitle">{{ _('Replay Viewer') }}</span>
           <div class="replay-modal-games" id="replayModalGames"></div>
-          <a class="replay-modal-external" href="#" id="replayExternalLink" target="_blank">Open in New Tab</a>
+          <a class="replay-modal-external" href="#" id="replayExternalLink" target="_blank">{{ _('Open in New Tab') }}</a>
           <button class="replay-modal-close" id="replayModalClose" title="Close">&times;</button>
         </div>
         <iframe class="replay-modal-iframe" id="replayIframe" src="about:blank"></iframe>
@@ -2765,8 +2767,8 @@
     <div class="team-modal-overlay" id="teamModal">
       <div class="team-modal">
         <div class="team-modal-header">
-          <span class="team-modal-title" id="teamModalTitle">Team Details</span>
-          <button class="team-modal-copy" id="teamModalCopy" type="button">Copy Team</button>
+          <span class="team-modal-title" id="teamModalTitle">{{ _('Team Details') }}</span>
+          <button class="team-modal-copy" id="teamModalCopy" type="button">{{ _('Copy Team') }}</button>
           <button class="team-modal-close" id="teamModalClose" title="Close">&times;</button>
         </div>
         <div class="team-modal-body" id="teamModalBody"></div>
