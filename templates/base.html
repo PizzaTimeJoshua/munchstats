@@ -24,7 +24,7 @@
 {% block meta_extra %}{% endblock %}
 <!-- Theme engine: applies the saved theme pre-paint; also owns the
      picker menu rendered in _tabs.html. Must load before style.css. -->
-<script src="{{ url_for('static', filename='theme-boot.js') }}?v=1"></script>
+<script src="{{ url_for('static', filename='theme-boot.js') }}?v=2"></script>
 <script>
   /* Translations for strings rendered client-side by static JS. */
   window.I18N = {{ js_i18n | default({}) | tojson }};
@@ -36,7 +36,7 @@
 </script>
 <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=4">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=9">
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 {% block head %}{% endblock %}
 <!-- Google tag (gtag.js) -->

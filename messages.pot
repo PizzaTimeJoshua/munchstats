@@ -1,14 +1,14 @@
-# Translations template for MunchStats.
+# Translations template for PROJECT.
 # Copyright (C) 2026 ORGANIZATION
-# This file is distributed under the same license as the MunchStats project.
+# This file is distributed under the same license as the PROJECT project.
 # FIRST AUTHOR <EMAIL@ADDRESS>, 2026.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: MunchStats VERSION\n"
+"Project-Id-Version: PROJECT VERSION\n"
 "Report-Msgid-Bugs-To: EMAIL@ADDRESS\n"
-"POT-Creation-Date: 2026-07-16 20:27-0700\n"
+"POT-Creation-Date: 2026-07-18 13:12-0700\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -17,35 +17,274 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Generated-By: Babel 2.18.0\n"
 
-#: templates/_tabs.html:6 templates/tournaments.html:935
+#: templates/_tabs.html:7 templates/tournaments.html:938
 msgid "Usage Stats"
 msgstr ""
 
-#: templates/_tabs.html:7
+#: templates/_tabs.html:8
 msgid "Tournaments"
 msgstr ""
 
-#: templates/_tabs.html:8
+#: templates/_tabs.html:9
 msgid "Insights"
 msgstr ""
 
-#: templates/_tabs.html:9 templates/tournaments.html:829
+#: templates/_tabs.html:10 templates/tournaments.html:832
 msgid "Teams"
 msgstr ""
 
-#: templates/_tabs.html:11
+#: templates/_tabs.html:12
 msgid "Calc"
 msgstr ""
 
-#: templates/_tabs.html:13
+#: templates/_tabs.html:14
 msgid "Replays"
 msgstr ""
 
-#: templates/_tabs.html:14 templates/tools.html:83
+#: templates/_tabs.html:15 templates/tools.html:83
 msgid "Tools"
 msgstr ""
 
-#: templates/index.html:1749 templates/tournaments.html:790
+#: templates/_tabs.html:18 templates/index.html:2553
+#: templates/insights.html:476 templates/replays.html:670
+#: templates/teams.html:559
+msgid "About"
+msgstr ""
+
+#: templates/_tabs.html:24
+msgid "Choose theme"
+msgstr ""
+
+#: templates/_tabs.html:26
+msgid "Theme"
+msgstr ""
+
+#: templates/_tabs.html:29
+msgid "Classic"
+msgstr ""
+
+#: templates/_tabs.html:30
+msgid "Light"
+msgstr ""
+
+#: templates/_tabs.html:31
+msgid "Starry Night"
+msgstr ""
+
+#: templates/about.html:132
+msgid "About MunchStats"
+msgstr ""
+
+#: templates/about.html:134
+msgid ""
+"This here is a side project that I've worked on just for fun. It runs ad-"
+"free! The site does include affiliate eBay merch links — if you happen to"
+" buy something, a small commission helps keep the site running. If I "
+"receive any kind of donation, it'll go directly to keeping this site up. "
+"This site was the product of \"Pikalytics is taking a while to update its"
+" usage stats.\" So instead of waiting, I made this site."
+msgstr ""
+
+#: templates/about.html:138
+msgid "FAQ"
+msgstr ""
+
+#: templates/about.html:140
+msgid "Where does the data come from?"
+msgstr ""
+
+#: templates/about.html:141
+msgid ""
+"It comes from Pokemon Showdown's Monthly Usage Stats, the same place as "
+"Pikalytics!"
+msgstr ""
+
+#: templates/about.html:144
+msgid "How often does this get updated?"
+msgstr ""
+
+#: templates/about.html:145
+msgid ""
+"Once a month. Near the beginning of the month when Showdown releases its "
+"usage stats."
+msgstr ""
+
+#: templates/about.html:148
+msgid "Pokemon Showdown doesn't provide Tera Data, where do you get it from?"
+msgstr ""
+
+#: templates/about.html:149
+msgid ""
+"Starting September 1st 2024, Pokemon Showdown DOES show Tera Data. "
+"Previously, this used to be based off public replay data."
+msgstr ""
+
+#: templates/about.html:152
+msgid "I found a bug! / I want to suggest a feature!"
+msgstr ""
+
+#: templates/about.html:153
+msgid "Contact me below!"
+msgstr ""
+
+#: templates/about.html:158
+msgid "Pokémon Champions FAQ"
+msgstr ""
+
+#: templates/about.html:160
+msgid "Where does the Pokémon Champions in-game data come from?"
+msgstr ""
+
+#: templates/about.html:161
+msgid ""
+"The in-game usage data (the \"[Champions] In-Game\" formats) is not from "
+"Pokemon Showdown. It comes from the"
+msgstr ""
+
+#: templates/about.html:161
+msgid ""
+"API (championsbattledata.com), the only reliable source for real in-game "
+"battle data. The data is not stored on our end — it is cached directly "
+"from their API."
+msgstr ""
+
+#: templates/about.html:164
+msgid "How often does the Pokémon Champions data get updated?"
+msgstr ""
+
+#: templates/about.html:165
+msgid ""
+"It is cached from their API and refreshed every 12 hours. Each Champions "
+"page also shows when the source last scraped the data, so you always know"
+" how current it is."
+msgstr ""
+
+#: templates/about.html:168
+msgid "Attribution"
+msgstr ""
+
+#: templates/about.html:169
+msgid "Battle data provided by"
+msgstr ""
+
+#: templates/about.html:169
+msgid ""
+"MunchStats is not affiliated with Pokémon, Nintendo, GAME FREAK, "
+"Creatures Inc., or The Pokémon Company."
+msgstr ""
+
+#: templates/about.html:174
+msgid "Replays FAQ"
+msgstr ""
+
+#: templates/about.html:176
+msgid "What replays are available here?"
+msgstr ""
+
+#: templates/about.html:177
+msgid ""
+"Only publicly available replays from Pokemon Showdown. We do not collect "
+"private replays. If a replay should not be shown, please contact us."
+msgstr ""
+
+#: templates/about.html:180
+msgid "How often does the replay data get updated?"
+msgstr ""
+
+#: templates/about.html:181
+msgid "Every 12 hours automatically."
+msgstr ""
+
+#: templates/about.html:184
+msgid "Can you show replays from over a month ago?"
+msgstr ""
+
+#: templates/about.html:185
+msgid ""
+"No. Due to memory constraints, only the last month of replays is "
+"available."
+msgstr ""
+
+#: templates/about.html:190 templates/contact.html:2 templates/contact.html:149
+#: templates/index.html:2553 templates/insights.html:476
+#: templates/replays.html:670 templates/teams.html:559
+msgid "Contact"
+msgstr ""
+
+#: templates/about.html:192
+msgid "Send feedback / report a bug"
+msgstr ""
+
+#: templates/about.html:198 templates/contact.html:205
+msgid "Go back to the homepage"
+msgstr ""
+
+#: templates/contact.html:142
+msgid "Bug report"
+msgstr ""
+
+#: templates/contact.html:143
+msgid "Feature suggestion"
+msgstr ""
+
+#: templates/contact.html:144
+msgid "Improvement"
+msgstr ""
+
+#: templates/contact.html:145
+msgid "Translation error"
+msgstr ""
+
+#: templates/contact.html:146
+msgid "Other"
+msgstr ""
+
+#: templates/contact.html:151
+msgid ""
+"Found a bug? Have a feature idea? Spotted a translation mistake? Let me "
+"know here — every message goes straight to my inbox. Leave your email if "
+"you would like a reply."
+msgstr ""
+
+#: templates/contact.html:156
+msgid "Thanks! Your message has been sent."
+msgstr ""
+
+#: templates/contact.html:166
+msgid ""
+"The contact form is temporarily unavailable. You can still reach me by "
+"email:"
+msgstr ""
+
+#: templates/contact.html:172
+msgid "What is this about?"
+msgstr ""
+
+#: templates/contact.html:180
+msgid "Message"
+msgstr ""
+
+#: templates/contact.html:184
+msgid "Page it happened on (optional)"
+msgstr ""
+
+#: templates/contact.html:188
+msgid "Your email (optional)"
+msgstr ""
+
+#: templates/contact.html:190
+msgid "Only used to reply to you. Never shared."
+msgstr ""
+
+#: templates/contact.html:199
+msgid "Send message"
+msgstr ""
+
+#: templates/contact.html:204
+msgid "About page"
+msgstr ""
+
+#: templates/index.html:1749 templates/tournaments.html:793
 msgid "Loading stats..."
 msgstr ""
 
@@ -58,17 +297,17 @@ msgid "Jump to latest"
 msgstr ""
 
 #: templates/index.html:1774 templates/index.html:2452
-#: templates/insights.html:239 templates/insights.html:253
-#: templates/insights.html:389 templates/tournaments.html:817
+#: templates/insights.html:231 templates/insights.html:245
+#: templates/insights.html:375 templates/tournaments.html:820
 msgid "Usage"
 msgstr ""
 
-#: templates/index.html:1780 templates/tournaments.html:821
+#: templates/index.html:1780 templates/tournaments.html:824
 msgid "Rank"
 msgstr ""
 
 #: templates/index.html:1786 templates/index.html:1848
-#: templates/replays.html:642
+#: templates/replays.html:639
 msgid "Rating"
 msgstr ""
 
@@ -76,12 +315,49 @@ msgstr ""
 msgid "Search for a Format"
 msgstr ""
 
-#: templates/index.html:1813 templates/tournaments.html:912
+#: templates/index.html:1813 templates/tournaments.html:915
 msgid "Search for a Pokemon"
 msgstr ""
 
 #: templates/index.html:1840 templates/index.html:1992
 msgid "Format"
+msgstr ""
+
+#: templates/index.html:1859
+msgid "How does this damage calculator work?"
+msgstr ""
+
+#: templates/index.html:1862
+msgid "Unlike a standard damage calc,"
+msgstr ""
+
+#: templates/index.html:1862
+msgid ""
+"this calculator runs your move against every spread your opponent "
+"actually uses on ladder, weighted by popularity. Instead of guessing one "
+"EV spread, you see your real odds of getting the KO."
+msgstr ""
+
+#: templates/index.html:1863
+msgid "KO breakpoints:"
+msgstr ""
+
+#: templates/index.html:1863
+msgid ""
+"Opponent spreads are grouped by outcome — which sets you can OHKO, which "
+"need two hits (2HKO), three hits (3HKO), and which survive. Each group "
+"shows what percentage of ladder sets fall into that range."
+msgstr ""
+
+#: templates/index.html:1864
+msgid "Weighted overall:"
+msgstr ""
+
+#: templates/index.html:1864
+msgid ""
+"The final KO chance is averaged across all spreads by usage weight — "
+"giving you a single realistic number for how often you'll get the KO on "
+"ladder."
 msgstr ""
 
 #: templates/index.html:1873
@@ -211,7 +487,20 @@ msgstr ""
 msgid "Opponent's Moves"
 msgstr ""
 
-#: templates/index.html:2211 templates/tournaments.html:946
+#: templates/index.html:2197
+msgid ""
+"Select a Pokémon and opponent, then click a move to see the full damage "
+"breakdown."
+msgstr ""
+
+#: templates/index.html:2202
+#, python-format
+msgid ""
+"KO%% is weighted across usage spreads. Frail/Average/Bulky tiers are "
+"split by defensive stat percentile."
+msgstr ""
+
+#: templates/index.html:2211 templates/tournaments.html:952
 msgid "Base Stats"
 msgstr ""
 
@@ -219,24 +508,40 @@ msgstr ""
 msgid "Usage Trend"
 msgstr ""
 
-#: templates/index.html:2268 templates/tournaments.html:964
+#: templates/index.html:2268 templates/tournaments.html:970
 msgid "Moves"
 msgstr ""
 
-#: templates/index.html:2285 templates/tournaments.html:983
+#: templates/index.html:2285 templates/tournaments.html:989
 msgid "Teammates"
 msgstr ""
 
-#: templates/index.html:2306 templates/tournaments.html:1004
+#: templates/index.html:2306 templates/tournaments.html:1010
 msgid "Items"
 msgstr ""
 
-#: templates/index.html:2327 templates/tournaments.html:1025
+#: templates/index.html:2327 templates/tournaments.html:1031
 msgid "Abilities"
 msgstr ""
 
-#: templates/index.html:2362 templates/tournaments.html:1063
+#: templates/index.html:2345
+msgid "Stat Point Spreads"
+msgstr ""
+
+#: templates/index.html:2345
+msgid "EV Spreads"
+msgstr ""
+
+#: templates/index.html:2362 templates/tournaments.html:1069
 msgid "Natures"
+msgstr ""
+
+#: templates/index.html:2381
+msgid "Top Points By Category"
+msgstr ""
+
+#: templates/index.html:2381
+msgid "Top EVs By Category"
 msgstr ""
 
 #: templates/index.html:2441
@@ -251,11 +556,12 @@ msgstr ""
 msgid "Reverse"
 msgstr ""
 
-#: templates/index.html:2463 templates/tournaments.html:1044
+#: templates/index.html:2463 templates/tournaments.html:1050
 msgid "Tera Types"
 msgstr ""
 
-#: templates/index.html:2480 templates/replays.html:635
+#: templates/index.html:2480 templates/replays.html:632
+#: templates/tournaments.html:942
 msgid "Top Teams"
 msgstr ""
 
@@ -271,11 +577,21 @@ msgstr ""
 msgid "Loading replays..."
 msgstr ""
 
-#: templates/index.html:2496 templates/tournaments.html:1082
+#: templates/index.html:2496 templates/tournaments.html:1088
 msgid "Export Pokemon"
 msgstr ""
 
-#: templates/index.html:2498 templates/tournaments.html:1084
+#: templates/index.html:2496
+msgid ""
+"Click on Moves, Items, Stat Point Spreads and Abilities to change the "
+"Export!"
+msgstr ""
+
+#: templates/index.html:2496
+msgid "Click on Moves, Items, EV Spreads and Abilities to change the Export!"
+msgstr ""
+
+#: templates/index.html:2498 templates/tournaments.html:1090
 msgid "Copy Pokemon to Clipboard"
 msgstr ""
 
@@ -283,15 +599,15 @@ msgstr ""
 msgid "Checks and Counters"
 msgstr ""
 
-#: templates/index.html:2522 templates/tournaments.html:1089
+#: templates/index.html:2522 templates/tournaments.html:1095
 msgid "Merch"
 msgstr ""
 
-#: templates/index.html:2522 templates/tournaments.html:1089
+#: templates/index.html:2522 templates/tournaments.html:1095
 msgid "Hide"
 msgstr ""
 
-#: templates/index.html:2524 templates/tournaments.html:1091
+#: templates/index.html:2524 templates/tournaments.html:1097
 msgid "Loading merch..."
 msgstr ""
 
@@ -299,26 +615,21 @@ msgstr ""
 msgid "Usage stats data from"
 msgstr ""
 
-#: templates/index.html:2553 templates/insights.html:493
-#: templates/replays.html:673 templates/teams.html:563
-msgid "About"
-msgstr ""
-
 #: templates/index.html:2554
 msgid "Game data last scraped:"
 msgstr ""
 
-#: templates/index.html:2556 templates/insights.html:494
-#: templates/replays.html:674 templates/teams.html:564
+#: templates/index.html:2556 templates/insights.html:477
+#: templates/replays.html:671 templates/teams.html:560
 msgid "Pokémon and All Respective Names are Trademark & © of Nintendo 1996-2026"
 msgstr ""
 
-#: templates/index.html:2756 templates/replays.html:664
+#: templates/index.html:2756 templates/replays.html:661
 msgid "Replay Viewer"
 msgstr ""
 
-#: templates/index.html:2758 templates/replays.html:666
-#: templates/teams.html:556
+#: templates/index.html:2758 templates/replays.html:663
+#: templates/teams.html:552
 msgid "Open in New Tab"
 msgstr ""
 
@@ -326,368 +637,509 @@ msgstr ""
 msgid "Team Details"
 msgstr ""
 
-#: templates/index.html:2769 templates/teams.html:538
+#: templates/index.html:2769 templates/teams.html:534
 msgid "Copy Team"
 msgstr ""
 
-#: templates/insights.html:177
+#: templates/insights.html:175
 msgid "No insight data available yet"
 msgstr ""
 
-#: templates/insights.html:178
+#: templates/insights.html:176
 msgid ""
 "Insights need recent online tournament data, which is still being "
 "fetched. Check back in a few minutes."
 msgstr ""
 
-#: templates/insights.html:190
+#: templates/insights.html:188
 msgid "Meta Insights"
 msgstr ""
 
-#: templates/insights.html:191
+#: templates/insights.html:189
 msgid "Regulation"
 msgstr ""
 
-#: templates/insights.html:197
+#: templates/insights.html:195
 msgid "Tournament Size"
 msgstr ""
 
-#: templates/insights.html:204
+#: templates/insights.html:202
 msgid "Ladder Rating Cutoff"
 msgstr ""
 
-#: templates/insights.html:219
+#: templates/insights.html:210
+#, python-format
+msgid ""
+"Tournament data covers %(count)s online events (%(min)s+ players) from "
+"the last %(days)s days: %(teams)s public team lists."
+msgstr ""
+
+#: templates/insights.html:211
+#, python-format
+msgid "Ladder data is the Showdown %(fmt)s ladder for %(month)s."
+msgstr ""
+
+#: templates/insights.html:212
+msgid "Click any Pokémon for its full stats."
+msgstr ""
+
+#: templates/insights.html:215
 msgid "Tournament data:"
 msgstr ""
 
-#: templates/insights.html:220
+#: templates/insights.html:216
 msgid "Ladder data:"
 msgstr ""
 
-#: templates/insights.html:220
+#: templates/insights.html:216
 msgid "Smogon usage stats"
 msgstr ""
 
-#: templates/insights.html:227
+#: templates/insights.html:223
 msgid "Tournament Conversion"
 msgstr ""
 
-#: templates/insights.html:237
+#: templates/insights.html:225
+#, python-format
+msgid ""
+"Win rates from tournament records (a tie counts half), with Mega forms "
+"resolved from held stones — Charizard-Mega-Y and -X count separately. "
+"Only Pokémon with at least %(min_games)s games and %(min_teams)s teams "
+"are ranked (%(qualified)s qualify). The underperforming list is limited "
+"to Pokémon with at least %(min_usage)s%% usage."
+msgstr ""
+
+#: templates/insights.html:229
 msgid "highest win rates"
 msgstr ""
 
-#: templates/insights.html:239 templates/insights.html:253
-#: templates/insights.html:290 templates/insights.html:304
-#: templates/insights.html:331 templates/insights.html:345
-#: templates/insights.html:420 templates/insights.html:434
-#: templates/insights.html:460 templates/insights.html:474
+#: templates/insights.html:231 templates/insights.html:245
+#: templates/insights.html:279 templates/insights.html:293
+#: templates/insights.html:318 templates/insights.html:332
+#: templates/insights.html:404 templates/insights.html:418
+#: templates/insights.html:443 templates/insights.html:457
 msgid "Pokémon"
 msgstr ""
 
-#: templates/insights.html:239 templates/insights.html:253
-#: templates/insights.html:389
-msgid "Win %"
+#: templates/insights.html:231 templates/insights.html:245
+#: templates/insights.html:375
+#, python-format
+msgid "Win %%"
 msgstr ""
 
-#: templates/insights.html:239 templates/insights.html:253
-#: templates/insights.html:389
+#: templates/insights.html:231 templates/insights.html:245
+#: templates/insights.html:375
 msgid "Games"
 msgstr ""
 
-#: templates/insights.html:251
+#: templates/insights.html:243
 msgid "popular picks, lowest win rates"
 msgstr ""
 
-#: templates/insights.html:270
+#: templates/insights.html:262
 msgid "Top Cut Conversion"
 msgstr ""
 
-#: templates/insights.html:272
+#: templates/insights.html:264
 msgid "Cut size"
 msgstr ""
 
-#: templates/insights.html:288
+#: templates/insights.html:273
+#, python-format
+msgid ""
+"Usage share among all %(from_teams)s public teams versus the %(to_teams)s"
+" that finished in their event's Top %(cut)s — the biggest gains and drops"
+" in usage share, like the tournament overview's Biggest Movers. Only "
+"Pokémon with at least %(min_usage)s%% usage on one side are ranked."
+msgstr ""
+
+#: templates/insights.html:277
 msgid "more common in the top cut"
 msgstr ""
 
-#: templates/insights.html:290 templates/insights.html:304
-#: templates/tournaments.html:879 templates/tournaments.html:903
+#: templates/insights.html:279 templates/insights.html:293
+#: templates/tournaments.html:882 templates/tournaments.html:906
 msgid "All"
 msgstr ""
 
-#: templates/insights.html:302
+#: templates/insights.html:291
 msgid "less common in the top cut"
 msgstr ""
 
-#: templates/insights.html:321
+#: templates/insights.html:310
 msgid "Tournament Momentum"
 msgstr ""
 
-#: templates/insights.html:331 templates/insights.html:345
+#: templates/insights.html:312
+#, python-format
+msgid ""
+"Share of tournament teams including each Pokémon in the last %(days)s "
+"days (%(recent)s teams) versus the %(days)s days before (%(earlier)s "
+"teams)."
+msgstr ""
+
+#: templates/insights.html:318 templates/insights.html:332
 msgid "Earlier"
 msgstr ""
 
-#: templates/insights.html:331 templates/insights.html:345
+#: templates/insights.html:318 templates/insights.html:332
 msgid "Recent"
 msgstr ""
 
-#: templates/insights.html:331 templates/insights.html:345
-#: templates/insights.html:460 templates/insights.html:474
+#: templates/insights.html:318 templates/insights.html:332
+#: templates/insights.html:443 templates/insights.html:457
 msgid "Change"
 msgstr ""
 
-#: templates/insights.html:362
+#: templates/insights.html:349
 msgid "Cores"
 msgstr ""
 
-#: templates/insights.html:365 templates/insights.html:380
+#: templates/insights.html:351
+#, python-format
+msgid ""
+"Pokémon cores pooled across tournament teams (at least %(min_games)s "
+"games and %(min_teams)s teams)."
+msgstr ""
+
+#: templates/insights.html:352 templates/insights.html:366
 msgid "Best win rate"
 msgstr ""
 
-#: templates/insights.html:371
+#: templates/insights.html:352
+#, python-format
+msgid "ranks established cores (at least %(pct)s%% of teams);"
+msgstr ""
+
+#: templates/insights.html:353
+msgid "most common"
+msgstr ""
+
+#: templates/insights.html:353
+msgid "shows what to prepare for;"
+msgstr ""
+
+#: templates/insights.html:354
+msgid "best synergy"
+msgstr ""
+
+#: templates/insights.html:354
+msgid ""
+"surfaces cores whose combined win rate beats both members' overall win "
+"rates, however niche. Click a core to see the teams running it."
+msgstr ""
+
+#: templates/insights.html:357
 msgid "Core size"
 msgstr ""
 
-#: templates/insights.html:378
+#: templates/insights.html:364
 msgid "Sort by"
 msgstr ""
 
-#: templates/insights.html:381
+#: templates/insights.html:367
 msgid "Most common"
 msgstr ""
 
-#: templates/insights.html:382
+#: templates/insights.html:368
 msgid "Best synergy"
 msgstr ""
 
-#: templates/insights.html:389
+#: templates/insights.html:375
 msgid "Core"
 msgstr ""
 
-#: templates/insights.html:389
+#: templates/insights.html:375
 msgid "Lift"
 msgstr ""
 
-#: templates/insights.html:409
+#: templates/insights.html:387
+#, python-format
+msgid "No %(size)s-Pokémon cores meet the sample-size floors for this sort."
+msgstr ""
+
+#: templates/insights.html:395
 msgid "Ladder vs Tournament"
 msgstr ""
 
-#: templates/insights.html:418
+#: templates/insights.html:397
+msgid "all ratings"
+msgstr ""
+
+#: templates/insights.html:397
+#, python-format
+msgid "%(r)s+ rated"
+msgstr ""
+
+#: templates/insights.html:398
+#, python-format
+msgid ""
+"Share of teams including each Pokémon on the Showdown ladder (%(scope)s, "
+"%(month)s) versus in online tournaments. Big gaps show where ladder "
+"practice and tournament reality part ways."
+msgstr ""
+
+#: templates/insights.html:402
 msgid "Tournament staples the ladder underrates"
 msgstr ""
 
-#: templates/insights.html:420 templates/insights.html:434
+#: templates/insights.html:404 templates/insights.html:418
 msgid "Ladder"
 msgstr ""
 
-#: templates/insights.html:420 templates/insights.html:434
+#: templates/insights.html:404 templates/insights.html:418
 msgid "Tournament"
 msgstr ""
 
-#: templates/insights.html:420 templates/insights.html:434
+#: templates/insights.html:404 templates/insights.html:418
 msgid "Gap"
 msgstr ""
 
-#: templates/insights.html:432
+#: templates/insights.html:416
 msgid "Ladder favorites tournaments skip"
 msgstr ""
 
-#: templates/insights.html:451
+#: templates/insights.html:435
 msgid "Rising & Falling"
 msgstr ""
 
-#: templates/replays.html:603
+#: templates/insights.html:437
+#, python-format
+msgid ""
+"Biggest ladder usage moves from %(prev)s to %(last)s on the %(fmt)s "
+"ladder."
+msgstr ""
+
+#: templates/replays.html:600
 msgid "Replay Searcher"
 msgstr ""
 
-#: templates/replays.html:604
+#: templates/replays.html:601
 msgid "Select Format"
 msgstr ""
 
-#: templates/replays.html:611
+#: templates/replays.html:608
 msgid "Filter By Pokemon"
 msgstr ""
 
-#: templates/replays.html:613 templates/teams.html:491
+#: templates/replays.html:610 templates/teams.html:489
 msgid "Find All Pokemon on a Team"
 msgstr ""
 
-#: templates/replays.html:614 templates/teams.html:492
+#: templates/replays.html:611 templates/teams.html:490
 msgid "Find Any Pokemon on a Team"
 msgstr ""
 
-#: templates/replays.html:617
+#: templates/replays.html:614
 msgid "Filter By Players"
 msgstr ""
 
-#: templates/replays.html:621
+#: templates/replays.html:618
 msgid "Options"
 msgstr ""
 
-#: templates/replays.html:622
+#: templates/replays.html:619
 msgid "Pokemon Participated in Battle"
 msgstr ""
 
-#: templates/replays.html:623
+#: templates/replays.html:620
 msgid "Pokemon is on Winning Team"
 msgstr ""
 
-#: templates/replays.html:624
+#: templates/replays.html:621
 msgid "Filter By Rating"
 msgstr ""
 
-#: templates/replays.html:625
+#: templates/replays.html:622
 msgid "Max Rating (eg. '1500')"
 msgstr ""
 
-#: templates/replays.html:626
+#: templates/replays.html:623
 msgid "Show Usage Score (Beta)"
 msgstr ""
 
-#: templates/replays.html:627
+#: templates/replays.html:624
 msgid ""
 "Usage Score is the collective percentage usage of a team based on usage "
 "statistics."
 msgstr ""
 
-#: templates/replays.html:628
+#: templates/replays.html:625
 msgid "Filter By Usage Score"
 msgstr ""
 
-#: templates/replays.html:630
+#: templates/replays.html:627
 msgid "Search Replays"
 msgstr ""
 
-#: templates/replays.html:634
+#: templates/replays.html:631
 msgid "Top Replays"
 msgstr ""
 
-#: templates/replays.html:638 templates/replays.html:654
-#: templates/teams.html:527
+#: templates/replays.html:635 templates/replays.html:651
+#: templates/teams.html:523
 msgid "Loading..."
 msgstr ""
 
-#: templates/replays.html:639
+#: templates/replays.html:636
 msgid "No Replays Found."
 msgstr ""
 
-#: templates/replays.html:640
+#: templates/replays.html:637
 msgid "Error: Unable to get replays."
 msgstr ""
 
-#: templates/replays.html:643
+#: templates/replays.html:640
 msgid "Player 1"
 msgstr ""
 
-#: templates/replays.html:644
+#: templates/replays.html:641
 msgid "Player 2"
 msgstr ""
 
-#: templates/replays.html:645
+#: templates/replays.html:642
 msgid "Score"
 msgstr ""
 
-#: templates/replays.html:646
+#: templates/replays.html:643
 msgid "Date"
 msgstr ""
 
-#: templates/replays.html:652
+#: templates/replays.html:649
 msgid "Top Team Compositions"
 msgstr ""
 
-#: templates/replays.html:655
+#: templates/replays.html:652
 msgid "No team data found."
 msgstr ""
 
-#: templates/replays.html:656
+#: templates/replays.html:653
 msgid "Error: Unable to get rankings."
 msgstr ""
 
-#: templates/teams.html:481
+#: templates/teams.html:479
 msgid "Team Search"
 msgstr ""
 
-#: templates/teams.html:482
+#: templates/teams.html:480
 msgid "Repository"
 msgstr ""
 
-#: templates/teams.html:489
+#: templates/teams.html:487
 msgid "Search"
 msgstr ""
 
-#: templates/teams.html:495
+#: templates/teams.html:493
 msgid "Filters"
 msgstr ""
 
-#: templates/teams.html:496
+#: templates/teams.html:494
 msgid "Has EV Spreads"
 msgstr ""
 
-#: templates/teams.html:498
+#: templates/teams.html:495
+msgid "Has"
+msgstr ""
+
+#: templates/teams.html:496
 msgid "Has Team Report"
 msgstr ""
 
-#: templates/teams.html:500
+#: templates/teams.html:498
 msgid "Sort Results"
 msgstr ""
 
-#: templates/teams.html:502
+#: templates/teams.html:500
 msgid "Newest First"
 msgstr ""
 
-#: templates/teams.html:503
+#: templates/teams.html:501
 msgid "Oldest First"
 msgstr ""
 
-#: templates/teams.html:504
+#: templates/teams.html:502
 msgid "Random Order"
 msgstr ""
 
-#: templates/teams.html:506
+#: templates/teams.html:504
 msgid "Search Teams"
 msgstr ""
 
-#: templates/teams.html:507
+#: templates/teams.html:505
 msgid "Show Random Team"
 msgstr ""
 
-#: templates/teams.html:528
+#: templates/teams.html:507 templates/tournaments.html:1116
+#: templates/tournaments.html:1131
+msgid ""
+"Separate Pokémon with commas; words in one group must match the same team"
+" member, so \"Kingambit Focus Sash\" means a Kingambit"
+msgstr ""
+
+#: templates/teams.html:508 templates/tournaments.html:1117
+#: templates/tournaments.html:1132
+msgid "holding"
+msgstr ""
+
+#: templates/teams.html:508
+msgid ""
+"a Focus Sash. Player, tournament, rank and team ID work too. Click a team"
+" to view its full sets."
+msgstr ""
+
+#: templates/teams.html:511
+msgid "follow"
+msgstr ""
+
+#: templates/teams.html:513
+msgid "or browse the"
+msgstr ""
+
+#: templates/teams.html:514
+msgid "full spreadsheet"
+msgstr ""
+
+#: templates/teams.html:515
+msgid "Data refreshes every 12 hours."
+msgstr ""
+
+#: templates/teams.html:524
 msgid "No teams found."
 msgstr ""
 
-#: templates/teams.html:529
+#: templates/teams.html:525
 msgid "Error: Unable to load teams."
 msgstr ""
 
-#: templates/teams.html:531
+#: templates/teams.html:527
 msgid "Load More"
 msgstr ""
 
-#: templates/teams.html:537
+#: templates/teams.html:533
 msgid "Team Viewer"
 msgstr ""
 
-#: templates/teams.html:539
+#: templates/teams.html:535
 msgid "Open on Pokepaste"
 msgstr ""
 
-#: templates/teams.html:540
+#: templates/teams.html:536
 msgid "Close"
 msgstr ""
 
-#: templates/teams.html:545
+#: templates/teams.html:541
 msgid "Loading sets..."
 msgstr ""
 
-#: templates/teams.html:552
+#: templates/teams.html:548
 msgid "Leaving MunchStats"
 msgstr ""
 
-#: templates/teams.html:553
+#: templates/teams.html:549
 msgid "This will open an external link in a new tab:"
 msgstr ""
 
-#: templates/teams.html:557
+#: templates/teams.html:553
 msgid "Cancel"
 msgstr ""
 
@@ -721,61 +1173,69 @@ msgid ""
 "translate directly to in-person play."
 msgstr ""
 
-#: templates/tournaments.html:796
+#: templates/tournaments.html:799
 msgid "No Tournament Data"
 msgstr ""
 
-#: templates/tournaments.html:797
+#: templates/tournaments.html:800
 msgid ""
 "Official tournament data has not been scraped and Limitless online data "
 "is unavailable — try again shortly."
 msgstr ""
 
-#: templates/tournaments.html:825
+#: templates/tournaments.html:828
 msgid "Win Rate"
 msgstr ""
 
-#: templates/tournaments.html:838
+#: templates/tournaments.html:841
 msgid "Search for a Tournament"
 msgstr ""
 
-#: templates/tournaments.html:845
+#: templates/tournaments.html:848
 msgid "Online (Limitless)"
 msgstr ""
 
-#: templates/tournaments.html:880
+#: templates/tournaments.html:883
 msgid "Day 2"
 msgstr ""
 
-#: templates/tournaments.html:887
+#: templates/tournaments.html:890
 msgid "Min. players per tournament"
 msgstr ""
 
-#: templates/tournaments.html:900
+#: templates/tournaments.html:903
 msgid "Placement cut"
 msgstr ""
 
-#: templates/tournaments.html:934
+#: templates/tournaments.html:937
 msgid "Overview"
 msgstr ""
 
-#: templates/tournaments.html:1100 templates/tournaments.html:1130
+#: templates/tournaments.html:1106 templates/tournaments.html:1135
 msgid "Loading teams..."
 msgstr ""
 
-#: templates/tournaments.html:1115
+#: templates/tournaments.html:1117
+msgid "a Focus Sash. Player names work too."
+msgstr ""
+
+#: templates/tournaments.html:1120
 msgid "Loading standings..."
 msgstr ""
 
-#: templates/tournaments.html:1138
+#: templates/tournaments.html:1132
+msgid "a Focus Sash. Players and tournaments work too."
+msgstr ""
+
+#: templates/tournaments.html:1143
 msgid "Search tournaments..."
 msgstr ""
 
-#: templates/tournaments.html:1141
+#: templates/tournaments.html:1146
 msgid "No tournaments found."
 msgstr ""
 
-#: templates/tournaments.html:1156
+#: templates/tournaments.html:1161
 msgid "Tournament data from"
 msgstr ""
 

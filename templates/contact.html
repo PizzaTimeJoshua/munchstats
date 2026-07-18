@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+{% block title %}{{ _('Contact') }} | MunchStats{% endblock %}
+
+{% block head %}
+<style>
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+  .container {
+    max-width: 600px;
+    width: 100%;
+  }
+  h1 {
+    font-size: 36px;
+    color: var(--text-strong);
+    text-align: center;
+    margin-bottom: 12px;
+  }
+  .intro {
+    font-size: 15px;
+    color: var(--text-soft);
+    line-height: 1.6;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+  .contact-form {
+    background-color: var(--surface);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 28px;
+  }
+  .form-row {
+    margin-bottom: 18px;
+  }
+  .form-row label {
+    display: block;
+    font-size: 14px;
+    color: var(--text-strong);
+    margin-bottom: 6px;
+  }
+  .form-row .hint {
+    font-size: 12px;
+    color: var(--text-faint);
+    margin-top: 4px;
+  }
+  .form-row select,
+  .form-row input[type="email"],
+  .form-row input[type="text"],
+  .form-row textarea {
+    width: 100%;
+    padding: 10px;
+    font-size: 15px;
+    font-family: Arial, sans-serif;
+    color: var(--text);
+    background-color: var(--bg);
+    border: 1px solid var(--border-2);
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+  .form-row textarea {
+    min-height: 140px;
+    resize: vertical;
+  }
+  .submit-btn {
+    background-color: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border-2);
+    padding: 12px 24px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+  }
+  .submit-btn:hover {
+    background-color: var(--raised);
+    color: var(--text-strong);
+  }
+  .notice {
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 15px;
+    line-height: 1.5;
+  }
+  .notice-success {
+    background-color: var(--surface);
+    border: 1px solid var(--border-2);
+    color: var(--text-strong);
+  }
+  .notice-error {
+    background-color: var(--surface);
+    border: 1px solid var(--border-2);
+    color: var(--text-strong);
+  }
+  .hp-field {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+  }
+  .turnstile-row {
+    margin-bottom: 18px;
+  }
+  .button-container {
+    text-align: center;
+  }
+  .home-button {
+    background-color: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border-2);
+    padding: 12px 24px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    text-decoration: none;
+    display: inline-block;
+  }
+  .home-button:hover {
+    background-color: var(--raised);
+    color: var(--text-strong);
+  }
+  .footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-disabled);
+    margin-top: auto;
+    padding-top: 20px;
+  }
+</style>
+{% if enabled and not sent %}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{%- set category_labels = {
+  'bug': _('Bug report'),
+  'feature': _('Feature suggestion'),
+  'improvement': _('Improvement'),
+  'translation': _('Translation error'),
+  'other': _('Other'),
+} %}
+<div class="container">
+  <h1>{{ _('Contact') }}</h1>
+  <p class="intro">
+    {{ _('Found a bug? Have a feature idea? Spotted a translation mistake? Let me know here — every message goes straight to my inbox. Leave your email if you would like a reply.') }}
+  </p>
+
+  {% if sent %}
+  <div class="notice notice-success">
+    {{ _('Thanks! Your message has been sent.') }}
+  </div>
+  {% elif error %}
+  <div class="notice notice-error">
+    {{ error }}
+  </div>
+  {% endif %}
+
+  {% if not enabled %}
+  <div class="notice notice-error">
+    {{ _('The contact form is temporarily unavailable. You can still reach me by email:') }}
+    <span style="font-family: monospace;"><tt>cont</tt><tt>act@</tt><tt>munc</tt><tt>hstat</tt><tt>s.com</tt></span>
+  </div>
+  {% elif not sent %}
+  <form class="contact-form" method="post" action="{{ url_for('contact_page') }}">
+    <div class="form-row">
+      <label for="category">{{ _('What is this about?') }}</label>
+      <select id="category" name="category">
+        {% for cat in categories %}
+        <option value="{{ cat }}"{% if form.category == cat %} selected{% endif %}>{{ category_labels[cat] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div class="form-row">
+      <label for="message">{{ _('Message') }}</label>
+      <textarea id="message" name="message" maxlength="5000" required>{{ form.message }}</textarea>
+    </div>
+    <div class="form-row">
+      <label for="page">{{ _('Page it happened on (optional)') }}</label>
+      <input type="text" id="page" name="page" maxlength="300" value="{{ form.page }}" placeholder="https://www.munchstats.com/...">
+    </div>
+    <div class="form-row">
+      <label for="email">{{ _('Your email (optional)') }}</label>
+      <input type="email" id="email" name="email" maxlength="200" value="{{ form.email }}">
+      <div class="hint">{{ _('Only used to reply to you. Never shared.') }}</div>
+    </div>
+    <div class="hp-field" aria-hidden="true">
+      <label for="website">Website</label>
+      <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+    </div>
+    <div class="turnstile-row">
+      <div class="cf-turnstile" data-sitekey="{{ site_key }}" data-theme="auto"></div>
+    </div>
+    <button type="submit" class="submit-btn">{{ _('Send message') }}</button>
+  </form>
+  {% endif %}
+
+  <div class="button-container">
+    <a href="{{ url_for('about') }}" class="home-button">{{ _('About page') }}</a>
+    <a href="{{ url_for('index') }}" class="home-button">{{ _('Go back to the homepage') }}</a>
+  </div>
+</div>
+<div class="footer">
+  <p>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</p>
+</div>
+{% endblock %}

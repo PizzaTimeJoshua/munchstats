@@ -2,7 +2,8 @@
    Requires selected_format, selected_rating, selected_pokemon in context
    (every tabbed route passes them). #}
 <div class="top-bar">
-  <div class="tab-bar">
+  <button type="button" id="nav-burger" class="nav-burger" aria-label="Menu" aria-expanded="false" aria-controls="tab-bar" onclick="msToggleNav()">&#9776;</button>
+  <div class="tab-bar" id="tab-bar">
     <a id="tab-usage-btn" class="tab-btn{% if active_tab | default('') == 'usage' %} tab-active{% endif %}" href="{% if is_champions_game | default(false) %}{{ url_for('champions_page', fmt=champions_slug, pokemon_name=selected_pokemon) }}{% else %}{{ url_for('display_pokemon_page', format_code=selected_format[0], rating_threshold=selected_rating, pokemon_name=selected_pokemon) }}{% endif %}">{{ _('Usage Stats') }}</a>
     <a id="tab-tournaments-btn" class="tab-btn{% if active_tab | default('') == 'tournaments' %} tab-active{% endif %}" href="{{ url_for('tournaments_page') }}">{{ _('Tournaments') }}</a>
     <a id="tab-insights-btn" class="tab-btn{% if active_tab | default('') == 'insights' %} tab-active{% endif %}" href="{{ url_for('insights_page') }}">{{ _('Insights') }}</a>
@@ -14,6 +15,7 @@
     <a id="tab-tools-btn" class="tab-btn{% if active_tab | default('') == 'tools' %} tab-active{% endif %}" href="{{ url_for('tools_page') }}">{{ _('Tools') }}</a>
   </div>
   <div class="top-bar-right">
+    <a href="{{ url_for('about') }}" class="about-link">{{ _('About') }}</a>
     <select id="lang-select" class="lang-select" onchange="msSetLang(this.value)" aria-label="Language">
       <option value="en"{% if current_lang | default('en') == 'en' %} selected{% endif %}>EN</option>
       <option value="es"{% if current_lang | default('en') == 'es' %} selected{% endif %}>ES</option>
@@ -38,35 +40,6 @@
           </button>
           {%- endfor %}
         </div>
-        <button type="button" class="theme-chip theme-chip-custom" data-theme-id="custom" onclick="msToggleCustomPanel()">{{ _('Customize') }}&hellip;</button>
-        <div id="theme-custom" class="theme-custom" hidden>
-          <label class="theme-custom-row">{{ _('Base') }}
-            <select id="ct-scheme" onchange="msCustomChanged()">
-              <option value="dark">{{ _('Dark') }}</option>
-              <option value="light">{{ _('Light') }}</option>
-            </select>
-          </label>
-          <label class="theme-custom-row">{{ _('Background') }}
-            <input type="color" id="ct-bg" onchange="msCustomChanged()">
-          </label>
-          <label class="theme-custom-row">{{ _('Accent') }}
-            <input type="color" id="ct-accent" onchange="msCustomChanged()">
-          </label>
-          <label class="theme-custom-row">{{ _('Pattern') }}
-            <select id="ct-pattern" onchange="msCustomChanged()">
-              <option value="none">{{ _('None') }}</option>
-              <option value="stars">{{ _('Stars') }}</option>
-              <option value="pokeballs">{{ _('Poké Balls') }}</option>
-              <option value="stripes">{{ _('Stripes') }}</option>
-              <option value="rings">{{ _('Rings') }}</option>
-              <option value="dots">{{ _('Dots') }}</option>
-            </select>
-          </label>
-          <label class="theme-custom-row">{{ _('Image URL') }}
-            <input type="url" id="ct-image" placeholder="https://" onchange="msCustomChanged()">
-          </label>
-          <button type="button" class="theme-reset-btn" onclick="msResetCustom()">{{ _('Reset') }}</button>
-        </div>
       </div>
     </div>
     <div class="twitter-follow-div">
@@ -78,3 +51,9 @@
     </div>
   </div>
 </div>
+<script>
+function msToggleNav() {
+  var open = document.querySelector('.top-bar').classList.toggle('nav-open');
+  document.getElementById('nav-burger').setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+</script>

@@ -752,8 +752,6 @@
     #usage-view > div, #standings-view > div, #results-view > div, #events-view > div, #overview-view > div { width: 100%; }
     .team-detail-grid { grid-template-columns: repeat(2, 1fr); }
     .grid-container { grid-gap: 15px; padding: 0 8px; }
-    /* Tab bar: shrink padding, hide social buttons */
-    .tab-btn { padding: 6px 10px; font-size: 12px; margin-right: 2px; }
     .twitter-follow-div { display: none; }
     /* Left sidebar: single column, fluid */
     .left { grid-template-columns: minmax(0, 1fr); width: 100% !important; }
@@ -786,7 +784,6 @@
   }
   @media (max-width: 500px) {
     .team-detail-grid { grid-template-columns: 1fr; }
-    .tab-btn { padding: 5px 7px; font-size: 11px; }
   }
 </style>
 {% endblock %}

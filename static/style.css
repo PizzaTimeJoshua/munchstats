@@ -348,7 +348,9 @@ html[data-theme="sylveon"] {
 body {
   background-color: var(--bg);
   display: grid;
-  grid-template-columns: 1fr;
+  /* minmax(0,…): an auto-min 1fr track grows to fit the tab bar's full
+     unscrolled width on mobile, pushing the page past the viewport */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: auto 1fr auto;
   color: var(--text);
   font-family: Arial, sans-serif;
@@ -401,6 +403,23 @@ body::before {
   padding: 0 5px 6px 0;
   flex-shrink: 0;
 }
+/* Mobile-only nav toggle; the tab bar becomes its dropdown menu. */
+.nav-burger {
+  display: none;
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  width: 34px;
+  height: 29px;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.nav-burger:hover { color: var(--accent); background: var(--surface-3); }
 .twitter-follow-div {
   display: flex;
   align-items: center;
@@ -464,7 +483,6 @@ body::before {
 }
 .theme-chip:hover { background: var(--surface-3); color: var(--text-strong); }
 .theme-chip.sel { border-color: var(--accent); color: var(--accent); }
-.theme-chip-custom { width: 100%; margin-top: 8px; justify-content: center; }
 .theme-swatch {
   width: 16px;
   height: 16px;
@@ -482,56 +500,6 @@ body::before {
   border-radius: 50%;
   border: 1px solid var(--border-hi);
 }
-.theme-custom {
-  margin-top: 8px;
-  border-top: 1px solid var(--border-soft);
-  padding-top: 8px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.theme-custom-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  font-size: 12px;
-  color: var(--text-sub);
-}
-.theme-custom-row select,
-.theme-custom-row input[type="url"] {
-  background: var(--inset);
-  color: var(--text);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  font-size: 12px;
-  padding: 3px 4px;
-  width: 130px;
-  height: auto;
-  margin: 0;
-  box-sizing: border-box;
-}
-.theme-custom-row input[type="color"] {
-  width: 36px;
-  height: 22px;
-  padding: 1px;
-  margin: 0;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  background: var(--inset);
-  cursor: pointer;
-}
-.theme-reset-btn {
-  align-self: flex-end;
-  background: var(--surface-2);
-  color: var(--text-muted);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 3px 10px;
-  font-size: 12px;
-  cursor: pointer;
-}
-.theme-reset-btn:hover { color: var(--text-strong); background: var(--surface-3); }
 .lang-select {
   background: var(--surface);
   color: var(--text-muted);
@@ -547,10 +515,47 @@ body::before {
 }
 .lang-select:hover { color: var(--text-strong); }
 
-@media (max-width: 700px) {
-  .tab-btn { padding: 6px 10px; font-size: 12px; margin-right: 2px; border-radius: 0; }
-  .twitter-follow-div { display: none; }
+.about-link {
+  background: var(--surface);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  height: 29px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 10px;
+  font-size: 13px;
+  text-decoration: none;
+  flex-shrink: 0;
 }
-@media (max-width: 500px) {
-  .tab-btn { padding: 5px 7px; font-size: 11px; }
+.about-link:hover { color: var(--accent); background: var(--surface-3); }
+
+@media (max-width: 700px) {
+  .twitter-follow-div { display: none; }
+  /* One row: burger left, controls right; tabs unfold below as a menu. */
+  .top-bar { flex-wrap: wrap; align-items: center; padding: 4px 0; }
+  .nav-burger { display: inline-flex; margin-left: 5px; }
+  .top-bar-right { padding: 0 5px 0 0; }
+  .tab-bar { display: none; }
+  .top-bar.nav-open .tab-bar {
+    order: 3;
+    width: 100%;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    margin-top: 4px;
+    padding: 4px 0 6px;
+    border-top: 1px solid var(--border);
+  }
+  .tab-btn {
+    width: 100%;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 12px 14px;
+    font-size: 14px;
+    background: none;
+    border: none;
+    border-left: 3px solid transparent;
+  }
+  .tab-btn.tab-active { border-left-color: var(--accent); background: var(--surface); }
 }

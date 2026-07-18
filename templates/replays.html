@@ -513,8 +513,6 @@
   }
   /* Mobile */
   @media (max-width: 700px) {
-    /* Tab bar */
-    .tab-btn { padding: 6px 10px; font-size: 12px; margin-right: 2px; border-radius: 0; }
     .twitter-follow-div { display: none; }
     /* Replay table: card layout instead of grid */
     .replay-table-header.visible { display: none; }
@@ -555,7 +553,6 @@
     .replay-modal-external { display: none; }
   }
   @media (max-width: 500px) {
-    .tab-btn { padding: 5px 7px; font-size: 11px; }
     .team-rank-stats { gap: 6px; }
     .team-rank-stat-value { font-size: 12px; }
     .team-rank-number { font-size: 15px; min-width: 24px; }
@@ -670,7 +667,7 @@
   </div>
 </div>
 <footer>
-  <p><a href="{{ url_for('about') }}">{{ _('About') }}</a></p>
+  <p><a href="{{ url_for('about') }}">{{ _('About') }}</a> &middot; <a href="{{ url_for('contact_page') }}">{{ _('Contact') }}</a></p>
   <p>{{ _('Pokémon and All Respective Names are Trademark & © of Nintendo 1996-2026') }}</p>
 </footer>
 <script src="{{ url_for('static', filename='replay_search.js') }}?v=4"></script>

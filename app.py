@@ -5,8 +5,10 @@ import json
 import math
 import os
 import re
+import smtplib
 import threading
 import time
+from email.message import EmailMessage
 from collections import OrderedDict
 from datetime import datetime
 from functools import lru_cache
@@ -4425,6 +4427,162 @@ def api_merch(pokemon_name):
     return jsonify(listings)
 
 
+# ─── Contact Form ────────────────────────────────────────────────────────
+
+TURNSTILE_SITE_KEY = os.environ.get("TURNSTILE_SITE_KEY", "")
+TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY", "")
+# Gmail account used both as SMTP login and as the recipient. The visitor's
+# optional address only ever goes in Reply-To, never From (DMARC).
+CONTACT_EMAIL_ADDRESS = os.environ.get("CONTACT_EMAIL_ADDRESS", "")
+CONTACT_EMAIL_APP_PASSWORD = os.environ.get("CONTACT_EMAIL_APP_PASSWORD", "")
+
+CONTACT_CATEGORIES = ["bug", "feature", "improvement", "translation", "other"]
+CONTACT_MAX_MESSAGE_LEN = 5000
+CONTACT_MIN_MESSAGE_LEN = 10
+
+# Per-IP submission timestamps, size-bounded (single worker, no Redis).
+_contact_rate = OrderedDict()
+_CONTACT_RATE_MAX_IPS = 1000
+_CONTACT_RATE_LIMIT = 3        # submissions...
+_CONTACT_RATE_WINDOW = 3600    # ...per hour per IP
+
+
+def contact_form_enabled():
+    return bool(
+        TURNSTILE_SITE_KEY
+        and TURNSTILE_SECRET_KEY
+        and CONTACT_EMAIL_ADDRESS
+        and CONTACT_EMAIL_APP_PASSWORD
+    )
+
+
+def _contact_client_ip():
+    # Heroku router appends the client IP to X-Forwarded-For.
+    forwarded = request.headers.get("X-Forwarded-For", "")
+    if forwarded:
+        return forwarded.split(",")[-1].strip()
+    return request.remote_addr or "unknown"
+
+
+def _contact_rate_limited(ip):
+    now = time.time()
+    times = [t for t in _contact_rate.get(ip, []) if now - t < _CONTACT_RATE_WINDOW]
+    if len(times) >= _CONTACT_RATE_LIMIT:
+        _contact_rate[ip] = times
+        return True
+    times.append(now)
+    _contact_rate[ip] = times
+    _contact_rate.move_to_end(ip)
+    while len(_contact_rate) > _CONTACT_RATE_MAX_IPS:
+        _contact_rate.popitem(last=False)
+    return False
+
+
+def _verify_turnstile(token, ip):
+    if not token:
+        return False
+    try:
+        resp = requests.post(
+            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+            data={
+                "secret": TURNSTILE_SECRET_KEY,
+                "response": token,
+                "remoteip": ip,
+            },
+            timeout=10,
+        )
+        return resp.status_code == 200 and resp.json().get("success", False)
+    except Exception:
+        return False
+
+
+def _send_contact_email(category, message, reply_email, page, ip, lang="en"):
+    msg = EmailMessage()
+    msg["From"] = CONTACT_EMAIL_ADDRESS
+    msg["To"] = CONTACT_EMAIL_ADDRESS
+    msg["Subject"] = f"[MunchStats] {category.capitalize()} report"
+    if reply_email:
+        msg["Reply-To"] = reply_email
+    body_lines = [
+        f"Category: {category}",
+        f"Reply email: {reply_email or '(none)'}",
+        f"Page: {page or '(not given)'}",
+        f"IP: {ip}",
+        f"Language: {lang}",
+        "",
+        message,
+    ]
+    msg.set_content("\n".join(body_lines))
+    with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as smtp:
+        smtp.starttls()
+        smtp.login(CONTACT_EMAIL_ADDRESS, CONTACT_EMAIL_APP_PASSWORD)
+        smtp.send_message(msg)
+
+
+@app.route("/contact/", methods=["GET", "POST"])
+def contact_page():
+    ctx = {
+        "enabled": contact_form_enabled(),
+        "site_key": TURNSTILE_SITE_KEY,
+        "categories": CONTACT_CATEGORIES,
+        "sent": False,
+        "error": None,
+        "form": {"category": "bug", "message": "", "email": "", "page": ""},
+    }
+    if request.method == "GET" or not ctx["enabled"]:
+        return render_template("contact.html", **ctx)
+
+    form = {
+        "category": request.form.get("category", "other"),
+        "message": request.form.get("message", "").strip(),
+        "email": request.form.get("email", "").strip(),
+        "page": request.form.get("page", "").strip(),
+    }
+    if form["category"] not in CONTACT_CATEGORIES:
+        form["category"] = "other"
+    ctx["form"] = form
+
+    # Honeypot: bots fill the hidden field; pretend it worked.
+    if request.form.get("website", ""):
+        ctx["sent"] = True
+        return render_template("contact.html", **ctx)
+
+    if len(form["message"]) < CONTACT_MIN_MESSAGE_LEN:
+        ctx["error"] = gettext("Please write a few more details in the message.")
+        return render_template("contact.html", **ctx)
+    if form["email"] and (
+        len(form["email"]) > 200 or not re.match(r"[^@\s]+@[^@\s]+\.[^@\s]+$", form["email"])
+    ):
+        ctx["error"] = gettext("That email address doesn't look valid.")
+        return render_template("contact.html", **ctx)
+
+    ip = _contact_client_ip()
+    if _contact_rate_limited(ip):
+        ctx["error"] = gettext("Too many messages from this connection. Please try again later.")
+        return render_template("contact.html", **ctx)
+
+    if not _verify_turnstile(request.form.get("cf-turnstile-response", ""), ip):
+        ctx["error"] = gettext("Captcha verification failed. Please try again.")
+        return render_template("contact.html", **ctx)
+
+    try:
+        _send_contact_email(
+            form["category"],
+            form["message"][:CONTACT_MAX_MESSAGE_LEN],
+            form["email"],
+            form["page"][:300],
+            ip,
+            lang=str(get_locale()),
+        )
+    except Exception:
+        ctx["error"] = gettext("Something went wrong sending your message. Please try again later.")
+        return render_template("contact.html", **ctx)
+
+    ctx["sent"] = True
+    ctx["form"] = {"category": "bug", "message": "", "email": "", "page": ""}
+    return render_template("contact.html", **ctx)
+
+
 # ─── Error Handlers & Index ──────────────────────────────────────────────
 
 
@@ -4441,7 +4599,7 @@ def internal_server_error(e):
 @app.route("/", methods=["GET"])
 def index():
     return display_pokemon_page(DEFAULT_META)
-6
+
 
 if __name__ == "__main__":
     app.run(debug=True)
