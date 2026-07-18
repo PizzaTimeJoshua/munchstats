@@ -7,16 +7,8 @@
     <meta property="og:title" content="About | MunchStats">
     <meta name="description" content="Learn about MunchStats - a free, ad-free Pokemon Showdown usage statistics site.">
     <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
-    <script>
-      (function () {
-        try {
-          if (localStorage.getItem("theme") === "light") {
-            document.documentElement.setAttribute("data-theme", "light");
-          }
-        } catch (e) {}
-      })();
-    </script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='theme-boot.js') }}?v=1"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=4">
     <style>
       * {
         margin: 0;

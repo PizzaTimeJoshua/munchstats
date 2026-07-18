@@ -2,9 +2,11 @@ $(document).ready(function () {
   var t = window.msT || function (s) { return s; };
 
   // Theme-aware chart colors (light/dark). ct() is read at chart creation;
-  // applyChartTheme() restyles live charts when the toggle fires.
+  // applyChartTheme() restyles live charts when the picker fires. Chart.js
+  // can't use var(), so colors key off data-scheme (set by theme-boot.js
+  // for every theme, including custom).
   function ct() {
-    var light = document.documentElement.getAttribute("data-theme") === "light";
+    var light = document.documentElement.getAttribute("data-scheme") === "light";
     return light ? {
       axis: "rgba(0, 0, 0, 0.3)", grid: "rgba(0, 0, 0, 0.09)",
       gridFaint: "rgba(0, 0, 0, 0.055)", ticks: "rgba(35, 35, 40, 0.78)",

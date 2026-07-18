@@ -18,7 +18,57 @@
       <option value="en"{% if current_lang | default('en') == 'en' %} selected{% endif %}>EN</option>
       <option value="es"{% if current_lang | default('en') == 'es' %} selected{% endif %}>ES</option>
     </select>
-    <button type="button" id="theme-toggle" class="theme-toggle" onclick="msToggleTheme()" aria-label="Toggle light/dark theme">&#9788;</button>
+    <div class="theme-menu-wrap">
+      <button type="button" id="theme-toggle" class="theme-toggle" onclick="msToggleThemeMenu()" aria-label="{{ _('Choose theme') }}" title="{{ _('Choose theme') }}" aria-haspopup="true">&#127912;</button>
+      <div id="theme-menu" class="theme-menu" hidden>
+        <div class="theme-menu-title">{{ _('Theme') }}</div>
+        <div class="theme-grid">
+          {%- for tid, bg_sw, ac_sw, tlabel in [
+            ('classic', '#1e1e1e', '#ffd54f', _('Classic')),
+            ('light', '#f1f1f4', '#9a6700', _('Light')),
+            ('starry', '#0b1026', '#ffe082', _('Starry Night')),
+            ('rayquaza', '#0c1b14', '#f6c945', 'Rayquaza'),
+            ('umbreon', '#101010', '#ffd83d', 'Umbreon'),
+            ('gengar', '#191227', '#c5a3ff', 'Gengar'),
+            ('sylveon', '#fdf2f6', '#c2185b', 'Sylveon'),
+            ('munchlax', '#0f2224', '#f2dca2', 'Munchlax'),
+          ] %}
+          <button type="button" class="theme-chip" data-theme-id="{{ tid }}" onclick="msSetTheme('{{ tid }}')">
+            <span class="theme-swatch" style="background:{{ bg_sw }}"><span style="background:{{ ac_sw }}"></span></span>{{ tlabel }}
+          </button>
+          {%- endfor %}
+        </div>
+        <button type="button" class="theme-chip theme-chip-custom" data-theme-id="custom" onclick="msToggleCustomPanel()">{{ _('Customize') }}&hellip;</button>
+        <div id="theme-custom" class="theme-custom" hidden>
+          <label class="theme-custom-row">{{ _('Base') }}
+            <select id="ct-scheme" onchange="msCustomChanged()">
+              <option value="dark">{{ _('Dark') }}</option>
+              <option value="light">{{ _('Light') }}</option>
+            </select>
+          </label>
+          <label class="theme-custom-row">{{ _('Background') }}
+            <input type="color" id="ct-bg" onchange="msCustomChanged()">
+          </label>
+          <label class="theme-custom-row">{{ _('Accent') }}
+            <input type="color" id="ct-accent" onchange="msCustomChanged()">
+          </label>
+          <label class="theme-custom-row">{{ _('Pattern') }}
+            <select id="ct-pattern" onchange="msCustomChanged()">
+              <option value="none">{{ _('None') }}</option>
+              <option value="stars">{{ _('Stars') }}</option>
+              <option value="pokeballs">{{ _('Poké Balls') }}</option>
+              <option value="stripes">{{ _('Stripes') }}</option>
+              <option value="rings">{{ _('Rings') }}</option>
+              <option value="dots">{{ _('Dots') }}</option>
+            </select>
+          </label>
+          <label class="theme-custom-row">{{ _('Image URL') }}
+            <input type="url" id="ct-image" placeholder="https://" onchange="msCustomChanged()">
+          </label>
+          <button type="button" class="theme-reset-btn" onclick="msResetCustom()">{{ _('Reset') }}</button>
+        </div>
+      </div>
+    </div>
     <div class="twitter-follow-div">
       <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">
         <img height="29" style="border:0px;height:29px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=3" border="0" alt="Buy Me a Coffee at ko-fi.com" />

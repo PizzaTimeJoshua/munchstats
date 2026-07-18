@@ -22,35 +22,13 @@
 <meta name="twitter:image" content="https://www.munchstats.com/static/favicon1280x720.png">
 {% endif %}
 {% block meta_extra %}{% endblock %}
+<!-- Theme engine: applies the saved theme pre-paint; also owns the
+     picker menu rendered in _tabs.html. Must load before style.css. -->
+<script src="{{ url_for('static', filename='theme-boot.js') }}?v=1"></script>
 <script>
-  /* Apply saved theme before first paint (dark is the default). */
-  (function () {
-    try {
-      if (localStorage.getItem("theme") === "light") {
-        document.documentElement.setAttribute("data-theme", "light");
-      }
-    } catch (e) {}
-  })();
-  function msToggleTheme() {
-    var root = document.documentElement;
-    var toLight = root.getAttribute("data-theme") !== "light";
-    if (toLight) { root.setAttribute("data-theme", "light"); }
-    else { root.removeAttribute("data-theme"); }
-    try { localStorage.setItem("theme", toLight ? "light" : "dark"); } catch (e) {}
-    msThemeIcon();
-    try { document.dispatchEvent(new CustomEvent("ms-theme-change")); } catch (e) {}
-  }
   /* Translations for strings rendered client-side by static JS. */
   window.I18N = {{ js_i18n | default({}) | tojson }};
   function msT(s) { return window.I18N[s] || s; }
-  function msThemeIcon() {
-    var btn = document.getElementById("theme-toggle");
-    if (!btn) return;
-    var light = document.documentElement.getAttribute("data-theme") === "light";
-    btn.innerHTML = light ? "&#9790;" : "&#9788;";
-    btn.title = light ? "Switch to dark theme" : "Switch to light theme";
-  }
-  document.addEventListener("DOMContentLoaded", msThemeIcon);
   function msSetLang(lang) {
     document.cookie = "lang=" + lang + ";path=/;max-age=31536000;samesite=lax";
     location.reload();
@@ -58,7 +36,7 @@
 </script>
 <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=3">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=4">
 <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
 {% block head %}{% endblock %}
 <!-- Google tag (gtag.js) -->

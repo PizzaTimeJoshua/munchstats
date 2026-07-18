@@ -3180,6 +3180,46 @@ def api_tournament_standings(tournament_id):
     return jsonify(standings)
 
 
+@app.route("/tournaments/api/<tournament_id>/results/")
+def api_tournament_results(tournament_id):
+    """Return an official event's team archetypes, filtered by day.
+
+    Players are reshaped into Limitless-style entries (placing/tera
+    slot keys, empty tournament meta) so the shared grouping and
+    serialization helpers apply. `q` uses the teams-page comma-group
+    search syntax.
+    """
+    players = load_tournament_players(tournament_id)
+    day_filter = request.args.get("day", "all")
+
+    teams = []
+    for player in players:
+        if not player.get("team"):
+            continue
+        if not player_passes_day_filter(player, day_filter):
+            continue
+        teams.append({
+            "player": player["name"],
+            "placing": player["placement"],
+            "record": player.get("record", {}) or {},
+            "tournament": {},
+            "team": [
+                {
+                    "pokemon": s["pokemon"],
+                    "item": s.get("item", ""),
+                    "ability": s.get("ability", ""),
+                    "tera": s.get("tera_type", ""),
+                    "nature": s.get("nature", ""),
+                    "moves": s.get("moves", []),
+                }
+                for s in player["team"]
+            ],
+        })
+
+    query = request.args.get("q", "").strip().lower()
+    return jsonify(_archetype_results_json(teams, query))
+
+
 # ─── Limitless Online Tournament Usage Stats ─────────────────────────────
 # Aggregated usage from Limitless online VGC tournaments (attribution in
 # the template). Data is fetched lazily and cached by limitless_stats.
@@ -3456,6 +3496,24 @@ def api_limitless_event_standings(tournament_id):
     return jsonify([_limitless_team_entry(e) for e in teams])
 
 
+@app.route("/limitless/api/event/<tournament_id>/results/")
+def api_limitless_event_results(tournament_id):
+    """Return one event's team archetypes (identical 6 grouped).
+
+    `cut` restricts to top placements (8/16/32); `q` uses the
+    teams-page comma-group search syntax.
+    """
+    bundle = limitless_stats.get_event_bundle(tournament_id, pokedexEntries)
+    if not bundle:
+        return jsonify([])
+    _, max_placing = _parse_limitless_cut(request.args.get("cut"))
+    teams = bundle["teams"]
+    if max_placing is not None:
+        teams = [e for e in teams if (e["placing"] or 9999) <= max_placing]
+    query = request.args.get("q", "").strip().lower()
+    return jsonify(_archetype_results_json(teams, query))
+
+
 def _limitless_team_entry(entry):
     """Serialize one Limitless team entry for the JSON endpoints."""
     return {
@@ -3522,6 +3580,64 @@ def _limitless_group_matches(entry, terms):
     return all(term in entry["search_meta"] for term in terms)
 
 
+def _ensure_team_search_index(entry):
+    """Backfill search_slots/search_meta on entries that lack them.
+
+    Format-level Limitless teams precompute these; single-event bundles
+    and reshaped RK9 players are small enough to index per request.
+    """
+    if "search_slots" not in entry:
+        entry["search_slots"] = [
+            " ".join(filter(None, [
+                s["pokemon"], s.get("item"), s.get("ability"),
+                s.get("tera"), s.get("nature"), *(s.get("moves") or []),
+            ])).lower()
+            for s in entry["team"]
+        ]
+        entry["search_meta"] = " ".join(filter(None, [
+            entry.get("player"), (entry.get("tournament") or {}).get("name"),
+        ])).lower()
+    return entry
+
+
+def _archetype_results_json(teams, query):
+    """Filter, group and serialize team entries for a Top Teams view.
+
+    Teams are Limitless-shaped entries (placing/record/tournament/team).
+    The query uses the teams-page comma-group syntax; it filters the
+    underlying teams before grouping, so counts reflect matching teams.
+    """
+    if query:
+        groups = [g.split() for g in query.split(",")]
+        groups = [g for g in groups if g]
+        if groups:
+            teams = [
+                e for e in teams
+                if all(
+                    _limitless_group_matches(_ensure_team_search_index(e), g)
+                    for g in groups
+                )
+            ]
+    archetypes = limitless_stats.group_team_archetypes(teams)
+
+    result = []
+    for group in archetypes[:50]:
+        points = group["points"]
+        result.append({
+            "pokemon": [
+                {"name": name, "sprite": list(get_pokemon_sprite(name))}
+                for name in group["pokemon"]
+            ],
+            "count": group["count"],
+            "points": int(points) if points == int(points) else points,
+            "win_rate": group["win_rate"],
+            "best_placing": group["best_placing"],
+            "total_players": len(group["players"]),
+            "players": [_limitless_team_entry(e) for e in group["players"][:30]],
+        })
+    return result
+
+
 @app.route("/limitless/api/<format_id>/results/")
 def api_limitless_results(format_id):
     """Return team archetypes (identical 6 Pokemon grouped), most-used first.
@@ -3543,31 +3659,7 @@ def api_limitless_results(format_id):
     if max_placing is not None:
         teams = [e for e in teams if (e["placing"] or 9999) <= max_placing]
     query = request.args.get("q", "").strip().lower()
-    if query:
-        groups = [g.split() for g in query.split(",")]
-        groups = [g for g in groups if g]
-        teams = [
-            e for e in teams
-            if all(_limitless_group_matches(e, g) for g in groups)
-        ]
-    archetypes = limitless_stats.group_team_archetypes(teams)
-
-    result = []
-    for group in archetypes[:50]:
-        points = group["points"]
-        result.append({
-            "pokemon": [
-                {"name": name, "sprite": list(get_pokemon_sprite(name))}
-                for name in group["pokemon"]
-            ],
-            "count": group["count"],
-            "points": int(points) if points == int(points) else points,
-            "win_rate": group["win_rate"],
-            "best_placing": group["best_placing"],
-            "total_players": len(group["players"]),
-            "players": [_limitless_team_entry(e) for e in group["players"][:30]],
-        })
-    return jsonify(result)
+    return jsonify(_archetype_results_json(teams, query))
 
 
 # ─── Meta Insights ────────────────────────────────────────────────────────

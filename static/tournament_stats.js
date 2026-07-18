@@ -314,7 +314,7 @@ $(document).ready(function () {
 
     // Relabel the secondary view for the source and refresh it if open
     $("#btn-secondary-view").text(source === "limitless" ? t("Top Teams") : t("Standings"));
-    applyView(currentView === "secondary");
+    applyView(currentView === "secondary" || currentView === "results");
   }
 
   function updateDataSection(containerId, dataList, type) {
@@ -948,8 +948,10 @@ $(document).ready(function () {
     renderStandings();
   });
 
-  // ========== TOP TEAMS VIEW (Limitless archetypes, server-side search) ==========
-  var resultsLoadedFor = null; // format + segment + query the list currently shows
+  // ========== TOP TEAMS VIEW (team archetypes, server-side search) ==========
+  // Serves every source: the rolling Limitless format aggregate, a
+  // single online event, and official RK9 tournaments.
+  var resultsLoadedFor = null; // source + selection + query the list currently shows
 
   function renderArchetypes(archetypes, container) {
     if (!archetypes || archetypes.length === 0) {
@@ -993,7 +995,10 @@ $(document).ready(function () {
     if (opened && playersEl && !playersEl.hasChildNodes()) {
       var a = (window._archetypes || [])[idx];
       if (!a) return;
-      renderTeamEntries(a.players, playersEl, "arch" + idx, { muted: true, showTournament: true });
+      // The tournament column only means something on the format
+      // aggregate; inside a single event it repeats the page title.
+      renderTeamEntries(a.players, playersEl, "arch" + idx,
+        { muted: true, showTournament: currentSource === "limitless" });
       if (a.count > a.players.length) {
         playersEl.innerHTML += '<p style="color: var(--text-disabled); font-size: 12px;">Showing the top ' +
           a.players.length + ' of ' + a.count + ' teams.</p>';
@@ -1005,14 +1010,27 @@ $(document).ready(function () {
     var container = document.getElementById("results-list");
     if (!container) return;
     var query = ($("#resultsSearchInput").val() || "").trim();
-    var cacheKey = currentFormatId + " " + currentSegment + " " + currentCut + " " + query;
+    var cacheKey, url;
+    if (currentSource === "limitless") {
+      cacheKey = "limitless " + currentFormatId + " " + currentSegment + " " + currentCut + " " + query;
+      url = "/limitless/api/" + encodeURIComponent(currentFormatId) +
+            "/results/?min=" + encodeURIComponent(currentSegment) +
+            "&cut=" + encodeURIComponent(currentCut) +
+            "&q=" + encodeURIComponent(query);
+    } else if (currentSource === "limitless_event") {
+      cacheKey = "event " + currentEventId + " " + currentCut + " " + query;
+      url = "/limitless/api/event/" + encodeURIComponent(currentEventId) +
+            "/results/?cut=" + encodeURIComponent(currentCut) +
+            "&q=" + encodeURIComponent(query);
+    } else {
+      cacheKey = "official " + currentTournamentId + " " + currentDayFilter + " " + query;
+      url = "/tournaments/api/" + encodeURIComponent(currentTournamentId) +
+            "/results/?day=" + encodeURIComponent(currentDayFilter) +
+            "&q=" + encodeURIComponent(query);
+    }
     if (resultsLoadedFor === cacheKey) return;
 
     container.innerHTML = '<p style="color: var(--text-disabled); font-size: 13px;">' + t("Loading teams...") + '</p>';
-    var url = "/limitless/api/" + encodeURIComponent(currentFormatId) +
-              "/results/?min=" + encodeURIComponent(currentSegment) +
-              "&cut=" + encodeURIComponent(currentCut) +
-              "&q=" + encodeURIComponent(query);
     try {
       var res = await fetch(url);
       if (!res.ok) {
@@ -1159,7 +1177,9 @@ $(document).ready(function () {
   // ========== VIEW TOGGLE ==========
   // The secondary view depends on the source: Standings for official
   // events and single online events, Top Teams (archetypes) for
-  // Limitless formats. The Events browser exists only on the format.
+  // Limitless formats. Individual tournaments get archetypes as a
+  // separate "results" view. The Events browser exists only on the
+  // format.
   function updateEventsButton() {
     var btn = $("#btn-events-view");
     if (currentSource === "limitless") {
@@ -1173,6 +1193,10 @@ $(document).ready(function () {
     // online events, but not the rolling format aggregate.
     $("#btn-overview-view").toggle(currentSource !== "limitless")
       .toggleClass("active", currentView === "overview");
+    // Per-event Top Teams: on the format the secondary view already
+    // shows the archetypes, so the extra tab would be a duplicate.
+    $("#btn-results-view").toggle(currentSource !== "limitless")
+      .toggleClass("active", currentView === "results");
   }
 
   function applyView(load) {
@@ -1187,6 +1211,11 @@ $(document).ready(function () {
     }
     if (currentView === "overview" && currentSource === "limitless") {
       currentView = "usage";
+    }
+    // On the format the secondary view IS the archetype list, so a
+    // "results" selection carried over from an event folds into it.
+    if (currentView === "results" && currentSource === "limitless") {
+      currentView = "secondary";
     }
     var secondary = currentSource === "limitless" ? resultsView : standingsView;
 
@@ -1205,6 +1234,9 @@ $(document).ready(function () {
           loadStandings();
         }
       }
+    } else if (currentView === "results") {
+      resultsView.style.display = "grid";
+      if (load) loadResults();
     } else if (currentView === "events") {
       eventsView.style.display = "grid";
       renderEventsList();
@@ -1220,7 +1252,8 @@ $(document).ready(function () {
   }
 
   window.switchView = function (view) {
-    currentView = view === "secondary" || view === "events" || view === "overview"
+    currentView = view === "secondary" || view === "events" ||
+      view === "overview" || view === "results"
       ? view : "usage";
     applyView(true);
   };

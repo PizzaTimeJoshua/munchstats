@@ -2,9 +2,9 @@
  * Replay Viewer overrides — loaded LAST to override Showdown defaults.
  *
  * Split in two: layout rules apply always; the dark skin is scoped to
- * html:not([data-theme="light"]) so light mode falls back to Showdown's
- * native light replay styling (watch.html sets data-theme from the same
- * localStorage "theme" key as the main site).
+ * html:not([data-scheme="light"]) so light-scheme themes fall back to
+ * Showdown's native light replay styling (theme-boot.js sets data-scheme
+ * from the same localStorage "theme" key as the main site).
  */
 
 /* ================= LAYOUT (both themes) ================= */
@@ -73,117 +73,117 @@ body {
 
 /* ================= DARK SKIN (dark mode only) ================= */
 
-html:not([data-theme="light"]) body {
+html:not([data-scheme="light"]) body {
   background: #1e1e1e !important;
   color: #ccc !important;
 }
 
-html:not([data-theme="light"]) .battle {
+html:not([data-scheme="light"]) .battle {
   border-color: #555 !important;
 }
 
-html:not([data-theme="light"]) .battle-log {
+html:not([data-scheme="light"]) .battle-log {
   background: #222222 !important;
   color: #ccc !important;
   border-color: #555 !important;
 }
-html:not([data-theme="light"]) .battle-log h2 {
+html:not([data-scheme="light"]) .battle-log h2 {
   background: #1e1e1e !important;
   border-color: #555 !important;
   color: #ddd !important;
 }
-html:not([data-theme="light"]) .battle-log .battle-history {
+html:not([data-scheme="light"]) .battle-log .battle-history {
   color: #bbb !important;
 }
-html:not([data-theme="light"]) .battle-log .battle-history small {
+html:not([data-scheme="light"]) .battle-log .battle-history small {
   color: #999 !important;
 }
 
-html:not([data-theme="light"]) .replay-controls button {
+html:not([data-scheme="light"]) .replay-controls button {
   background: #333333 !important;
   color: #ccc !important;
   border: 1px solid #555 !important;
 }
-html:not([data-theme="light"]) .replay-controls button:hover {
+html:not([data-scheme="light"]) .replay-controls button:hover {
   background: #444444 !important;
   border-color: #04AA6D !important;
   color: #eee !important;
 }
 
-html:not([data-theme="light"]) .replay-controls-2 .chooser em {
+html:not([data-scheme="light"]) .replay-controls-2 .chooser em {
   background: transparent !important;
   color: #888 !important;
 }
-html:not([data-theme="light"]) .replay-controls-2 .chooser button {
+html:not([data-scheme="light"]) .replay-controls-2 .chooser button {
   background: #2a2a2a !important;
   color: #999 !important;
   border: 1px solid #555 !important;
 }
-html:not([data-theme="light"]) .replay-controls-2 .chooser button:hover {
+html:not([data-scheme="light"]) .replay-controls-2 .chooser button:hover {
   background: #3a3a3a !important;
   color: #ddd !important;
   border-color: #666 !important;
 }
-html:not([data-theme="light"]) .replay-controls-2 .chooser button.sel,
-html:not([data-theme="light"]) .replay-controls-2 .chooser button.sel:hover {
+html:not([data-scheme="light"]) .replay-controls-2 .chooser button.sel,
+html:not([data-scheme="light"]) .replay-controls-2 .chooser button.sel:hover {
   background: #04AA6D !important;
   color: #fff !important;
   border-color: #04AA6D !important;
 }
 
 /* Stat bars (HP bars on the battle field) */
-html:not([data-theme="light"]) .statbar strong {
+html:not([data-scheme="light"]) .statbar strong {
   color: #bbb !important;
 }
-html:not([data-theme="light"]) .statbar .hpbar {
+html:not([data-scheme="light"]) .statbar .hpbar {
   background: #1a1a1a !important;
 }
 
 /* Side bars (player info panels) */
-html:not([data-theme="light"]) .leftbar,
-html:not([data-theme="light"]) .rightbar {
+html:not([data-scheme="light"]) .leftbar,
+html:not([data-scheme="light"]) .rightbar {
   background: rgba(0, 0, 0, 0.55) !important;
   color: #ccc !important;
 }
 
 /* Message bar overlay */
-html:not([data-theme="light"]) .messagebar {
+html:not([data-scheme="light"]) .messagebar {
   background: rgba(30, 30, 30, 0.85) !important;
   color: #ddd !important;
 }
 
 /* Tooltip styling */
-html:not([data-theme="light"]) #tooltipwrapper {
+html:not([data-scheme="light"]) #tooltipwrapper {
   color: #ccc !important;
 }
-html:not([data-theme="light"]) #tooltipwrapper .tooltip {
+html:not([data-scheme="light"]) #tooltipwrapper .tooltip {
   background: #1e1e1e !important;
   background: rgba(30, 30, 30, 0.95) !important;
   color: #ccc !important;
   border-color: #555 !important;
   font-family: Arial, sans-serif !important;
 }
-html:not([data-theme="light"]) #tooltipwrapper .tooltip h2 {
+html:not([data-scheme="light"]) #tooltipwrapper .tooltip h2 {
   color: #e0e0e0 !important;
   border-color: #555 !important;
 }
-html:not([data-theme="light"]) #tooltipwrapper .tooltip p {
+html:not([data-scheme="light"]) #tooltipwrapper .tooltip p {
   color: #ccc !important;
 }
-html:not([data-theme="light"]) #tooltipwrapper .tooltip p.tooltip-section {
+html:not([data-scheme="light"]) #tooltipwrapper .tooltip p.tooltip-section {
   border-color: #555 !important;
 }
-html:not([data-theme="light"]) #tooltipwrapper.tooltip-locked .tooltip {
+html:not([data-scheme="light"]) #tooltipwrapper.tooltip-locked .tooltip {
   border-color: #888 !important;
   background: #222 !important;
 }
 
 /* Team preview open team sheet styling */
-html:not([data-theme="light"]) .battle-log .infobox {
+html:not([data-scheme="light"]) .battle-log .infobox {
   background: #2a2a2a !important;
   border-color: #555 !important;
   color: #ccc !important;
 }
-html:not([data-theme="light"]) .battle-log .infobox details summary {
+html:not([data-scheme="light"]) .battle-log .infobox details summary {
   color: #ccc !important;
 }

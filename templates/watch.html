@@ -8,21 +8,15 @@
 <link rel="stylesheet" href="/static/replay_assets/style/battle.css?v=2" />
 <link rel="stylesheet" href="/static/replay_assets/style/replay.css?v=2" />
 <link rel="stylesheet" href="/static/replay_assets/style/utilichart.css?v=2" />
-<link rel="stylesheet" href="/static/replay_assets/style/replay-override.css?v=3" />
-<script>
-  (function () {
-    try {
-      if (localStorage.getItem("theme") === "light") {
-        document.documentElement.setAttribute("data-theme", "light");
-      }
-    } catch (e) {}
-  })();
-</script>
+<link rel="stylesheet" href="/static/replay_assets/style/replay-override.css?v=4" />
+<script src="/static/theme-boot.js?v=1"></script>
 <style>
 /* Theme tokens only - the full style.css must NOT load here: its body
-   grid layout breaks the Showdown replay viewer's own styles. */
+   grid layout breaks the Showdown replay viewer's own styles.
+   theme-boot.js sets data-scheme; preset themes just resolve to their
+   scheme's tokens here (custom themes inline their own overrides). */
 :root { --bg: #1e1e1e; --text: #e0e0e0; --text-soft: #ccc; --accent: #ffd54f; }
-html[data-theme="light"] { --bg: #f1f1f4; --text: #26262b; --text-soft: #3f3f45; --accent: #9a6700; }
+html[data-scheme="light"] { --bg: #f1f1f4; --text: #26262b; --text-soft: #3f3f45; --accent: #9a6700; }
 body {
   background: var(--bg);
   color: var(--text-soft);
@@ -69,23 +63,18 @@ body {
 <body>
 <script>
   /* Showdown's battle/replay CSS keys its dark skin off body.dark; apply it
-     only in dark mode, and follow live toggles from the parent page (the
-     storage event fires here when the main site writes the theme key). */
+     for every dark-scheme theme. theme-boot.js owns the html attributes and
+     already re-applies them on storage events from the parent page - this
+     listener runs after it and only has to re-key body.dark. */
   (function () {
     function applyReplayTheme() {
-      var light = false;
-      try { light = localStorage.getItem("theme") === "light"; } catch (e) {}
-      if (light) {
-        document.documentElement.setAttribute("data-theme", "light");
-        document.body.classList.remove("dark");
-      } else {
-        document.documentElement.removeAttribute("data-theme");
-        document.body.classList.add("dark");
-      }
+      var light = document.documentElement.getAttribute("data-scheme") === "light";
+      if (light) document.body.classList.remove("dark");
+      else document.body.classList.add("dark");
     }
     applyReplayTheme();
     window.addEventListener("storage", function (e) {
-      if (e.key === "theme") applyReplayTheme();
+      if (e.key === "theme" || e.key === "themeCustom") applyReplayTheme();
     });
   })();
 </script>

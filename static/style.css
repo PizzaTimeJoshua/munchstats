@@ -3,13 +3,21 @@
    Element-level selectors (input, h2, ...) deliberately do NOT go
    here: they would restyle pages that never opted into them. */
 
-/* Theme tokens. Dark is the default (no data-theme attribute) and
-   matches the site's original palette exactly. Light mode is applied
-   by setting data-theme="light" on <html> (see base.html pre-paint
-   script + the toggle in _tabs.html). Pokemon type colors and shiny/
-   nature accents are intentionally NOT tokens - they are the same in
-   both themes. */
+/* Theme tokens. Classic dark is the default (no data-theme attribute)
+   and matches the site's original palette exactly. Presets are applied
+   by setting data-theme="<name>" on <html>; static/theme-boot.js (the
+   pre-paint script every page loads) owns that attribute plus
+   data-scheme="dark|light", which scheme-dependent code keys off.
+   Custom themes reuse the dark/light base and override tokens with
+   inline style properties (see theme-boot.js). Pokemon type colors and
+   shiny/nature accents are intentionally NOT tokens - they are the
+   same in every theme. */
 :root {
+  /* background decoration (drawn by body::before; presets/custom
+     themes override these for patterns and images) */
+  --bg-image: none;
+  --bg-size: auto;
+  --bg-repeat: repeat;
   /* backgrounds */
   --bg: #1e1e1e;
   --surface: #222;
@@ -132,6 +140,211 @@ html[data-theme="light"] {
   --tooltip-text: #1e1e1e;
 }
 
+/* ---- Preset themes ----
+   Dark-scheme presets only override the chrome (backgrounds, borders,
+   accents, background pattern); text tokens stay on the dark defaults.
+   Light-scheme presets (sylveon) must override the FULL light set. */
+
+/* Starry Night: deep indigo sky with a faint star field. */
+html[data-theme="starry"] {
+  --bg: #0b1026;
+  --surface: #11172f;
+  --surface-2: #131a34;
+  --surface-3: #171f3c;
+  --raised: #1e2749;
+  --raised-2: #232d54;
+  --raised-3: #2b3766;
+  --inset: #080c1e;
+  --inset-2: #05081a;
+  --border-soft: #1e2749;
+  --border: #2b3766;
+  --border-2: #364279;
+  --border-3: #46528e;
+  --border-4: #56629e;
+  --border-hi: #6b77ae;
+  --accent: #ffe082;
+  --accent-2: #ffd54f;
+  --accent-tint: rgba(255, 224, 130, 0.14);
+  --accent-tint-2: rgba(255, 224, 130, 0.28);
+  --on-accent: #0b1026;
+  --info-bg: #101b38;
+  --info-border: #24345c;
+  --surface-scrim: rgba(17, 23, 47, 0.8);
+  --bg-image:
+    radial-gradient(1.4px 1.4px at 22px 34px, rgba(255, 255, 255, 0.55) 50%, transparent 51%),
+    radial-gradient(1px 1px at 88px 112px, rgba(255, 255, 255, 0.4) 50%, transparent 51%),
+    radial-gradient(1.2px 1.2px at 150px 60px, rgba(255, 240, 200, 0.45) 50%, transparent 51%),
+    radial-gradient(0.8px 0.8px at 200px 180px, rgba(255, 255, 255, 0.35) 50%, transparent 51%),
+    radial-gradient(1px 1px at 55px 210px, rgba(200, 220, 255, 0.42) 50%, transparent 51%),
+    radial-gradient(1.6px 1.6px at 240px 20px, rgba(255, 255, 255, 0.3) 50%, transparent 51%);
+  --bg-size: 280px 280px;
+}
+
+/* Rayquaza: deep emerald with gold-ring accents. */
+html[data-theme="rayquaza"] {
+  --bg: #0c1b14;
+  --surface: #10231a;
+  --surface-2: #12261c;
+  --surface-3: #162c21;
+  --raised: #1c3729;
+  --raised-2: #21402f;
+  --raised-3: #2a4f3a;
+  --inset: #091510;
+  --inset-2: #060f0b;
+  --border-soft: #1c3729;
+  --border: #2a4f3a;
+  --border-2: #356247;
+  --border-3: #427558;
+  --border-4: #4f8767;
+  --border-hi: #639a79;
+  --accent: #f6c945;
+  --accent-2: #eab308;
+  --accent-tint: rgba(246, 201, 69, 0.14);
+  --accent-tint-2: rgba(246, 201, 69, 0.28);
+  --on-accent: #0c1b14;
+  --surface-scrim: rgba(16, 35, 26, 0.8);
+  --bg-image: repeating-linear-gradient(135deg, rgba(246, 201, 69, 0.025) 0 2px, transparent 2px 26px);
+}
+
+/* Umbreon: moonlit near-black with golden rings. */
+html[data-theme="umbreon"] {
+  --bg: #101010;
+  --surface: #161616;
+  --surface-2: #191919;
+  --surface-3: #1e1e1e;
+  --raised: #262626;
+  --raised-2: #2d2d2d;
+  --raised-3: #363636;
+  --inset: #0a0a0a;
+  --inset-2: #060606;
+  --border-soft: #262626;
+  --border: #363636;
+  --border-2: #454545;
+  --border-3: #575757;
+  --border-4: #676767;
+  --border-hi: #7d7d7d;
+  --accent: #ffd83d;
+  --accent-2: #f5c518;
+  --accent-tint: rgba(255, 216, 61, 0.14);
+  --accent-tint-2: rgba(255, 216, 61, 0.28);
+  --on-accent: #101010;
+  --surface-scrim: rgba(22, 22, 22, 0.8);
+  --bg-image: radial-gradient(circle at 70px 70px, transparent 22px, rgba(255, 216, 61, 0.05) 23px, rgba(255, 216, 61, 0.05) 27px, transparent 28px);
+  --bg-size: 190px 190px;
+}
+
+/* Gengar: dusk purple with a soft haze glow. */
+html[data-theme="gengar"] {
+  --bg: #191227;
+  --surface: #1f1731;
+  --surface-2: #221a36;
+  --surface-3: #271e3e;
+  --raised: #2f2549;
+  --raised-2: #362b54;
+  --raised-3: #413363;
+  --inset: #120d1f;
+  --inset-2: #0c0817;
+  --border-soft: #2f2549;
+  --border: #413363;
+  --border-2: #4d3d75;
+  --border-3: #5d4b8b;
+  --border-4: #6c5a9a;
+  --border-hi: #8171ab;
+  --accent: #c5a3ff;
+  --accent-2: #b388ff;
+  --accent-tint: rgba(197, 163, 255, 0.14);
+  --accent-tint-2: rgba(197, 163, 255, 0.28);
+  --on-accent: #191227;
+  --surface-scrim: rgba(31, 23, 49, 0.8);
+  --bg-image: radial-gradient(900px 500px at 50% -100px, rgba(179, 136, 255, 0.1), transparent 65%);
+  --bg-repeat: no-repeat;
+}
+
+/* Munchlax: the house theme - dark teal with cream accents. */
+html[data-theme="munchlax"] {
+  --bg: #0f2224;
+  --surface: #132a2c;
+  --surface-2: #152e30;
+  --surface-3: #193638;
+  --raised: #204244;
+  --raised-2: #254c4e;
+  --raised-3: #2e5d5f;
+  --inset: #0b1a1c;
+  --inset-2: #071214;
+  --border-soft: #204244;
+  --border: #2e5d5f;
+  --border-2: #396f71;
+  --border-3: #468384;
+  --border-4: #549394;
+  --border-hi: #68a6a7;
+  --accent: #f2dca2;
+  --accent-2: #e8cd85;
+  --accent-tint: rgba(242, 220, 162, 0.14);
+  --accent-tint-2: rgba(242, 220, 162, 0.28);
+  --on-accent: #0f2224;
+  --surface-scrim: rgba(19, 42, 44, 0.8);
+}
+
+/* Sylveon: pastel pink light scheme (full light token set). */
+html[data-theme="sylveon"] {
+  --bg: #fdf2f6;
+  --surface: #ffffff;
+  --surface-2: #fffafc;
+  --surface-3: #f8e9ef;
+  --raised: #f1dce5;
+  --raised-2: #ead0dc;
+  --raised-3: #dfbfce;
+  --inset: #f5e3ea;
+  --inset-2: #efd9e2;
+  --border-soft: #efd9e2;
+  --border: #ddc0cc;
+  --border-2: #ccaaba;
+  --border-3: #b18ba0;
+  --border-4: #a67f95;
+  --border-hi: #8f6980;
+  --text: #2b2229;
+  --text-strong: #14060d;
+  --text-hi: #362b33;
+  --text-soft: #43363e;
+  --text-sub: #4e404a;
+  --text-muted: #5e4e58;
+  --text-faint: #675562;
+  --text-dim: #72606c;
+  --text-dim-2: #7e6b78;
+  --text-disabled: #8e7b88;
+  --text-ghost: #a4909e;
+  --text-ghost-2: #b4a0ae;
+  --accent: #c2185b;
+  --accent-2: #96124a;
+  --accent-tint: rgba(194, 24, 91, 0.1);
+  --accent-tint-2: rgba(194, 24, 91, 0.25);
+  --on-accent: #fff;
+  --pos: #2e7d32;
+  --pos-2: #1b5e20;
+  --pos-soft: #388e3c;
+  --neg: #c62828;
+  --neg-soft: #d32f2f;
+  --warn: #b26a00;
+  --border-focus: #5e4a56;
+  --border-focus-2: #2b2229;
+  --divider: rgba(0, 0, 0, 0.12);
+  --shadow: rgba(0, 0, 0, 0.12);
+  --shadow-2: rgba(0, 0, 0, 0.22);
+  --scrim: rgba(0, 0, 0, 0.5);
+  --surface-scrim: rgba(255, 255, 255, 0.85);
+  --info-bg: #e7f1fb;
+  --info-border: #b9d5ee;
+  --info-text: #1565c0;
+  --danger-bg: #fdecec;
+  --danger-text: #b71c1c;
+  --banner-bg: #fff3d6;
+  --banner-border: #e2c168;
+  --tooltip-bg: rgba(255, 255, 255, 0.98);
+  --tooltip-text: #1e1e1e;
+  --bg-image: radial-gradient(2px 2px at 12px 12px, rgba(194, 24, 91, 0.07) 50%, transparent 52%);
+  --bg-size: 48px 48px;
+}
+
 body {
   background-color: var(--bg);
   display: grid;
@@ -139,6 +352,22 @@ body {
   grid-template-rows: auto 1fr auto;
   color: var(--text);
   font-family: Arial, sans-serif;
+}
+
+/* Fixed background decoration layer (patterns / custom images).
+   A pseudo-element instead of body background-attachment: fixed,
+   which iOS Safari mishandles. z-index -1 keeps it behind content
+   but above the propagated body background color. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: var(--bg-image);
+  background-size: var(--bg-size);
+  background-repeat: var(--bg-repeat);
+  background-position: center top;
 }
 
 /* Tab bar */
@@ -193,6 +422,116 @@ body {
   transition: color 0.2s, background 0.2s;
 }
 .theme-toggle:hover { color: var(--accent); background: var(--surface-3); }
+
+/* Theme picker menu (markup in _tabs.html, behavior in theme-boot.js).
+   Inputs/selects declare their own width/padding/margin because pages
+   style bare form elements. */
+.theme-menu-wrap { position: relative; flex-shrink: 0; }
+.theme-menu {
+  position: absolute;
+  right: 0;
+  top: 34px;
+  z-index: 1000;
+  width: 236px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  border-radius: 8px;
+  padding: 10px;
+  box-shadow: 0 6px 24px var(--shadow-2);
+  text-align: left;
+}
+.theme-menu-title {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-faint);
+  margin: 2px 0 6px;
+}
+.theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.theme-chip {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--surface-2);
+  color: var(--text-soft);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 5px 7px;
+  font-size: 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: color 0.15s, background 0.15s, border-color 0.15s;
+}
+.theme-chip:hover { background: var(--surface-3); color: var(--text-strong); }
+.theme-chip.sel { border-color: var(--accent); color: var(--accent); }
+.theme-chip-custom { width: 100%; margin-top: 8px; justify-content: center; }
+.theme-swatch {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1px solid var(--border-hi);
+  position: relative;
+  flex-shrink: 0;
+}
+.theme-swatch > span {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid var(--border-hi);
+}
+.theme-custom {
+  margin-top: 8px;
+  border-top: 1px solid var(--border-soft);
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.theme-custom-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-sub);
+}
+.theme-custom-row select,
+.theme-custom-row input[type="url"] {
+  background: var(--inset);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-size: 12px;
+  padding: 3px 4px;
+  width: 130px;
+  height: auto;
+  margin: 0;
+  box-sizing: border-box;
+}
+.theme-custom-row input[type="color"] {
+  width: 36px;
+  height: 22px;
+  padding: 1px;
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: var(--inset);
+  cursor: pointer;
+}
+.theme-reset-btn {
+  align-self: flex-end;
+  background: var(--surface-2);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 12px;
+  cursor: pointer;
+}
+.theme-reset-btn:hover { color: var(--text-strong); background: var(--surface-3); }
 .lang-select {
   background: var(--surface);
   color: var(--text-muted);

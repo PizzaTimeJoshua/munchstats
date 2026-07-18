@@ -911,3 +911,57 @@ msgstr "destaca núcleos cuya tasa de victorias combinada supera la tasa general
 
 msgid "this calculator runs your move against every spread your opponent actually uses on ladder, weighted by popularity. Instead of guessing one EV spread, you see your real odds of getting the KO."
 msgstr "esta calculadora ejecuta tu movimiento contra todas las distribuciones que tu oponente realmente usa en el ladder, ponderadas por popularidad. En vez de adivinar una distribución de EVs, ves tus probabilidades reales de conseguir el KO."
+
+msgid "Choose theme"
+msgstr "Elegir tema"
+
+msgid "Theme"
+msgstr "Tema"
+
+msgid "Classic"
+msgstr "Clásico"
+
+msgid "Light"
+msgstr "Claro"
+
+msgid "Starry Night"
+msgstr "Noche estrellada"
+
+msgid "Customize"
+msgstr "Personalizar"
+
+msgid "Base"
+msgstr "Base"
+
+msgid "Dark"
+msgstr "Oscuro"
+
+msgid "Background"
+msgstr "Fondo"
+
+msgid "Accent"
+msgstr "Acento"
+
+msgid "Pattern"
+msgstr "Patrón"
+
+msgid "Stars"
+msgstr "Estrellas"
+
+msgid "Poké Balls"
+msgstr "Poké Balls"
+
+msgid "Stripes"
+msgstr "Rayas"
+
+msgid "Rings"
+msgstr "Anillos"
+
+msgid "Dots"
+msgstr "Puntos"
+
+msgid "Image URL"
+msgstr "URL de imagen"
+
+msgid "Reset"
+msgstr "Restablecer"
