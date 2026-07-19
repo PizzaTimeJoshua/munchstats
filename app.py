@@ -340,16 +340,27 @@ REMOTE_FORMAT_CACHE_MAX = 2
 # 30 MB decompressed body + parsed dict (8 crawler threads doing that
 # simultaneously is what breached the dyno quota).
 _remote_fetch_stripes = [threading.Lock() for _ in range(2)]
+# Give up rather than queue indefinitely: a burst of old-month requests must
+# not pin all 8 gunicorn threads behind ~5s fetches (that starves fast
+# requests into H18/H27 interruptions). Long enough for ~2 queued fetches.
+REMOTE_FETCH_WAIT_SECONDS = 12
 
 
 def fetch_remote_format_data(month, format_code, rating):
-    """Fetch a full format JSON from Smogon and return its data dict. Cached."""
+    """Fetch a full format JSON from Smogon and return its data dict. Cached.
+
+    Returns None (uncached, so a later retry can succeed) when the fetch
+    stripes stay contended past REMOTE_FETCH_WAIT_SECONDS.
+    """
     key = (month, format_code, rating)
     with _remote_format_cache_lock:
         if key in _remote_format_cache:
             _remote_format_cache.move_to_end(key)
             return _remote_format_cache[key]
-    with _remote_fetch_stripes[hash(key) % len(_remote_fetch_stripes)]:
+    stripe = _remote_fetch_stripes[hash(key) % len(_remote_fetch_stripes)]
+    if not stripe.acquire(timeout=REMOTE_FETCH_WAIT_SECONDS):
+        return None
+    try:
         # Re-check: another thread may have fetched this key while we waited.
         with _remote_format_cache_lock:
             if key in _remote_format_cache:
@@ -361,6 +372,8 @@ def fetch_remote_format_data(month, format_code, rating):
             _remote_format_cache[key] = data
             while len(_remote_format_cache) > REMOTE_FORMAT_CACHE_MAX:
                 _remote_format_cache.popitem(last=False)
+    finally:
+        stripe.release()
     return data
 
 
