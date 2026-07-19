@@ -1,0 +1,6 @@
+User-agent: *
+# Historical months aren't hosted locally; each ?month= hit downloads and
+# parses a 25-40 MB stats file from Smogon. Keep crawlers on current data.
+Disallow: /*?month=
+Disallow: /*&month=
+Crawl-delay: 10

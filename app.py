@@ -328,11 +328,43 @@ def is_local_month(month):
     return os.path.isdir(os.path.join(DATA_DIRECTORY, month))
 
 
-# maxsize=2 (one format at two ratings): each parsed chaos dict is 17-40 MB,
-# so a bigger cache risks the 512 MB dyno quota when crawlers walk old months.
-@lru_cache(maxsize=2)
+# Cache max 2 entries (one format at two ratings): each parsed chaos dict is
+# 17-40 MB, so a bigger cache risks the 512 MB dyno quota when crawlers walk
+# old months. A hand-rolled cache instead of lru_cache so hits never wait on
+# the fetch locks below.
+_remote_format_cache = OrderedDict()
+_remote_format_cache_lock = threading.Lock()
+REMOTE_FORMAT_CACHE_MAX = 2
+# Striped fetch locks: at most len(stripes) downloads+parses run at once, and
+# identical concurrent requests share one fetch instead of each holding a
+# 30 MB decompressed body + parsed dict (8 crawler threads doing that
+# simultaneously is what breached the dyno quota).
+_remote_fetch_stripes = [threading.Lock() for _ in range(2)]
+
+
 def fetch_remote_format_data(month, format_code, rating):
     """Fetch a full format JSON from Smogon and return its data dict. Cached."""
+    key = (month, format_code, rating)
+    with _remote_format_cache_lock:
+        if key in _remote_format_cache:
+            _remote_format_cache.move_to_end(key)
+            return _remote_format_cache[key]
+    with _remote_fetch_stripes[hash(key) % len(_remote_fetch_stripes)]:
+        # Re-check: another thread may have fetched this key while we waited.
+        with _remote_format_cache_lock:
+            if key in _remote_format_cache:
+                _remote_format_cache.move_to_end(key)
+                return _remote_format_cache[key]
+        data = _fetch_remote_format_data(month, format_code, rating)
+        # Failures cache as None too, so bad URLs don't hammer Smogon.
+        with _remote_format_cache_lock:
+            _remote_format_cache[key] = data
+            while len(_remote_format_cache) > REMOTE_FORMAT_CACHE_MAX:
+                _remote_format_cache.popitem(last=False)
+    return data
+
+
+def _fetch_remote_format_data(month, format_code, rating):
     # Try variants: base, DLC1, DLC2, H1, H2
     suffixes = ["", "-DLC1", "-DLC2", "-H1", "-H2"]
     for suffix in suffixes:
@@ -1496,6 +1528,11 @@ build_mega_item_lookup()
 # restarts wipe the disk cache, so don't make the first visitor wait.
 limitless_stats.warm_cache_async(pokedexEntries)
 vgcpastes.warm_cache_async()
+
+
+@app.route("/robots.txt")
+def robots_txt():
+    return app.send_static_file("robots.txt")
 
 
 @app.route("/about/")
@@ -4423,7 +4460,11 @@ def api_merch(pokemon_name):
             if i < len(per_category[cat]):
                 listings.append(per_category[cat][i])
 
-    _ebay_merch_cache[cache_key] = {"data": listings, "expires": time.time() + MERCH_CACHE_TTL}
+    now = time.time()
+    # Sweep expired entries so crawler-invented names can't grow this forever.
+    for key in [k for k, v in _ebay_merch_cache.items() if now >= v["expires"]]:
+        del _ebay_merch_cache[key]
+    _ebay_merch_cache[cache_key] = {"data": listings, "expires": now + MERCH_CACHE_TTL}
     return jsonify(listings)
 
 
