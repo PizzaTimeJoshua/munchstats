@@ -4,7 +4,7 @@
 > **Repo:** https://github.com/PizzaTimeJoshua/munchstats
 
 ## Overview
-**MunchStats** is a fast, single-page style Flask app that presents Pokémon Showdown usage statistics by format. Pick a ladder (e.g., VGC 2026, OU), then dive into Pokémon detail pages with usage %, common moves, items, abilities, EV spreads, and usage trends. Also features an integrated damage calculator, VGC tournament stats, a searchable team repository, and a replay search engine.
+**MunchStats** is a fast, single-page style Flask app that presents Pokémon Showdown usage statistics by format. Pick a ladder (e.g., VGC 2026, OU), then dive into Pokémon detail pages with usage %, common moves, items, abilities, EV spreads, and usage trends. Also features an integrated damage calculator, VGC tournament stats, a searchable team repository, and a replay search engine. Available in English and Spanish, with a selectable site theme.
 
 ## Key Features
 
@@ -42,7 +42,9 @@
   - Per-Pokémon usage %, win rates, moves, items, abilities, Tera types, natures, and teammates
   - Team results view grouping identical 6-Pokémon teams into archetypes ranked by usage, with combined win rates and slot-scoped comma-group search (`kingambit focus sash, garchomp` = a Kingambit *holding* Focus Sash alongside a Garchomp; terms also match player/tournament metadata); deep-linkable via `?view=results&q=`
   - Best-performing teams per Pokémon across all events, ranked by Swiss points
-- **Individual Limitless events:** per-event pages at `/limitless/event/<id>/` with that tournament's own usage stats, teams, and standings (also cut-filterable)
+- **Individual Limitless events:** per-event pages at `/limitless/event/<id>/` with that tournament's own usage stats, teams, standings, and team archetypes (also cut-filterable)
+- **Stage analysis:** "Top Usage by Stage" overview — per-stage top-10 usage with usage-share deltas vs the previous stage (Day 1 / Day 2 / Top Cut on official events; All Teams / Top 32 / Top 16 / Top 8 on single Limitless events) — plus a "Biggest Movers" list of the largest usage shifts between stages
+- **Official-event team archetypes:** the Team Results grouping (identical 6-Pokémon teams, combined win rates, comma-group search) is also available for RK9 events, filterable by day
 - Top tournament teams shown on Pokémon detail pages — merges RK9 majors with Limitless online events, ranked by Swiss points, then tournament size, then placement
 - BO3 format support
 
@@ -61,6 +63,7 @@
   - **Tournament Momentum:** usage movement between the rolling window's earlier and recent halves — a fresher rising/falling signal than the monthly ladder stats
   - **Cores:** 2–6 Pokémon cores (6 = full team) with pooled tournament records, sortable by best win rate (with a usage floor), most common (what to prepare for), or best synergy (combined win rate beats every member's solo rate); Mega forms are resolved from held stones, each core deep-links into the Team Results search showing the actual teams, and switching size/sort swaps the table in place without a page reload
   - **Ladder vs Tournament:** biggest gaps between Showdown ladder usage and online tournament usage; tournament Mega forms are resolved from held stones so both sources count each forme separately, matching the ladder's native form listings
+  - **Top-Cut Conversion:** all-teams vs top-cut usage across the window's online tournaments, with a selectable cut size (`?cut=` — Top 8/16/32) — what actually converts to top finishes
   - **Rising & Falling:** biggest month-over-month ladder usage movers (hidden for formats in their first tracked month)
 - Filters: tournament-size tier (`?min=`) and ladder rating cutoff (`?rating=`)
 - Built entirely from data the other pages already load (Limitless aggregate, Smogon index, trend files) — no extra fetching or caching
@@ -71,21 +74,33 @@
 - Team usage rankings
 - Embedded replay viewer
 - BO3 replay selector
-- Replay data auto-updated ~4×/day by a scheduled GitHub Actions workflow (see Data Pipeline)
+- Replay data auto-updated ~4×/day by a scheduled GitHub Actions workflow that publishes to the `replay-data` branch; the app pulls it at runtime with ETag caching — no redeploy needed (see Data Pipeline)
+
+### Localization, Themes & Sharing
+- **i18n:** full Spanish translation via Flask-Babel — auto-detected from `Accept-Language`, overridable with `?lang=` or the cookie-backed EN/ES picker in the nav; Pokémon, move, item, and ability names intentionally stay in English (competitive lingua franca)
+- **Themes:** theme picker with 8 presets (classic dark, light, and Pokémon-inspired themes like Rayquaza, Umbreon, Gengar, Sylveon, Munchlax) — `theme-boot.js` applies the saved theme before first paint, and charts/the replay viewer restyle live on change
+- **OG stat cards:** server-rendered Open Graph images (1200×630 PNG via Pillow) so shared Pokémon deep links preview with actual usage stats — covers ladder, RK9, Limitless (rolling window + single events), and Champions pages
+- `robots.txt` served at the root
+
+### Contact
+- Contact form at `/contact/` (bug reports, feature requests, translation feedback) delivered via Gmail SMTP
+- Spam protection layers: Cloudflare Turnstile captcha, hidden honeypot field, minimum message length, and per-IP rate limiting (3/hour)
+- Hidden unless all four contact env vars are set (see Deployment)
 
 ### Other
 - Pokémon merchandise listings via eBay affiliate integration
 - Tools page with Pokémon Showdown browser extensions
+- Shared page chrome (nav tabs, theme/language pickers, meta tags) in `base.html` + `_tabs.html`, extended by every page template
 
 ## Tech Stack
-- **Backend:** Python 3 · Flask
-- **Templating:** Jinja2
-- **Frontend:** HTML/CSS/JavaScript · jQuery 3.7.1
+- **Backend:** Python 3 · Flask · Flask-Babel (i18n) · Pillow (OG stat cards)
+- **Templating:** Jinja2 (`base.html` + `_tabs.html` shared chrome)
+- **Frontend:** HTML/CSS/JavaScript · jQuery 3.7.1 · `theme-boot.js` theme engine · shared `style.css`
 - **Charts:** Chart.js (EV distribution bar chart, usage trend line chart)
 - **Damage Calc:** @smogon/calc 0.11.0 (bundled with esbuild)
-- **Process management:** Gunicorn (Procfile)
-- **Data:** Per-Pokémon JSON files in `stats/`, trend data in `stats/trends/`, tournament data in `stats/tournaments/`, Limitless API cache in `cache/limitless/`, VGCPastes sheet cache in `cache/vgcpastes/`
-- **Automation:** GitHub Actions (scheduled replay-stats updates)
+- **Process management:** Gunicorn (Procfile; worker recycled via `--max-requests` to cap memory growth)
+- **Data:** Per-Pokémon JSON files in `stats/`, trend data in `stats/trends/`, tournament data in `stats/tournaments/`, Limitless API cache in `cache/limitless/`, VGCPastes sheet cache in `cache/vgcpastes/`, replay-data cache in `cache/replays/`
+- **Automation:** GitHub Actions (scheduled replay-stats updates published to the `replay-data` branch)
 
 ## Data Files
 - **Per-Pokémon stats:** `stats/{YYYY-MM}/{format}/{rating}/{Pokemon}.json`
@@ -94,6 +109,8 @@
 - **Tournament data:** `stats/tournaments/{tournament_id}/` (metadata, players, aggregated stats)
 - **Limitless cache:** `cache/limitless/` (formats, tournament list, per-tournament standings) — fetched lazily at runtime, safe to delete
 - **VGCPastes cache:** `cache/vgcpastes/` (sheet tabs as CSV, fetched Pokepaste texts) — fetched lazily at runtime, safe to delete
+- **Replay-data cache:** `cache/replays/` (replay JSONs pulled from the `replay-data` branch, with `.etag` sidecars) — fetched lazily at runtime, safe to delete
+- **Translations:** `translations/es/LC_MESSAGES/messages.po` (+ compiled `.mo`, committed), `messages.pot` template, `babel.cfg`
 - **Metadata:** `stats/pokedex.json`, `stats/moves.json`, `stats/items.json`, `stats/abilities.json`, `stats/forms_index.json`, `stats/meta_names.json`
 - **Champions mod:** `stats/champions_moves.json`, `stats/champions_abilities.json`
 
@@ -110,11 +127,14 @@
 - `GET /limitless/` → tournament hub, online Limitless source (also `/limitless/<format_id>/`, `/limitless/<format_id>/<segment>/`, `/limitless/<format_id>/<segment>/<pokemon_name>`; all accept `?cut=8|16|32`)
 - `GET /limitless/event/<tournament_id>/` → single online tournament's stats (also `/<pokemon_name>`, `?cut=`)
 - `GET /teams/` → VGCPastes team search (also `/teams/<repo_id>/`)
-- `GET /insights/` → meta insight reports (also `/insights/<format_id>/`; `?min=` size tier, `?rating=` ladder cutoff, `?cores=` core size 2–6, `?sort=` core sort wr/usage/lift)
+- `GET /insights/` → meta insight reports (also `/insights/<format_id>/`; `?min=` size tier, `?rating=` ladder cutoff, `?cores=` core size 2–6, `?sort=` core sort wr/usage/lift, `?cut=` top-cut size 8/16/32)
 - `GET /replays/` → replay search (also `/replays/<format_code>/`)
 - `GET /replays/watch/<replay_id>` → replay viewer
 - `GET /tools/` → tools page
 - `GET /about/` → about page
+- `GET|POST /contact/` → contact form (hidden unless contact env vars are set)
+- `GET /robots.txt` → robots file
+- All pages accept `?lang=en|es` to switch language (also persisted via a `lang` cookie)
 
 ### API
 - `POST /search_pokemon` → fuzzy search redirect
@@ -128,17 +148,26 @@
 - `GET /tournaments/api/<tournament_id>/<day_filter>/` → tournament data JSON
 - `GET /tournaments/api/<tournament_id>/teams/<pokemon_name>` → teams using Pokémon
 - `GET /tournaments/api/<tournament_id>/standings` → player standings
+- `GET /tournaments/api/<tournament_id>/results/` → official-event team archetypes (`?day=` filter, `?q=` comma-group search)
 - `GET /limitless/api/<format_id>/<segment>/` → Limitless usage stats JSON (also `/<pokemon_name>`; `?cut=` placement filter)
 - `GET /limitless/api/<format_id>/teams/<pokemon_name>` → best teams using Pokémon (`?min=` tournament size, `?cut=` placement)
 - `GET /limitless/api/<format_id>/results/` → team archetypes (`?q=` slot-scoped comma-group search, `?min=` size, `?cut=` placement)
 - `GET /limitless/api/event/<tournament_id>/` → single-event usage stats JSON (also `/<pokemon_name>`; `?cut=`)
 - `GET /limitless/api/event/<tournament_id>/teams/<pokemon_name>` → one event's teams using Pokémon (`?cut=`)
 - `GET /limitless/api/event/<tournament_id>/standings` → one event's standings (`?cut=`)
+- `GET /limitless/api/event/<tournament_id>/results/` → one event's team archetypes (`?q=`, `?cut=`)
 - `GET /teams/api/<repo_id>/` → VGCPastes team search (`?q=` comma-group search, `?evs=`/`?code=`/`?report=` filters, `?sort=newest|oldest|random`, `?mode=any`, paged via `offset`/`limit`)
 - `GET /teams/api/<repo_id>/paste/<team_id>` → raw Showdown text of a team's Pokepaste
 - `GET /replays/api/search` → replay search with filters
 - `GET /replays/api/default` → default replay listing
 - `GET /replays/api/rankings` → team usage rankings
+
+### OG Stat Cards (link-preview PNGs)
+- `GET /og-card/<format_code>/<rating_threshold>/<pokemon_name>.png` → ladder stats card
+- `GET /og-card/tournaments/<tournament_id>/<day_filter>/<pokemon_name>.png` → official-event card
+- `GET /og-card/limitless/<format_id>/<segment>/<pokemon_name>.png` → Limitless rolling-window card
+- `GET /og-card/limitless-event/<event_id>/<pokemon_name>.png` → single Limitless event card
+- `GET /og-card/champions/<fmt>/<pokemon_name>.png` → Champions card
 
 ## Project Structure
 ```
@@ -147,30 +176,41 @@ static/
   damage_calc.js              Damage calculator UI
   replay_search.js            Replay search/filtering
   tournament_stats.js         Tournament page logic
+  theme-boot.js               Theme engine (preset registry, pre-paint apply, picker menu)
+  style.css                   Shared site styles + per-theme token blocks
+  robots.txt
   vendor/smogon-calc.js       Bundled Smogon damage calculator
   pokemonicons-sheet.png, itemicons-sheet.png, favicon.ico
 templates/
+  base.html                   Shared page chrome (head, meta/OG tags, theme + lang boot)
+  _tabs.html                  Nav tabs partial with language and theme pickers
   index.html                  Main stats page
   tournaments.html            Tournament stats page
   teams.html                  VGCPastes team search page
   insights.html               Meta insights page
   replays.html                Replay search page
   watch.html                  Replay viewer
+  contact.html                Contact form
   tools.html, about.html, 404.html, 500.html
 stats/
   {YYYY-MM}/                  Per-Pokémon split stats by month/format/rating
   trends/                     Pre-computed 12-month usage trend data
   tournaments/                Tournament data (RK9.gg)
-  replays/                    Replay data
+  replays/                    Replay data (bundled snapshot; fresh copies pulled from replay-data branch)
   pokedex.json, moves.json, items.json, abilities.json, etc.
+translations/
+  es/LC_MESSAGES/             Spanish catalog (messages.po + compiled messages.mo)
 .github/workflows/
   update-replay-stats.yml     Scheduled replay-stats update (GitHub Actions)
 app.py                        Flask application
 limitless_stats.py            Limitless API client + online tournament usage aggregation
 insights.py                   Meta insight report builders (pure functions over loaded data)
 vgcpastes.py                  VGCPastes sheet client + team search
+og_card.py                    Open Graph stat card renderer (Pillow, Flask-free)
 update_all_data.py            Data pipeline (downloads, splits, generates trends)
 scrape_tournaments.py         Tournament data scraper (RK9.gg)
+babel.cfg                     pybabel extraction config
+messages.pot                  Translation template
 Procfile
 requirements.txt
 package.json
@@ -205,7 +245,19 @@ Online tournament data needs no pipeline step — it is fetched lazily at runtim
 Team data also needs no pipeline step — the public VGCPastes spreadsheet tabs are fetched as CSV at runtime and cached under `cache/vgcpastes/` for 12 hours (with stale fallback if the sheet is unreachable). Pokepaste texts are immutable and cached on first fetch. Like the Limitless cache, it is warmed in a background thread at startup.
 
 ### Replay Stats Automation
-`.github/workflows/update-replay-stats.yml` runs the replay scraper on a schedule (4×/day) via GitHub Actions: it scrapes new Showdown replays, rebuilds the searcher/team-ranking JSONs under `stats/replays/`, and commits them to this repo (which triggers the Heroku auto-deploy). The raw replay cache is carried between runs via `actions/cache`, seeded from a release asset on the private scraper repo. Requires one repository secret, `SCRAPER_TOKEN` (fine-grained PAT with Contents:Read on the scraper repo); until it is set, runs are silent no-ops. It can also be triggered manually via `workflow_dispatch`.
+`.github/workflows/update-replay-stats.yml` runs the replay scraper on a schedule (4×/day) via GitHub Actions: it scrapes new Showdown replays, rebuilds the searcher/team-ranking JSONs, and publishes them to this repo's **`replay-data` branch** — not `main`, so no Heroku redeploy is triggered. The app fetches the JSONs from `raw.githubusercontent.com` on demand, caches them under `cache/replays/`, and revalidates at most every 30 minutes using ETags (unchanged checks are cheap 304s); it falls back to a stale cached copy, then to the snapshot bundled in the deploy at `stats/replays/`. Set `REPLAY_DATA_URL=""` to skip remote fetching and serve the local `stats/replays/` copies directly (dev).
+
+The raw replay cache is carried between workflow runs via `actions/cache`, seeded from a release asset on the private scraper repo. Requires one repository secret, `SCRAPER_TOKEN` (fine-grained PAT with Contents:Read on the scraper repo); until it is set, runs are silent no-ops. It can also be triggered manually via `workflow_dispatch`.
+
+### Translations (i18n)
+UI strings are wrapped with Flask-Babel; the Spanish catalog lives in `translations/es/LC_MESSAGES/`. To update after adding or changing strings:
+```bash
+pybabel extract -F babel.cfg -o messages.pot .
+pybabel update -i messages.pot -d translations
+# ...edit translations/es/LC_MESSAGES/messages.po...
+pybabel compile -d translations
+```
+Commit the compiled `.mo` — it is what gets deployed (no compile step on the server). Literal `%` in a translated string must be escaped as `%%`. Pokémon, move, item, and ability names are deliberately left untranslated.
 
 ## Local Setup
 ```bash
@@ -221,15 +273,18 @@ npm install                # for damage calc build
 export FLASK_APP=app.py  # Windows: set FLASK_APP=app.py
 flask run
 
-# Prod-like (mirrors Procfile: single worker + threads to fit Heroku's 512MB dyno)
-gunicorn app:app --workers 1 --threads 8 --bind 127.0.0.1:8000
+# Prod-like (mirrors Procfile: single worker + threads to fit Heroku's 512MB dyno;
+# --max-requests recycles the worker periodically to cap memory growth)
+gunicorn app:app --workers 1 --threads 8 --max-requests 6000 --max-requests-jitter 600 --bind 127.0.0.1:8000
 ```
 
 ## Deployment
-- **Heroku / Render / Fly.io:** use `Procfile` (single gunicorn worker with 8 threads, tuned for a 512MB dyno).
+- **Heroku / Render / Fly.io:** use `Procfile` (single gunicorn worker with 8 threads and periodic worker recycling, tuned for a 512MB dyno).
 - Ensure the `/stats` directory is populated at build/deploy time.
 - Set `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET` environment variables for merch integration.
 - Optionally set `LIMITLESS_API_KEY` for the Limitless API (works keyless by default).
+- Contact form (all four required, otherwise the form is hidden): `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `CONTACT_EMAIL_ADDRESS`, `CONTACT_EMAIL_APP_PASSWORD` (Gmail address + app password; used as both SMTP login and recipient).
+- Optionally set `REPLAY_DATA_URL` to override where replay JSONs are fetched from (defaults to this repo's `replay-data` branch on `raw.githubusercontent.com`; empty string = serve bundled local copies).
 
 ## Contributing
 Issues and PRs welcome — especially for new formats, better UX, or data visualizations.
