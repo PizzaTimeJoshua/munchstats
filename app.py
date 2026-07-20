@@ -4175,7 +4175,7 @@ def insights_page(format_id=""):
     """Meta insight reports for a VGC regulation.
 
     Query params: ?min= tournament-size tier, ?rating= ladder cutoff,
-    ?cores= core size (2/3/4), ?sort= core sort (wr/usage/lift),
+    ?cores= core size (2-6), ?sort= core sort (wr/usage/lift),
     ?cut= top-cut size (8/16/32).
     """
     data = compile_insights_page_data(
