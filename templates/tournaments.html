@@ -775,12 +775,38 @@
     .view-toggle-btn { padding: 8px 6px; font-size: 12px; }
     .teams-container { max-width: 100%; }
     #standings-view input[type="text"], #results-view input[type="text"], #events-view input[type="text"] { margin: 0 0 10px 0; }
-    /* Team cards: compact layout */
-    .team-card { padding: 8px 10px; gap: 6px; }
-    .team-player { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; }
+    /* Team cards: two-row layout so the player name and tournament are
+       never squeezed by the sprites. Row 1 = rank + player + record;
+       the tournament and sprites each wrap onto their own full line,
+       indented to sit under the player name. */
+    .team-card {
+      padding: 8px 10px;
+      gap: 3px 6px;
+      flex-wrap: wrap;
+      align-items: baseline;
+    }
     .team-placement { min-width: 28px; font-size: 13px; }
-    .team-tournament { display: none; }
-    .team-sprites { flex-shrink: 1; flex-wrap: wrap; justify-content: flex-end; gap: 0; }
+    .team-player {
+      min-width: 0; flex: 1;
+      font-size: 13px; font-weight: 600; color: var(--text);
+      white-space: normal; overflow: visible; text-overflow: clip;
+    }
+    .team-tournament {
+      display: block;
+      flex: 0 0 100%;
+      box-sizing: border-box;
+      padding-left: 34px;
+      white-space: normal; overflow: visible; text-overflow: clip;
+      overflow-wrap: break-word; word-break: break-word;
+    }
+    .team-sprites {
+      flex: 0 0 100%;
+      box-sizing: border-box;
+      padding-left: 34px;
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      gap: 2px;
+    }
   }
   @media (max-width: 500px) {
     .team-detail-grid { grid-template-columns: 1fr; }
@@ -1180,6 +1206,6 @@
     window.hubOverview = {{ overview | default(none) | tojson }};
     window.pokemonRequested = {{ pokemon_requested | default(false) | tojson }};
   </script>
-  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=17"></script>
+  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=18"></script>
   {% endif %}
 {% endblock %}

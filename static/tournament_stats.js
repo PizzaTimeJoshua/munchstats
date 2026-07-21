@@ -700,6 +700,21 @@ $(document).ready(function () {
     return lines.join("\n").trim();
   }
 
+  // "2026-03-02..." -> "Mar 2, 2026"; falls back to the raw YYYY-MM-DD
+  // if the string isn't a parseable date.
+  function fmtDate(d) {
+    if (!d) return "";
+    var iso = String(d).slice(0, 10);
+    var parts = iso.split("-");
+    if (parts.length !== 3) return iso;
+    var months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun",
+                  "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+    var m = parseInt(parts[1], 10);
+    var day = parseInt(parts[2], 10);
+    if (!m || !day || m < 1 || m > 12) return iso;
+    return months[m - 1] + " " + day + ", " + parts[0];
+  }
+
   // Official entries use placement/name, Limitless ones placing/player;
   // normalize here so one card builder serves every list.
   function buildTeamEntryHtml(entry, prefix, idx, opts) {
@@ -716,8 +731,11 @@ $(document).ready(function () {
     }
     html += '</span>';
     if (opts.showTournament && t) {
-      html += '<span class="team-tournament">' + escapeAttr(t.name || "") +
-              (t.players ? ' &middot; ' + t.players + ' players' : '') + '</span>';
+      var tMeta = escapeAttr(t.name || "");
+      var tDate = fmtDate(t.date);
+      if (tDate) tMeta += ' &middot; ' + tDate;
+      if (t.players) tMeta += ' &middot; ' + t.players + ' players';
+      html += '<span class="team-tournament">' + tMeta + '</span>';
     }
     html += '<span class="team-sprites">';
     entry.team.forEach(function (slot) {
