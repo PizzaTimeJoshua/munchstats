@@ -97,9 +97,12 @@
   fieldset label:hover { background-color: var(--raised); }
 
   /* Layout */
+  /* minmax(0,...) caps the results column at the free space: without it
+     a long nowrap string (e.g. a Limitless tournament name) propagates
+     its intrinsic width up and widens the page past the viewport. */
   .teams-container {
     display: grid;
-    grid-template-columns: min-content 1fr;
+    grid-template-columns: min-content minmax(0, 1fr);
     grid-gap: 30px;
     padding-top: 0px;
   }
@@ -150,6 +153,134 @@
     flex-shrink: 0;
     vertical-align: middle;
   }
+
+  /* Sidebar advanced options */
+  .advanced-box {
+    border: 1px solid var(--border-2);
+    background-color: var(--surface-3);
+    margin: 8px 0;
+    padding: 0;
+  }
+  .advanced-box > summary {
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--text-muted);
+    padding: 10px 12px;
+    list-style: none;
+    user-select: none;
+  }
+  .advanced-box > summary::-webkit-details-marker { display: none; }
+  .advanced-box > summary::before { content: "\25B8"; margin-right: 8px; color: var(--text-dim); }
+  .advanced-box[open] > summary::before { content: "\25BE"; }
+  .advanced-box > summary:hover { color: var(--text); }
+  .advanced-box > fieldset { margin: 0 8px 8px 8px; background-color: var(--surface); }
+  .advanced-box > h4 { margin: 4px 12px; }
+  .advanced-box > select { width: calc(100% - 24px); margin: 0 12px 12px 12px; }
+
+  /* Limitless tournament results section */
+  .limitless-section {
+    border: 1px solid var(--border-2);
+    background: var(--surface);
+    margin-bottom: 16px;
+  }
+  .limitless-section > summary {
+    cursor: pointer;
+    padding: 12px 16px;
+    list-style: none;
+    user-select: none;
+    display: flex;
+    align-items: baseline;
+    gap: 10px;
+    flex-wrap: wrap;
+    transition: background-color 0.15s;
+  }
+  .limitless-section > summary:hover { background: var(--raised); }
+  .limitless-section > summary::-webkit-details-marker { display: none; }
+  .limitless-section > summary::before {
+    content: "\25B8";
+    color: var(--accent);
+    flex-shrink: 0;
+  }
+  .limitless-section[open] > summary::before { content: "\25BE"; }
+  .ll-title { font-size: 15px; font-weight: 600; color: var(--text); }
+  .ll-sub { font-size: 12px; color: var(--text-dim); }
+  .ll-body { padding: 0 12px 12px 12px; }
+  .ll-count { font-size: 12px; color: var(--text-dim); margin: 0 0 10px 0; }
+  .ll-archetype {
+    border: 1px solid var(--border-2);
+    background: var(--surface-3);
+    margin-bottom: 8px;
+    overflow: hidden;
+    min-width: 0;
+  }
+  .ll-arch-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    padding: 8px 10px;
+    cursor: pointer;
+    transition: background-color 0.15s;
+  }
+  .ll-arch-header:hover { background: var(--raised); }
+  .ll-arch-sprites { display: flex; flex-wrap: wrap; }
+  .ll-arch-stats {
+    font-size: 12px;
+    color: var(--text-muted);
+    flex: 1;
+    min-width: 160px;
+  }
+  .ll-arch-stats b { color: var(--text); }
+  .ll-arch-stats .meta-rank { color: var(--accent); font-weight: 600; }
+  .ll-runs { display: none; border-top: 1px solid var(--border); }
+  .ll-archetype.expanded .ll-runs { display: block; }
+  /* Fixed two-line rows: player + placing, then event + date. Everything
+     truncates instead of wrapping so row heights stay uniform and long
+     tournament names can't widen the card past the viewport. */
+  .ll-run {
+    padding: 6px 12px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    min-width: 0;
+  }
+  .ll-run:hover { background: var(--raised); }
+  .ll-run + .ll-run { border-top: 1px solid var(--border); }
+  .ll-run b { color: var(--text); }
+  .ll-run-main {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+  }
+  .ll-run-main b {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .ll-run-main .meta-rank {
+    color: var(--accent);
+    font-weight: 600;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .ll-run-sub {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    min-width: 0;
+    margin-top: 1px;
+  }
+  .ll-run-event {
+    flex: 1;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .ll-run-date { color: var(--text-dim); white-space: nowrap; flex-shrink: 0; }
 
   /* Result summary */
   .result-summary {
@@ -451,7 +582,7 @@
   /* Tablet: stack sidebar */
   @media (max-width: 800px) {
     .teams-container {
-      grid-template-columns: 1fr;
+      grid-template-columns: minmax(0, 1fr);
       grid-gap: 15px;
       padding: 0 8px;
     }
@@ -484,28 +615,35 @@
       {% endfor %}
     </select>
     <fieldset>
-      <legend>{{ _('Search') }}</legend>
+      <legend>{{ _('Pokemon Search') }}</legend>
       <input id="searchInput" type="text" placeholder='e.g. "Kingambit Focus Sash, Garchomp"' autocomplete="off">
       <label><input checked id="allPokemon" name="pokeFilter" type="radio" value="all"> {{ _('Find All Pokemon on a Team') }}</label>
       <label><input id="anyPokemon" name="pokeFilter" type="radio" value="any"> {{ _('Find Any Pokemon on a Team') }}</label>
     </fieldset>
-    <fieldset>
-      <legend>{{ _('Filters') }}</legend>
-      <label><input id="evsToggle" type="checkbox"> {{ _('Has EV Spreads') }}</label>
-      <label><input id="codeToggle" type="checkbox"> <span>{{ _('Has') }} <span id="codeToggleLabel">{{ _(code_label) }}</span></span></label>
-      <label><input id="reportToggle" type="checkbox"> {{ _('Has Team Report') }}</label>
-    </fieldset>
-    <h4>{{ _('Sort Results') }}</h4>
-    <select id="sortSelect">
-      <option value="newest" selected>{{ _('Newest First') }}</option>
-      <option value="oldest">{{ _('Oldest First') }}</option>
-      <option value="random">{{ _('Random Order') }}</option>
-    </select>
+    <details class="advanced-box" id="advancedBox">
+      <summary>{{ _('Advanced Options') }}</summary>
+      <fieldset>
+        <legend>{{ _('Player Search') }}</legend>
+        <input id="playerInput" type="text" placeholder='e.g. "Wolfe" or "Cybertron"' autocomplete="off">
+      </fieldset>
+      <fieldset>
+        <legend>{{ _('Filters') }}</legend>
+        <label><input id="evsToggle" type="checkbox"> {{ _('Has EV Spreads') }}</label>
+        <label><input id="codeToggle" type="checkbox"> <span>{{ _('Has') }} <span id="codeToggleLabel">{{ _(code_label) }}</span></span></label>
+        <label><input id="reportToggle" type="checkbox"> {{ _('Has Team Report') }}</label>
+      </fieldset>
+      <h4>{{ _('Sort Results') }}</h4>
+      <select id="sortSelect">
+        <option value="newest" selected>{{ _('Newest First') }}</option>
+        <option value="oldest">{{ _('Oldest First') }}</option>
+        <option value="random">{{ _('Random Order') }}</option>
+      </select>
+    </details>
     <button id="searchButton">{{ _('Search Teams') }}</button>
     <button id="randomButton" type="button">{{ _('Show Random Team') }}</button>
     <p class="search-hint">
       {{ _('Separate Pokémon with commas; words in one group must match the same team member, so "Kingambit Focus Sash" means a Kingambit') }}
-      <b>{{ _('holding') }}</b> {{ _('a Focus Sash. Player, tournament, rank and team ID work too. Click a team to view its full sets.') }}
+      <b>{{ _('holding') }}</b> {{ _('a Focus Sash. Use the Player Search for players, events, ranks and team IDs. Click a team to view its full sets.') }}
     </p>
     <div class="attribution-note">
       {{ _(vgcpastes_attribution) }} &mdash; {{ _('follow') }}
@@ -513,9 +651,24 @@
       {{ _('or browse the') }}
       <a href="{{ vgcpastes_sheet_url }}" target="_blank" rel="noopener">{{ _('full spreadsheet') }}</a>.
       {{ _('Data refreshes every 12 hours.') }}
+      <span id="limitlessAttribution" style="display: none;">
+        {{ _('Online tournament teams from') }}
+        <a href="https://play.limitlesstcg.com/" target="_blank" rel="noopener">Limitless</a>.
+      </span>
     </div>
   </div>
   <div class="right">
+    <details class="limitless-section" id="limitlessSection">
+      <summary>
+        <span class="ll-title">{{ _('Limitless Tournament Results') }}</span>
+        <span class="ll-sub">{{ _('Best-performing teams from online events, grouped by identical 6 Pokémon') }}</span>
+      </summary>
+      <div class="ll-body">
+        <p class="ll-count" id="limitlessCount"></p>
+        <h3 class="status-text" id="limitlessStatus" style="display: none;"></h3>
+        <div id="limitlessList"></div>
+      </div>
+    </details>
     <div class="result-summary">
       <h2 id="resultsHeading">{{ selected_repo_name }} Teams</h2>
       <span class="result-count" id="resultCount"></span>
@@ -564,6 +717,7 @@
   var PAGE_SIZE = 60;
   var repoSelect = document.getElementById('repoSelect');
   var searchInput = document.getElementById('searchInput');
+  var playerInput = document.getElementById('playerInput');
   var evsToggle = document.getElementById('evsToggle');
   var codeToggle = document.getElementById('codeToggle');
   var reportToggle = document.getElementById('reportToggle');
@@ -655,7 +809,7 @@
     var actions = '<button class="team-link-btn view-team-btn" type="button">' + msT('View Team') + '</button>' +
       teamLinksHtml(team);
     if (!team.has_evs) {
-      actions += '<span class="no-evs-tag" title="The Pokepaste for this team has no EV spreads">' + msT('No EVs') + '</span>';
+      actions += '<span class="no-evs-tag" title="The sets for this team have no EV spreads">' + msT('No EVs') + '</span>';
     }
     return '<div class="team-card" data-team-id="' + esc(team.team_id) + '">' +
       '<div class="team-card-top">' +
@@ -679,6 +833,7 @@
 
   function buildFilterQuery() {
     return '&q=' + encodeURIComponent(searchInput.value.trim()) +
+      '&player=' + encodeURIComponent(playerInput.value.trim()) +
       '&mode=' + searchMode() +
       (evsToggle.checked ? '&evs=1' : '') +
       (codeToggle.checked ? '&code=1' : '') +
@@ -795,7 +950,8 @@
 
   function openTeamModal(team) {
     var seq = ++modalSeq;
-    modalTitle.textContent = team.team_id + ' — ' + (team.description || msT('Untitled Team'));
+    var idLabel = team.source === 'limitless' ? 'Limitless' : team.team_id;
+    modalTitle.textContent = idLabel + ' — ' + (team.description || msT('Untitled Team'));
     modalMeta.innerHTML = metaHtml(team) +
       (team.date_display ? (metaHtml(team) ? ' &middot; ' : '') + esc(team.date_display) : '');
     modalLinks.innerHTML = teamLinksHtml(team);
@@ -809,6 +965,17 @@
     modalStatus.style.display = 'block';
     modal.classList.add('active');
     document.body.style.overflow = 'hidden';
+
+    // Limitless teams ship their sets inline (no Pokepaste to fetch)
+    if (team.paste_text) {
+      modalPasteText = team.paste_text;
+      modalStatus.style.display = 'none';
+      modalCopy.style.display = '';
+      modalSets.innerHTML = parseSets(team.paste_text).map(function(s) {
+        return setCardHtml(s, team);
+      }).join('');
+      return;
+    }
 
     var url = '/teams/api/' + encodeURIComponent(currentRepo) + '/paste/' +
       encodeURIComponent(team.team_id);
@@ -913,10 +1080,130 @@
     if (team) openTeamModal(team);
   });
 
+  /* ── Limitless tournament results section ──
+     Archetypes (identical 6-Pokémon rosters) ranked by pooled Swiss
+     points, independent of the sheet list's newest/oldest/random sort.
+     Fetched lazily on first expand; refetched only when the repo or
+     the search inputs actually change. */
+
+  var limitlessSection = document.getElementById('limitlessSection');
+  var limitlessList = document.getElementById('limitlessList');
+  var limitlessStatus = document.getElementById('limitlessStatus');
+  var limitlessCount = document.getElementById('limitlessCount');
+  var llSeq = 0;
+  var llLoadedKey = null;
+  var llArchetypes = [];
+
+  function llKey() {
+    return currentRepo + '\n' + searchInput.value.trim() + '\n' +
+      playerInput.value.trim() + '\n' + searchMode();
+  }
+
+  function llStatsHtml(a) {
+    var bits = [
+      '<b>' + a.count + '</b> ' + msT('players'),
+      '<b>' + a.points + '</b> ' + msT('points')
+    ];
+    if (a.win_rate !== null) bits.push('<b>' + a.win_rate + '%</b> ' + msT('win rate'));
+    if (a.best_placing && a.best_placing < 9999) {
+      bits.push('<span class="meta-rank">' + msT('best') + ': #' + a.best_placing + '</span>');
+    }
+    return bits.join(' &middot; ');
+  }
+
+  function llRunHtml(t, ai, ri) {
+    return '<div class="ll-run" data-arch="' + ai + '" data-run="' + ri + '">' +
+      '<div class="ll-run-main">' +
+        '<b>' + esc(t.player || '?') + '</b>' +
+        (t.rank ? '<span class="meta-rank">' + esc(t.rank) + '</span>' : '') +
+      '</div>' +
+      '<div class="ll-run-sub">' +
+        '<span class="ll-run-event" title="' + esc(t.description) + '">' + esc(t.description) + '</span>' +
+        (t.date_display ? '<span class="ll-run-date">' + esc(t.date_display) + '</span>' : '') +
+      '</div>' +
+    '</div>';
+  }
+
+  function llArchetypeHtml(a, ai) {
+    return '<div class="ll-archetype">' +
+      '<div class="ll-arch-header">' +
+        '<div class="ll-arch-sprites">' +
+          a.pokemon.map(function(p) { return spriteHtml(p.sprite, p.name); }).join('') +
+        '</div>' +
+        '<div class="ll-arch-stats">' + llStatsHtml(a) + '</div>' +
+      '</div>' +
+      '<div class="ll-runs">' +
+        a.players.map(function(t, ri) { return llRunHtml(t, ai, ri); }).join('') +
+      '</div>' +
+    '</div>';
+  }
+
+  function fetchLimitless() {
+    var key = llKey();
+    if (key === llLoadedKey) return;
+    var seq = ++llSeq;
+    limitlessList.innerHTML = '';
+    limitlessCount.textContent = '';
+    limitlessStatus.textContent = msT('Loading tournament teams...');
+    limitlessStatus.style.display = 'block';
+    var url = '/teams/api/' + encodeURIComponent(currentRepo) + '/limitless/' +
+      '?q=' + encodeURIComponent(searchInput.value.trim()) +
+      '&player=' + encodeURIComponent(playerInput.value.trim()) +
+      '&mode=' + searchMode();
+    fetch(url)
+      .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+      .then(function(data) {
+        if (seq !== llSeq) return;
+        llLoadedKey = key;
+        llArchetypes = data.archetypes;
+        limitlessStatus.style.display = 'none';
+        if (!data.available) {
+          limitlessStatus.textContent = msT('No Limitless data for this format yet.');
+          limitlessStatus.style.display = 'block';
+        } else if (!data.archetypes.length) {
+          limitlessStatus.textContent = msT('No matching tournament teams.');
+          limitlessStatus.style.display = 'block';
+        } else {
+          limitlessCount.textContent = data.total + ' ' + msT('matching teams');
+          limitlessList.innerHTML = data.archetypes.map(llArchetypeHtml).join('');
+        }
+      })
+      .catch(function() {
+        if (seq !== llSeq) return;
+        limitlessStatus.textContent = msT('Failed to load teams.');
+        limitlessStatus.style.display = 'block';
+      });
+  }
+
+  limitlessList.addEventListener('click', function(e) {
+    var run = e.target.closest('.ll-run');
+    if (run) {
+      var arch = llArchetypes[run.dataset.arch];
+      var team = arch && arch.players[run.dataset.run];
+      if (team) openTeamModal(team);
+      return;
+    }
+    var header = e.target.closest('.ll-arch-header');
+    if (header) header.parentNode.classList.toggle('expanded');
+  });
+
+  function syncLimitlessAttribution() {
+    document.getElementById('limitlessAttribution').style.display =
+      limitlessSection.open ? '' : 'none';
+  }
+
+  limitlessSection.addEventListener('toggle', function() {
+    syncLimitlessAttribution();
+    updateUrl();
+    if (limitlessSection.open) fetchLimitless();
+  });
+
   function updateUrl() {
     var params = new URLSearchParams();
     if (searchInput.value.trim()) params.set('q', searchInput.value.trim());
+    if (playerInput.value.trim()) params.set('player', playerInput.value.trim());
     if (searchMode() === 'any') params.set('mode', 'any');
+    if (limitlessSection.open) params.set('limitless', '1');
     if (evsToggle.checked) params.set('evs', '1');
     if (codeToggle.checked) params.set('code', '1');
     if (reportToggle.checked) params.set('report', '1');
@@ -931,10 +1218,15 @@
     if (sortSelect.value === 'random') randomSeed = newSeed();
     updateUrl();
     fetchTeams(false);
+    // No-op unless the repo or a search input changed (llKey memo)
+    if (limitlessSection.open) fetchLimitless();
   }
 
   document.getElementById('searchButton').addEventListener('click', refresh);
   searchInput.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter') refresh();
+  });
+  playerInput.addEventListener('keydown', function(e) {
     if (e.key === 'Enter') refresh();
   });
 
@@ -978,6 +1270,7 @@
   // Restore a shared search from the URL
   var params = new URLSearchParams(location.search);
   if (params.get('q')) searchInput.value = params.get('q');
+  if (params.get('player')) playerInput.value = params.get('player');
   if (params.get('mode') === 'any') document.getElementById('anyPokemon').checked = true;
   evsToggle.checked = params.get('evs') === '1';
   codeToggle.checked = params.get('code') === '1';
@@ -985,7 +1278,14 @@
   if (['newest', 'oldest', 'random'].indexOf(params.get('sort')) >= 0) {
     sortSelect.value = params.get('sort');
   }
+  // Anything advanced in the shared URL should be visible, not hidden
+  if (playerInput.value || evsToggle.checked || codeToggle.checked ||
+      reportToggle.checked || sortSelect.value !== 'newest') {
+    document.getElementById('advancedBox').open = true;
+  }
   randomSeed = parseInt(params.get('seed'), 10) || newSeed();
+  // Opening fires the toggle listener, which fetches the section
+  if (params.get('limitless') === '1') limitlessSection.open = true;
   fetchTeams(false);
 })();
 </script>

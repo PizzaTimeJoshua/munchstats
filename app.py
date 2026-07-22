@@ -67,6 +67,10 @@ JS_UI_STRINGS = [
     # teams page cards
     "View Team", "Source", "Report", "Untitled Team", "No EVs",
     "Click to copy", "Rental Code", "Replica Code",
+    # teams page Limitless section
+    "Loading tournament teams...", "No matching tournament teams.",
+    "No Limitless data for this format yet.", "matching teams",
+    "points", "win rate", "best",
     # tournaments hub
     "Loading teams...", "No teams found.", "Failed to load teams.",
     "Loading standings...", "No standings available.",
@@ -2505,6 +2509,139 @@ def _vgcpastes_vocab():
     return _vgcpastes_vocab_mem
 
 
+def _ordinal(n):
+    """1 -> "1st", 22 -> "22nd", 111 -> "111th"."""
+    if n % 100 in (11, 12, 13):
+        return f"{n}th"
+    return f"{n}{ {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th') }"
+
+
+def _limitless_format_for_repo(repo_id):
+    """Limitless format id for a teams repository's regulation, or None.
+
+    Matches the repo's regulation token ("mb") against each available
+    Limitless format's display name ("Regulation Set M-B"); only formats
+    with cached team data qualify, so a retired regulation simply
+    contributes nothing.
+    """
+    token = vgcpastes.REPOSITORIES.get(repo_id, {}).get("limitless_reg")
+    if not token:
+        return None
+    for fid, disp in limitless_stats.get_available_formats().items():
+        if _limitless_reg_token(fid, disp) == token:
+            return fid
+    return None
+
+
+def _limitless_paste_text(entry):
+    """Showdown-export text for a Limitless team, for the in-site viewer.
+
+    Open teamsheets carry species/item/ability/tera/moves but no EVs or
+    natures beyond what the API exposes; the text mirrors what pokepaste
+    would serve so the existing client-side set parser renders it.
+    """
+    blocks = []
+    for s in entry["team"]:
+        lines = [s["pokemon"] + (f" @ {s['item']}" if s.get("item") else "")]
+        if s.get("ability"):
+            lines.append(f"Ability: {s['ability']}")
+        if s.get("tera"):
+            lines.append(f"Tera Type: {s['tera']}")
+        if s.get("nature"):
+            lines.append(f"{s['nature']} Nature")
+        lines.extend(f"- {m}" for m in (s.get("moves") or []))
+        blocks.append("\n".join(lines))
+    return "\n\n".join(blocks)
+
+
+def _limitless_card(entry, index):
+    """Reshape one Limitless team entry into the VGCPastes team dict shape
+    so the teams API serializes both sources identically."""
+    tournament = entry["tournament"] or {}
+    date_iso = (tournament.get("date") or "")[:10]
+    try:
+        date_display = datetime.strptime(date_iso, "%Y-%m-%d").strftime("%d %b %Y")
+    except ValueError:
+        date_display = date_iso
+    rank_bits = []
+    if entry.get("placing"):
+        rank = _ordinal(entry["placing"])
+        if tournament.get("players"):
+            rank += f" of {tournament['players']}"
+        rank_bits.append(rank)
+    record = entry.get("record") or {}
+    if record.get("wins") is not None and record.get("losses") is not None:
+        rec = f"{record['wins']}-{record['losses']}"
+        if record.get("ties"):
+            rec += f"-{record['ties']}"
+        rank_bits.append(f"({rec})")
+    return {
+        "team_id": f"LL{index}",
+        "source": "limitless",
+        "description": tournament.get("name") or "Online Tournament",
+        "player": entry.get("player", ""),
+        "owner": "",
+        "pokemon": [s["pokemon"] for s in entry["team"]],
+        "items": [s.get("item") or "" for s in entry["team"]],
+        "pokepaste": "",
+        "has_evs": False,
+        "code": "",
+        "date": date_iso,
+        "date_display": date_display,
+        "event": "",
+        "rank": " ".join(rank_bits),
+        "source_link": (
+            f"https://play.limitlesstcg.com/tournament/{tournament['id']}/standings"
+            if tournament.get("id") else ""
+        ),
+        "report_link": "",
+        "other_link": "",
+        "paste_text": _limitless_paste_text(entry),
+    }
+
+
+def _limitless_slot_match(entry, terms):
+    """True when all terms match one slot's search blob (Pokémon + item +
+    ability + tera + nature + moves) — same slot scoping as the sheet
+    search, just over the richer data open teamsheets carry."""
+    return any(all(term in slot for term in terms) for slot in entry["search_slots"])
+
+
+def _limitless_repo_entries(repo_id, query, player_query, match_any):
+    """Limitless team entries for a repository's regulation, filtered
+    with the teams-page search semantics: the Pokémon query matches team
+    slots only, the player query the player/tournament-name metadata.
+    [] when the repo's regulation has no Limitless format with data."""
+    format_id = _limitless_format_for_repo(repo_id)
+    if not format_id:
+        return []
+    player_terms = player_query.strip().lower().split()
+    groups = [g.split() for g in query.strip().lower().split(",")]
+    groups = [g for g in groups if g]
+    checks = []
+    if groups:
+        vocab = _vgcpastes_vocab()
+        vocab_keys = list(vocab.keys())
+        checks = [
+            (g, vgcpastes._fuzzy_correct_group(g, vocab, vocab_keys))
+            for g in groups
+        ]
+    combine = any if match_any else all
+    entries = []
+    for entry in limitless_stats.get_all_teams(format_id, pokedexEntries):
+        _ensure_team_search_index(entry)
+        if player_terms and not all(t in entry["search_meta"] for t in player_terms):
+            continue
+        if checks and not combine(
+            _limitless_slot_match(entry, g)
+            or (c is not None and _limitless_slot_match(entry, c))
+            for g, c in checks
+        ):
+            continue
+        entries.append(entry)
+    return entries
+
+
 @app.route("/teams/")
 @app.route("/teams/<repo_id>/")
 def teams_page(repo_id=vgcpastes.DEFAULT_REPOSITORY):
@@ -2525,14 +2662,49 @@ def teams_page(repo_id=vgcpastes.DEFAULT_REPOSITORY):
     )
 
 
+def _vgcpastes_team_json(t):
+    """Serialize one VGCPastes-shaped team dict for the teams-page JSON
+    (sheet teams and reshaped Limitless teams share this shape)."""
+    return {
+        "team_id": t["team_id"],
+        "description": t["description"],
+        "player": t["player"],
+        "owner": t["owner"],
+        "pokemon": [
+            {
+                "name": name,
+                "item": t["items"][i] if i < len(t["items"]) else "",
+                "sprite": list(_vgcpastes_sprite(name)),
+                "item_sprite": _item_icon_sprite(
+                    t["items"][i] if i < len(t["items"]) else ""
+                ),
+            }
+            for i, name in enumerate(t["pokemon"])
+        ],
+        "pokepaste": t["pokepaste"],
+        "has_evs": t["has_evs"],
+        "code": t["code"],
+        "date": t["date"],
+        "date_display": t["date_display"],
+        "event": t["event"],
+        "rank": t["rank"],
+        "source_link": t["source_link"],
+        "report_link": t["report_link"],
+        "other_link": t["other_link"],
+        "source": t.get("source", ""),
+        "paste_text": t.get("paste_text", ""),
+    }
+
+
 @app.route("/teams/api/<repo_id>/")
 def api_vgcpastes_teams(repo_id):
     """Search VGCPastes teams. `q` splits on commas into groups; within a
-    group every term must match the same team slot (Pokémon + held item)
-    or the team's metadata, so "kingambit focus sash, garchomp" finds a
-    Kingambit holding a Focus Sash alongside a Garchomp. `mode=any`
-    accepts teams matching any group instead of all groups. Newest teams
-    first; paged via offset/limit."""
+    group every term must match the same team slot (Pokémon + held item),
+    so "kingambit focus sash, garchomp" finds a Kingambit holding a Focus
+    Sash alongside a Garchomp. `player` searches the team metadata
+    (player, event, rank, team ID) separately, so Pokémon searches never
+    match player names. `mode=any` accepts teams matching any group
+    instead of all groups. Newest teams first; paged via offset/limit."""
     if repo_id not in vgcpastes.REPOSITORIES:
         return jsonify({"error": "Unknown repository"}), 404
     query = request.args.get("q", "")
@@ -2544,6 +2716,7 @@ def api_vgcpastes_teams(repo_id):
     teams, total = vgcpastes.search_teams(
         repo_id,
         query,
+        player_query=request.args.get("player", ""),
         require_evs=request.args.get("evs") == "1",
         require_code=request.args.get("code") == "1",
         require_report=request.args.get("report") == "1",
@@ -2556,37 +2729,51 @@ def api_vgcpastes_teams(repo_id):
         "total": total,
         "offset": offset,
         "code_label": vgcpastes.REPOSITORIES[repo_id]["code_label"],
-        "teams": [
-            {
-                "team_id": t["team_id"],
-                "description": t["description"],
-                "player": t["player"],
-                "owner": t["owner"],
-                "pokemon": [
-                    {
-                        "name": name,
-                        "item": t["items"][i] if i < len(t["items"]) else "",
-                        "sprite": list(_vgcpastes_sprite(name)),
-                        "item_sprite": _item_icon_sprite(
-                            t["items"][i] if i < len(t["items"]) else ""
-                        ),
-                    }
-                    for i, name in enumerate(t["pokemon"])
-                ],
-                "pokepaste": t["pokepaste"],
-                "has_evs": t["has_evs"],
-                "code": t["code"],
-                "date": t["date"],
-                "date_display": t["date_display"],
-                "event": t["event"],
-                "rank": t["rank"],
-                "source_link": t["source_link"],
-                "report_link": t["report_link"],
-                "other_link": t["other_link"],
-            }
-            for t in teams[offset:offset + limit]
-        ],
+        "teams": [_vgcpastes_team_json(t) for t in teams[offset:offset + limit]],
     })
+
+
+@app.route("/teams/api/<repo_id>/limitless/")
+def api_vgcpastes_limitless(repo_id):
+    """Archetype-grouped Limitless online-tournament teams for the teams
+    page's collapsible section. Identical 6-Pokémon rosters pool into one
+    archetype ranked by pooled Swiss points (the tournaments hub's Top
+    Teams semantics); runs inside an archetype rank by their own points.
+    `q`/`player`/`mode` reuse the page's search semantics; the page's
+    newest/oldest/random sort deliberately does not apply here — the
+    section always leads with the best-performing teams."""
+    if repo_id not in vgcpastes.REPOSITORIES:
+        return jsonify({"error": "Unknown repository"}), 404
+    if _limitless_format_for_repo(repo_id) is None:
+        return jsonify({"available": False, "total": 0, "archetypes": []})
+    entries = _limitless_repo_entries(
+        repo_id,
+        request.args.get("q", ""),
+        request.args.get("player", ""),
+        request.args.get("mode") == "any",
+    )
+    archetypes = limitless_stats.group_team_archetypes(entries)
+    result = []
+    n = 0
+    for group in archetypes[:50]:
+        points = group["points"]
+        players = []
+        for e in group["players"][:30]:
+            players.append(_vgcpastes_team_json(_limitless_card(e, n)))
+            n += 1
+        result.append({
+            "pokemon": [
+                {"name": name, "sprite": list(_vgcpastes_sprite(name))}
+                for name in group["pokemon"]
+            ],
+            "count": group["count"],
+            "points": int(points) if points == int(points) else points,
+            "win_rate": group["win_rate"],
+            "best_placing": group["best_placing"],
+            "total_players": len(group["players"]),
+            "players": players,
+        })
+    return jsonify({"available": True, "total": len(entries), "archetypes": result})
 
 
 @app.route("/teams/api/<repo_id>/paste/<team_id>")

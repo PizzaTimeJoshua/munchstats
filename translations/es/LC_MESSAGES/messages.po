@@ -185,6 +185,60 @@ msgstr "Atribución"
 msgid "Battle data provided by"
 msgstr "Datos de combate proporcionados por"
 
+#: templates/about.html:190
+msgid "Data Sources & Attributions"
+msgstr "Fuentes de datos y atribuciones"
+
+#: templates/about.html:193
+msgid "The teams on the Teams page come from the community-run"
+msgstr "Los equipos de la página de Equipos provienen del repositorio comunitario"
+
+#: templates/about.html:193
+msgid ""
+"repository spreadsheet. Follow them for new tournament-proven teams, "
+"pokepastes and rental codes."
+msgstr ""
+"(hoja de cálculo). Síguelos para ver nuevos equipos probados en torneos, "
+"pokepastes y códigos de alquiler."
+
+#: templates/about.html:197
+msgid "Online tournament results, standings and open teamsheets come from"
+msgstr ""
+"Los resultados de torneos en línea, las clasificaciones y las hojas de "
+"equipo abiertas provienen de"
+
+#: templates/about.html:197
+msgid ""
+"(play.limitlesstcg.com), the platform where most competitive online VGC "
+"events are hosted."
+msgstr ""
+"(play.limitlesstcg.com), la plataforma donde se organizan la mayoría de "
+"los torneos competitivos de VGC en línea."
+
+#: templates/about.html:201
+msgid ""
+"Official tournament data (Regionals, Internationals, Worlds) is collected"
+" from public pairings and roster pages on"
+msgstr ""
+"Los datos de torneos oficiales (Regionales, Internacionales, Mundiales) "
+"se recopilan de las páginas públicas de emparejamientos y listas de"
+
+#: templates/about.html:201
+msgid "the official events' tournament software."
+msgstr "el software de torneos de los eventos oficiales."
+
+#: templates/about.html:204
+msgid "Pokémon Champions Battle Data"
+msgstr "Pokémon Champions Battle Data"
+
+#: templates/about.html:205
+msgid "Champions in-game usage data is cached from the"
+msgstr "Los datos de uso dentro del juego de Champions se almacenan en caché desde la"
+
+#: templates/about.html:205
+msgid "API — see the Champions FAQ above."
+msgstr "API — consulta la FAQ de Champions más arriba."
+
 #: templates/about.html:169
 msgid ""
 "MunchStats is not affiliated with Pokémon, Nintendo, GAME FREAK, "
@@ -1130,6 +1184,57 @@ msgstr "Con"
 msgid "Has Team Report"
 msgstr "Con informe de equipo"
 
+#: templates/teams.html:487
+msgid "Pokemon Search"
+msgstr "Búsqueda de Pokémon"
+
+#: templates/teams.html:493
+msgid "Player Search"
+msgstr "Búsqueda de jugador"
+
+#: templates/teams.html:496
+msgid "Advanced Options"
+msgstr "Opciones avanzadas"
+
+#: templates/teams.html:600
+msgid "Limitless Tournament Results"
+msgstr "Resultados de torneos de Limitless"
+
+#: templates/teams.html:601
+msgid ""
+"Best-performing teams from online events, grouped by identical 6 Pokémon"
+msgstr ""
+"Los equipos con mejor rendimiento de torneos en línea, agrupados por los "
+"mismos 6 Pokémon"
+
+#: app.py JS_UI_STRINGS (teams page Limitless section)
+msgid "Loading tournament teams..."
+msgstr "Cargando equipos de torneos..."
+
+#: app.py JS_UI_STRINGS (teams page Limitless section)
+msgid "No matching tournament teams."
+msgstr "No hay equipos de torneos que coincidan."
+
+#: app.py JS_UI_STRINGS (teams page Limitless section)
+msgid "No Limitless data for this format yet."
+msgstr "Aún no hay datos de Limitless para este formato."
+
+#: app.py JS_UI_STRINGS (teams page Limitless section)
+msgid "matching teams"
+msgstr "equipos coincidentes"
+
+#: app.py JS_UI_STRINGS (teams page Limitless section)
+msgid "points"
+msgstr "puntos"
+
+#: app.py JS_UI_STRINGS (teams page Limitless section)
+msgid "win rate"
+msgstr "de victorias"
+
+#: app.py JS_UI_STRINGS (teams page Limitless section)
+msgid "best"
+msgstr "mejor"
+
 #: templates/teams.html:498
 msgid "Sort Results"
 msgstr "Ordenar resultados"
@@ -1171,11 +1276,11 @@ msgstr "que lleva"
 
 #: templates/teams.html:508
 msgid ""
-"a Focus Sash. Player, tournament, rank and team ID work too. Click a team"
-" to view its full sets."
+"a Focus Sash. Use the Player Search for players, events, ranks and team "
+"IDs. Click a team to view its full sets."
 msgstr ""
-"una Focus Sash. Jugador, torneo, puesto e ID de equipo también funcionan."
-" Haz clic en un equipo para ver sus sets completos."
+"una Focus Sash. Usa la búsqueda de jugador para jugadores, torneos, "
+"puestos e ID de equipo. Haz clic en un equipo para ver sus sets completos."
 
 #: templates/teams.html:511
 msgid "follow"
@@ -1188,6 +1293,10 @@ msgstr "o consulta la"
 #: templates/teams.html:514
 msgid "full spreadsheet"
 msgstr "hoja de cálculo completa"
+
+#: templates/teams.html:521
+msgid "Online tournament teams from"
+msgstr "Equipos de torneos en línea de"
 
 #: templates/teams.html:515
 msgid "Data refreshes every 12 hours."

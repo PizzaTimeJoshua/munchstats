@@ -35,21 +35,26 @@ SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/"
 
 # Repository slug -> sheet tab. "code_label" names the per-team code column
 # (Champions teams share replica codes, cartridge VGC teams rental codes).
+# "limitless_reg" is the regulation token matching the corresponding
+# Limitless online-tournament format (see app._limitless_reg_token).
 REPOSITORIES = {
     "champions-mb": {
         "sheet": "Champions M-B",
         "display": "Champions M-B",
         "code_label": "Replica Code",
+        "limitless_reg": "mb",
     },
     "champions-ma": {
         "sheet": "Champions M-A",
         "display": "Champions M-A",
         "code_label": "Replica Code",
+        "limitless_reg": "ma",
     },
     "sv-regulation-i": {
         "sheet": "SV Regulation I",
         "display": "SV Regulation I",
         "code_label": "Rental Code",
+        "limitless_reg": "i",
     },
 }
 DEFAULT_REPOSITORY = "champions-mb"
@@ -256,9 +261,9 @@ def _fuzzy_correct_group(terms, vocab, vocab_keys):
     return corrected if changed else None
 
 
-def _group_matches(team, terms):
+def _slot_matches(team, terms):
     """True if all terms of one comma-group match the same team slot
-    (Pokémon name + its held item), or all match the team's metadata.
+    (Pokémon name + its held item).
 
     Slot scoping is what makes "kingambit focus sash" mean a Kingambit
     *holding* a Focus Sash rather than any Focus Sash on the team.
@@ -268,23 +273,33 @@ def _group_matches(team, terms):
         slot = f"{name} {items[i] if i < len(items) else ''}".lower()
         if all(term in slot for term in terms):
             return True
-    meta = " ".join(
+    return False
+
+
+def _meta_blob(team):
+    """Lowercase metadata blob the player search matches against."""
+    return " ".join(
         filter(None, [
             team["team_id"], team["description"], team["player"],
             team["owner"], team["event"], team["rank"], team["code"],
         ])
     ).lower()
-    return all(term in meta for term in terms)
 
 
-def search_teams(repo_id, query="", limit=None, require_evs=False,
-                 require_code=False, require_report=False, match_any=False,
-                 vocab=None, sort="newest", seed=None):
-    """Return (matching teams, total match count) for a comma-group query.
+def search_teams(repo_id, query="", player_query="", limit=None,
+                 require_evs=False, require_code=False, require_report=False,
+                 match_any=False, vocab=None, sort="newest", seed=None):
+    """Return (matching teams, total match count).
 
-    The query splits on commas into groups; within a group every term
-    must match the same slot or the metadata (see _group_matches). Teams
-    must satisfy all groups, or any group when match_any is set.
+    The Pokémon `query` splits on commas into groups; within a group
+    every term must match the same slot (see _slot_matches). Teams must
+    satisfy all groups, or any group when match_any is set. It never
+    matches players or events, so "Snorlax" won't return teams by a
+    player named Snorlax.
+
+    `player_query` is a separate search over the team's metadata
+    (player, owner, description, event, rank, team ID, code): every
+    whitespace term must appear somewhere in that blob.
 
     `vocab` ({normalized: canonical} of Pokémon/item names) enables fuzzy
     spelling correction; corrections only ever widen a group's matches,
@@ -301,6 +316,12 @@ def search_teams(repo_id, query="", limit=None, require_evs=False,
         teams = [t for t in teams if t["code"]]
     if require_report:
         teams = [t for t in teams if t["report_link"]]
+    player_terms = player_query.strip().lower().split()
+    if player_terms:
+        teams = [
+            t for t in teams
+            if all(term in _meta_blob(t) for term in player_terms)
+        ]
     groups = [g.split() for g in query.strip().lower().split(",")]
     groups = [g for g in groups if g]
     if groups:
@@ -313,7 +334,7 @@ def search_teams(repo_id, query="", limit=None, require_evs=False,
         teams = [
             t for t in teams
             if combine(
-                _group_matches(t, g) or (c is not None and _group_matches(t, c))
+                _slot_matches(t, g) or (c is not None and _slot_matches(t, c))
                 for g, c in checks
             )
         ]
