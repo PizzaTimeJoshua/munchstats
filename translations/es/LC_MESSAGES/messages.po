@@ -169,15 +169,34 @@ msgstr "¿Con qué frecuencia se actualizan los datos de Pokémon Champions?"
 
 #: templates/about.html:165
 msgid ""
-"It is cached from their API and refreshed every 12 hours. Each Champions "
+"It is cached from their API and refreshed every 6 hours. Each Champions "
 "page also shows when the source last scraped the data, so you always know"
 " how current it is."
 msgstr ""
-"Se cachean desde su API y se actualizan cada 12 horas. Cada página de "
+"Se cachean desde su API y se actualizan cada 6 horas. Cada página de "
 "Champions también muestra cuándo la fuente obtuvo los datos por última "
 "vez, para que siempre sepas qué tan actuales son."
 
-#: templates/about.html:168
+#: templates/about.html:167
+msgid "What is the usage rank trend on the Champions pages?"
+msgstr "¿Qué es la tendencia de posición de uso en las páginas de Champions?"
+
+#: templates/about.html:167
+msgid ""
+"Each Champions Pokémon shows a graph of its daily in-game usage rank over "
+"the past week. Because the source publishes usage as a rank (not a "
+"percentage), the graph tracks rank over time — the higher on the chart, "
+"the more popular that day. The window automatically grows toward 30 days "
+"as more daily history becomes available."
+msgstr ""
+"Cada Pokémon de Champions muestra un gráfico de su posición de uso diaria "
+"en el juego durante la última semana. Como la fuente publica el uso como "
+"una posición (no un porcentaje), el gráfico registra la posición a lo "
+"largo del tiempo: cuanto más arriba en el gráfico, más popular ese día. La"
+" ventana crece automáticamente hasta 30 días a medida que hay más "
+"historial diario disponible."
+
+#: templates/about.html:172
 msgid "Attribution"
 msgstr "Atribución"
 
@@ -606,6 +625,10 @@ msgstr "Estadísticas base"
 #: templates/index.html:2259
 msgid "Usage Trend"
 msgstr "Tendencia de uso"
+
+#: templates/index.html:2259
+msgid "Usage Rank Trend"
+msgstr "Tendencia de posición de uso"
 
 #: templates/index.html:2268 templates/tournaments.html:970
 msgid "Moves"

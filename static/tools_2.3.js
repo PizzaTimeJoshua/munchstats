@@ -68,42 +68,61 @@ $(document).ready(function () {
   // ========== TREND CHART ==========
   var trendChart = null;
 
+  var MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+
   function formatMonthLabel(monthStr) {
     var parts = monthStr.split("-");
-    var monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    return monthNames[parseInt(parts[1], 10) - 1] + " '" + parts[0].slice(2);
+    return MONTH_NAMES[parseInt(parts[1], 10) - 1] + " '" + parts[0].slice(2);
   }
 
-  function initTrendChart(months, usageData, pokemonName) {
+  // Champions in-game dates are daily ("2026-07-23" -> "Jul 23").
+  function formatDayLabel(dateStr) {
+    var parts = dateStr.split("-");
+    return MONTH_NAMES[parseInt(parts[1], 10) - 1] + " " + parseInt(parts[2], 10);
+  }
+
+  // "usage": Smogon ladder usage % over months, zero-based axis.
+  // "rank":  Champions in-game usage rank over days. The source publishes no
+  //          percentages, so the axis is reversed to put #1 at the top and
+  //          missing days are gaps rather than zeroes (rank 0 is meaningless).
+  function initTrendChart(labelValues, trendData, pokemonName, kind) {
     if (trendChart) {
       trendChart.destroy();
       trendChart = null;
     }
     var canvas = document.getElementById("trendChart");
-    if (!canvas || !months || !usageData || months.length === 0) return;
+    if (!canvas || !labelValues || !trendData || labelValues.length === 0) return;
 
-    // Fill interior nulls with 0% (format existed but Pokemon wasn't ranked)
-    // Keep leading/trailing nulls as-is
-    var first = -1, last = -1;
-    for (var i = 0; i < usageData.length; i++) {
-      if (usageData[i] !== null) { first = i; break; }
-    }
-    for (var j = usageData.length - 1; j >= 0; j--) {
-      if (usageData[j] !== null) { last = j; break; }
-    }
-    if (first === -1) return;
-    var resolved = usageData.map(function(v, idx) {
-      if (v !== null) return v;
-      return (idx >= first && idx <= last) ? 0 : null;
-    });
+    var isRank = kind === "rank";
+    var resolved, trimmed;
 
-    // Trim to just the range with data
-    resolved = resolved.slice(first, last + 1);
-    var trimmedMonths = months.slice(first, last + 1);
+    if (isRank) {
+      resolved = trendData.slice();
+      trimmed = labelValues.slice();
+    } else {
+      // Fill interior nulls with 0% (format existed but Pokemon wasn't ranked)
+      // Keep leading/trailing nulls as-is
+      var first = -1, last = -1;
+      for (var i = 0; i < trendData.length; i++) {
+        if (trendData[i] !== null) { first = i; break; }
+      }
+      for (var j = trendData.length - 1; j >= 0; j--) {
+        if (trendData[j] !== null) { last = j; break; }
+      }
+      if (first === -1) return;
+      resolved = trendData.map(function(v, idx) {
+        if (v !== null) return v;
+        return (idx >= first && idx <= last) ? 0 : null;
+      });
+
+      // Trim to just the range with data
+      resolved = resolved.slice(first, last + 1);
+      trimmed = labelValues.slice(first, last + 1);
+    }
 
     if (resolved.length < 2) return;
 
-    var labels = trimmedMonths.map(formatMonthLabel);
+    var labels = trimmed.map(isRank ? formatDayLabel : formatMonthLabel);
     var ctx = canvas.getContext("2d");
 
     trendChart = new Chart(ctx, {
@@ -111,16 +130,17 @@ $(document).ready(function () {
       data: {
         labels: labels,
         datasets: [{
-          label: pokemonName + " Usage",
+          label: pokemonName + (isRank ? " Rank" : " Usage"),
           data: resolved,
           borderColor: "rgba(245, 166, 35, 1)",
           backgroundColor: "rgba(245, 166, 35, 0.1)",
           borderWidth: 2.5,
-          pointRadius: 4,
+          pointRadius: isRank && resolved.length > 14 ? 2.5 : 4,
           pointHoverRadius: 6,
           pointBackgroundColor: "rgba(245, 166, 35, 1)",
           tension: 0.3,
-          fill: true,
+          // Filling a reversed axis shades the *worse* ranks, so line only.
+          fill: !isRank,
           spanGaps: false,
         }],
       },
@@ -136,20 +156,28 @@ $(document).ready(function () {
             callbacks: {
               label: function(context) {
                 var val = context.parsed.y;
-                return val !== null ? val.toFixed(3) + "%" : "N/A";
+                if (val === null) return "N/A";
+                return isRank ? "#" + val : val.toFixed(3) + "%";
               }
             }
           }
         },
         scales: {
           y: {
-            beginAtZero: true,
+            beginAtZero: !isRank,
+            reverse: isRank,
+            grace: isRank ? "15%" : 0,
             border: { color: ct().axis },
             grid: { color: ct().grid },
             ticks: {
               color: ct().ticks,
               font: { size: 11 },
-              callback: function(value) { return value + "%"; }
+              precision: 0,
+              callback: function(value) {
+                if (!isRank) return value + "%";
+                // Ranks are whole numbers; drop fractional auto-ticks.
+                return value % 1 === 0 && value >= 1 ? "#" + value : "";
+              }
             }
           },
           x: {
@@ -159,6 +187,8 @@ $(document).ready(function () {
               color: ct().ticksFaint,
               font: { size: 10 },
               maxRotation: 45,
+              autoSkip: true,
+              maxTicksLimit: isRank ? 10 : 12,
             }
           }
         }
@@ -468,7 +498,9 @@ $(document).ready(function () {
   // Initialize charts on first load
   initChart(window.graphData);
   if (window.trendMonths && window.trendMonths.length > 0) {
-    initTrendChart(window.trendMonths, window.trendUsage, window.currentPokemonName);
+    initTrendChart(
+      window.trendMonths, window.trendUsage, window.currentPokemonName, window.trendKind
+    );
   }
 
   // ========== EXPORT STATE ==========
@@ -1539,7 +1571,7 @@ $(document).ready(function () {
     var nonNull = data.trend_usage.filter(function(v) { return v !== null && v > 0; });
     if (nonNull.length < 2) return "";
     var html = "<div>";
-    html += "<h2>" + t("Usage Trend") + "</h2>";
+    html += "<h2>" + t(data.trend_kind === "rank" ? "Usage Rank Trend" : "Usage Trend") + "</h2>";
     html += '<div class="Data" style="max-height: 210px; height: 210px; margin-bottom: 0px; overflow: hidden;">';
     html += '<div id="trend-chart-container" style="width: 100%; height: 190px; position: relative;">';
     html += '<canvas id="trendChart"></canvas>';
@@ -1822,7 +1854,9 @@ $(document).ready(function () {
     // Re-init charts
     initChart(data.graph_data);
     if (data.trend_months && data.trend_usage) {
-      initTrendChart(data.trend_months, data.trend_usage, data.selected_pokemon);
+      initTrendChart(
+        data.trend_months, data.trend_usage, data.selected_pokemon, data.trend_kind
+      );
     }
 
     // Re-init export state and highlights

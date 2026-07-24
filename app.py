@@ -54,7 +54,7 @@ JS_UI_STRINGS = [
     "Base Stats", "Moves", "Teammates", "Items", "Abilities", "Natures",
     "Tera Types", "EV Spreads", "Stat Point Spreads", "Top EVs By Category",
     "Top Points By Category", "Export Pokemon", "Checks and Counters",
-    "Usage Trend", "Merch", "Top Teams", "Recent Replays",
+    "Usage Trend", "Usage Rank Trend", "Merch", "Top Teams", "Recent Replays",
     "Copy Pokemon to Clipboard", "Copy Team", "Copy Team to Clipboard",
     "Show", "Hide", "Show all", "Export", "Usage", "Rank",
     "Cumulative", "Reverse Cumulative",
@@ -694,12 +694,16 @@ def is_champions_format(format_code):
 
 # ─── Pokémon Champions (in-game) Battle Data ─────────────────────────────
 # Live battle data is fetched from championsbattledata.com and cached on disk
-# (NOT committed) for 12 hours. Attribution is required by their API rules.
+# (NOT committed) for 6 hours. Attribution is required by their API rules.
 CHAMPIONS_API_BASE = "https://championsbattledata.com"
 CHAMPIONS_CACHE_DIR = os.path.join("cache", "champions")
 os.makedirs(CHAMPIONS_CACHE_DIR, exist_ok=True)
-CHAMPIONS_CACHE_TTL = 12 * 3600  # 12 hours
+CHAMPIONS_CACHE_TTL = 6 * 3600  # 6 hours
 CHAMPIONS_SEASON = "Current"
+# Daily rank snapshots to request for the usage-rank trend. The API accepts
+# 1-31 and returns however many dated folders exist, so this grows on its own
+# as the source accumulates history (8 days as of July 2026).
+CHAMPIONS_TREND_DAYS = 30
 CHAMPIONS_ATTRIBUTION = "Battle data provided by Pokémon Champions Battle Data"
 CHAMPIONS_ATTRIBUTION_URL = "https://championsbattledata.com/"
 
@@ -751,11 +755,8 @@ def _champions_cache_write(key, data):
         pass
 
 
-def champions_api_get(endpoint, cache_key):
-    """GET JSON from the Champions API with 12h on-disk caching and stale fallback."""
-    cached = _champions_cache_read(cache_key)
-    if cached is not None:
-        return cached
+def champions_api_fetch(endpoint):
+    """GET JSON from the Champions API. Returns None on any failure."""
     try:
         resp = requests.get(
             CHAMPIONS_API_BASE + endpoint,
@@ -763,11 +764,21 @@ def champions_api_get(endpoint, cache_key):
             headers={"User-Agent": "MunchStats (+https://munchstats.com)"},
         )
         if resp.status_code == 200:
-            data = resp.json()
-            _champions_cache_write(cache_key, data)
-            return data
+            return resp.json()
     except Exception:
         pass
+    return None
+
+
+def champions_api_get(endpoint, cache_key):
+    """GET JSON from the Champions API with on-disk caching and stale fallback."""
+    cached = _champions_cache_read(cache_key)
+    if cached is not None:
+        return cached
+    data = champions_api_fetch(endpoint)
+    if data is not None:
+        _champions_cache_write(cache_key, data)
+        return data
     # On failure, fall back to a stale cached copy if we have one.
     return _champions_cache_read(cache_key, allow_stale=True)
 
@@ -803,7 +814,7 @@ def get_champions_pokemon_by_name():
 
 
 def get_champions_battle(format_folder, battle_name):
-    """Return parsed battle-data rows for one Pokémon/format, cached 12h."""
+    """Return parsed battle-data rows for one Pokémon/format, cached."""
     key = f"battle_{format_folder}_{battle_name}"
     endpoint = (
         f"/api/battle/{quote(format_folder)}/{quote(battle_name)}"
@@ -812,15 +823,77 @@ def get_champions_battle(format_folder, battle_name):
     return champions_api_get(endpoint, key)
 
 
+def _champions_iso_date(ddmmyyyy):
+    """Convert the API's DD_MM_YYYY folder date to YYYY-MM-DD, or '' if unparseable."""
+    parts = str(ddmmyyyy or "").split("_")
+    if len(parts) != 3:
+        return ""
+    day, month, year = parts
+    return f"{year}-{month}-{day}" if len(year) == 4 else ""
+
+
+def _champions_rank_trend(daily_summaries, format_folder):
+    """Extract [[YYYY-MM-DD, rank], ...] (oldest first) from daily snapshots.
+
+    Each snapshot's rows all carry the same `position` — the Pokémon's dense
+    usage rank for that format on that date — so row 0 is enough.
+    """
+    points = []
+    for day in daily_summaries or []:
+        if day.get("format") != format_folder:
+            continue
+        rows = (day.get("summary") or {}).get("rows") or []
+        rank = rows[0].get("position") if rows else None
+        iso = _champions_iso_date(day.get("date"))
+        if rank and iso:
+            points.append([iso, rank])
+    points.sort()
+    return points
+
+
+def get_champions_detail(slug, format_folder):
+    """Return {"rows": [...], "trend": [[date, rank], ...]} for one Pokémon/format.
+
+    A single /api/pokemon request carries both the current battle rows and the
+    daily rank snapshots, so the usage-rank trend costs no extra API calls. The
+    raw response is ~330KB but only those two pieces are cached (~11KB).
+    """
+    key = f"detail_{format_folder}_{slug}"
+    cached = _champions_cache_read(key)
+    if cached is not None:
+        return cached
+    # Deliberately omit &season: the current battle rows default to "Current"
+    # (what we want), while the daily rank snapshots live under the dated season
+    # folder (e.g. "M4"). Passing season=Current returns an empty daily list.
+    endpoint = (
+        f"/api/pokemon/{quote(slug)}?format={quote(format_folder)}"
+        f"&days={CHAMPIONS_TREND_DAYS}"
+    )
+    data = champions_api_fetch(endpoint)
+    if data is None:
+        return _champions_cache_read(key, allow_stale=True) or {}
+    trimmed = {
+        "rows": (data.get("battleSummary") or {}).get("rows") or [],
+        "trend": _champions_rank_trend(data.get("dailyBattleSummary"), format_folder),
+    }
+    _champions_cache_write(key, trimmed)
+    return trimmed
+
+
 # Champions uses long in-game form names ("Aegislash Shield Forme",
 # "Basculegion Male", "Alolan Ninetales"); map them to Showdown-style names so
 # they match the pokedex/sprite data and read consistently with the rest of the site.
 _CHAMPIONS_REGIONS = {"Alolan": "alola", "Galarian": "galar", "Hisuian": "hisui", "Paldean": "paldea"}
 _CHAMPIONS_FILLER = {"Forme", "Form", "Variety", "Pattern", "Natural", "Flower", "Breed"}
 _CHAMPIONS_VARIANT_ALIASES = {"Jumbo": "super"}  # Gourgeist Jumbo -> Gourgeist-Super
-# The API's name doesn't always match the in-game form. The game only has
-# Floette-Eternal, which the API just calls "Floette".
-_CHAMPIONS_NAME_OVERRIDES = {"Floette": "Floette-Eternal"}
+# The API's name doesn't always match the in-game form.
+#  - The game only has Floette-Eternal, which the API just calls "Floette".
+#  - The Fan Rotom form breaks the API's own "Rotom X" naming: the entry that
+#    carries real battle data is called "Fan Rotom" (unlike "Rotom Heat" etc.)
+#    and so doesn't resolve to the Rotom-Fan pokedex id on its own. (The API
+#    also ships a separate, empty "Rotom Fan" placeholder — filtered out in
+#    compile_champions_page_data.)
+_CHAMPIONS_NAME_OVERRIDES = {"Floette": "Floette-Eternal", "Fan Rotom": "Rotom-Fan"}
 _champions_name_cache = {}
 
 
@@ -902,25 +975,40 @@ def compile_champions_page_data(format_code, pokemon_name=""):
     if not pokemon_by_name:
         return None
 
-    def _usage_position(index_entry):
-        rows = (
+    def _format_summary(index_entry):
+        return (
             index_entry.get("summary", {})
             .get("battleSummary", {})
             .get(CHAMPIONS_SEASON, {})
-            .get(folder, {})
-            .get("rows")
-        )
-        # Position is a dense 1..N usage rank; sort unranked Pokémon last.
-        return rows[0].get("position", 10 ** 9) if rows else 10 ** 9
+            .get(folder)
+        ) or {}
 
-    # Order by in-game usage placement for the selected format.
-    ordered = sorted(pokemon_by_name.values(), key=_usage_position)
+    def _usage_position(index_entry):
+        # Position is a dense 1..N usage rank. The API used to carry it only on
+        # the battle rows, which the index no longer embeds; read it off the
+        # format summary and fall back to the rows for older cached copies.
+        fmt = _format_summary(index_entry)
+        pos = fmt.get("position")
+        if pos is None:
+            rows = fmt.get("rows")
+            pos = rows[0].get("position") if rows else None
+        # Sort unranked Pokémon (a format they don't appear in) last.
+        return pos if pos is not None else 10 ** 9
+
+    # Order by in-game usage placement for the selected format. Skip entries
+    # with no battle summary for this format — currently just the source's empty
+    # "Rotom Fan" placeholder (the real Fan-form data ships under "Fan Rotom").
+    listed = [e for e in pokemon_by_name.values() if _format_summary(e)]
+    ordered = sorted(listed, key=_usage_position)
     display_names = []
     display_to_raw = {}
+    display_ranks = {}
     for e in ordered:
         disp = champions_display_name(e["name"])
         display_names.append(disp)
         display_to_raw[disp] = e["name"]
+        pos = _usage_position(e)
+        display_ranks[disp] = "#" + str(pos) if pos < 10 ** 9 else ""
 
     default_pokemon = display_names[0]
     if pokemon_name and pokemon_name != "No Pokemon":
@@ -929,17 +1017,16 @@ def compile_champions_page_data(format_code, pokemon_name=""):
             default_pokemon = matched
 
     entry = pokemon_by_name[display_to_raw[default_pokemon]]
-    # The full ranked battle rows are embedded in the index itself
-    # (battleSummary[season][format].rows), so the whole feature runs off the
-    # single cached /api/index request. Fall back to the per-Pokémon endpoint
-    # only if a Pokémon ever ships without embedded rows.
-    rows = (
-        entry.get("summary", {})
-        .get("battleSummary", {})
-        .get(CHAMPIONS_SEASON, {})
-        .get(folder, {})
-        .get("rows")
-    )
+    # The index once embedded every Pokémon's battle rows; it now ships only the
+    # top row per category, so the page needs one per-Pokémon request. Use the
+    # /api/pokemon endpoint for it — the same response also carries the daily
+    # rank snapshots, making the usage-rank trend free.
+    rows = _format_summary(entry).get("rows")
+    rank_trend = []
+    if not rows:
+        detail = get_champions_detail(entry.get("slug", ""), folder)
+        rows = detail.get("rows") or []
+        rank_trend = detail.get("trend") or []
     if not rows:
         battle_name = entry.get("battleName", default_pokemon)
         rows = (get_champions_battle(folder, battle_name) or {}).get("rows", [])
@@ -1014,10 +1101,13 @@ def compile_champions_page_data(format_code, pokemon_name=""):
     available_months = get_available_months()
     selected_month = available_months[-1] if available_months else get_latest_month()
 
+    trend_dates = [p[0] for p in rank_trend]
+    trend_ranks = [p[1] for p in rank_trend]
+
     return {
         "pokemon_names": [
-            [disp, "#" + str(i + 1), get_pokemon_sprite(disp), ""]
-            for i, disp in enumerate(display_names)
+            [disp, display_ranks.get(disp, ""), get_pokemon_sprite(disp), ""]
+            for disp in display_names
         ],
         "selected_format": [format_code, formatDisplayNames.get(format_code, format_code)],
         "selected_pokemon": default_pokemon,
@@ -1035,7 +1125,7 @@ def compile_champions_page_data(format_code, pokemon_name=""):
         "evs_list": [[], [], [], [], []],
         "counters_list": [],
         "current_pokemon": [
-            default_pokemon, "", str(display_names.index(default_pokemon) + 1),
+            default_pokemon, "", display_ranks.get(default_pokemon, "").lstrip("#"),
             get_pokemon_sprite(default_pokemon),
         ],
         "rating_options": [],
@@ -1046,9 +1136,10 @@ def compile_champions_page_data(format_code, pokemon_name=""):
         "champions_slug": folder.lower(),
         "champions_updated": format_champions_updated((get_champions_index() or {}).get("generatedAt")),
         "month_formats": get_formats_for_month(selected_month),
-        "trend_months": [],
-        "trend_usage": [],
-        "show_trend": False,
+        "trend_months": trend_dates,
+        "trend_usage": trend_ranks,
+        "trend_kind": "rank",
+        "show_trend": len(trend_ranks) >= 2,
         "has_tournament_data": has_top_teams_data(format_code),
         "has_replay_data": False,
         "is_transformed": False,
@@ -1711,6 +1802,7 @@ def compile_page_data(format_code, rating_threshold="", pokemon_name="", month=N
         "month_formats": month_formats,
         "trend_months": trend_months,
         "trend_usage": trend_usage,
+        "trend_kind": "usage",
         "show_trend": sum(1 for v in trend_usage if v is not None and v > 0) >= 2,
         "has_tournament_data": has_top_teams_data(chosen_format),
         "has_replay_data": chosen_format in REPLAY_FORMATS,

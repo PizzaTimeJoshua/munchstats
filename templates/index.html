@@ -2256,7 +2256,7 @@
         </div>
         {% if show_trend %}
         <div>
-          <h2>{{ _('Usage Trend') }}</h2>
+          <h2>{% if trend_kind == 'rank' %}{{ _('Usage Rank Trend') }}{% else %}{{ _('Usage Trend') }}{% endif %}</h2>
           <div class="Data" style="max-height: 210px; height: 210px; margin-bottom: 0px; overflow: hidden;">
             <div id="trend-chart-container" style="width: 100%; height: 190px; position: relative;">
               <canvas id="trendChart"></canvas>
@@ -2582,6 +2582,7 @@
       window.calcFormatRatings = {{ calc_format_ratings | default({}) | tojson }};
       window.trendMonths = {{ trend_months | tojson }};
       window.trendUsage = {{ trend_usage | tojson }};
+      window.trendKind = {{ trend_kind | default("usage") | tojson }};
       window.teraType = {% if tera_types_list|length > 0 %}"{{ tera_types_list[0][0] }}"{% else %}""{% endif %};
       window.calcPokemonOptions = [
         {% for p in pokemon_names %}
@@ -2598,7 +2599,7 @@
 
     <!-- External JavaScript files -->
     {% if not calc_only %}
-    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=21"></script>
+    <script src="{{ url_for('static', filename='tools_2.3.js') }}?v=22"></script>
     {% endif %}
     {% if calc_only %}
     <script src="{{ url_for('static', filename='vendor/smogon-calc.js') }}"></script>
