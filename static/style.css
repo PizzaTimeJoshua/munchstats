@@ -412,6 +412,9 @@ body::before {
   border-radius: 4px;
   width: 34px;
   height: 29px;
+  padding: 0;
+  margin: 0;
+  box-shadow: none;
   font-size: 15px;
   line-height: 1;
   cursor: pointer;
@@ -419,7 +422,8 @@ body::before {
   justify-content: center;
   flex-shrink: 0;
 }
-.nav-burger:hover { color: var(--accent); background: var(--surface-3); }
+.nav-burger:hover { color: var(--accent); background: var(--surface-3); box-shadow: none; }
+.nav-burger:active { transform: none; }
 .twitter-follow-div {
   display: flex;
   align-items: center;
@@ -438,9 +442,12 @@ body::before {
   cursor: pointer;
   flex-shrink: 0;
   padding: 0;
+  margin: 0;
+  box-shadow: none;
   transition: color 0.2s, background 0.2s;
 }
-.theme-toggle:hover { color: var(--accent); background: var(--surface-3); }
+.theme-toggle:hover { color: var(--accent); background: var(--surface-3); box-shadow: none; }
+.theme-toggle:active { transform: none; }
 
 /* Theme picker menu (markup in _tabs.html, behavior in theme-boot.js).
    Inputs/selects declare their own width/padding/margin because pages
