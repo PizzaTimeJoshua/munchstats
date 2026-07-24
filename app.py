@@ -4654,7 +4654,8 @@ EBAY_CLIENT_SECRET = os.environ.get("EBAY_CLIENT_SECRET", "")
 
 _ebay_token_cache = {"token": None, "expires": 0}
 _ebay_merch_cache = {}
-MERCH_CACHE_TTL = 86400  # 24 hours
+MERCH_CACHE_TTL = 86400  # 24 hours for genuine results
+MERCH_FAIL_CACHE_TTL = 600  # 10 minutes when the lookup failed (rate limit, timeout, etc.)
 
 
 def get_ebay_oauth_token():
@@ -4702,6 +4703,8 @@ def api_merch(pokemon_name):
 
     token = get_ebay_oauth_token()
     if not token:
+        # Token failure is transient — don't return an empty list that the
+        # client would show as "No merch found" without caching a retry window.
         return jsonify([])
 
     categories = [
@@ -4711,8 +4714,11 @@ def api_merch(pokemon_name):
         ("merch", f"{pokemon_name} Pokemon"),
     ]
 
-    # Collect results per category, then interleave
+    # Collect results per category, then interleave. Track whether at least
+    # one category call actually reached eBay successfully — an all-failure
+    # run (rate limit, timeout, 5xx) must not be cached like a genuine empty.
     per_category = {cat: [] for cat, _ in categories}
+    any_success = False
     for category, query in categories:
         try:
             resp = requests.get(
@@ -4726,6 +4732,7 @@ def api_merch(pokemon_name):
                 timeout=10,
             )
             if resp.status_code == 200:
+                any_success = True
                 data = resp.json()
                 for item in data.get("itemSummaries", []):
                     image = item.get("image", {}).get("imageUrl", "")
@@ -4756,7 +4763,11 @@ def api_merch(pokemon_name):
     # Sweep expired entries so crawler-invented names can't grow this forever.
     for key in [k for k, v in _ebay_merch_cache.items() if now >= v["expires"]]:
         del _ebay_merch_cache[key]
-    _ebay_merch_cache[cache_key] = {"data": listings, "expires": now + MERCH_CACHE_TTL}
+    # Cache genuine results (including a real empty from a successful call) for
+    # 24h. If every eBay call failed, cache the empty list only briefly so a
+    # transient outage doesn't freeze "No merch found" for a full day.
+    ttl = MERCH_CACHE_TTL if (listings or any_success) else MERCH_FAIL_CACHE_TTL
+    _ebay_merch_cache[cache_key] = {"data": listings, "expires": now + ttl}
     return jsonify(listings)
 
 
