@@ -4664,6 +4664,7 @@ def get_ebay_oauth_token():
         return _ebay_token_cache["token"]
 
     if not EBAY_CLIENT_ID or not EBAY_CLIENT_SECRET:
+        app.logger.warning("eBay merch: EBAY_CLIENT_ID/SECRET not set in environment")
         return None
 
     credentials = base64.b64encode(
@@ -4688,8 +4689,12 @@ def get_ebay_oauth_token():
             _ebay_token_cache["token"] = data["access_token"]
             _ebay_token_cache["expires"] = time.time() + data.get("expires_in", 7200) - 60
             return _ebay_token_cache["token"]
-    except Exception:
-        pass
+        app.logger.warning(
+            "eBay merch: OAuth token request failed (status %s): %s",
+            resp.status_code, resp.text[:300],
+        )
+    except Exception as exc:
+        app.logger.warning("eBay merch: OAuth token request errored: %r", exc)
     return None
 
 
@@ -4747,7 +4752,13 @@ def api_merch(pokemon_name):
                         "url": item.get("itemAffiliateWebUrl") or item.get("itemWebUrl", ""),
                         "category": category,
                     })
-        except Exception:
+            else:
+                app.logger.warning(
+                    "eBay merch: search '%s' failed (status %s): %s",
+                    query, resp.status_code, resp.text[:300],
+                )
+        except Exception as exc:
+            app.logger.warning("eBay merch: search '%s' errored: %r", query, exc)
             continue
 
     # Interleave: [plush1, card1, figure1, merch1, plush2, card2, figure2, merch2]
