@@ -1825,15 +1825,24 @@ def calc_page(format_code="", rating_threshold=""):
     data = compile_page_data(format_code or DEFAULT_META, rating_threshold, "", month)
     if data is None:
         return redirect(url_for("calc_page", format_code=DEFAULT_META, rating_threshold="0"))
+    # A month fallback inside compile_page_data can still land on an in-game
+    # format when the default meta is missing for that month.
+    if is_champions_game_format(data["selected_format"][0]):
+        return redirect(url_for("calc_page", format_code=DEFAULT_META, rating_threshold="0"))
 
+    # The in-game Champions formats publish stats and natures separately, so the
+    # calc can't pair them into a usable spread — keep them out of the picker.
+    calc_formats = [
+        fmt for fmt in data["month_formats"] if not is_champions_game_format(fmt[0])
+    ]
     calc_format_ratings = {
         fmt[0]: get_valid_rating_thresholds(fmt[0], data["selected_month"])
-        for fmt in data["month_formats"]
+        for fmt in calc_formats
     }
     return render_template(
         "index.html",
         **data,
-        availableFormats=data["month_formats"],
+        availableFormats=calc_formats,
         calc_only=True,
         calc_format_ratings=calc_format_ratings,
     )
