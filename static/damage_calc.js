@@ -684,11 +684,11 @@ function calcWeightedNHKOChance(entries, n) {
 
 function renderWeightedNHKORow(entries) {
   const o = calcWeightedNHKOChance(entries, 1);
-  const t = o > 0 ? 0 : calcWeightedNHKOChance(entries, 2);
-  const h = o > 0 || t > 0 ? 0 : calcWeightedNHKOChance(entries, 3);
+  const two = o > 0 ? 0 : calcWeightedNHKOChance(entries, 2);
+  const h = o > 0 || two > 0 ? 0 : calcWeightedNHKOChance(entries, 3);
   let label, pct;
   if (o > 0)      { label = "OHKO"; pct = o; }
-  else if (t > 0) { label = "2HKO"; pct = t; }
+  else if (two > 0) { label = "2HKO"; pct = two; }
   else if (h > 0) { label = "3HKO"; pct = h; }
   else return `<span style="color:var(--text-ghost-2);font-size:11px">Cannot 3HKO</span>`;
   const col = pct >= 100 ? "var(--pos-2)" : pct >= 93.75 ? "#66bb6a" : pct >= 50 ? "var(--accent)" : "#ff9800";
@@ -727,8 +727,8 @@ function buildOfficialTierResults(entries, isPhys) {
   for (const entry of entries) {
     const o = calcNHKOChance(entry.rolls, entry.hp, 1);
     if (o > 0) { buckets.ohko.push(entry); continue; }
-    const t = calcNHKOChance(entry.rolls, entry.hp, 2);
-    if (t > 0) { buckets["2hko"].push(entry); continue; }
+    const two = calcNHKOChance(entry.rolls, entry.hp, 2);
+    if (two > 0) { buckets["2hko"].push(entry); continue; }
     const h = calcNHKOChance(entry.rolls, entry.hp, 3);
     if (h > 0) { buckets["3hko"].push(entry); continue; }
     buckets.survives.push(entry);
@@ -850,11 +850,11 @@ function calcNHKOChance(rolls, hp, n) {
 function renderNHKORow(rolls, hp) {
   if (!rolls || !hp) return "";
   const o = calcNHKOChance(rolls, hp, 1);
-  const t = o > 0 ? 0 : calcNHKOChance(rolls, hp, 2);
-  const h = o > 0 || t > 0 ? 0 : calcNHKOChance(rolls, hp, 3);
+  const two = o > 0 ? 0 : calcNHKOChance(rolls, hp, 2);
+  const h = o > 0 || two > 0 ? 0 : calcNHKOChance(rolls, hp, 3);
   let label, pct;
   if (o > 0)      { label = "OHKO"; pct = o; }
-  else if (t > 0) { label = "2HKO"; pct = t; }
+  else if (two > 0) { label = "2HKO"; pct = two; }
   else if (h > 0) { label = "3HKO"; pct = h; }
   else return `<span style="color:var(--text-ghost-2);font-size:11px">Cannot 3HKO</span>`;
   const col = pct >= 100 ? "var(--pos-2)" : pct >= 93.75 ? "#66bb6a" : pct >= 50 ? "var(--accent)" : "#ff9800";
