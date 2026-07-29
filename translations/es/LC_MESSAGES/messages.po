@@ -1650,3 +1650,46 @@ msgstr "La verificación del captcha ha fallado. Inténtalo de nuevo."
 msgid "Something went wrong sending your message. Please try again later."
 msgstr "Algo salió mal al enviar tu mensaje. Inténtalo de nuevo más tarde."
 
+#: templates/index.html (damage calc team importer)
+msgid "Import a team"
+msgstr "Importar un equipo"
+
+msgid "Paste a Showdown export or a pokepast.es link…"
+msgstr "Pega una exportación de Showdown o un enlace de pokepast.es…"
+
+msgid "Load as your team"
+msgstr "Cargar como tu equipo"
+
+msgid "Load as opponent's team"
+msgstr "Cargar como equipo rival"
+
+msgid "Click a sprite in either panel to switch to that Pokémon."
+msgstr "Haz clic en un sprite de cualquier panel para cambiar a ese Pokémon."
+
+#: app.py JS_UI_STRINGS (damage calc team importer)
+msgid "team"
+msgstr "equipo"
+
+msgid "Paste a team first."
+msgstr "Primero pega un equipo."
+
+msgid "Importing…"
+msgstr "Importando…"
+
+msgid "Couldn't import that paste."
+msgstr "No se pudo importar ese equipo."
+
+msgid "Pokémon imported to"
+msgstr "Pokémon importados a"
+
+msgid "your side"
+msgstr "tu lado"
+
+msgid "the opponent"
+msgstr "el rival"
+
+msgid "no data in this format."
+msgstr "sin datos en este formato."
+
+msgid "Clear imported team"
+msgstr "Borrar equipo importado"

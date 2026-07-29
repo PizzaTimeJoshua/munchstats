@@ -711,6 +711,112 @@
       .calc-explainer-body p { margin: 0 0 6px; }
       .calc-explainer-body strong { color: var(--text); }
 
+      /* Team importer */
+      .calc-import {
+        background: var(--bg);
+        border: 1px solid var(--border-soft);
+        margin-bottom: 10px;
+        text-align: left;
+      }
+      .calc-import-head {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 8px 12px;
+      }
+      .calc-import-toggle {
+        background: none;
+        border: none;
+        color: var(--text-soft);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+        padding: 0;
+      }
+      .calc-import-toggle:hover { color: var(--text-hi); }
+      .calc-import-toggle .chevron {
+        display: inline-block;
+        font-size: 10px;
+        transition: transform 0.2s;
+      }
+      .calc-import-toggle.open .chevron { transform: rotate(180deg); }
+      .calc-import-status { color: var(--text-dim); font-size: 11px; }
+      .calc-import-body { display: none; padding: 0 12px 10px; }
+      .calc-import-text {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        box-shadow: none;
+        color: var(--text);
+        font-family: monospace;
+        font-size: 12px;
+        height: auto;
+        min-height: 110px;
+        overflow: auto;
+        padding: 6px 8px;
+        resize: vertical;
+        white-space: pre;
+        width: 100%;
+      }
+      .calc-import-actions {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 8px;
+      }
+      .calc-import-actions button {
+        background: var(--accent);
+        border: none;
+        color: var(--on-accent);
+        cursor: pointer;
+        font-size: 12px;
+        font-weight: bold;
+        padding: 6px 12px;
+      }
+      .calc-import-actions button:hover { background: var(--accent-2); }
+      .calc-import-note { color: var(--text-dim); font-size: 11px; }
+
+      /* Imported team strip (one per Pokémon panel) */
+      .calc-team-strip {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 3px;
+        margin-bottom: 8px;
+      }
+      .calc-team-chip {
+        background: var(--surface-2);
+        border: 1px solid var(--border);
+        cursor: pointer;
+        line-height: 0;
+        padding: 0;
+      }
+      .calc-team-chip .image-pokemon { display: block; }
+      .calc-team-chip:hover { border-color: var(--border-hi); }
+      .calc-team-chip.active {
+        background: var(--accent-tint);
+        border-color: var(--accent);
+      }
+      .calc-team-clear {
+        background: none;
+        border: 1px solid var(--border-soft);
+        color: var(--text-dim);
+        cursor: pointer;
+        font-size: 12px;
+        line-height: 1;
+        margin-left: auto;
+        padding: 3px 6px;
+      }
+      .calc-team-clear:hover { border-color: var(--neg); color: var(--neg-soft); }
+      .move-set-tag {
+        background: var(--accent-tint);
+        color: var(--accent);
+        font-size: 9px;
+        padding: 0 3px;
+        text-transform: uppercase;
+      }
+
       /* Info tooltips */
       .calc-tip {
         position: relative;
@@ -1854,6 +1960,38 @@
             </div>
           </div>
 
+          <div class="calc-import" id="calc-import">
+            <div class="calc-import-head">
+              <button type="button" class="calc-import-toggle open" id="calc-import-btn"
+                      onclick="toggleCalcImport()" aria-expanded="true" aria-controls="calc-import-body">
+                {{ _('Import a team') }} <span class="chevron">&#9660;</span>
+              </button>
+              <span class="calc-import-status" id="calc-import-status"></span>
+            </div>
+            <div class="calc-import-body" id="calc-import-body" style="display:block">
+              <textarea id="calc-import-text" class="calc-import-text" spellcheck="false"
+                        placeholder="{{ _('Paste a Showdown export or a pokepast.es link…') }}"></textarea>
+              <div class="calc-import-actions">
+                <button type="button" onclick="importCalcTeam('attacker')">{{ _('Load as your team') }}</button>
+                <button type="button" onclick="importCalcTeam('defender')">{{ _("Load as opponent's team") }}</button>
+                <span class="calc-import-note">{{ _('Click a sprite in either panel to switch to that Pokémon.') }}</span>
+              </div>
+            </div>
+          </div>
+          <script>
+            /* The importer ships open; collapse it here — before paint, the way
+               theme-boot.js applies the saved theme — if the user closed it. */
+            (function () {
+              try {
+                if (localStorage.getItem("munchstats.calcImportCollapsed") !== "1") return;
+                document.getElementById("calc-import-body").style.display = "none";
+                var btn = document.getElementById("calc-import-btn");
+                btn.classList.remove("open");
+                btn.setAttribute("aria-expanded", "false");
+              } catch (e) {}
+            })();
+          </script>
+
           <div class="calc-explainer" id="calc-explainer">
             <button type="button" class="calc-explainer-toggle" onclick="toggleCalcExplainer()" id="calc-explainer-btn">
               {{ _('How does this damage calculator work?') }} <span class="chevron">&#9660;</span>
@@ -1871,6 +2009,8 @@
             <!-- YOUR Pokemon (attacker — fully editable) -->
             <div class="calc-poke-panel">
               <h4 class="your-pokemon">{{ _('Your Pokémon') }}</h4>
+
+              <div class="calc-team-strip" id="calc-team-attacker" style="display:none"></div>
 
               <div class="calc-control-row">
                 <label>Pokémon</label>
@@ -2074,6 +2214,8 @@
             <!-- OPPONENT (defender — stats from usage data or manual) -->
             <div class="calc-poke-panel">
               <h4 id="calc-defender-header" class="avg-pokemon">{{ _('Average Opponent') }}</h4>
+
+              <div class="calc-team-strip" id="calc-team-defender" style="display:none"></div>
 
               <div class="calc-control-row">
                 <label>Pokémon</label>
@@ -2603,7 +2745,7 @@
     {% endif %}
     {% if calc_only %}
     <script src="{{ url_for('static', filename='vendor/smogon-calc.js') }}"></script>
-    <script src="{{ url_for('static', filename='damage_calc.js') }}?v=4"></script>
+    <script src="{{ url_for('static', filename='damage_calc.js') }}?v=5"></script>
     <script>
     (function() {
       // Custom select replacement for dark-themed scrollbars

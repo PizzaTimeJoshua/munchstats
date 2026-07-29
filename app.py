@@ -64,6 +64,10 @@ JS_UI_STRINGS = [
     "No replays found", "Could not load replays",
     # damage calc
     "Outspeeds", "Ties", "Slower", "of sets", "More", "Less", "Guaranteed",
+    # damage calc team importer
+    "team", "Paste a team first.", "Importing…", "Couldn't import that paste.",
+    "Pokémon imported to", "your side", "the opponent",
+    "no data in this format.", "Clear imported team",
     # teams page cards
     "View Team", "Source", "Report", "Untitled Team", "No EVs",
     "Click to copy", "Rental Code", "Replica Code",
@@ -626,6 +630,222 @@ def build_calc_move_payload(move_key, move_info, usage_pct=None):
     if usage_pct is not None:
         payload["usagePct"] = usage_pct
     return payload
+
+
+# ─── SHOWDOWN PASTE IMPORT ───────────────────────────────────────────────────
+# Turns Showdown export text (or a pokepast.es link) into sets the damage calc
+# can drop straight into a panel. Parsing lives server-side so it can reuse the
+# pokedex/move/item/ability tables and hand back ready-made move payloads.
+
+_POKEPASTE_INPUT_RE = re.compile(
+    r"^(?:https?://)?(?:www\.)?pokepast\.es/([0-9a-f]+)(?:/raw)?/?$", re.I
+)
+
+# Attribute lines belong to the set above them; anything else (moves excluded)
+# starts a new set. Blank-line splitting is unreliable -- some pastes
+# double-space every line.
+_PASTE_ATTR_RE = re.compile(
+    r"^(ability|level|shiny|happiness|pokeball|poke ball|hidden power|tera type"
+    r"|evs?|ivs?|dynamax level|gigantamax|gender|nature|item)\s*:",
+    re.I,
+)
+_PASTE_NATURE_RE = re.compile(r"^([A-Za-z]+)\s+Nature$", re.I)
+_PASTE_TRAILING_GENDER_RE = re.compile(r"\((m|f)\)\s*$", re.I)
+_PASTE_SPECIES_PAREN_RE = re.compile(r"\(([^)]+)\)\s*$")
+_PASTE_STAT_CHUNK_RE = re.compile(r"(\d+)\s*([A-Za-z]+)")
+
+_PASTE_STAT_ALIASES = {
+    "hp": 0,
+    "atk": 1, "at": 1, "attack": 1,
+    "def": 2, "df": 2, "defense": 2, "defence": 2,
+    "spa": 3, "sa": 3, "satk": 3, "spatk": 3, "spattack": 3, "specialattack": 3,
+    "spd": 4, "sd": 4, "sdef": 4, "spdef": 4, "specialdefense": 4, "specialdefence": 4,
+    "spe": 5, "sp": 5, "speed": 5,
+}
+_PASTE_TERA_TYPES = {
+    _normalized: _normalized.title()
+    for _normalized in [
+        "normal", "fire", "water", "electric", "grass", "ice", "fighting",
+        "poison", "ground", "flying", "psychic", "bug", "rock", "ghost",
+        "dragon", "dark", "steel", "fairy", "stellar",
+    ]
+}
+
+PASTE_MAX_CHARS = 60000
+PASTE_MAX_SETS = 24
+PASTE_MAX_MOVES = 6
+
+
+def _paste_key(value):
+    """Normalize a paste token to the id form used by the data files."""
+    return re.sub(r"[^a-z0-9]+", "", (value or "").lower())
+
+
+def _paste_canonical_name(raw, source):
+    """Return the display name for an item/ability, or the raw text if unknown."""
+    entry = source.get(_paste_key(raw)) if raw else None
+    if isinstance(entry, dict) and entry.get("name"):
+        return entry["name"]
+    return (raw or "").strip()
+
+
+def _paste_resolve_species(raw):
+    """Return (display_name, matched) for a species name out of a paste.
+
+    Only near-exact matches count: a paste's title or a stray note lands here
+    the same way a species line does, and the usual 0.6 fuzzy cutoff happily
+    turns "Rain Team" into Sinistea.
+    """
+    key = _paste_key(raw)
+    if not key:
+        return raw, False
+    entry = pokedexEntries.get(key)
+    if entry:
+        return entry.get("name", raw), True
+    close = difflib.get_close_matches(key, pokedexEntries.keys(), 1, 0.8)
+    if close:
+        return pokedexEntries[close[0]].get("name", close[0]), True
+    return raw, False
+
+
+def _paste_stat_line(value, default):
+    """Parse an "EVs: 252 Atk / 4 Def" style line into a 6-slot stat list."""
+    stats = [default] * 6
+    for chunk in value.split("/"):
+        match = _PASTE_STAT_CHUNK_RE.search(chunk)
+        if not match:
+            continue
+        index = _PASTE_STAT_ALIASES.get(_paste_key(match.group(2)))
+        if index is not None:
+            stats[index] = int(match.group(1))
+    return stats
+
+
+def _paste_split_blocks(text):
+    """Group paste lines into one list of lines per Pokémon."""
+    blocks = []
+    for raw_line in (text or "").replace("\r", "\n").split("\n"):
+        line = raw_line.strip()
+        # "=== [gen9vgc2026regi] Team name ===" headers in multi-team exports.
+        if not line or line.startswith("==="):
+            continue
+        is_attribute = (
+            line[0] in "-~"
+            or bool(_PASTE_ATTR_RE.match(line))
+            or bool(_PASTE_NATURE_RE.match(line))
+        )
+        if is_attribute:
+            if blocks:
+                blocks[-1].append(line)
+            continue
+        blocks.append([line])
+    return blocks
+
+
+def _paste_parse_head(head):
+    """Split a set's first line into (species_raw, nickname, item_raw)."""
+    item_raw = ""
+    name_part = head
+    at_index = head.find(" @ ")
+    if at_index >= 0:
+        item_raw = head[at_index + 3:].strip()
+        name_part = head[:at_index]
+    name_part = _PASTE_TRAILING_GENDER_RE.sub("", name_part.strip()).strip()
+    paren = _PASTE_SPECIES_PAREN_RE.search(name_part)
+    if paren:
+        return paren.group(1).strip(), name_part[:paren.start()].strip(), item_raw
+    return name_part.strip(), "", item_raw
+
+
+def parse_showdown_paste(text, format_code=""):
+    """Parse Showdown export text into calc-ready sets.
+
+    Returns (sets, warnings). Sets whose species can't be resolved are dropped
+    with a warning -- the calc has nothing to load them into.
+    """
+    champions = is_champions_format(format_code)
+    move_source = (championsMoveDetails if champions else moveDetails) or moveDetails or {}
+    ability_source = (championsAbilityDetails if champions else abilityDetails) or {}
+
+    sets = []
+    warnings = []
+    blocks = _paste_split_blocks(text)
+    if len(blocks) > PASTE_MAX_SETS:
+        warnings.append(f"Only the first {PASTE_MAX_SETS} Pokémon were imported.")
+        blocks = blocks[:PASTE_MAX_SETS]
+
+    for block in blocks:
+        species_raw, nickname, item_raw = _paste_parse_head(block[0])
+        if not species_raw:
+            continue
+        species, matched = _paste_resolve_species(species_raw)
+        if not matched:
+            warnings.append(f"Skipped unknown Pokémon: {species_raw}")
+            continue
+
+        ability = ""
+        tera = ""
+        nature = ""
+        level = 0
+        evs = [0] * 6
+        ivs = [31] * 6
+        moves = []
+        unknown_moves = []
+
+        for line in block[1:]:
+            if line[0] in "-~":
+                move_raw = line[1:].strip()
+                if not move_raw or len(moves) >= PASTE_MAX_MOVES:
+                    continue
+                move_key = _paste_key(move_raw)
+                move_info = move_source.get(move_key)
+                if move_info:
+                    moves.append(build_calc_move_payload(move_key, move_info))
+                else:
+                    unknown_moves.append(move_raw)
+                continue
+            nature_match = _PASTE_NATURE_RE.match(line)
+            if nature_match:
+                nature = nature_match.group(1).capitalize()
+                continue
+            field, _, value = line.partition(":")
+            field = _paste_key(field)
+            value = value.strip()
+            if field == "ability":
+                ability = _paste_canonical_name(value, ability_source)
+            elif field == "teratype":
+                tera = _PASTE_TERA_TYPES.get(_paste_key(value), "")
+            elif field in ("ev", "evs"):
+                evs = _paste_stat_line(value, 0)
+            elif field in ("iv", "ivs"):
+                ivs = _paste_stat_line(value, 31)
+            elif field == "nature":
+                nature = value.capitalize()
+            elif field == "level" and value.isdigit():
+                level = int(value)
+            elif field == "item" and not item_raw:
+                item_raw = value
+
+        sets.append({
+            "species": species,
+            "nickname": nickname,
+            "sprite": list(get_pokemon_sprite(species)),
+            "item": _paste_canonical_name(item_raw, itemDetails),
+            "ability": ability,
+            "tera": tera,
+            "nature": nature,
+            "level": level,
+            "evs": evs,
+            "ivs": ivs,
+            # Open teamsheets (Limitless) carry no spread -- flag it so the calc
+            # keeps its usage-based spread instead of zeroing the panel out.
+            "hasSpread": bool(nature) or any(evs),
+            "hasIvs": any(iv != 31 for iv in ivs),
+            "moves": moves,
+            "unknownMoves": unknown_moves,
+        })
+
+    return sets, warnings
 
 
 def load_all_data():
@@ -2262,6 +2482,30 @@ def api_moves_search():
     starts   = sorted([r for r in results if r["name"].lower().startswith(q)], key=lambda r: r["name"])
     contains = sorted([r for r in results if not r["name"].lower().startswith(q)], key=lambda r: r["name"])
     return jsonify((starts + contains)[:15])
+
+
+@app.route("/api/calc/import", methods=["POST"])
+def api_calc_import():
+    """Parse a pasted team (or pokepast.es link) into calc-ready sets."""
+    payload = request.get_json(silent=True) or {}
+    text = (payload.get("text") or "").strip()
+    format_code = payload.get("format") or ""
+    if not text:
+        return jsonify({"error": "Paste a team first."}), 400
+    if len(text) > PASTE_MAX_CHARS:
+        return jsonify({"error": "That paste is too long to import."}), 413
+
+    link = _POKEPASTE_INPUT_RE.match(text)
+    if link:
+        fetched = vgcpastes.get_paste_text(f"https://pokepast.es/{link.group(1)}")
+        if not fetched:
+            return jsonify({"error": "Couldn't load that pokepast.es link."}), 400
+        text = fetched
+
+    sets, warnings = parse_showdown_paste(text, format_code)
+    if not sets:
+        return jsonify({"error": "No Pokémon found in that paste."}), 400
+    return jsonify({"sets": sets, "warnings": warnings})
 
 
 @app.route("/api/<format_code>/<rating_threshold>/calc/<pokemon_name>")

@@ -132,7 +132,14 @@ function escapeHTML(value) {
   }[ch]));
 }
 
-function pokeRound(n) { return Math.floor(n + 0.5); }
+// Modifier results round half DOWN in Pokémon (x.5 truncates) — same as
+// @smogon/calc's pokeRound. Rounding half up overstates a roll by 1 whenever a
+// modifier lands exactly on .5, and type effectiveness then doubles the error.
+function pokeRound(n) { return n % 1 > 0.5 ? Math.ceil(n) : Math.floor(n); }
+
+// Damage percentages truncate rather than round, the way Smogon's calc prints
+// them — a rounded "104.0%" next to another calc's "103.9%" reads as a mismatch.
+function damagePct(value) { return (Math.floor(Number(value) * 10) / 10).toFixed(1); }
 
 function chainMods(mods) {
   let M = 0x1000;
@@ -570,6 +577,21 @@ function exactStatsFromPokemon(pokemon, spreadOrStats) {
   return stats;
 }
 
+// calculate() clones both Pokémon internally, and Pokemon.clone() rebuilds its
+// stats from EVs/IVs/nature — so stats assigned after construction have to be
+// re-applied to every copy or they're dropped before any damage math runs. That
+// silently reverted Champions stats (base+SP+20 × alignment) to the Gen 9 EV
+// formula, and dropped Unburden's doubled Speed.
+function applyExactStats(mon, stats) {
+  for (const k of ["hp", "atk", "def", "spa", "spd", "spe"]) {
+    mon.rawStats[k] = stats[k];
+    mon.stats[k] = stats[k];
+  }
+  const inner = mon.clone.bind(mon);
+  mon.clone = () => applyExactStats(inner(), stats);
+  return mon;
+}
+
 function buildOfficialPokemon(pokemon, spreadOrStats) {
   const calc = getOfficialCalc();
   const genNum = officialRuntimeGeneration(pokemon);
@@ -592,16 +614,11 @@ function buildOfficialPokemon(pokemon, spreadOrStats) {
     overrides: calcSpeciesOverrides(pokemon),
     abilityOn: (pokemon?.ability === "Flash Fire" && pokemon?._abilityFlags?.flashfire) || undefined,
   });
-  for (const k of ["hp", "atk", "def", "spa", "spd", "spe"]) {
-    mon.rawStats[k] = stats[k];
-    mon.stats[k] = stats[k];
-  }
+  const exact = { ...stats };
   // Unburden: double speed stat
-  if (pokemon?._abilityFlags?.unburden) {
-    mon.rawStats.spe = mon.rawStats.spe * 2;
-    mon.stats.spe = mon.stats.spe * 2;
-  }
-  mon.originalCurHP = stats.hp;
+  if (pokemon?._abilityFlags?.unburden) exact.spe = exact.spe * 2;
+  applyExactStats(mon, exact);
+  mon.originalCurHP = exact.hp;
   mon.types = pokemon?.types?.length ? pokemon.types : mon.types;
   mon.weightkg = Number(pokemon?.weightkg) || mon.weightkg || 0;
   return mon;
@@ -1450,6 +1467,13 @@ function populateAbilitySelect(inputId, allAbilities, top) {
   ac.setOptions([...allAbilities, ...rest], top || (allAbilities[0]?.name) || "");
 }
 
+// Ability/item fields are free-text autocompletes — a value outside the option
+// list (an imported set's item, say) is still valid.
+function setOptionInputValue(inputId, value) {
+  const el = document.getElementById(inputId);
+  if (el) el.value = value;
+}
+
 function populateItemSelect(inputId, allItems, top) {
   const ac = _optionACs[inputId];
   if (!ac) return;
@@ -1673,13 +1697,27 @@ function renderHitsDropdown(move, source, isAttacker) {
   return `<select class="move-hits-select" data-moveid="${escapeHTML(move.id)}" onchange="onMoveHitsChange(this.dataset.moveid, ${isAttacker}, this.value)">${opts}</select>`;
 }
 
+// An imported set's moves lead the list; the format's top moves fill the rest.
+function orderedMoveList(pokemon) {
+  const setMoves = pokemon.setMoves || [];
+  const setIds = new Set(setMoves.map(m => m.id));
+  const top = (pokemon.topMoves || [])
+    .filter(m => !setIds.has(m.id))
+    .slice(0, Math.max(0, 6 - setMoves.length));
+  return { moves: [...setMoves, ...top, ...(pokemon.customMoves || [])], setIds };
+}
+
+function moveSourceTag(m, setIds) {
+  if (setIds.has(m.id)) return ` <span class="move-set-tag">${t("team")}</span>`;
+  if (m.id.startsWith("custom")) return " <span style='color:var(--text-ghost);font-size:10px'>(custom)</span>";
+  return "";
+}
+
 function renderAttackerMoveList() {
   const { attacker, defender, selectedMove } = calcState;
   const container = document.getElementById("calc-atk-movelist");
   if (!container || !attacker) return;
-  const top      = (attacker.topMoves || []).slice(0, 6);
-  const custom   = attacker.customMoves || [];
-  const allMoves = [...top, ...custom];
+  const { moves: allMoves, setIds } = orderedMoveList(attacker);
 
   container.innerHTML = allMoves.map(m => {
     const isSel = selectedMove?.source === "attacker" && selectedMove?.move?.id === m.id;
@@ -1695,7 +1733,7 @@ function renderAttackerMoveList() {
     const critBtn = isStatus ? "" : `<button type="button" class="move-crit-btn${isCrit ? " crit-on" : ""}" data-moveid="${escapeHTML(m.id)}" aria-pressed="${isCrit}" onclick="onMoveCritToggle(this.dataset.moveid, true)">Crit</button>`;
     return `<div class="calc-move-row">
       <div class="calc-move-btn${isSel ? " selected" : ""}" data-moveid="${escapeHTML(m.id)}" onclick="onMoveClick(this.dataset.moveid, true)">
-        <span class="move-name">${m.name}</span>${m.id.startsWith("custom") ? " <span style='color:var(--text-ghost);font-size:10px'>(custom)</span>" : ""}
+        <span class="move-name">${m.name}</span>${moveSourceTag(m, setIds)}
         ${typeBadgeHTML(m.type)}
         <span class="move-meta">${moveBasePowerLabel(m, moveField)} ${catLabel}</span>
         ${dmgLabel}
@@ -1710,9 +1748,7 @@ function renderDefenderMoveList() {
   const { attacker, defender, selectedMove } = calcState;
   const container = document.getElementById("calc-def-movelist");
   if (!container || !defender) return;
-  const top      = (defender.topMoves || []).slice(0, 6);
-  const custom   = defender.customMoves || [];
-  const allMoves = [...top, ...custom];
+  const { moves: allMoves, setIds } = orderedMoveList(defender);
 
   container.innerHTML = allMoves.map(m => {
     const isSel = selectedMove?.source === "defender" && selectedMove?.move?.id === m.id;
@@ -1728,7 +1764,7 @@ function renderDefenderMoveList() {
     const critBtn = isStatus ? "" : `<button type="button" class="move-crit-btn${isCrit ? " crit-on" : ""}" data-moveid="${escapeHTML(m.id)}" aria-pressed="${isCrit}" onclick="onMoveCritToggle(this.dataset.moveid, false)">Crit</button>`;
     return `<div class="calc-move-row">
       <div class="calc-move-btn${isSel ? " selected" : ""}" data-moveid="${escapeHTML(m.id)}" onclick="onMoveClick(this.dataset.moveid, false)">
-        <span class="move-name">${m.name}</span>${m.id.startsWith("custom") ? " <span style='color:var(--text-ghost);font-size:10px'>(custom)</span>" : ""}
+        <span class="move-name">${m.name}</span>${moveSourceTag(m, setIds)}
         ${typeBadgeHTML(m.type)}
         <span class="move-meta">${moveBasePowerLabel(m, moveField)} ${catLabel}</span>
         ${dmgLabel}
@@ -1991,8 +2027,8 @@ function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, 
   if (field.isFriendGuard) screenPart += " (Friend Guard)";
 
   // Damage range as % — use override range if provided (overall across all tiers)
-  const minPct = overridePcts?.minPct != null ? overridePcts.minPct : (rolls[0] / hp * 100).toFixed(1);
-  const maxPct = overridePcts?.maxPct != null ? overridePcts.maxPct : (rolls[rolls.length - 1] / hp * 100).toFixed(1);
+  const minPct = overridePcts?.minPct != null ? overridePcts.minPct : damagePct(rolls[0] / hp * 100);
+  const maxPct = overridePcts?.maxPct != null ? overridePcts.maxPct : damagePct(rolls[rolls.length - 1] / hp * 100);
 
   // KO label — use weighted override when provided, else compute from rolls
   const o1 = overridePcts != null ? overridePcts.o1 : calcNHKOChance(rolls, hp, 1);
@@ -2017,7 +2053,18 @@ function buildCalcString(atkObj, move, rolls, hp, defObj, field, useEVNotation, 
 
   const hitsPart = move.multihit ? ` (${hits} ${hits === 1 ? "hit" : "hits"})` : "";
   const str = `${boostPart}${evPart}${itemPart}${statusPart}${atkObj.name} ${hhPart}${move.name}${hitsPart} vs. ${defEvPart}${defItemPart}${defObj.name}${defBoostPart}${screenPart}: (${minPct} - ${maxPct}%) -- ${koText}${residual}`;
-  return `<div class="calc-string${extraClass ? ` ${extraClass}` : ""}"><code>${str}</code><button class="calc-copy-btn" onclick="navigator.clipboard.writeText(${JSON.stringify(str)})">Copy</button></div>`;
+  // The string carries quotes and & — hand it over in a data attribute rather
+  // than inlining it into onclick, where its first quote ended the attribute.
+  return `<div class="calc-string${extraClass ? ` ${extraClass}` : ""}"><code>${escapeHTML(str)}</code><button class="calc-copy-btn" data-calc="${escapeHTML(str)}" onclick="copyCalcString(this)">Copy</button></div>`;
+}
+
+function copyCalcString(btn) {
+  const text = btn?.dataset?.calc;
+  if (!text || !navigator.clipboard) return;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = "Copied";
+    setTimeout(() => { btn.textContent = "Copy"; }, 1200);
+  }).catch(() => {});
 }
 
 function renderForwardResults(koDist, move, attacker, defenderData, field, hits = 1) {
@@ -2044,8 +2091,8 @@ function renderForwardResults(koDist, move, attacker, defenderData, field, hits 
     const maxD = tier.maxDamage ?? rolls[rolls.length - 1];
     const minPctVal = tier.minPct ?? (minD / hp * 100);
     const maxPctVal = tier.maxPct ?? (maxD / hp * 100);
-    const minP = minPctVal.toFixed(1);
-    const maxP = maxPctVal.toFixed(1);
+    const minP = damagePct(minPctVal);
+    const maxP = damagePct(maxPctVal);
     allMinPct = Math.min(allMinPct, minPctVal);
     allMaxPct = Math.max(allMaxPct, maxPctVal);
     const pct = (tier.weight * 100).toFixed(0);
@@ -2090,7 +2137,7 @@ function renderForwardResults(koDist, move, attacker, defenderData, field, hits 
   }
 
   const damageSummary = isFinite(allMinPct) && isFinite(allMaxPct)
-    ? `${allMinPct.toFixed(1)}-${allMaxPct.toFixed(1)}%`
+    ? `${damagePct(allMinPct)}-${damagePct(allMaxPct)}%`
     : "No damage range";
   const primaryHTML = renderPrimaryResult(`${moveName} -> ${defenderName}`, damageSummary, ovHTML, `weighted across usage sets${tipHTML("Damage range and KO chance calculated against every spread your opponent runs, weighted by popularity.")}`);
 
@@ -2102,8 +2149,8 @@ function renderForwardResults(koDist, move, attacker, defenderData, field, hits 
       o1: koDist.koPct || 0,
       o2: (koDist.koPct > 0) ? 0 : (overall2 || 0),
       o3: (koDist.koPct > 0 || overall2 > 0) ? 0 : (overall3 || 0),
-      minPct: isFinite(allMinPct) ? allMinPct.toFixed(1) : null,
-      maxPct: isFinite(allMaxPct) ? allMaxPct.toFixed(1) : null,
+      minPct: isFinite(allMinPct) ? damagePct(allMinPct) : null,
+      maxPct: isFinite(allMaxPct) ? damagePct(allMaxPct) : null,
     };
     calcStringHTML = buildCalcString(attacker, move, reprTier.reprRolls, reprTier.reprHP, defenderData, field, true, null, overridePcts, "calc-string-primary", hits);
   }
@@ -2119,14 +2166,14 @@ function renderSingleResult(result, move, atkObj, defObj, field, hits = 1) {
   }
   const rolls = result.rolls;
   const minD = rolls[0], maxD = rolls[rolls.length - 1];
-  const damageText = `${minD}-${maxD} (${(minD/hp*100).toFixed(1)}-${(maxD/hp*100).toFixed(1)}%)`;
+  const damageText = `${minD}-${maxD} (${damagePct(minD/hp*100)}-${damagePct(maxD/hp*100)}%)`;
   const primaryHTML = renderPrimaryResult(`${atkObj.name}'s ${move.name} -> ${defObj.name}`, damageText, renderBestKOLabelForRolls(rolls, hp));
   detailHTML += `<div class="calc-tier-row" style="border-left:3px solid var(--pos-soft)">
     <div class="calc-tier-left">
       <span class="calc-tier-stats">HP ${hp}</span>
     </div>
     <div class="calc-tier-right">
-      <span class="calc-tier-dmg">${minD}–${maxD} <strong>(${(minD/hp*100).toFixed(1)}–${(maxD/hp*100).toFixed(1)}%)</strong></span>
+      <span class="calc-tier-dmg">${minD}–${maxD} <strong>(${damagePct(minD/hp*100)}–${damagePct(maxD/hp*100)}%)</strong></span>
       ${renderNHKORow(rolls, hp)}
     </div>
   </div>`;
@@ -2148,14 +2195,14 @@ function renderSingleForwardResult(result, move, attacker, defender, field, hits
   }
   const rolls = result.rolls;
   const minD = rolls[0], maxD = rolls[rolls.length - 1];
-  const damageText = `${minD}-${maxD} (${(minD/hp*100).toFixed(1)}-${(maxD/hp*100).toFixed(1)}%)`;
+  const damageText = `${minD}-${maxD} (${damagePct(minD/hp*100)}-${damagePct(maxD/hp*100)}%)`;
   const primaryHTML = renderPrimaryResult(`${move.name} -> ${defender.name}`, damageText, renderBestKOLabelForRolls(rolls, hp));
   detailHTML += `<div class="calc-tier-row" style="border-left:3px solid var(--pos-soft)">
     <div class="calc-tier-left">
       <span class="calc-tier-stats">HP ${hp}</span>
     </div>
     <div class="calc-tier-right">
-      <span class="calc-tier-dmg">${minD}–${maxD} <strong>(${(minD/hp*100).toFixed(1)}–${(maxD/hp*100).toFixed(1)}%)</strong></span>
+      <span class="calc-tier-dmg">${minD}–${maxD} <strong>(${damagePct(minD/hp*100)}–${damagePct(maxD/hp*100)}%)</strong></span>
       ${renderNHKORow(rolls, hp)}
     </div>
   </div>`;
@@ -2353,9 +2400,8 @@ function runCalc() {
 // ─── EVENT HANDLERS ───────────────────────────────────────────────────────────
 function onMoveClick(moveId, isAttacker) {
   const source = isAttacker ? "attacker" : "defender";
-  const pool = isAttacker
-    ? [...(calcState.attacker?.topMoves || []), ...(calcState.attacker?.customMoves || [])]
-    : [...(calcState.defender?.topMoves || []), ...(calcState.defender?.customMoves || [])];
+  const poke = isAttacker ? calcState.attacker : calcState.defender;
+  const pool = [...(poke?.setMoves || []), ...(poke?.topMoves || []), ...(poke?.customMoves || [])];
   const move = pool.find(m => m.id === moveId);
   calcState.selectedMove = move ? { source, move, isCrit: isMoveCrit(source, move.id) } : null;
   runCalc();
@@ -2659,6 +2705,7 @@ async function onAttackerChange(opts = {}) {
     return;
   }
   const isFormSwap = opts.formSwap && calcState.attacker;
+  if (!isFormSwap && !opts.fromImport) clearActiveCalcSet("attacker");
   clearCritStateForSource("attacker");
   clearHitsStateForSource("attacker");
 
@@ -2691,6 +2738,7 @@ async function onAttackerChange(opts = {}) {
   const prevBoosts = isFormSwap ? { ...calcState.attacker.boosts } : { atk: 0, def: 0, spa: 0, spd: 0, spe: 0 };
   const prevTera = isFormSwap ? calcState.attacker._selectedTera : "None";
   const prevTeraActive = isFormSwap ? calcState.attacker.teraActive : false;
+  const prevSetMoves = isFormSwap ? (calcState.attacker.setMoves || []) : [];
 
   // Store attacker state (needed by computeStatsFromInputs)
   const firstDamaging = data.topMoves.find(isDamagingMove);
@@ -2702,7 +2750,7 @@ async function onAttackerChange(opts = {}) {
     status: prevStatus,
     tera: prevTeraActive ? prevTera : "None", _selectedTera: prevTera, teraActive: prevTeraActive,
     customStats: {}, spreads: data.spreads, allSpreads: data.allSpreads || data.spreads || [], topMoves: data.topMoves,
-    boosts: prevBoosts, customMoves: [],
+    boosts: prevBoosts, customMoves: [], setMoves: prevSetMoves,
   };
   updateAbilityCheckbox(true);
   if (!isFormSwap) {
@@ -2754,6 +2802,7 @@ async function onDefenderChange(opts = {}) {
     return;
   }
   const isFormSwap = opts.formSwap && calcState.defender;
+  if (!isFormSwap && !opts.fromImport) clearActiveCalcSet("defender");
   clearCritStateForSource("defender");
   clearHitsStateForSource("defender");
 
@@ -2775,6 +2824,7 @@ async function onDefenderChange(opts = {}) {
   const prevTeraActive = isFormSwap ? calcState.defender.teraActive : false;
   const prevMode = isFormSwap ? calcState.defender.defenderMode : "average";
   const prevCustomStats = isFormSwap ? calcState.defender.customStats : null;
+  const prevSetMoves = isFormSwap ? (calcState.defender.setMoves || []) : [];
   // On form swap with no new spread data, inherit spreads from previous form
   const hasSpreads = data.spreads && data.spreads.length > 0;
   const prevSpreads = isFormSwap && !hasSpreads ? calcState.defender.spreads : (data.spreads || []);
@@ -2794,7 +2844,7 @@ async function onDefenderChange(opts = {}) {
     atkGroups: data.atkGroups || [], spaGroups: data.spaGroups || [],
     defTiers: data.defTiers || {}, spdTiers: data.spdTiers || {},
     topMoves: data.topMoves,
-    boosts: prevBoosts, customMoves: [],
+    boosts: prevBoosts, customMoves: [], setMoves: prevSetMoves,
     defenderMode: prevMode,
   };
   updateAbilityCheckbox(false);
@@ -3076,6 +3126,7 @@ async function reloadCalcDataSource(formatCode, ratingValue) {
       }
     }
 
+    await refreshCalcTeams();
     runCalc();
   } catch (e) {
     setCalcMessage("No damage calc data found for that format and rating.");
@@ -3117,6 +3168,12 @@ async function loadDefaultCalcPokemon() {
     loads.push(onDefenderChange());
   }
   await Promise.all(loads);
+
+  // Re-load the sets that were showing last visit, once per page load.
+  if (!_calcTeamsApplied) {
+    _calcTeamsApplied = true;
+    await applyActiveCalcSets();
+  }
 }
 
 function switchTab(tab) {
@@ -3145,6 +3202,246 @@ function switchTab(tab) {
     sessionStorage.setItem("activeTab", "calc");
     loadDefaultCalcPokemon();
   }
+}
+
+// ─── TEAM IMPORT ──────────────────────────────────────────────────────────────
+// A pasted team per side, so players can click between their six Pokémon
+// instead of retyping a spread every time. Parsing happens server-side
+// (/api/calc/import); this half owns the sprite strips and applying a set.
+const CALC_TEAMS_KEY = "munchstats.calcTeams";
+// Open by default; the inline script in index.html applies a stored collapse
+// pre-paint so the panel doesn't flash open for people who closed it.
+const CALC_IMPORT_COLLAPSED_KEY = "munchstats.calcImportCollapsed";
+const CALC_SIDES = ["attacker", "defender"];
+
+let calcTeams = { attacker: null, defender: null };  // { text, sets, active }
+let _calcTeamsApplied = false;
+
+function loadStoredCalcTeams() {
+  try {
+    const stored = JSON.parse(localStorage.getItem(CALC_TEAMS_KEY) || "null");
+    CALC_SIDES.forEach(side => {
+      const team = stored?.[side];
+      if (!team?.sets?.length) return;
+      const active = Number.isInteger(team.active) && team.sets[team.active] ? team.active : null;
+      calcTeams[side] = { text: team.text || "", sets: team.sets, active };
+    });
+  } catch (e) { /* corrupt or unavailable storage — start empty */ }
+}
+
+function saveCalcTeams() {
+  try { localStorage.setItem(CALC_TEAMS_KEY, JSON.stringify(calcTeams)); } catch (e) {}
+}
+
+function toggleCalcImport() {
+  const body = document.getElementById("calc-import-body");
+  const btn = document.getElementById("calc-import-btn");
+  if (!body || !btn) return;
+  const open = body.style.display !== "block";
+  body.style.display = open ? "block" : "none";
+  btn.classList.toggle("open", open);
+  btn.setAttribute("aria-expanded", String(open));
+  try { localStorage.setItem(CALC_IMPORT_COLLAPSED_KEY, open ? "" : "1"); } catch (e) {}
+  if (open) document.getElementById("calc-import-text")?.focus();
+}
+
+function setCalcImportStatus(text, isError = false) {
+  const el = document.getElementById("calc-import-status");
+  if (!el) return;
+  el.textContent = text || "";
+  el.style.color = isError ? "var(--neg-soft)" : "var(--text-dim)";
+}
+
+async function fetchCalcImport(text) {
+  try {
+    const resp = await fetch("/api/calc/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ text, format: window.selectedFormat || "" }),
+    });
+    const data = await resp.json().catch(() => ({}));
+    if (!resp.ok) return { error: data.error || t("Couldn't import that paste.") };
+    return data;
+  } catch (e) {
+    return { error: t("Couldn't import that paste.") };
+  }
+}
+
+async function importCalcTeam(side) {
+  const text = (document.getElementById("calc-import-text")?.value || "").trim();
+  if (!text) { setCalcImportStatus(t("Paste a team first."), true); return; }
+  setCalcImportStatus(t("Importing…"));
+  const data = await fetchCalcImport(text);
+  if (data.error) { setCalcImportStatus(data.error, true); return; }
+  calcTeams[side] = { text, sets: data.sets, active: null };
+  saveCalcTeams();
+  renderCalcTeamStrips();
+  const label = side === "attacker" ? t("your side") : t("the opponent");
+  const notes = [`${data.sets.length} ${t("Pokémon imported to")} ${label}.`].concat(data.warnings || []);
+  setCalcImportStatus(notes.join(" "));
+  // Applying the first set may report its own problem — leave that message up.
+  await applyCalcSet(side, 0);
+}
+
+function clearCalcTeam(side) {
+  calcTeams[side] = null;
+  if (calcState[side]) calcState[side].setMoves = [];
+  saveCalcTeams();
+  renderCalcTeamStrips();
+  setCalcImportStatus("");
+  runCalc();
+}
+
+// Re-parse stored pastes against the current format (Champions formats use a
+// separate move table) and re-apply whatever set each side had loaded.
+async function refreshCalcTeams() {
+  for (const side of CALC_SIDES) {
+    const team = calcTeams[side];
+    if (!team?.text) continue;
+    const data = await fetchCalcImport(team.text);
+    if (data.sets?.length) team.sets = data.sets;
+  }
+  saveCalcTeams();
+  renderCalcTeamStrips();
+  await applyActiveCalcSets();
+}
+
+async function applyActiveCalcSets() {
+  for (const side of CALC_SIDES) {
+    const active = calcTeams[side]?.active;
+    if (active != null) await applyCalcSet(side, active);
+  }
+}
+
+function calcSetTooltip(set) {
+  const bits = [set.species + (set.item ? ` @ ${set.item}` : "")];
+  if (set.ability) bits.push(set.ability);
+  if (set.hasSpread) bits.push(formatSpreadReadable(`${set.nature || "Hardy"}:${(set.evs || []).join("/")}`));
+  if (set.tera) bits.push(`Tera ${set.tera}`);
+  if (set.moves?.length) bits.push(set.moves.map(m => m.name).join(" / "));
+  return bits.join("\n");
+}
+
+function renderCalcTeamStrip(side) {
+  const wrap = document.getElementById(`calc-team-${side}`);
+  if (!wrap) return;
+  const team = calcTeams[side];
+  if (!team?.sets?.length) {
+    wrap.style.display = "none";
+    wrap.innerHTML = "";
+    return;
+  }
+  wrap.style.display = "";
+  const chips = team.sets.map((s, i) => {
+    const sprite = s.sprite || [0, 0];
+    const isActive = i === team.active;
+    return `<button type="button" class="calc-team-chip${isActive ? " active" : ""}"
+      aria-pressed="${isActive}" title="${escapeHTML(calcSetTooltip(s))}"
+      onclick="applyCalcSet('${side}', ${i})">
+      <span class="image-pokemon" style="background-position:${sprite[1] * -40}px ${sprite[0] * -30}px"></span>
+    </button>`;
+  }).join("");
+  wrap.innerHTML = chips +
+    `<button type="button" class="calc-team-clear" title="${escapeHTML(t("Clear imported team"))}"
+      onclick="clearCalcTeam('${side}')">&times;</button>`;
+}
+
+function renderCalcTeamStrips() {
+  CALC_SIDES.forEach(renderCalcTeamStrip);
+}
+
+// The panel no longer shows the imported set once a Pokémon is picked by hand.
+function clearActiveCalcSet(side) {
+  if (!calcTeams[side] || calcTeams[side].active == null) return;
+  calcTeams[side].active = null;
+  saveCalcTeams();
+  renderCalcTeamStrip(side);
+}
+
+async function applyCalcSet(side, index) {
+  const team = calcTeams[side];
+  const set = team?.sets?.[index];
+  if (!set) return;
+  const input = document.getElementById(`calc-${side}-input`);
+  if (input) input.value = set.species;
+  if (side === "attacker") await onAttackerChange({ fromImport: true });
+  else await onDefenderChange({ fromImport: true });
+  if (!calcState[side]) {
+    // Nothing to calculate with — drop back to the format's default Pokémon
+    // rather than leaving the panel pointing at a species it can't load.
+    setCalcImportStatus(`${set.species}: ${t("no data in this format.")}`, true);
+    team.active = null;
+    saveCalcTeams();
+    renderCalcTeamStrip(side);
+    const fallback = getDefaultCalcPokemonName();
+    if (!fallback) return;
+    if (input) input.value = fallback;
+    if (side === "attacker") await onAttackerChange({ fromImport: true });
+    else await onDefenderChange({ fromImport: true });
+    return;
+  }
+  team.active = index;
+  applyImportedSet(side === "attacker", set);
+  saveCalcTeams();
+  renderCalcTeamStrip(side);
+}
+
+// Overlay a pasted set on a panel that has already loaded the species' data.
+function applyImportedSet(isAttacker, set) {
+  const poke = isAttacker ? calcState.attacker : calcState.defender;
+  if (!poke) return;
+  const side = isAttacker ? "attacker" : "defender";
+  const prefix = isAttacker ? "atk" : "def";
+
+  // The paste wins over the format's most-used ability/item.
+  if (set.ability) {
+    setOptionInputValue(`calc-${side}-ability`, set.ability);
+    poke.ability = set.ability;
+  }
+  if (set.item) {
+    setOptionInputValue(`calc-${side}-item`, set.item);
+    poke.item = set.item;
+  }
+  updateAbilityCheckbox(isAttacker);
+
+  // Tera type is loaded but left inactive — the Tera button still turns it on.
+  const teraSel = document.getElementById(`calc-${side}-tera`);
+  if (set.tera && teraSel) {
+    teraSel.value = set.tera;
+    poke._selectedTera = set.tera;
+    poke.tera = poke.teraActive ? set.tera : "None";
+    syncTeraToggle(isAttacker);
+  }
+
+  // Paste moves lead the move list; the format's top moves fill what's left.
+  poke.setMoves = (set.moves || []).map(m => ({ ...m }));
+  poke.customMoves = [];
+  const moveSearch = document.getElementById(`calc-${prefix}-move-search`);
+  if (moveSearch) moveSearch.value = "";
+
+  // Open teamsheets carry no spread — leave the usage-based one in place.
+  if (set.hasSpread) {
+    if (!isAttacker) setDefenderMode("manual");
+    const nature = set.nature || "Hardy";
+    if (isAttacker) fillEVTable(nature, set.evs || []);
+    else fillDefenderEVTable(nature, set.evs || []);
+    if (set.hasIvs && !poke.isChampions) {
+      STAT_KEYS.forEach((k, i) => {
+        const el = document.getElementById(`calc-${prefix}-iv-${k}`);
+        if (el) el.value = set.ivs?.[i] ?? 31;
+      });
+    }
+    if (isAttacker) onAttackerStatChange();
+    else onDefenderStatChange();
+  }
+
+  // Analyze one of the set's own moves rather than a usage move it may not run.
+  const selected = calcState.selectedMove;
+  if (isAttacker || selected?.source === "defender") {
+    const move = poke.setMoves.find(isDamagingMove) || poke.setMoves[0];
+    if (move) calcState.selectedMove = { source: side, move, isCrit: isMoveCrit(side, move.id) };
+  }
+  runCalc();
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
@@ -3177,6 +3474,8 @@ document.addEventListener("DOMContentLoaded", () => {
   initPresetDropdown("calc-defender-preset-display", "calc-defender-preset-dropdown", onDefenderPresetChange);
   initBoostSelects();
   initCalcSourceControls();
+  loadStoredCalcTeams();
+  renderCalcTeamStrips();
 
   const fmtIsDoubles = window.selectedFormat && (
     window.selectedFormat.includes("vgc") || window.selectedFormat.includes("doubl") ||
