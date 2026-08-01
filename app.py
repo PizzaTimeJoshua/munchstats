@@ -1171,6 +1171,108 @@ def _champions_pct(row):
     return str(row.get("percentage", "")).rstrip("%")
 
 
+# The Champions battle rows are scraped from screenshots via OCR and Limitless
+# decklists are typed by hand, so ability/move names arrive with misread
+# letters ("Leat Guard"), dropped words ("Boost" for Speed Boost), or typos
+# ("Adapability"). Snap them to the Pokémon's legal options. A name that is
+# already a real move/ability but outside the legal set is never rewritten:
+# scans and typos produce non-words, so a real name is a row the scraper
+# attributed to the wrong Pokémon (Runerigus showing Rotom's "Static"/"Volt
+# Switch"), not a misread — rewriting it (Volt Switch -> Ally Switch) would
+# invent data. The in-game Champions page drops such rows instead.
+def correct_scanned_name(name, legal_by_key, known_by_key, legal_cutoff):
+    """Match a scanned name against legal_by_key / known_by_key maps of
+    {normalized key: display name}; return it unchanged if nothing is close."""
+    key = re.sub(r"[^a-z0-9]+", "", name.lower())
+    if not key:
+        return name
+    if key in legal_by_key:
+        return legal_by_key[key]
+    if key in known_by_key:
+        return known_by_key[key]
+    # A scan that dropped a word survives as a fragment of exactly one option
+    # ("Boost" -> Speed Boost); a stray word typed in wraps one instead
+    # ("Blaze  Ability" -> Blaze). Only unambiguous, non-tiny overlaps count,
+    # and only for names that aren't real (checked above), so a legitimate
+    # "Flying Press" is never swallowed by a legal "Fly".
+    containing = [
+        k for k in legal_by_key if len(k) >= 4 and (key in k or k in key)
+    ]
+    if len(containing) == 1:
+        return legal_by_key[containing[0]]
+    close = difflib.get_close_matches(key, legal_by_key.keys(), 1, legal_cutoff)
+    if close:
+        return legal_by_key[close[0]]
+    # Last resort: a strict match against every known name, for when the
+    # legal set is unavailable or itself missing the option.
+    close = difflib.get_close_matches(key, known_by_key.keys(), 1, 0.85)
+    return known_by_key[close[0]] if close else name
+
+
+_known_name_maps = {}
+
+
+def _known_names(details):
+    """{normalized key: display name} for a moves/abilities details dict,
+    memoized per dict (they are loaded once and shared)."""
+    known = _known_name_maps.get(id(details))
+    if known is None:
+        known = {
+            key: info.get("name") or key
+            for key, info in details.items()
+            if isinstance(info, dict)
+        }
+        _known_name_maps[id(details)] = known
+    return known
+
+
+def _champions_legal_abilities(entry):
+    """Collect the ability names legal for an index entry (all forms), as
+    {normalized: display}."""
+    summary = entry.get("summary") or {}
+    forms = [summary.get("primary") or {}] + list(summary.get("forms") or [])
+    legal = {}
+    for form in forms:
+        for field in ("abilities", "hidden_ability"):
+            for name in (form.get(field) or "").split("|"):
+                name = name.strip()
+                if name:
+                    legal[re.sub(r"[^a-z0-9]+", "", name.lower())] = name
+    return legal
+
+
+_champions_learnable_memo = {}
+
+
+def _champions_learnable_moves(pokemon_name):
+    """Legal move names for a Showdown-named Pokémon, {normalized: display},
+    from the Champions index learnsets (the tournament metas are all
+    Champions formats). Returns {} when the index is unavailable."""
+    idx = get_champions_index()
+    if not idx:
+        return {}
+    by_id = _champions_learnable_memo.get(id(idx))
+    if by_id is None:
+        by_id = {}
+        for e in idx.get("pokemon") or []:
+            sid = e.get("showdownId") or ""
+            moves = e.get("learnableMoveNames") or []
+            if sid and moves:
+                by_id[sid] = {
+                    re.sub(r"[^a-z0-9]+", "", m.lower()): m for m in moves
+                }
+        # The index refreshes every few hours; keep only the current one.
+        _champions_learnable_memo.clear()
+        _champions_learnable_memo[id(idx)] = by_id
+    key = re.sub(r"[^a-z0-9]+", "", pokemon_name.lower())
+    learnable = by_id.get(key)
+    if learnable is None:
+        # Megas battle under their base species' index entry.
+        base = (pokedexEntries.get(key) or {}).get("baseSpecies", "")
+        learnable = by_id.get(re.sub(r"[^a-z0-9]+", "", base.lower()))
+    return learnable or {}
+
+
 def format_champions_updated(iso_ts):
     """Format the index's `generatedAt` (when the source scraped the data) for display."""
     if not iso_ts:
@@ -1274,10 +1376,26 @@ def compile_champions_page_data(format_code, pokemon_name=""):
         ]
     pokemon_types = summary.get("types") or primary.get("types") or []
 
-    moves_list = [
-        [r.get("name", ""), _champions_pct(r), build_move_tooltip(r.get("name", ""))]
-        for r in rows_by_cat.get("move", [])
-    ]
+    # OCR-corrected names can collide (e.g. "Boost" and "Speed Boost" rows both
+    # resolving to Speed Boost); rows are usage-ordered, so keep the first.
+    legal_moves = {
+        re.sub(r"[^a-z0-9]+", "", m.lower()): m
+        for m in entry.get("learnableMoveNames") or []
+    }
+    moves_list = []
+    seen_moves = set()
+    for r in rows_by_cat.get("move", []):
+        name = correct_scanned_name(
+            r.get("name", ""), legal_moves, _known_names(championsMoveDetails), 0.7
+        )
+        # Still not a legal move -> the scraper attributed another Pokémon's
+        # row to this one; drop it rather than show an impossible move.
+        if legal_moves and re.sub(r"[^a-z0-9]+", "", name.lower()) not in legal_moves:
+            continue
+        if name in seen_moves:
+            continue
+        seen_moves.add(name)
+        moves_list.append([name, _champions_pct(r), build_move_tooltip(name)])
 
     items_list = []
     for r in rows_by_cat.get("held_item", []):
@@ -1290,9 +1408,20 @@ def compile_champions_page_data(format_code, pokemon_name=""):
             divmod(info.get("spritenum", 0), 16),
         ])
 
+    legal_abilities = _champions_legal_abilities(entry)
     abilities_list = []
+    seen_abilities = set()
     for r in rows_by_cat.get("ability", []):
-        name = r.get("name", "")
+        name = correct_scanned_name(
+            r.get("name", ""), legal_abilities, _known_names(championsAbilityDetails), 0.6
+        )
+        # Still not a legal ability -> a misattributed row (Runerigus can't
+        # have Static); drop it.
+        if legal_abilities and re.sub(r"[^a-z0-9]+", "", name.lower()) not in legal_abilities:
+            continue
+        if name in seen_abilities:
+            continue
+        seen_abilities.add(name)
         key = re.sub(r"[^a-z0-9]+", "", name.lower())
         info = championsAbilityDetails.get(key) or abilityDetails.get(key) or {}
         abilities_list.append([info.get("name", name), _champions_pct(r), info.get("desc", "No info.")])
@@ -3324,9 +3453,61 @@ def build_move_tooltip(move_name):
     )
 
 
-def compile_tournament_category(poke_data, category, total_count):
+def _pre_mega_entry(pokemon_name, dex_entry):
+    """The pokedex entry a Mega forme evolved from, or {} if not a Mega.
+
+    Trims the name at "-Mega" rather than trusting baseSpecies, which points
+    at the species (Meowstic-F-Mega -> "Meowstic", the male forme with
+    Prankster) instead of the forme that actually Mega Evolved (Meowstic-F,
+    with Competitive).
+    """
+    trimmed = re.split(r"-Mega\b", pokemon_name, 1)[0]
+    if trimmed != pokemon_name:
+        entry = pokedexEntries.get(re.sub(r"[^a-z0-9]+", "", trimmed.lower()))
+        if entry:
+            return entry
+    base = dex_entry.get("baseSpecies") or ""
+    return pokedexEntries.get(re.sub(r"[^a-z0-9]+", "", base.lower())) or {}
+
+
+def _correct_tournament_counts(counts, category, pokemon_name):
+    """Snap typo'd decklist ability/move names to the Pokémon's legal options
+    and merge the corrected counts ("Tough Skin" folds into "Rough Skin").
+    Abilities that still don't resolve to a legal one are dropped (a
+    Mawile-Mega slot listing Inner Focus is a data-entry mixup, not usage)."""
+    drop_illegal = False
+    if category == "abilities":
+        # A Mega slot's decklist can list either the battling forme's ability
+        # (Huge Power) or the pre-Mega one it was entered with (Intimidate),
+        # so both formes' abilities are legal.
+        dex = pokedexEntries.get(re.sub(r"[^a-z0-9]+", "", pokemon_name.lower())) or {}
+        pre_mega = _pre_mega_entry(pokemon_name, dex)
+        legal = {
+            re.sub(r"[^a-z0-9]+", "", n.lower()): n
+            for entry in (dex, pre_mega)
+            for n in (entry.get("abilities") or {}).values()
+        }
+        known = _known_names(abilityDetails)
+        cutoff = 0.6
+        drop_illegal = bool(legal)
+    else:
+        legal = _champions_learnable_moves(pokemon_name)
+        known = _known_names(moveDetails)
+        cutoff = 0.7
+    merged = {}
+    for name, count in counts.items():
+        fixed = correct_scanned_name(name, legal, known, cutoff)
+        if drop_illegal and re.sub(r"[^a-z0-9]+", "", fixed.lower()) not in legal:
+            continue
+        merged[fixed] = merged.get(fixed, 0) + count
+    return merged
+
+
+def compile_tournament_category(poke_data, category, total_count, pokemon_name=""):
     """Convert tournament aggregated counts into display lists."""
     data = poke_data.get(category, {})
+    if pokemon_name and category in ("abilities", "moves"):
+        data = _correct_tournament_counts(data, category, pokemon_name)
     total = max(total_count, 1)
     sorted_keys = sorted(data.keys(), key=lambda k: data[k], reverse=True)
 
@@ -3485,9 +3666,9 @@ def compile_tournament_page_data(tournament_id="", day_filter="all", pokemon_nam
     )
 
     # Compile data lists
-    moves_list = compile_tournament_category(poke_data, "moves", usage_count)
+    moves_list = compile_tournament_category(poke_data, "moves", usage_count, selected_pokemon)
     items_list = compile_tournament_category(poke_data, "items", usage_count)
-    abilities_list = compile_tournament_category(poke_data, "abilities", usage_count)
+    abilities_list = compile_tournament_category(poke_data, "abilities", usage_count, selected_pokemon)
     tera_types_list = compile_tournament_category(poke_data, "tera_types", usage_count)
     natures_list = compile_tournament_category(poke_data, "natures", usage_count)
     teammates_list = compile_tournament_teammates(poke_data, usage_count)
@@ -3862,9 +4043,9 @@ def _compile_limitless_pokemon_context(pokemon_index, total_teams, pokemon_name)
         "win_rate": "{:.1f}".format(win_rate) if win_rate is not None else "—",
         "base_stats": compile_top_data({"_": 1}, selected_pokemon, "Stats") if pokedexEntries else [],
         "pokemon_types": compile_top_data({"_": 1}, selected_pokemon, "Types") if pokedexEntries else [],
-        "moves_list": compile_tournament_category(poke_data, "moves", usage_count),
+        "moves_list": compile_tournament_category(poke_data, "moves", usage_count, selected_pokemon),
         "items_list": compile_tournament_category(poke_data, "items", usage_count),
-        "abilities_list": compile_tournament_category(poke_data, "abilities", usage_count),
+        "abilities_list": compile_tournament_category(poke_data, "abilities", usage_count, selected_pokemon),
         "tera_types_list": compile_tournament_category(poke_data, "tera_types", usage_count),
         "natures_list": compile_tournament_category(poke_data, "natures", usage_count),
         "teammates_list": compile_tournament_teammates(poke_data, usage_count),
