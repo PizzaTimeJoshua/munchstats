@@ -8,6 +8,7 @@ import re
 import smtplib
 import threading
 import time
+import zlib
 from email.message import EmailMessage
 from collections import OrderedDict
 from datetime import datetime
@@ -141,9 +142,11 @@ REPLAY_FORMATS = [
 
 # Replay JSONs are regenerated every ~6h by the update-replay-stats workflow
 # and published to the repo's replay-data branch (not main, so no Heroku
-# redeploy). They are fetched from raw.githubusercontent.com on demand and
-# cached on disk with ETag revalidation. Set REPLAY_DATA_URL="" to skip
-# fetching and serve the local stats/replays/ copies directly (dev).
+# redeploy). They are stored there gzipped — the raw JSONs run past GitHub's
+# 100MB file limit — and fetched from raw.githubusercontent.com on demand,
+# then cached on disk decompressed with ETag revalidation. Set
+# REPLAY_DATA_URL="" to skip fetching and serve the local (uncompressed)
+# stats/replays/ copies directly (dev).
 REPLAY_DATA_URL = os.environ.get(
     "REPLAY_DATA_URL",
     "https://raw.githubusercontent.com/PizzaTimeJoshua/munchstats/replay-data/stats/replays/",
@@ -190,24 +193,37 @@ def get_replay_data_file(filename):
                 etag = f.read().strip()
         headers = {"If-None-Match": etag} if etag else {}
         status = None
+        tmp = cached + ".tmp"
         try:
             with requests.get(
-                REPLAY_DATA_URL + filename,
+                REPLAY_DATA_URL + filename + ".gz",
                 headers=headers,
                 stream=True,
                 timeout=(6.1, 120),
             ) as resp:
                 status = resp.status_code
                 if status == 200:
-                    tmp = cached + ".tmp"
+                    # wbits=31 selects a gzip wrapper. Inflating chunk by
+                    # chunk keeps peak memory at one chunk rather than the
+                    # whole file, which matters on a 512MB dyno.
+                    dec = zlib.decompressobj(31)
                     with open(tmp, "wb") as f:
                         for chunk in resp.iter_content(chunk_size=1 << 20):
-                            f.write(chunk)
+                            f.write(dec.decompress(chunk))
+                        f.write(dec.flush())
+                    if not dec.eof:
+                        raise zlib.error("truncated gzip stream")
                     os.replace(tmp, cached)
                     with open(marker, "w", encoding="utf-8") as f:
                         f.write(resp.headers.get("ETag", ""))
-        except (requests.RequestException, OSError):
-            pass
+        except (requests.RequestException, zlib.error, OSError):
+            # A failure partway through a 200 leaves status at 200 on purpose,
+            # so the TTL window below still resets: back off and serve the
+            # stale copy instead of re-downloading tens of MB every request.
+            try:
+                os.remove(tmp)
+            except OSError:
+                pass
         if status in (200, 304, 404):
             # Got a definitive answer — start a fresh TTL window.
             with open(marker, "a", encoding="utf-8"):

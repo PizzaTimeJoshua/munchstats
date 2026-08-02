@@ -1,7 +1,8 @@
 name: Update replay stats
 
 # Scrapes new Showdown replays, rebuilds the searcher/team-ranking JSONs,
-# and force-pushes them as a single fresh commit to the replay-data branch.
+# and force-pushes them gzipped as a single fresh commit to the replay-data
+# branch.
 # The app fetches them from raw.githubusercontent.com at runtime, so data
 # updates no longer touch main and never trigger a Heroku redeploy (and the
 # branch history never grows). The raw replay cache (~3 GB) is carried
@@ -104,6 +105,16 @@ jobs:
         env:
           MUNCHSTATS_DIRECTORY: ${{ github.workspace }}/site-data
         run: python replay-downloader-nogui.py
+
+      # The busiest formats produce JSONs past GitHub's 100MB hard file limit,
+      # which the pre-receive hook rejects. Gzip runs them ~7x smaller (and
+      # shrinks the blobs force-pushed here every 6h by the same factor).
+      # -n omits the mtime header so unchanged data compresses to identical
+      # bytes, keeping the commit a true no-op and the app's ETag stable.
+      - name: Compress data
+        if: steps.cfg.outputs.configured == 'true'
+        working-directory: site-data
+        run: find stats/replays -name '*.json' -exec gzip -9nf {} +
 
       - name: Publish data to replay-data branch
         if: steps.cfg.outputs.configured == 'true'
