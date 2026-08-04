@@ -45,18 +45,16 @@ jobs:
             echo "configured=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # The scraper writes its output JSONs into $MUNCHSTATS_DIRECTORY and
-      # commits there itself (its own push attempt fails harmlessly — no
-      # origin remote). Giving it a fresh throwaway repo instead of a real
-      # munchstats checkout keeps every run a single commit that the publish
-      # step force-pushes to the replay-data branch.
+      # The scraper writes its output JSONs into $MUNCHSTATS_DIRECTORY and, if
+      # it finds a git repo there, commits them itself. Deliberately do NOT
+      # give it one: that commit would capture the raw uncompressed JSONs, and
+      # GitHub rejects any blob over 100MB anywhere in the pushed history —
+      # so compressing afterwards cannot save a push that still carries it.
+      # Its Repo() call raises, the scraper catches and logs it, and the files
+      # land either way. The publish step builds the only commit we push.
       - name: Prepare data workspace
         if: steps.cfg.outputs.configured == 'true'
-        run: |
-          mkdir -p site-data/stats/replays
-          git -C site-data init -q -b replay-data
-          git -C site-data config user.name "github-actions[bot]"
-          git -C site-data config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+        run: mkdir -p site-data/stats/replays
 
       - name: Checkout replay scraper
         if: steps.cfg.outputs.configured == 'true'
@@ -116,12 +114,21 @@ jobs:
         working-directory: site-data
         run: find stats/replays -name '*.json' -exec gzip -9nf {} +
 
+      # Init here, after compression, so the single orphan commit this creates
+      # is the only thing the push can carry — no history holding raw JSONs.
       - name: Publish data to replay-data branch
         if: steps.cfg.outputs.configured == 'true'
         working-directory: site-data
         run: |
+          git init -q -b replay-data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A
-          git diff --cached --quiet || git commit -q -m "Replay data snapshot $(date -u +'%Y-%m-%d %H:%M UTC')"
+          if git diff --cached --quiet; then
+            echo "::warning::Pipeline produced no data files — nothing to publish."
+            exit 0
+          fi
+          git commit -q -m "Replay data snapshot $(date -u +'%Y-%m-%d %H:%M UTC')"
           git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" replay-data
 
       # Save even on failure/timeout so download progress is never lost;
