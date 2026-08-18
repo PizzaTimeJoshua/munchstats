@@ -31,7 +31,7 @@ const TYPE_CHART = {
   Rock:     { Normal:1, Fire:2, Water:1, Electric:1, Grass:1, Ice:2, Fighting:0.5, Poison:1, Ground:0.5, Flying:2, Psychic:1, Bug:2, Rock:1, Ghost:1, Dragon:1, Dark:1, Steel:0.5, Fairy:1, Stellar:1 },
   Ghost:    { Normal:0, Fire:1, Water:1, Electric:1, Grass:1, Ice:1, Fighting:1, Poison:1, Ground:1, Flying:1, Psychic:2, Bug:1, Rock:1, Ghost:2, Dragon:1, Dark:0.5, Steel:1, Fairy:1, Stellar:1 },
   Dragon:   { Normal:1, Fire:1, Water:1, Electric:1, Grass:1, Ice:1, Fighting:1, Poison:1, Ground:1, Flying:1, Psychic:1, Bug:1, Rock:1, Ghost:1, Dragon:2, Dark:1, Steel:0.5, Fairy:0, Stellar:1 },
-  Dark:     { Normal:1, Fire:1, Water:1, Electric:1, Grass:1, Ice:1, Fighting:0.5, Poison:1, Ground:1, Flying:1, Psychic:2, Bug:1, Rock:1, Ghost:2, Dragon:1, Dark:0.5, Steel:0.5, Fairy:0.5, Stellar:1 },
+  Dark:     { Normal:1, Fire:1, Water:1, Electric:1, Grass:1, Ice:1, Fighting:0.5, Poison:1, Ground:1, Flying:1, Psychic:2, Bug:1, Rock:1, Ghost:2, Dragon:1, Dark:0.5, Steel:1, Fairy:0.5, Stellar:1 },
   Steel:    { Normal:1, Fire:0.5, Water:0.5, Electric:0.5, Grass:1, Ice:2, Fighting:1, Poison:1, Ground:1, Flying:1, Psychic:1, Bug:1, Rock:2, Ghost:1, Dragon:1, Dark:1, Steel:0.5, Fairy:2, Stellar:1 },
   Fairy:    { Normal:1, Fire:0.5, Water:1, Electric:1, Grass:1, Ice:1, Fighting:2, Poison:0.5, Ground:1, Flying:1, Psychic:1, Bug:1, Rock:1, Ghost:1, Dragon:2, Dark:2, Steel:0.5, Fairy:1, Stellar:1 },
   Stellar:  { Normal:1, Fire:1, Water:1, Electric:1, Grass:1, Ice:1, Fighting:1, Poison:1, Ground:1, Flying:1, Psychic:1, Bug:1, Rock:1, Ghost:1, Dragon:1, Dark:1, Steel:1, Fairy:1, Stellar:1 },
@@ -1555,16 +1555,38 @@ function populatePresetSelect(data) {
   display.dataset.value = "0";
 }
 
+// With no usage data behind it the opponent falls back to a neutral spread, so
+// the default entry has to say that rather than claim a usage-weighted average.
+function defenderAverageLabel(data) {
+  return data?.hasUsageData === false ? "Neutral spread (no usage data)" : "Usage-weighted average";
+}
+
+function defenderAverageTip(data) {
+  return data?.hasUsageData === false
+    ? "This Pokémon has no spreads on ladder at this rating, so it defaults to 0 EVs and a neutral nature. Pick Custom to set its spread yourself."
+    : "Stats are averaged across all spreads this Pokémon runs on ladder, weighted by usage. Damage is calculated against every individual spread.";
+}
+
+function setDefenderPresetDisplayCustom() {
+  const display = document.getElementById("calc-defender-preset-display");
+  if (!display) return;
+  display.innerHTML = `Custom${tipHTML("Set the opponent's nature, EVs and IVs by hand.")}`;
+  display.dataset.value = "custom";
+}
+
 function populateDefenderPresetDisplay(data) {
   const display = document.getElementById("calc-defender-preset-display");
   const dropdown = document.getElementById("calc-defender-preset-dropdown");
   if (display && dropdown) {
     let html = `<div class="calc-ac-item calc-preset-item" data-value="average">
-      <span class="calc-preset-name">Usage-weighted average</span>
+      <span class="calc-preset-name">${escapeHTML(defenderAverageLabel(data))}</span>
+    </div>
+    <div class="calc-ac-item calc-preset-item" data-value="custom">
+      <span class="calc-preset-name">Custom</span>
     </div>`;
     html += (data.spreads || []).map((s, i) => spreadItemHTML(s, i, "data-value")).join("");
     dropdown.innerHTML = html;
-    display.innerHTML = `Usage-weighted average${tipHTML("Stats are averaged across all spreads this Pokémon runs on ladder, weighted by usage. Damage is calculated against every individual spread.")}`;
+    display.innerHTML = `${escapeHTML(defenderAverageLabel(data))}${tipHTML(defenderAverageTip(data))}`;
     display.dataset.value = "average";
   }
 }
@@ -1616,6 +1638,8 @@ function initCalcAutocomplete(inputId, dropdownId, onSelect) {
   function formatUsage(usage) {
     const text = String(usage ?? "").trim();
     if (!text) return "";
+    // "—" marks a Pokémon with no usage at this rating — it isn't a percentage.
+    if (!/[0-9]/.test(text)) return text;
     return text.endsWith("%") ? text : `${text}%`;
   }
 
@@ -2557,9 +2581,21 @@ function onDefenderPresetChange(val) {
   const display = document.getElementById("calc-defender-preset-display");
 
   if (val === "average") {
-    if (display) { display.innerHTML = `Usage-weighted average${tipHTML("Stats are averaged across all spreads this Pokémon runs on ladder, weighted by usage. Damage is calculated against every individual spread.")}`; display.dataset.value = "average"; }
+    const label = defenderAverageLabel(calcState.defender);
+    if (display) { display.innerHTML = `${escapeHTML(label)}${tipHTML(defenderAverageTip(calcState.defender))}`; display.dataset.value = "average"; }
     setDefenderMode("average");
     setDefenderStatDisplay(calcState.defender.baseStats, calcState.defender.averageStats);
+    runCalc();
+    return;
+  }
+
+  if (val === "custom") {
+    // Coming from the averaged view there are no meaningful EVs in the inputs
+    // yet; coming from a usage spread, keep it as the starting point to edit.
+    if (calcState.defender.defenderMode !== "manual") fillDefenderEVTable("Hardy", [0, 0, 0, 0, 0, 0]);
+    setDefenderPresetDisplayCustom();
+    setDefenderMode("manual");
+    calcState.defender.customStats = computeDefenderStatsFromInputs();
     runCalc();
     return;
   }
@@ -2626,6 +2662,23 @@ function _onTypeChange(side, stateKey) {
 }
 function onAttackerTypeChange() { _onTypeChange("attacker", "attacker"); }
 function onDefenderTypeChange() { _onTypeChange("defender", "defender"); }
+
+// A Pokémon with no usage at the chosen rating still calcs — off pokedex base
+// stats, with empty moves/spreads. Say so, and point at a rating that has data.
+function renderCalcDataNote(side, data) {
+  const el = document.getElementById(`calc-${side}-note`);
+  if (!el) return;
+  if (!data || data.hasUsageData !== false) {
+    el.style.display = "none";
+    el.textContent = "";
+    return;
+  }
+  const rating = String(window.selectedRating ?? "0");
+  const tiers = (data.dataRatings || []).map(String).filter(r => r !== rating);
+  const fallback = tiers.length ? ` Try the ${tiers[tiers.length - 1]}+ rating.` : "";
+  el.textContent = `No usage data for ${data.name} at ${rating}+ — showing base stats only.${fallback}`;
+  el.style.display = "";
+}
 
 function populateFormSelect(side, formeOrder, currentName) {
   const wrap = document.getElementById(`calc-${side}-form-wrap`);
@@ -2714,6 +2767,7 @@ async function onAttackerChange(opts = {}) {
   populateItemSelect("calc-attacker-item", data.allItems, isFormSwap ? calcState.attacker.item : data.topItem);
   populateTypeSelects("attacker", data.types || ["Normal"]);
   populateFormSelect("attacker", data.formeOrder || [], data.name);
+  renderCalcDataNote("attacker", data);
   const attackerStatusSel = document.getElementById("calc-attacker-status");
   if (attackerStatusSel && !isFormSwap) attackerStatusSel.value = "Healthy";
   populatePresetSelect(data);
@@ -2811,6 +2865,7 @@ async function onDefenderChange(opts = {}) {
   populateItemSelect("calc-defender-item", data.allItems, isFormSwap ? calcState.defender.item : data.topItem);
   populateTypeSelects("defender", data.types || ["Normal"]);
   populateFormSelect("defender", data.formeOrder || [], data.name);
+  renderCalcDataNote("defender", data);
   const defenderStatusSel = document.getElementById("calc-defender-status");
   if (defenderStatusSel && !isFormSwap) defenderStatusSel.value = "Healthy";
   populateDefenderPresetDisplay(data);
@@ -2825,8 +2880,11 @@ async function onDefenderChange(opts = {}) {
   const prevMode = isFormSwap ? calcState.defender.defenderMode : "average";
   const prevCustomStats = isFormSwap ? calcState.defender.customStats : null;
   const prevSetMoves = isFormSwap ? (calcState.defender.setMoves || []) : [];
-  // On form swap with no new spread data, inherit spreads from previous form
-  const hasSpreads = data.spreads && data.spreads.length > 0;
+  // On form swap with no new spread data, inherit spreads from previous form.
+  // The neutral fallback spread counts: inheriting the old form's *computed*
+  // stats across a base-stat change (Lucario-Mega -> Lucario) is worse than a
+  // 0 EV spread built from the form you actually switched to.
+  const hasSpreads = (data.allSpreads?.length || data.spreads?.length || 0) > 0;
   const prevSpreads = isFormSwap && !hasSpreads ? calcState.defender.spreads : (data.spreads || []);
   const prevAllSpreads = isFormSwap && !hasSpreads ? calcState.defender.allSpreads : (data.allSpreads || data.spreads || []);
   const prevAvgStats = isFormSwap && !hasSpreads ? calcState.defender.averageStats : data.averageStats;
@@ -2846,6 +2904,7 @@ async function onDefenderChange(opts = {}) {
     topMoves: data.topMoves,
     boosts: prevBoosts, customMoves: [], setMoves: prevSetMoves,
     defenderMode: prevMode,
+    hasUsageData: data.hasUsageData !== false,
   };
   updateAbilityCheckbox(false);
   if (!isFormSwap) {
@@ -2861,6 +2920,9 @@ async function onDefenderChange(opts = {}) {
     });
   }
   setDefenderMode(prevMode);
+  // populateDefenderPresetDisplay reset the label above; a swap that stayed in
+  // manual mode is editing raw inputs now, not tracking the old usage spread.
+  if (prevMode === "manual") setDefenderPresetDisplayCustom();
   if (isFormSwap && prevMode === "manual" && prevCustomStats) {
     calcState.defender.customStats = computeDefenderStatsFromInputs() || prevCustomStats;
   }
@@ -3002,6 +3064,8 @@ function resetCalcPokemonState() {
   const defInput = document.getElementById("calc-defender-input");
   if (atkInput) atkInput.value = "";
   if (defInput) defInput.value = "";
+  renderCalcDataNote("attacker", null);
+  renderCalcDataNote("defender", null);
 
   const atkMoves = document.getElementById("calc-atk-movelist");
   const defMoves = document.getElementById("calc-def-movelist");
@@ -3066,7 +3130,7 @@ async function reloadCalcDataSource(formatCode, ratingValue) {
 
   const monthParam = window.selectedMonth ? `?month=${encodeURIComponent(window.selectedMonth)}` : "";
   try {
-    const resp = await fetch(`/api/${encodeURIComponent(formatCode)}/${encodeURIComponent(ratingValue)}/${monthParam}`);
+    const resp = await fetch(`/api/${encodeURIComponent(formatCode)}/${encodeURIComponent(ratingValue)}/${monthParam}${monthParam ? "&" : "?"}calc=1`);
     if (!resp.ok) throw new Error("No data found");
     const data = await resp.json();
     window.calcPokemonOptions = (data.pokemon_names || []).map(p => ({ name: p[0], usage: p[1] }));

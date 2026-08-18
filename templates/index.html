@@ -946,6 +946,16 @@
       .tera-toggle-btn:hover { background: var(--surface); border-color: var(--border-4); color: var(--text-hi); }
       .tera-toggle-btn.tera-on { background: var(--surface-3); border-color: var(--border-focus); color: var(--text-hi); }
       .calc-control-stack { margin: 5px 0 8px; }
+      .calc-data-note {
+        max-width: 290px;
+        margin: 0 0 6px;
+        padding: 5px 7px;
+        border-left: 2px solid var(--border-focus);
+        background: var(--surface-2);
+        color: var(--text-dim);
+        font-size: 11px;
+        line-height: 1.4;
+      }
       .calc-control-row {
         display: grid;
         grid-template-columns: 64px 1fr;
@@ -2020,6 +2030,8 @@
                 </div>
               </div>
 
+              <div class="calc-data-note" id="calc-attacker-note" style="display:none;"></div>
+
               <div id="calc-attacker-form-wrap" class="calc-control-stack" style="display:none;">
                 <div class="calc-control-row">
                   <label for="calc-attacker-form">{{ _('Form') }}</label>
@@ -2224,6 +2236,8 @@
                   <div class="calc-ac-dropdown" id="calc-defender-dropdown"></div>
                 </div>
               </div>
+
+              <div class="calc-data-note" id="calc-defender-note" style="display:none;"></div>
 
               <div id="calc-defender-form-wrap" class="calc-control-stack" style="display:none;">
                 <div class="calc-control-row">
@@ -2745,7 +2759,7 @@
     {% endif %}
     {% if calc_only %}
     <script src="{{ url_for('static', filename='vendor/smogon-calc.js') }}"></script>
-    <script src="{{ url_for('static', filename='damage_calc.js') }}?v=5"></script>
+    <script src="{{ url_for('static', filename='damage_calc.js') }}?v=6"></script>
     <script>
     (function() {
       // Custom select replacement for dark-themed scrollbars

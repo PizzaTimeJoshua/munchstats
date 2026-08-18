@@ -2204,6 +2204,10 @@ def calc_page(format_code="", rating_threshold=""):
         fmt[0]: get_valid_rating_thresholds(fmt[0], data["selected_month"])
         for fmt in calc_formats
     }
+    data["pokemon_names"] = _calc_picker_names(
+        data["selected_format"][0], data["selected_rating"],
+        data["selected_month"], data["pokemon_names"],
+    )
     return render_template(
         "index.html",
         **data,
@@ -2303,11 +2307,85 @@ def champions_page(fmt="doubles", pokemon_name=""):
     )
 
 
-def _filter_forme_order(forme_order_raw, base_stats, pokemon_index_lower, champions=False):
-    """Keep forms that have usage data OR different base stats from the base form.
+@lru_cache(maxsize=2)
+def _champions_release_pool(month):
+    """Lowercased species seen in any Champions format in a given month.
+
+    The Showdown dex still marks shipped Champions Megas as isNonstandard
+    "Future", so play anywhere in the game is the only release signal there is.
+    A few hundred names per month, so caching two of them is cheap.
+    """
+    if not is_local_month(month):
+        return frozenset()
+    root = os.path.join(DATA_DIRECTORY, month)
+    names = set()
+    for fmt in os.listdir(root):
+        if not is_champions_format(fmt) or not os.path.isdir(os.path.join(root, fmt)):
+            continue
+        index = (fetch_index_data(fmt, "0", month) or {}).get("pokemon") or {}
+        names.update(k.lower() for k in index)
+    return frozenset(names)
+
+
+def _species_pool(format_code, rating, month, current_names):
+    """Lowercased species that exist in this format, for form filtering.
+
+    Smogon cuts each rating tier independently, so a form can be listed at 1760
+    and missing from the unrestricted tier — the pool is the union of the tier
+    being viewed and the unrestricted one. Remote months would have to download
+    a whole chaos file to add the latter, so they get the viewed tier alone.
+    """
+    pool = {name.lower() for name in current_names}
+    if not is_local_month(month):
+        return pool
+    if str(rating) != "0":
+        index = (fetch_index_data(format_code, "0", month) or {}).get("pokemon") or {}
+        pool.update(k.lower() for k in index)
+    if is_champions_format(format_code):
+        pool |= _champions_release_pool(month)
+    return pool
+
+
+# Shown in the calc's Pokémon picker for entries with no usage at the chosen
+# rating. Anything non-numeric here also suppresses the "%" suffix client-side.
+CALC_NO_DATA_USAGE = "—"
+
+
+def _calc_picker_names(format_code, rating, month, pokemon_names):
+    """Fold the unrestricted tier's roster into a rating-filtered picker list.
+
+    A Pokémon that only saw play below the chosen rating is otherwise
+    unreachable in the calc; it gets listed with a dash for usage instead, and
+    compile_calc_data serves it from the pokedex.
+    """
+    if str(rating) == "0" or not is_local_month(month):
+        return pokemon_names
+    index = (fetch_index_data(format_code, "0", month) or {}).get("pokemon") or {}
+    listed = {row[0].lower() for row in pokemon_names}
+    extra = sorted((n for n in index if n.lower() not in listed), key=str.lower)
+    return pokemon_names + [
+        [name, CALC_NO_DATA_USAGE, get_pokemon_sprite(name), ""] for name in extra
+    ]
+
+
+def _ratings_with_data(format_code, pokemon_name, month):
+    """Rating tiers (ascending, as strings) whose index lists this Pokémon."""
+    if not is_local_month(month):
+        return []
+    key = pokemon_name.lower()
+    found = []
+    for tier in get_valid_rating_thresholds(format_code, month):
+        index = (fetch_index_data(format_code, tier, month) or {}).get("pokemon") or {}
+        if any(k.lower() == key for k in index):
+            found.append(tier)
+    return found
+
+
+def _filter_forme_order(forme_order_raw, base_entry, pokemon_index_lower, champions=False):
+    """Keep forms that have usage data OR differ mechanically from the base form.
     Exclude Illegal-tier forms (unreleased) unless in Champions format."""
     result = []
-    for f in forme_order_raw:
+    for position, f in enumerate(forme_order_raw):
         if f.lower() in pokemon_index_lower:
             result.append(f)
             continue
@@ -2315,12 +2393,160 @@ def _filter_forme_order(forme_order_raw, base_stats, pokemon_index_lower, champi
         entry = pokedexEntries.get(dex_key, {})
         if not entry:
             continue
+        # The base form always stays. It is what the distinctness test below
+        # compares against, so that test can never keep it, and without it
+        # there is no way back from Lucario-Mega to Lucario in a tier where
+        # only the Mega saw play.
+        if position == 0 and not entry.get("baseSpecies"):
+            result.append(f)
+            continue
         if not champions and entry.get("tier") == "Illegal":
             continue
-        form_stats = entry.get("baseStats")
-        if form_stats and form_stats != base_stats:
+        # "Future" marks a forme Showdown knows about but no game has released
+        # yet (Lucario-Mega-Z). Once it ships it picks up usage data and comes
+        # back through the pool check above.
+        if entry.get("isNonstandard") == "Future":
+            continue
+        # Ogerpon's Terastallized formes belong to the Tera toggle, not to a
+        # picker that is supposed to list what you can bring to the match.
+        if entry.get("forme", "").endswith("-Tera"):
+            continue
+        # Different stats or typing means a different damage roll, so the form
+        # is worth offering even with no usage behind it. Cosmetic forms
+        # (Vivillon patterns, Alcremie flavours) match on both and are dropped.
+        if _forme_differs(entry, base_entry):
             result.append(f)
     return result
+
+
+def _forme_differs(entry, base_entry):
+    """True if a forme differs from its base species in base stats or typing."""
+    if not base_entry:
+        return bool(entry.get("baseStats"))
+    return any(
+        entry.get(field) and entry.get(field) != base_entry.get(field)
+        for field in ("baseStats", "types")
+    )
+
+
+def _index_lookup(pokemon_index, name):
+    """The usage-index key matching a species name exactly, ignoring case."""
+    key = name.lower()
+    return next((k for k in pokemon_index if k.lower() == key), None)
+
+
+def _battle_only_origins(dex_entry):
+    """Species a forme can only ever appear as a mid-battle transformation of.
+
+    Aegislash-Blade and Aegislash are one Pokémon as far as teambuilding goes,
+    so Showdown records the pair under a single usage line — the origin's.
+    """
+    origin = dex_entry.get("battleOnly")
+    if not origin:
+        return []
+    return [origin] if isinstance(origin, str) else list(origin)
+
+
+def _neutral_spread(base_list, level, champions):
+    """A 0-EV, neutral-nature spread, shaped like the ones built from usage data.
+
+    Something has to stand in when a Pokémon has no spreads at this rating: a
+    defender with all-zero stats takes absurd damage, which reads as a calc bug.
+    """
+    evs = [0] * 6
+    if champions:
+        stats = {
+            "hp": calculate_champions_hp_value(base_list[0], 0),
+            "atk": calculate_champions_stat_value(base_list[1], 0, 1.0),
+            "def": calculate_champions_stat_value(base_list[2], 0, 1.0),
+            "spa": calculate_champions_stat_value(base_list[3], 0, 1.0),
+            "spd": calculate_champions_stat_value(base_list[4], 0, 1.0),
+            "spe": calculate_champions_stat_value(base_list[5], 0, 1.0),
+        }
+    else:
+        stats = {
+            "hp": calculate_hp_value(base_list[0], 31, 0, level),
+            "atk": calculate_stat_value(base_list[1], 31, 0, level, 1.0),
+            "def": calculate_stat_value(base_list[2], 31, 0, level, 1.0),
+            "spa": calculate_stat_value(base_list[3], 31, 0, level, 1.0),
+            "spd": calculate_stat_value(base_list[4], 31, 0, level, 1.0),
+            "spe": calculate_stat_value(base_list[5], 31, 0, level, 1.0),
+        }
+    return {
+        "spread": "Hardy:0/0/0/0/0/0",
+        "nature": "Hardy",
+        "evs": dict(zip(STAT_KEYS, evs)),
+        "ivs": {stat: 31 for stat in STAT_KEYS},
+        "weight": 1.0,
+        "stats": stats,
+    }
+
+
+def _pokedex_only_calc_data(format_code, rating, month, dex_entry, pokemon_index):
+    """Calc payload for a Pokémon with no usage line to draw on.
+
+    Base stats and typing come from the pokedex; the spread is a neutral
+    placeholder so the defender has real HP and defenses instead of zeros.
+    """
+    display_name = dex_entry.get("name", "")
+    base_stats_dict = dex_entry.get("baseStats", {})
+    pokemon_types = dex_entry.get("types", ["Normal"])
+    pokemon_weightkg = dex_entry.get("weightkg", 0)
+    dex_abilities = dex_entry.get("abilities", {})
+    all_abilities = [{"name": v, "usage": 0} for v in dex_abilities.values() if v]
+    champions = is_champions_format(format_code)
+    fmt_lower = format_code.lower()
+    level = 50 if any(k in fmt_lower for k in ("vgc", "bss", "champions", "doubl")) else 100
+    calc_generation = 0 if champions else (extract_generation_from_format(format_code) or 9)
+    # Build formeOrder from base species, filtered to mechanically distinct forms
+    base_species = dex_entry.get("baseSpecies", "")
+    base_dex_key = base_species.lower().replace(" ", "").replace("-", "") if base_species else None
+    base_dex = pokedexEntries.get(base_dex_key, {}) if base_dex_key else {}
+    forme_base_entry = base_dex or dex_entry
+    forme_order_raw = base_dex.get("formeOrder", []) or dex_entry.get("formeOrder", [])
+    pokemon_index_lower = _species_pool(format_code, rating, month, pokemon_index)
+    forme_order = _filter_forme_order(forme_order_raw, forme_base_entry, pokemon_index_lower, champions)
+    lower_tiers = [
+        t for t in _ratings_with_data(format_code, display_name, month)
+        if str(t) != str(rating)
+    ]
+    base_list = [base_stats_dict.get(k, 0) for k in STAT_KEYS]
+    neutral = _neutral_spread(base_list, level, champions)
+    return {
+        "name": display_name,
+        "calcSpecies": display_name,
+        "calcGeneration": calc_generation,
+        "types": pokemon_types,
+        "weightkg": pokemon_weightkg,
+        "baseStats": base_stats_dict,
+        "speciesOverrides": {
+            "name": display_name,
+            "types": pokemon_types,
+            "weightkg": pokemon_weightkg,
+            "baseStats": base_stats_dict,
+            "abilities": {"0": all_abilities[0]["name"] if all_abilities else ""},
+        },
+        "level": level,
+        "isChampions": champions,
+        "averageStats": neutral["stats"],
+        # No preset to offer, but the damage maths still needs a spread to run
+        # against — an all-zero defender takes absurd damage.
+        "spreads": [],
+        "allSpreads": [neutral],
+        "defGroups": [],
+        "spdGroups": [],
+        "atkGroups": [],
+        "spaGroups": [],
+        "topMoves": [],
+        "topAbility": all_abilities[0]["name"] if all_abilities else "",
+        "topItem": "",
+        "allAbilities": all_abilities,
+        "allItems": [],
+        "topTera": "",
+        "formeOrder": forme_order,
+        "hasUsageData": False,
+        "dataRatings": lower_tiers,
+    }
 
 
 def compile_calc_data(format_code, rating, pokemon_name, month=None):
@@ -2347,8 +2573,10 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
         and matched_pokemon.lower().replace(" ", "").replace("-", "") != exact_dex_key
     )
 
-    # Battle-only forms (e.g. Aegislash-Blade) may not have usage data.
-    # Fall back to pokedex data so the calc still works with correct base stats.
+    # Forms without a usage line of their own: borrow the origin species' sets
+    # where there is one (Aegislash-Blade), otherwise serve pokedex base stats
+    # so the calc still works.
+    battle_only_forme = None
     if not matched_pokemon or is_different_form:
         dex_key = exact_dex_key if exact_dex_key in pokedexEntries else None
         if not dex_key:
@@ -2358,60 +2586,30 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
         else:
             dex_entry = pokedexEntries[dex_key]
             display_name = dex_entry.get("name", pokemon_name)
-            base_stats_dict = dex_entry.get("baseStats", {})
-            pokemon_types = dex_entry.get("types", ["Normal"])
-            pokemon_weightkg = dex_entry.get("weightkg", 0)
-            dex_abilities = dex_entry.get("abilities", {})
-            all_abilities = [{"name": v, "usage": 0} for v in dex_abilities.values() if v]
-            champions = is_champions_format(format_code)
-            fmt_lower = format_code.lower()
-            level = 50 if any(k in fmt_lower for k in ("vgc", "bss", "champions", "doubl")) else 100
-            calc_generation = 0 if champions else (extract_generation_from_format(format_code) or 9)
-            # Build formeOrder from base species, filtered to mechanically distinct forms
-            base_species = dex_entry.get("baseSpecies", "")
-            base_dex_key = base_species.lower().replace(" ", "").replace("-", "") if base_species else None
-            base_dex = pokedexEntries.get(base_dex_key, {}) if base_dex_key else {}
-            base_stats = base_dex.get("baseStats") or dex_entry.get("baseStats")
-            forme_order_raw = base_dex.get("formeOrder", []) or dex_entry.get("formeOrder", [])
-            pokemon_index_lower = {k.lower() for k in pokemon_index.keys()}
-            forme_order = _filter_forme_order(forme_order_raw, base_stats, pokemon_index_lower, champions)
-            return {
-                "name": display_name,
-                "calcSpecies": display_name,
-                "calcGeneration": calc_generation,
-                "types": pokemon_types,
-                "weightkg": pokemon_weightkg,
-                "baseStats": base_stats_dict,
-                "speciesOverrides": {
-                    "name": display_name,
-                    "types": pokemon_types,
-                    "weightkg": pokemon_weightkg,
-                    "baseStats": base_stats_dict,
-                    "abilities": {"0": all_abilities[0]["name"] if all_abilities else ""},
-                },
-                "level": level,
-                "isChampions": champions,
-                "averageStats": {k: 0 for k in STAT_KEYS},
-                "spreads": [],
-                "allSpreads": [],
-                "defGroups": [],
-                "spdGroups": [],
-                "atkGroups": [],
-                "spaGroups": [],
-                "topMoves": [],
-                "topAbility": all_abilities[0]["name"] if all_abilities else "",
-                "topItem": "",
-                "allAbilities": all_abilities,
-                "allItems": [],
-                "topTera": "",
-                "formeOrder": forme_order,
-            }
+            # A battle-only forme shares its origin's usage line, so run the
+            # origin's sets through this forme's own base stats and typing
+            # rather than serving a statless pokedex entry.
+            origin_key = next(
+                (k for k in (_index_lookup(pokemon_index, o)
+                             for o in _battle_only_origins(dex_entry)) if k),
+                None,
+            )
+            if origin_key:
+                matched_pokemon = origin_key
+                battle_only_forme = display_name
+            else:
+                return _pokedex_only_calc_data(
+                    format_code, rating, month, dex_entry, pokemon_index
+                )
 
     poke_data = fetch_pokemon_data(format_code, rating, matched_pokemon, month)
     if not poke_data:
         return None
 
-    matched_dex = fuzzy_match(matched_pokemon, pokedexEntries.keys())
+    # A battle-only forme borrows matched_pokemon's usage line but keeps its own
+    # dex entry, so stats, typing and the displayed name come from the forme.
+    display_name = battle_only_forme or matched_pokemon
+    matched_dex = fuzzy_match(display_name, pokedexEntries.keys())
     dex_entry = pokedexEntries.get(matched_dex, {}) if matched_dex else {}
     base_stats_dict = dex_entry.get("baseStats", {})
     pokemon_types = dex_entry.get("types", ["Normal"])
@@ -2557,9 +2755,9 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
         if top_tera_key.lower() != "nothing":
             top_tera = top_tera_key.capitalize()
 
-    # Get form data from pokedex, filtered to forms with usage data or different stats
+    # Get form data from pokedex, filtered to forms that are playable here
     forme_order_raw = dex_entry.get("formeOrder", [])
-    forme_base_stats = base_stats_dict
+    forme_base_entry = dex_entry
     if not forme_order_raw and dex_entry.get("baseSpecies"):
         base_key = fuzzy_match(
             dex_entry["baseSpecies"].lower().replace(" ", "").replace("-", ""),
@@ -2567,12 +2765,12 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
         )
         if base_key:
             forme_order_raw = pokedexEntries[base_key].get("formeOrder", [])
-            forme_base_stats = pokedexEntries[base_key].get("baseStats", base_stats_dict)
-    pokemon_index_lower = {k.lower() for k in pokemon_index.keys()}
-    forme_order = _filter_forme_order(forme_order_raw, forme_base_stats, pokemon_index_lower, champions)
+            forme_base_entry = pokedexEntries[base_key]
+    pokemon_index_lower = _species_pool(format_code, rating, month, pokemon_index)
+    forme_order = _filter_forme_order(forme_order_raw, forme_base_entry, pokemon_index_lower, champions)
     calc_generation = 0 if champions else (extract_generation_from_format(format_code) or 9)
     species_overrides = {
-        "name": matched_pokemon,
+        "name": display_name,
         "types": pokemon_types,
         "weightkg": pokemon_weightkg,
         "baseStats": base_stats_dict,
@@ -2582,8 +2780,8 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
         species_overrides["nfe"] = dex_entry.get("nfe")
 
     return {
-        "name": matched_pokemon,
-        "calcSpecies": matched_pokemon,
+        "name": display_name,
+        "calcSpecies": display_name,
         "calcGeneration": calc_generation,
         "types": pokemon_types,
         "weightkg": pokemon_weightkg,
@@ -2605,6 +2803,8 @@ def compile_calc_data(format_code, rating, pokemon_name, month=None):
         "allItems": all_items,
         "topTera": top_tera,
         "formeOrder": forme_order,
+        "hasUsageData": True,
+        "dataRatings": [],
     }
 
 
@@ -2675,6 +2875,11 @@ def api_pokemon_data(format_code, rating_threshold="", pokemon_name=""):
     data = compile_page_data(format_code, rating_threshold, pokemon_name, month)
     if data is None:
         return jsonify({"error": "No data found"}), 404
+    if request.args.get("calc"):
+        data["pokemon_names"] = _calc_picker_names(
+            data["selected_format"][0], data["selected_rating"],
+            data["selected_month"], data["pokemon_names"],
+        )
     return jsonify(data)
 
 
