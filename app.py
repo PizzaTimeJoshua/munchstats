@@ -929,8 +929,26 @@ def is_champions_format(format_code):
 
 
 # ─── Pokémon Champions (in-game) Battle Data ─────────────────────────────
-# Live battle data is fetched from championsbattledata.com and cached on disk
-# (NOT committed) for 6 hours. Attribution is required by their API rules.
+# Usage now comes from our own capture. championsbattledata.com stopped
+# updating in August 2026 (its last daily folder is 30_07_2026), so the
+# emulator scraper in the Pokemon-Champions-Scraper repo walks the game's
+# Battle Data screens itself and publishes the result to this repo's
+# champions-data branch, in exactly the shape the old API returned. Nothing
+# downstream of get_champions_detail had to change.
+#
+# The static half of the index -- types, base stats, movepools -- is NOT
+# fetched. It is rebuilt from public Showdown data by updateChampionsIndex()
+# and bundled at stats/champions_index_static.json; see that function for how
+# each field is derived. Merging happens in get_champions_index.
+#
+# Set CHAMPIONS_DATA_URL="" to fall back to the legacy API (dead, but useful
+# for comparing against a cached copy in dev).
+CHAMPIONS_DATA_URL = os.environ.get(
+    "CHAMPIONS_DATA_URL",
+    "https://raw.githubusercontent.com/PizzaTimeJoshua/munchstats/"
+    "champions-data/champions/",
+)
+CHAMPIONS_STATIC_INDEX = "champions_index_static.json"
 CHAMPIONS_API_BASE = "https://championsbattledata.com"
 CHAMPIONS_CACHE_DIR = os.path.join("cache", "champions")
 os.makedirs(CHAMPIONS_CACHE_DIR, exist_ok=True)
@@ -1019,6 +1037,52 @@ def champions_api_get(endpoint, cache_key):
     return _champions_cache_read(cache_key, allow_stale=True)
 
 
+def champions_data_get(path, cache_key):
+    """GET a published capture file from the champions-data branch.
+
+    Same caching contract as champions_api_get: fresh copy, else fetch, else
+    whatever stale copy we still hold. A missing file is a real answer (that
+    Pokémon has no data), so a 404 is cached as such rather than retried on
+    every request.
+    """
+    cached = _champions_cache_read(cache_key)
+    if cached is not None:
+        return cached
+    data = None
+    try:
+        resp = requests.get(
+            CHAMPIONS_DATA_URL + path,
+            timeout=20,
+            headers={"User-Agent": "MunchStats (+https://munchstats.com)"},
+        )
+        if resp.status_code == 200:
+            data = resp.json()
+        elif resp.status_code == 404:
+            data = {}
+    except Exception:
+        pass
+    if data is not None:
+        _champions_cache_write(cache_key, data)
+        return data
+    return _champions_cache_read(cache_key, allow_stale=True)
+
+
+_champions_static_mem = None
+
+
+def load_champions_static():
+    """The bundled static index, as {showdownId: entry}. Empty if absent."""
+    global _champions_static_mem
+    if _champions_static_mem is None:
+        try:
+            with open(build_data_path(CHAMPIONS_STATIC_INDEX), "r",
+                      encoding="utf-8") as f:
+                _champions_static_mem = json.load(f).get("pokemon") or {}
+        except Exception:
+            _champions_static_mem = {}
+    return _champions_static_mem
+
+
 # The index is ~7MB; memoize the parsed copy in-process, keyed on cache mtime.
 _champions_index_mem = {"mtime": None, "index": None}
 
@@ -1033,7 +1097,25 @@ def get_champions_index():
         and _champions_index_mem["mtime"] == os.path.getmtime(path)
     ):
         return _champions_index_mem["index"]
-    data = champions_api_get("/api/index", "index")
+    if CHAMPIONS_DATA_URL:
+        data = champions_data_get("index.json", "index")
+        # The published index carries usage only -- ranks per format. Types,
+        # base stats and movepools come from the bundled static file, keyed on
+        # showdownId, so a Pokémon missing from one still renders from the
+        # other rather than disappearing.
+        static = load_champions_static()
+        if data and static:
+            for entry in data.get("pokemon") or []:
+                s = static.get(entry.get("showdownId") or "")
+                if not s:
+                    continue
+                entry.setdefault("learnableMoveNames", s.get("learnableMoveNames") or [])
+                summary = entry.setdefault("summary", {})
+                for field in ("types", "baseStats", "baseStatTotal"):
+                    if s.get(field) is not None:
+                        summary.setdefault(field, s[field])
+    else:
+        data = champions_api_get("/api/index", "index")
     if not data:
         return None
     mtime = os.path.getmtime(path) if os.path.exists(path) else time.time()
@@ -1095,6 +1177,10 @@ def get_champions_detail(slug, format_folder):
     raw response is ~330KB but only those two pieces are cached (~11KB).
     """
     key = f"detail_{format_folder}_{slug}"
+    if CHAMPIONS_DATA_URL:
+        # Published per Pokémon and format, already trimmed to these two
+        # pieces, so there is nothing to reshape here.
+        return champions_data_get(f"battle/{format_folder}/{slug}.json", key) or {}
     cached = _champions_cache_read(key)
     if cached is not None:
         return cached

@@ -430,6 +430,132 @@ def splitMetagameFiles():
     print("Splitting complete.")
 
 
+def updateChampionsIndex():
+    """Build the static half of the Champions in-game index from public data.
+
+    The live index used to come from championsbattledata.com, which stopped
+    updating and whose terms do not allow republishing it. Everything static in
+    it turns out to be reconstructible from sources that are already public:
+
+      types       identical to the standard dex for all 236 species
+      baseStats   the standard dex with HP +75 and every other stat +20
+      movepools   Showdown's own champions mod learnsets
+
+    The +75/+20 rule was checked against every species and holds exactly; the
+    single apparent exception is Floette, which battles with Floette-Eternal's
+    stats. Showdown's learnsets are used as published and are incomplete for
+    some species, so a move missing here means "not listed by Showdown", not
+    "illegal in game" -- treat it as a hint, never as proof.
+
+    Usage (ranks, moves, items, teammates, spreads) is NOT here. That is
+    captured separately and merged by app.py at read time.
+    """
+    learnsets_url = (
+        "https://raw.githubusercontent.com/smogon/pokemon-showdown/"
+        "refs/heads/master/data/mods/champions/learnsets.ts"
+    )
+    print("Building Champions static index.")
+    ts = requests.get(learnsets_url, timeout=60).text
+
+    # Find each species block first, then look for a learnset inside it.
+    # Requiring "learnset: {" immediately after the opening brace quietly
+    # dropped six species: floetteeternal carries "inherit: true," first, and
+    # five more are empty {} entries that inherit their base species' moves
+    # (those are picked up by FORM_MOVE_SOURCE below).
+    starts = [(m.group(1), m.start()) for m in re.finditer(r"^\t(\w+): \{", ts, re.M)]
+    move_re = re.compile(r"^\t\t\t(\w+):", re.M)
+    learnsets = {}
+    for i, (sid, pos) in enumerate(starts):
+        end = starts[i + 1][1] if i + 1 < len(starts) else len(ts)
+        body = re.search(r"learnset: \{(.*?)\n\t\t\}", ts[pos:end], re.S)
+        if body:
+            learnsets[sid] = move_re.findall(body.group(1))
+
+    with open("stats/pokedex.json", "r", encoding="utf-8") as f:
+        dex = pyjson5.loads(f.read())
+    with open("stats/moves.json", "r", encoding="utf-8") as f:
+        moves = pyjson5.loads(f.read())
+
+    # Champions battles Floette in its Eternal form; every other species maps
+    # to its own dex entry.
+    STAT_SOURCE_OVERRIDES = {"floette": "floetteeternal"}
+    # Forms Champions fields that Showdown's champions learnsets do not list
+    # separately, because they share their base species' movepool. Their base
+    # STATS still differ (the Gourgeist sizes are the whole point of telling
+    # them apart), so each takes its own dex entry and the base's moves.
+    # Listed explicitly rather than generated from every form in the dex, so
+    # this cannot invent a form the game does not have.
+    FORM_MOVE_SOURCE = {
+        "floette": "floetteeternal",
+        "gourgeistsmall": "gourgeist",
+        "gourgeistlarge": "gourgeist",
+        "gourgeistsuper": "gourgeist",
+        "mausholdfour": "maushold",
+        "vivillonfancy": "vivillon",
+    }
+    HP_BONUS, OTHER_BONUS = 75, 20
+    STAT_KEYS = [("hp", "hp"), ("attack", "atk"), ("defense", "def"),
+                 ("sp_attack", "spa"), ("sp_defense", "spd"), ("speed", "spe")]
+
+    entries = {}
+    for sid, move_ids in sorted(learnsets.items()):
+        src = dex.get(STAT_SOURCE_OVERRIDES.get(sid, sid)) or dex.get(sid)
+        if not src:
+            continue
+        base = src.get("baseStats") or {}
+        stats = {
+            ours: base.get(theirs, 0) + (HP_BONUS if ours == "hp" else OTHER_BONUS)
+            for ours, theirs in STAT_KEYS
+        }
+        entries[sid] = {
+            "showdownId": sid,
+            "showdownName": src.get("name", sid),
+            "types": src.get("types") or [],
+            "baseStats": stats,
+            "baseStatTotal": sum(stats.values()),
+            "learnableMoveNames": sorted(
+                (moves.get(m) or {}).get("name", m) for m in move_ids
+            ),
+        }
+
+    for form_id, move_src in FORM_MOVE_SOURCE.items():
+        if form_id in entries:
+            continue
+        # Honour the stat override here too: Floette's moves come from the
+        # Eternal entry and so must its stats, or it lands on the ordinary
+        # Floette line and every number is wrong.
+        src = dex.get(STAT_SOURCE_OVERRIDES.get(form_id, form_id))
+        move_ids = learnsets.get(move_src) or learnsets.get(form_id)
+        if not src or not move_ids:
+            continue
+        base = src.get("baseStats") or {}
+        stats = {
+            ours: base.get(theirs, 0) + (HP_BONUS if ours == "hp" else OTHER_BONUS)
+            for ours, theirs in STAT_KEYS
+        }
+        entries[form_id] = {
+            "showdownId": form_id,
+            "showdownName": src.get("name", form_id),
+            "types": src.get("types") or [],
+            "baseStats": stats,
+            "baseStatTotal": sum(stats.values()),
+            "learnableMoveNames": sorted(
+                (moves.get(m) or {}).get("name", m) for m in move_ids
+            ),
+            "movesFrom": move_src,
+        }
+
+    out = {
+        "generatedAt": datetime.utcnow().isoformat() + "Z",
+        "source": "Showdown champions mod learnsets + standard dex (HP+75, others+20)",
+        "count": len(entries),
+        "pokemon": entries,
+    }
+    with open("stats/champions_index_static.json", "w", encoding="utf-8") as f:
+        json.dump(out, f, separators=(",", ":"))
+    print(f"  Wrote static index for {len(entries)} Pokemon.")
+
+
 if __name__ == "__main__":
     updateData()
     updateImage()
@@ -438,4 +564,5 @@ if __name__ == "__main__":
     generate_trend_data()
     generateFormatList()
     updateChampionsMods()
+    updateChampionsIndex()
     print("Update done.")
