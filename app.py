@@ -1099,6 +1099,12 @@ def get_champions_index():
         return _champions_index_mem["index"]
     if CHAMPIONS_DATA_URL:
         data = champions_data_get("index.json", "index")
+        # Deploy order must not matter. If the branch is not there yet, or a
+        # push has not landed, an empty answer would blank the Champions pages
+        # -- strictly worse than the stale data they show today. Fall back to
+        # whatever the legacy path can still produce and carry on.
+        if not (data or {}).get("pokemon"):
+            data = champions_api_get("/api/index", "index_legacy") or data
         # The published index carries usage only -- ranks per format. Types,
         # base stats and movepools come from the bundled static file, keyed on
         # showdownId, so a Pokémon missing from one still renders from the
