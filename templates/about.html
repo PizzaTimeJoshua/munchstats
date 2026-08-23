@@ -158,19 +158,23 @@
         <h2>{{ _('Pokémon Champions FAQ') }}</h2>
         <div class="faq-item">
           <h3>{{ _('Where does the Pokémon Champions in-game data come from?') }}</h3>
-          <p>{{ _('The in-game usage data (the "[Champions] In-Game" formats) is not from Pokemon Showdown. It comes from the') }} <a href="https://championsbattledata.com/" target="_blank" rel="noopener" style="color: var(--text-soft);">Pokémon Champions Battle Data</a> {{ _('API (championsbattledata.com), the only reliable source for real in-game battle data. The data is not stored on our end — it is cached directly from their API.') }}</p>
+          <p>{{ _('The in-game usage data (the "[Champions] In-Game" formats) is not from Pokémon Showdown, and it is not from a third-party API. We capture it ourselves: an automated system runs the game and reads the in-game Battle Data screens directly, one Pokémon at a time, for both Singles and Doubles.') }}</p>
         </div>
         <div class="faq-item">
           <h3>{{ _('How often does the Pokémon Champions data get updated?') }}</h3>
-          <p>{{ _('It is cached from their API and refreshed every 6 hours. Each Champions page also shows when the source last scraped the data, so you always know how current it is.') }}</p>
+          <p>{{ _('Every night. A full sweep covers all 235 ranked Pokémon in both formats and takes about two and a half hours, after which the site picks up the new numbers. Each Champions page shows when the data was captured, so you always know how current it is.') }}</p>
         </div>
         <div class="faq-item">
           <h3>{{ _('What is the usage rank trend on the Champions pages?') }}</h3>
-          <p>{{ _('Each Champions Pokémon shows a graph of its daily in-game usage rank over the past week. Because the source publishes usage as a rank (not a percentage), the graph tracks rank over time — the higher on the chart, the more popular that day. The window automatically grows toward 30 days as more daily history becomes available.') }}</p>
+          <p>{{ _('The game publishes usage as a rank rather than a percentage, so the graph tracks that rank over time — higher on the chart means more popular that day. It shows one point per nightly capture, so it is short for now and grows by a day each night.') }}</p>
+        </div>
+        <div class="faq-item">
+          <h3>{{ _('How accurate is it?') }}</h3>
+          <p>{{ _('Every value is read off the screen, so it is checked rather than trusted. Move, item, ability and nature names are matched against the list of what is actually legal, and stat spreads are verified against the game\'s 66-point budget. Pokémon the game lists under one shared name — the four Gourgeist sizes, the two Meowstic, the Paldean Tauros breeds — are told apart from their sprites and movepools rather than guessed.') }}</p>
         </div>
         <div class="faq-item">
           <h3>{{ _('Attribution') }}</h3>
-          <p>{{ _('Battle data provided by') }} <a href="https://championsbattledata.com/" target="_blank" rel="noopener" style="color: var(--text-soft);">Pokémon Champions Battle Data</a>. {{ _('MunchStats is not affiliated with Pokémon, Nintendo, GAME FREAK, Creatures Inc., or The Pokémon Company.') }}</p>
+          <p>{{ _('MunchStats is not affiliated with Pokémon, Nintendo, GAME FREAK, Creatures Inc., or The Pokémon Company.') }}</p>
         </div>
       </div>
 
@@ -205,8 +209,8 @@
           <p>{{ _('Official tournament data (Regionals, Internationals, Worlds) is collected from public pairings and roster pages on') }} <a href="https://rk9.gg" target="_blank" rel="noopener" style="color: var(--text-soft);">RK9.gg</a>, {{ _("the official events' tournament software.") }}</p>
         </div>
         <div class="faq-item">
-          <h3>{{ _('Pokémon Champions Battle Data') }}</h3>
-          <p>{{ _('Champions in-game usage data is cached from the') }} <a href="https://championsbattledata.com/" target="_blank" rel="noopener" style="color: var(--text-soft);">Pokémon Champions Battle Data</a> {{ _('API — see the Champions FAQ above.') }}</p>
+          <h3>{{ _('Pokémon Champions (in-game)') }}</h3>
+          <p>{{ _('Champions in-game usage data is captured from the game itself by MunchStats — see the Champions FAQ above.') }}</p>
         </div>
       </div>
 

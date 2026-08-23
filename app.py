@@ -13,7 +13,6 @@ from email.message import EmailMessage
 from collections import OrderedDict
 from datetime import datetime
 from functools import lru_cache
-from urllib.parse import quote
 
 import ijson
 import requests
@@ -929,44 +928,36 @@ def is_champions_format(format_code):
 
 
 # ─── Pokémon Champions (in-game) Battle Data ─────────────────────────────
-# Usage now comes from our own capture. championsbattledata.com stopped
-# updating in August 2026 (its last daily folder is 30_07_2026), so the
-# emulator scraper in the Pokemon-Champions-Scraper repo walks the game's
-# Battle Data screens itself and publishes the result to this repo's
-# champions-data branch, in exactly the shape the old API returned. Nothing
-# downstream of get_champions_detail had to change.
+# Usage comes from our own capture. The emulator scraper in the
+# Pokemon-Champions-Scraper repo walks the game's Battle Data screens and
+# publishes to this repo's champions-data branch, in the shape the third-party
+# API used to return -- so nothing downstream of get_champions_detail changed
+# when the source was swapped.
 #
-# The static half of the index -- types, base stats, movepools -- is NOT
-# fetched. It is rebuilt from public Showdown data by updateChampionsIndex()
-# and bundled at stats/champions_index_static.json; see that function for how
-# each field is derived. Merging happens in get_champions_index.
+# That API is no longer consulted at all. It is still up, but we no longer
+# depend on it: our capture carries all ~30 stat spreads where it published 8,
+# tells apart the forms the game shows under one bare name, and does not rely
+# on anyone else staying online. When the branch is briefly unreachable the
+# app serves its own stale cache rather than falling back elsewhere.
 #
-# Set CHAMPIONS_DATA_URL="" to fall back to the legacy API (dead, but useful
-# for comparing against a cached copy in dev).
+# The static half of the index -- types, base stats, movepools -- is not
+# fetched either. It is rebuilt from public Showdown data by
+# updateChampionsIndex() and bundled at stats/champions_index_static.json;
+# get_champions_index merges the two.
+#
+# CHAMPIONS_DATA_URL can point at a local directory server for development.
 CHAMPIONS_DATA_URL = os.environ.get(
     "CHAMPIONS_DATA_URL",
     "https://raw.githubusercontent.com/PizzaTimeJoshua/munchstats/"
     "champions-data/champions/",
 )
 CHAMPIONS_STATIC_INDEX = "champions_index_static.json"
-CHAMPIONS_API_BASE = "https://championsbattledata.com"
 CHAMPIONS_CACHE_DIR = os.path.join("cache", "champions")
 os.makedirs(CHAMPIONS_CACHE_DIR, exist_ok=True)
 CHAMPIONS_CACHE_TTL = 6 * 3600  # 6 hours
 CHAMPIONS_SEASON = "Current"
-# Daily rank snapshots to request for the usage-rank trend. The API accepts
-# 1-31 and returns however many dated folders exist, so this grows on its own
-# as the source accumulates history (8 days as of July 2026).
-CHAMPIONS_TREND_DAYS = 30
-CHAMPIONS_ATTRIBUTION = "Battle data provided by Pokémon Champions Battle Data"
-CHAMPIONS_ATTRIBUTION_URL = "https://championsbattledata.com/"
-# What to say when the rows on the page are our own capture rather than
-# theirs. Getting this wrong is a problem in both directions: crediting them
-# for data they did not provide, or quietly dropping the credit on a page
-# still served from their API when it falls back.
-CHAMPIONS_OWN_ATTRIBUTION = "Battle data captured in-game by MunchStats"
-CHAMPIONS_OWN_ATTRIBUTION_URL = ""
-CHAMPIONS_OWN_SOURCE_PREFIX = "MunchStats own capture"
+CHAMPIONS_ATTRIBUTION = "Battle data captured in-game by MunchStats"
+CHAMPIONS_ATTRIBUTION_URL = ""
 
 # App format code -> API battle-data folder name
 CHAMPIONS_GAME_FORMATS = {
@@ -1016,39 +1007,12 @@ def _champions_cache_write(key, data):
         pass
 
 
-def champions_api_fetch(endpoint):
-    """GET JSON from the Champions API. Returns None on any failure."""
-    try:
-        resp = requests.get(
-            CHAMPIONS_API_BASE + endpoint,
-            timeout=20,
-            headers={"User-Agent": "MunchStats (+https://munchstats.com)"},
-        )
-        if resp.status_code == 200:
-            return resp.json()
-    except Exception:
-        pass
-    return None
-
-
-def champions_api_get(endpoint, cache_key):
-    """GET JSON from the Champions API with on-disk caching and stale fallback."""
-    cached = _champions_cache_read(cache_key)
-    if cached is not None:
-        return cached
-    data = champions_api_fetch(endpoint)
-    if data is not None:
-        _champions_cache_write(cache_key, data)
-        return data
-    # On failure, fall back to a stale cached copy if we have one.
-    return _champions_cache_read(cache_key, allow_stale=True)
-
-
 def champions_data_get(path, cache_key, cache_missing=True):
     """GET a published capture file from the champions-data branch.
 
-    Same caching contract as champions_api_get: fresh copy, else fetch, else
-    whatever stale copy we still hold.
+    Fresh copy if one is cached, else fetch, else whatever stale copy we still
+    hold -- so a branch that is briefly unreachable serves yesterday's data
+    rather than nothing.
 
     For a per-Pokémon file a 404 is a real answer -- that Pokémon has no
     published data -- so it is cached rather than re-asked on every request.
@@ -1110,31 +1074,22 @@ def get_champions_index():
         and _champions_index_mem["mtime"] == os.path.getmtime(path)
     ):
         return _champions_index_mem["index"]
-    if CHAMPIONS_DATA_URL:
-        data = champions_data_get("index.json", "index", cache_missing=False)
-        # Deploy order must not matter. If the branch is not there yet, or a
-        # push has not landed, an empty answer would blank the Champions pages
-        # -- strictly worse than the stale data they show today. Fall back to
-        # whatever the legacy path can still produce and carry on.
-        if not (data or {}).get("pokemon"):
-            data = champions_api_get("/api/index", "index_legacy") or data
-        # The published index carries usage only -- ranks per format. Types,
-        # base stats and movepools come from the bundled static file, keyed on
-        # showdownId, so a Pokémon missing from one still renders from the
-        # other rather than disappearing.
-        static = load_champions_static()
-        if data and static:
-            for entry in data.get("pokemon") or []:
-                s = static.get(entry.get("showdownId") or "")
-                if not s:
-                    continue
-                entry.setdefault("learnableMoveNames", s.get("learnableMoveNames") or [])
-                summary = entry.setdefault("summary", {})
-                for field in ("types", "baseStats", "baseStatTotal"):
-                    if s.get(field) is not None:
-                        summary.setdefault(field, s[field])
-    else:
-        data = champions_api_get("/api/index", "index")
+    data = champions_data_get("index.json", "index", cache_missing=False)
+    # The published index carries usage only -- ranks per format. Types, base
+    # stats and movepools come from the bundled static file, keyed on
+    # showdownId, so a Pokémon missing from one still renders from the other
+    # rather than disappearing.
+    static = load_champions_static()
+    if data and static:
+        for entry in data.get("pokemon") or []:
+            s = static.get(entry.get("showdownId") or "")
+            if not s:
+                continue
+            entry.setdefault("learnableMoveNames", s.get("learnableMoveNames") or [])
+            summary = entry.setdefault("summary", {})
+            for field in ("types", "baseStats", "baseStatTotal"):
+                if s.get(field) is not None:
+                    summary.setdefault(field, s[field])
     if not data:
         return None
     mtime = os.path.getmtime(path) if os.path.exists(path) else time.time()
@@ -1150,75 +1105,15 @@ def get_champions_pokemon_by_name():
     return {p["name"]: p for p in idx.get("pokemon", [])}
 
 
-def get_champions_battle(format_folder, battle_name):
-    """Return parsed battle-data rows for one Pokémon/format, cached."""
-    key = f"battle_{format_folder}_{battle_name}"
-    endpoint = (
-        f"/api/battle/{quote(format_folder)}/{quote(battle_name)}"
-        f"?season={quote(CHAMPIONS_SEASON)}"
-    )
-    return champions_api_get(endpoint, key)
-
-
-def _champions_iso_date(ddmmyyyy):
-    """Convert the API's DD_MM_YYYY folder date to YYYY-MM-DD, or '' if unparseable."""
-    parts = str(ddmmyyyy or "").split("_")
-    if len(parts) != 3:
-        return ""
-    day, month, year = parts
-    return f"{year}-{month}-{day}" if len(year) == 4 else ""
-
-
-def _champions_rank_trend(daily_summaries, format_folder):
-    """Extract [[YYYY-MM-DD, rank], ...] (oldest first) from daily snapshots.
-
-    Each snapshot's rows all carry the same `position` — the Pokémon's dense
-    usage rank for that format on that date — so row 0 is enough.
-    """
-    points = []
-    for day in daily_summaries or []:
-        if day.get("format") != format_folder:
-            continue
-        rows = (day.get("summary") or {}).get("rows") or []
-        rank = rows[0].get("position") if rows else None
-        iso = _champions_iso_date(day.get("date"))
-        if rank and iso:
-            points.append([iso, rank])
-    points.sort()
-    return points
-
-
 def get_champions_detail(slug, format_folder):
     """Return {"rows": [...], "trend": [[date, rank], ...]} for one Pokémon/format.
 
-    A single /api/pokemon request carries both the current battle rows and the
-    daily rank snapshots, so the usage-rank trend costs no extra API calls. The
-    raw response is ~330KB but only those two pieces are cached (~11KB).
+    Published per Pokémon and format, already trimmed to these two pieces, so
+    there is nothing to reshape here. The trend is one point per capture date,
+    accumulated by the scraper across sweeps.
     """
     key = f"detail_{format_folder}_{slug}"
-    if CHAMPIONS_DATA_URL:
-        # Published per Pokémon and format, already trimmed to these two
-        # pieces, so there is nothing to reshape here.
-        return champions_data_get(f"battle/{format_folder}/{slug}.json", key) or {}
-    cached = _champions_cache_read(key)
-    if cached is not None:
-        return cached
-    # Deliberately omit &season: the current battle rows default to "Current"
-    # (what we want), while the daily rank snapshots live under the dated season
-    # folder (e.g. "M4"). Passing season=Current returns an empty daily list.
-    endpoint = (
-        f"/api/pokemon/{quote(slug)}?format={quote(format_folder)}"
-        f"&days={CHAMPIONS_TREND_DAYS}"
-    )
-    data = champions_api_fetch(endpoint)
-    if data is None:
-        return _champions_cache_read(key, allow_stale=True) or {}
-    trimmed = {
-        "rows": (data.get("battleSummary") or {}).get("rows") or [],
-        "trend": _champions_rank_trend(data.get("dailyBattleSummary"), format_folder),
-    }
-    _champions_cache_write(key, trimmed)
-    return trimmed
+    return champions_data_get(f"battle/{format_folder}/{slug}.json", key) or {}
 
 
 # Champions uses long in-game form names ("Aegislash Shield Forme",
@@ -1470,9 +1365,6 @@ def compile_champions_page_data(format_code, pokemon_name=""):
         detail = get_champions_detail(entry.get("slug", ""), folder)
         rows = detail.get("rows") or []
         rank_trend = detail.get("trend") or []
-    if not rows:
-        battle_name = entry.get("battleName", default_pokemon)
-        rows = (get_champions_battle(folder, battle_name) or {}).get("rows", [])
 
     rows_by_cat = {}
     for row in rows:
@@ -1574,16 +1466,7 @@ def compile_champions_page_data(format_code, pokemon_name=""):
     trend_dates = [p[0] for p in rank_trend]
     trend_ranks = [p[1] for p in rank_trend]
 
-    # Credit whoever actually produced the rows on this page. The app may be
-    # serving our own capture or, when the data branch is unreachable, falling
-    # back to their API -- so attribution has to follow the data rather than
-    # be a constant. Wrong in either direction is a problem: claiming their
-    # work, or dropping their credit from a page still served by them.
     index_meta = get_champions_index() or {}
-    own = str(index_meta.get("source", "")).startswith(CHAMPIONS_OWN_SOURCE_PREFIX)
-    attribution = CHAMPIONS_OWN_ATTRIBUTION if own else CHAMPIONS_ATTRIBUTION
-    attribution_url = (CHAMPIONS_OWN_ATTRIBUTION_URL if own
-                       else CHAMPIONS_ATTRIBUTION_URL)
 
     return {
         "pokemon_names": [
@@ -1624,8 +1507,8 @@ def compile_champions_page_data(format_code, pokemon_name=""):
         "has_tournament_data": has_top_teams_data(format_code),
         "has_replay_data": False,
         "is_transformed": False,
-        "champions_attribution": attribution,
-        "champions_attribution_url": attribution_url,
+        "champions_attribution": CHAMPIONS_ATTRIBUTION,
+        "champions_attribution_url": CHAMPIONS_ATTRIBUTION_URL,
     }
 
 

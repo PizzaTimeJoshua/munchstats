@@ -2708,7 +2708,7 @@
     <footer style="text-align: center; padding: 6px 20px 20px; color: var(--text-disabled); font-size: 12px;">
       <p><a href="/about" style="color: var(--accent); text-decoration: none;">{{ _('About') }}</a> &middot; <a href="{{ url_for('contact_page') }}" style="color: var(--accent); text-decoration: none;">{{ _('Contact') }}</a></p>
       <p id="champions-updated" style="display: {% if is_champions_game | default(false) %}block{% else %}none{% endif %}; color: var(--text-dim);">{{ _('Game data last scraped:') }} <span id="champions-updated-value">{{ champions_updated | default('') }}</span></p>
-      <p id="champions-attribution" style="display: {% if is_champions_game | default(false) %}block{% else %}none{% endif %};">{{ champions_attribution | default('Battle data provided by Pokémon Champions Battle Data') }} &mdash; <a href="{{ champions_attribution_url | default('https://championsbattledata.com/') }}" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: none;">championsbattledata.com</a></p>
+      <p id="champions-attribution" style="display: {% if is_champions_game | default(false) %}block{% else %}none{% endif %};">{{ champions_attribution | default('Battle data captured in-game by MunchStats') }}{% if champions_attribution_url %} &mdash; <a href="{{ champions_attribution_url }}" target="_blank" rel="noopener" style="color: var(--accent); text-decoration: none;">{{ champions_attribution_url | replace('https://', '') | replace('http://', '') | trim('/') }}</a>{% endif %}</p>
       <p>{{ _('Pokémon and All Respective Names are Trademark & © of Nintendo 1996-2026') }}</p>
     </footer>
     <div class="tooltip" id="tooltip"></div>
