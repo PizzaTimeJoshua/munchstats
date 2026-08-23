@@ -960,6 +960,13 @@ CHAMPIONS_SEASON = "Current"
 CHAMPIONS_TREND_DAYS = 30
 CHAMPIONS_ATTRIBUTION = "Battle data provided by Pokémon Champions Battle Data"
 CHAMPIONS_ATTRIBUTION_URL = "https://championsbattledata.com/"
+# What to say when the rows on the page are our own capture rather than
+# theirs. Getting this wrong is a problem in both directions: crediting them
+# for data they did not provide, or quietly dropping the credit on a page
+# still served from their API when it falls back.
+CHAMPIONS_OWN_ATTRIBUTION = "Battle data captured in-game by MunchStats"
+CHAMPIONS_OWN_ATTRIBUTION_URL = ""
+CHAMPIONS_OWN_SOURCE_PREFIX = "MunchStats own capture"
 
 # App format code -> API battle-data folder name
 CHAMPIONS_GAME_FORMATS = {
@@ -1037,13 +1044,19 @@ def champions_api_get(endpoint, cache_key):
     return _champions_cache_read(cache_key, allow_stale=True)
 
 
-def champions_data_get(path, cache_key):
+def champions_data_get(path, cache_key, cache_missing=True):
     """GET a published capture file from the champions-data branch.
 
     Same caching contract as champions_api_get: fresh copy, else fetch, else
-    whatever stale copy we still hold. A missing file is a real answer (that
-    Pokémon has no data), so a 404 is cached as such rather than retried on
-    every request.
+    whatever stale copy we still hold.
+
+    For a per-Pokémon file a 404 is a real answer -- that Pokémon has no
+    published data -- so it is cached rather than re-asked on every request.
+    For the index it is not: a missing index means the branch has not been
+    pushed yet, or a push is mid-flight, and caching that would pin the app to
+    the fallback for the whole six-hour TTL even after the data arrived. Pass
+    cache_missing=False for anything where absence means "not yet" rather
+    than "none".
     """
     cached = _champions_cache_read(cache_key)
     if cached is not None:
@@ -1057,7 +1070,7 @@ def champions_data_get(path, cache_key):
         )
         if resp.status_code == 200:
             data = resp.json()
-        elif resp.status_code == 404:
+        elif resp.status_code == 404 and cache_missing:
             data = {}
     except Exception:
         pass
@@ -1098,7 +1111,7 @@ def get_champions_index():
     ):
         return _champions_index_mem["index"]
     if CHAMPIONS_DATA_URL:
-        data = champions_data_get("index.json", "index")
+        data = champions_data_get("index.json", "index", cache_missing=False)
         # Deploy order must not matter. If the branch is not there yet, or a
         # push has not landed, an empty answer would blank the Champions pages
         # -- strictly worse than the stale data they show today. Fall back to
@@ -1561,6 +1574,17 @@ def compile_champions_page_data(format_code, pokemon_name=""):
     trend_dates = [p[0] for p in rank_trend]
     trend_ranks = [p[1] for p in rank_trend]
 
+    # Credit whoever actually produced the rows on this page. The app may be
+    # serving our own capture or, when the data branch is unreachable, falling
+    # back to their API -- so attribution has to follow the data rather than
+    # be a constant. Wrong in either direction is a problem: claiming their
+    # work, or dropping their credit from a page still served by them.
+    index_meta = get_champions_index() or {}
+    own = str(index_meta.get("source", "")).startswith(CHAMPIONS_OWN_SOURCE_PREFIX)
+    attribution = CHAMPIONS_OWN_ATTRIBUTION if own else CHAMPIONS_ATTRIBUTION
+    attribution_url = (CHAMPIONS_OWN_ATTRIBUTION_URL if own
+                       else CHAMPIONS_ATTRIBUTION_URL)
+
     return {
         "pokemon_names": [
             [disp, display_ranks.get(disp, ""), get_pokemon_sprite(disp), ""]
@@ -1591,7 +1615,7 @@ def compile_champions_page_data(format_code, pokemon_name=""):
         "is_champions": True,
         "is_champions_game": True,
         "champions_slug": folder.lower(),
-        "champions_updated": format_champions_updated((get_champions_index() or {}).get("generatedAt")),
+        "champions_updated": format_champions_updated(index_meta.get("generatedAt")),
         "month_formats": get_formats_for_month(selected_month),
         "trend_months": trend_dates,
         "trend_usage": trend_ranks,
@@ -1600,8 +1624,8 @@ def compile_champions_page_data(format_code, pokemon_name=""):
         "has_tournament_data": has_top_teams_data(format_code),
         "has_replay_data": False,
         "is_transformed": False,
-        "champions_attribution": CHAMPIONS_ATTRIBUTION,
-        "champions_attribution_url": CHAMPIONS_ATTRIBUTION_URL,
+        "champions_attribution": attribution,
+        "champions_attribution_url": attribution_url,
     }
 
 
