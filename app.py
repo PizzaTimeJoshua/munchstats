@@ -954,7 +954,12 @@ CHAMPIONS_DATA_URL = os.environ.get(
 CHAMPIONS_STATIC_INDEX = "champions_index_static.json"
 CHAMPIONS_CACHE_DIR = os.path.join("cache", "champions")
 os.makedirs(CHAMPIONS_CACHE_DIR, exist_ok=True)
-CHAMPIONS_CACHE_TTL = 6 * 3600  # 6 hours
+# How long before re-asking the branch. Kept short because the check is
+# conditional: a stored ETag turns an unchanged re-check into a 304 carrying
+# no body. A 6-hour TTL meant a nightly publish could take six hours to reach
+# the site, which is a long time to show yesterday's numbers when the new
+# ones are already sitting on the branch.
+CHAMPIONS_CACHE_TTL = 30 * 60
 CHAMPIONS_SEASON = "Current"
 CHAMPIONS_ATTRIBUTION = "Battle data captured in-game by MunchStats"
 CHAMPIONS_ATTRIBUTION_URL = ""
@@ -1025,15 +1030,43 @@ def champions_data_get(path, cache_key, cache_missing=True):
     cached = _champions_cache_read(cache_key)
     if cached is not None:
         return cached
+
+    # Sidecar: its contents are the last ETag, its mtime the last check.
+    marker = _champions_cache_path(cache_key) + ".etag"
+    etag = ""
+    if os.path.exists(marker):
+        try:
+            with open(marker, "r", encoding="utf-8") as f:
+                etag = f.read().strip()
+        except Exception:
+            etag = ""
+
     data = None
     try:
         resp = requests.get(
             CHAMPIONS_DATA_URL + path,
             timeout=20,
-            headers={"User-Agent": "MunchStats (+https://munchstats.com)"},
+            headers={
+                "User-Agent": "MunchStats (+https://munchstats.com)",
+                **({"If-None-Match": etag} if etag else {}),
+            },
         )
-        if resp.status_code == 200:
+        if resp.status_code == 304:
+            # Unchanged. Refresh the cached copy's mtime so it counts as fresh
+            # again, and serve it without having downloaded a byte of body.
+            stale = _champions_cache_read(cache_key, allow_stale=True)
+            if stale is not None:
+                _champions_cache_write(cache_key, stale)
+                return stale
+        elif resp.status_code == 200:
             data = resp.json()
+            new_etag = resp.headers.get("ETag", "")
+            if new_etag:
+                try:
+                    with open(marker, "w", encoding="utf-8") as f:
+                        f.write(new_etag)
+                except Exception:
+                    pass
         elif resp.status_code == 404 and cache_missing:
             data = {}
     except Exception:
