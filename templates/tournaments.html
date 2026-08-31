@@ -889,7 +889,11 @@
               {% endif %}
             {% endfor %}
             {% if group_tournaments|length > 0 %}
-            <li class="tournament-group-header">{{ type_group }}s</li>
+              {% if type_group == "Worlds" %}
+              <li class="tournament-group-header">{{ type_group }}</li>
+              {% else %}
+              <li class="tournament-group-header">{{ type_group }}s</li>
+              {% endif %}
             {% for t in group_tournaments %}
             <li>
               <button type="button" onclick='selectTournament("{{ t.id }}")' data-source="official" data-id="{{ t.id }}" class="meta-button{% if source == "official" and t.id == selected_tournament.id %} active{% endif %}">
