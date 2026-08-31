@@ -1,0 +1,13 @@
+{
+  "id": "WCS02wAQpCIaqFmXxER4",
+  "name": "2026 Pokémon VGC World Championship",
+  "date": "2026-08-28",
+  "location": "",
+  "type": "Worlds",
+  "total_players": 395,
+  "day2_count": 56,
+  "day2_source": "pairings",
+  "teams_scraped": 395,
+  "scraped_at": "2026-08-31T05:47:54.026858Z",
+  "format": "gen9championsvgc2026regmb"
+}
