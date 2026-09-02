@@ -9,6 +9,7 @@ import smtplib
 import threading
 import time
 import zlib
+from concurrent.futures import ThreadPoolExecutor
 from email.message import EmailMessage
 from collections import OrderedDict
 from datetime import datetime
@@ -3173,13 +3174,58 @@ def get_default_replays():
 threading.Thread(target=get_default_replays, daemon=True).start()
 
 
+def _tools_chrome():
+    """Shared tab-bar context every /tools/ sub-page needs."""
+    return {
+        "selected_format": [
+            DEFAULT_META, formatDisplayNames.get(DEFAULT_META, DEFAULT_META)
+        ],
+        "selected_rating": "0",
+        "selected_pokemon": "",
+    }
+
+
 @app.route("/tools/")
 def tools_page():
+    return render_template("tools.html", tools_tab="extensions", **_tools_chrome())
+
+
+@app.route("/tools/spread-solver/")
+@app.route("/tools/spread-solver/<format_code>/")
+def tools_solver_page(format_code=""):
+    """Spread Solver: reverse-engineer EV spreads from battle observations.
+
+    The page ships the format/rating pickers and the priors it can resolve up
+    front; every damage roll is calculated in the browser against the bundled
+    @smogon/calc, so a solve run never round-trips.
+    """
+    month = get_latest_month()
+    # In-game Champions publishes stats and natures separately, so it can't
+    # pair them into a spread -- the same reason /calc/ hides those formats.
+    solver_formats = [
+        fmt for fmt in get_formats_for_month(month)
+        if not is_champions_game_format(fmt[0])
+    ]
+    codes = {fmt[0] for fmt in solver_formats}
+    chosen = format_code if format_code in codes else DEFAULT_META
+    if chosen not in codes:
+        chosen = solver_formats[0][0] if solver_formats else DEFAULT_META
+    format_ratings = {
+        fmt[0]: get_valid_rating_thresholds(fmt[0], month) for fmt in solver_formats
+    }
+    ratings = format_ratings.get(chosen) or ["0"]
     return render_template(
-        "tools.html",
-        selected_format=[DEFAULT_META, formatDisplayNames.get(DEFAULT_META, DEFAULT_META)],
-        selected_rating="0",
-        selected_pokemon="",
+        "tools_solver.html",
+        tools_tab="solver",
+        solver_formats=solver_formats,
+        solver_format=chosen,
+        solver_format_name=formatDisplayNames.get(chosen, chosen),
+        solver_format_ratings=format_ratings,
+        solver_rating=ratings[0],
+        solver_month=month,
+        vgcpastes_attribution=vgcpastes.ATTRIBUTION_TEXT,
+        vgcpastes_attribution_url=vgcpastes.ATTRIBUTION_URL,
+        **_tools_chrome(),
     )
 
 
@@ -3516,6 +3562,220 @@ def api_vgcpastes_paste(repo_id, team_id):
     if text is None:
         return jsonify({"error": "Paste unavailable"}), 502
     return jsonify({"url": team["pokepaste"], "text": text})
+
+
+# ─── Spread Solver (Tools) ───────────────────────────────────────────────
+# Reverse-engineers a Pokémon's EVs from what its battles showed: damage dealt,
+# damage taken, and who moved first. The solving runs entirely in the browser
+# against the bundled @smogon/calc; the server's job is to hand the page the
+# priors it reasons over -- base stats and ladder spread usage (compile_calc_data)
+# plus the real EV spreads players published, scraped out of VGCPastes.
+
+EV_CORPUS_CACHE_DIR = os.path.join("cache", "ev_corpus")
+os.makedirs(EV_CORPUS_CACHE_DIR, exist_ok=True)
+EV_CORPUS_TTL = 12 * 3600
+# A miss costs one Pokepaste fetch per team, so cap how many teams a species
+# consults and give the whole batch a deadline. Pastes are immutable and cached
+# on disk forever, so the corpus fills in across visits rather than in one hit.
+EV_CORPUS_MAX_TEAMS = 30
+EV_CORPUS_WORKERS = 6
+EV_CORPUS_DEADLINE = 9.0
+EV_CORPUS_PARTIAL_TTL = 10 * 60
+
+
+def _vgcpastes_repo_for_format(format_code):
+    """VGCPastes repository whose regulation matches a usage format, or None.
+
+    Matches the format's reg suffix (gen9championsvgc2026regmb -> "mb")
+    against each repository's regulation token, the same way
+    limitless_format_for() pairs a format with its Limitless counterpart.
+    """
+    match = re.search(r"reg([a-z0-9]+)$", normalize_format(format_code or ""))
+    if not match:
+        return None
+    for repo_id, repo in vgcpastes.REPOSITORIES.items():
+        if repo.get("limitless_reg") == match.group(1):
+            return repo_id
+    return None
+
+
+def _ev_corpus_cache_path(repo_id, pokemon_name):
+    safe = re.sub(r"[^A-Za-z0-9_.-]", "_", f"{repo_id}__{pokemon_name}")
+    return os.path.join(EV_CORPUS_CACHE_DIR, safe + ".json")
+
+
+def _ev_corpus_cache_read(path):
+    """Return the cached corpus if it is still fresh, else None. Partial
+    results (a fetch deadline was hit) expire much sooner so the missing
+    pastes get another chance."""
+    try:
+        payload = load_data_file(path)
+        if not isinstance(payload, dict):
+            return None
+        ttl = EV_CORPUS_PARTIAL_TTL if payload.get("partial") else EV_CORPUS_TTL
+        if time.time() - os.path.getmtime(path) > ttl:
+            return None
+        return payload
+    except Exception:
+        return None
+
+
+def _ev_corpus_cache_write(path, payload):
+    tmp = path + ".tmp"
+    try:
+        with open(tmp, "w", encoding="utf-8") as f:
+            json.dump(payload, f)
+        os.replace(tmp, path)
+    except Exception:
+        pass
+
+
+def _ev_corpus_candidate_teams(repo_id, pokemon_name):
+    """VGCPastes teams that published EVs and ran this Pokémon, newest first."""
+    base_name = get_base_pokemon_name(pokemon_name).lower()
+    required_item = _mega_required_items.get(pokemon_name.lower(), "").lower()
+    matches = []
+    for team in vgcpastes.get_teams(repo_id):
+        if not team.get("has_evs") or not team.get("pokepaste"):
+            continue
+        for i, name in enumerate(team.get("pokemon", [])):
+            if get_base_pokemon_name(name).lower() != base_name:
+                continue
+            # A Mega page wants the set that actually holds the stone; the
+            # sheet's own slot name already resolves the forme, but the paste
+            # lists the base species, so the item is what identifies it.
+            item = team["items"][i] if i < len(team.get("items", [])) else ""
+            if required_item and (item or "").lower() != required_item:
+                continue
+            matches.append(team)
+            break
+    return matches[:EV_CORPUS_MAX_TEAMS]
+
+
+def community_ev_spreads(format_code, pokemon_name):
+    """Published EV spreads for one species, grouped by identical spread.
+
+    Returns (spreads, meta). Spreads are sorted by how many teams ran them, so
+    the solver can treat a spread five players brought as a stronger prior than
+    a one-off.
+    """
+    repo_id = _vgcpastes_repo_for_format(format_code)
+    if not repo_id:
+        return [], {"repo": "", "teams": 0, "partial": False}
+
+    path = _ev_corpus_cache_path(repo_id, pokemon_name)
+    cached = _ev_corpus_cache_read(path)
+    if cached is not None:
+        return cached.get("spreads", []), cached.get("meta", {})
+
+    teams = _ev_corpus_candidate_teams(repo_id, pokemon_name)
+    base_name = get_base_pokemon_name(pokemon_name).lower()
+    required_item = _mega_required_items.get(pokemon_name.lower(), "").lower()
+    deadline = time.time() + EV_CORPUS_DEADLINE
+
+    def fetch(team):
+        if time.time() > deadline:
+            return None
+        return team, vgcpastes.get_paste_text(team["pokepaste"])
+
+    fetched = []
+    if teams:
+        with ThreadPoolExecutor(max_workers=EV_CORPUS_WORKERS) as pool:
+            fetched = [r for r in pool.map(fetch, teams) if r and r[1]]
+
+    grouped = OrderedDict()
+    for team, text in fetched:
+        sets, _ = parse_showdown_paste(text, format_code)
+        for entry in sets:
+            if get_base_pokemon_name(entry["species"]).lower() != base_name:
+                continue
+            if required_item and (entry.get("item") or "").lower() != required_item:
+                continue
+            if not entry.get("hasSpread"):
+                continue
+            key = f"{entry['nature']}:{'/'.join(str(v) for v in entry['evs'])}"
+            group = grouped.setdefault(key, {
+                "nature": entry["nature"],
+                "evs": dict(zip(STAT_KEYS, entry["evs"])),
+                "ivs": dict(zip(STAT_KEYS, entry["ivs"])),
+                "items": {},
+                "abilities": {},
+                "count": 0,
+                "teams": [],
+            })
+            group["count"] += 1
+            for field, source in (("items", "item"), ("abilities", "ability")):
+                value = entry.get(source) or ""
+                if value:
+                    group[field][value] = group[field].get(value, 0) + 1
+            if len(group["teams"]) < 6:
+                group["teams"].append({
+                    "player": team.get("player", ""),
+                    "event": team.get("event", ""),
+                    "rank": team.get("rank", ""),
+                    "date": team.get("date_display", ""),
+                    "pokepaste": team.get("pokepaste", ""),
+                })
+
+    spreads = sorted(grouped.values(), key=lambda g: -g["count"])
+    meta = {
+        "repo": repo_id,
+        "repo_name": vgcpastes.REPOSITORIES[repo_id]["display"],
+        "teams": len(fetched),
+        "candidates": len(teams),
+        "partial": len(fetched) < len(teams),
+    }
+    _ev_corpus_cache_write(path, {
+        "spreads": spreads, "meta": meta, "partial": meta["partial"],
+    })
+    return spreads, meta
+
+
+@app.route("/api/tools/spread-context/<format_code>/<rating_threshold>/<pokemon_name>")
+def api_spread_context(format_code, rating_threshold="", pokemon_name=""):
+    """Everything the Spread Solver needs about one species: base stats, the
+    EV rules of its format, ladder spread usage, and published EV spreads.
+
+    `?community=0` skips the Pokepaste corpus (the only slow half) so the page
+    can render a Pokémon immediately and fill its priors in afterwards.
+    """
+    month = request.args.get("month", None)
+    data = compile_calc_data(format_code, rating_threshold, pokemon_name, month)
+    if data is None:
+        return jsonify({"error": "No data found"}), 404
+
+    champions = data.get("isChampions")
+    payload = {
+        key: data[key]
+        for key in (
+            "name", "calcSpecies", "calcGeneration", "types", "weightkg",
+            "baseStats", "speciesOverrides", "level", "isChampions",
+            "averageStats", "allAbilities", "allItems", "topMoves",
+            "topAbility", "topItem", "topTera", "formeOrder", "hasUsageData",
+        )
+        if key in data
+    }
+    payload["sprite"] = list(_vgcpastes_sprite(data["name"]))
+    # Champions builds spend 66 stat points (max 32 each, any increment) on a
+    # different stat formula; everything else spends EVs the cartridge way.
+    payload["evRules"] = (
+        {"perStat": 32, "total": 66, "step": 1, "label": "SP", "hasIvs": False}
+        if champions
+        else {"perStat": 252, "total": 508, "step": 4, "label": "EV", "hasIvs": True}
+    )
+    payload["usageSpreads"] = [
+        {"nature": s["nature"], "evs": s["evs"], "ivs": s["ivs"], "weight": s["weight"]}
+        for s in data.get("allSpreads", [])[:400]
+    ]
+
+    if request.args.get("community") == "0":
+        payload["communitySpreads"] = []
+        payload["communityMeta"] = {"skipped": True}
+    else:
+        spreads, meta = community_ev_spreads(format_code, data["name"])
+        payload["communitySpreads"] = spreads
+        payload["communityMeta"] = meta
+    return jsonify(payload)
 
 
 @app.route("/replays/api/search")

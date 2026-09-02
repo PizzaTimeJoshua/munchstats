@@ -12,7 +12,7 @@
   .tools-container {
     max-width: 800px;
     margin: 0 auto;
-    padding: 30px 20px;
+    padding: 22px 20px 30px;
   }
   .tools-container h2 {
     margin-bottom: 8px;
@@ -78,9 +78,10 @@
 
 {% block content %}
 {% include "_tabs.html" %}
+{% include "_tools_subtabs.html" %}
 
 <div class="tools-container">
-  <h2>{{ _('Tools') }}</h2>
+  <h2>{{ _('Extensions') }}</h2>
   <p class="tools-subtitle">{{ _('Chrome extensions for Pokemon Showdown') }}</p>
 
   <div class="tool-card">

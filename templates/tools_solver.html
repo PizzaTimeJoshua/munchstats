@@ -1,0 +1,620 @@
+{% extends "base.html" %}
+{% set active_tab = 'tools' %}
+{% set og_description = "Reverse-engineer EV spreads from battle damage rolls and speed order. MunchStats Spread Solver." %}
+
+{% block title %}Spread Solver | MunchStats{% endblock %}
+
+{% block head %}
+<style>
+  h2, h3 { font-weight: 600; letter-spacing: -0.3px; }
+
+  .sv-wrap { max-width: 1180px; margin: 0 auto; padding: 18px 20px 60px; }
+
+  /* ── header ─────────────────────────────────────────────────────── */
+  .sv-head h2 { margin: 0 0 6px; font-size: 22px; }
+  .sv-sub {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0 0 14px;
+    max-width: 860px;
+  }
+  .sv-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-end;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .sv-field { display: flex; flex-direction: column; gap: 4px; }
+  .sv-field > span {
+    font-size: 10px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .sv-controls .sv-spacer { flex: 1 1 auto; }
+
+  /* ── shared inputs ──────────────────────────────────────────────── */
+  .sv-wrap select,
+  .sv-wrap input[type="text"],
+  .sv-wrap input[type="number"],
+  .sv-wrap textarea {
+    background: var(--inset);
+    color: var(--text);
+    border: 1px solid var(--border-2);
+    border-radius: 0;
+    padding: 5px 8px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .sv-wrap textarea { line-height: 1.45; resize: vertical; }
+  .sv-wrap select:focus,
+  .sv-wrap input:focus,
+  .sv-wrap textarea:focus { outline: none; border-color: var(--border-focus); }
+  .sv-wrap input[type="number"] { width: 62px; }
+  .sv-wrap input::placeholder, .sv-wrap textarea::placeholder { color: var(--text-ghost); }
+
+  .sv-btn {
+    background: var(--surface-3);
+    color: var(--text-soft);
+    border: 1px solid var(--border-2);
+    padding: 6px 13px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+  }
+  .sv-btn:hover { color: var(--text-strong); border-color: var(--border-focus); }
+  .sv-btn.is-primary {
+    background: var(--accent);
+    color: var(--on-accent);
+    border-color: var(--accent);
+    padding: 8px 22px;
+    font-size: 13px;
+  }
+  .sv-btn.is-primary:hover { background: var(--accent-2); border-color: var(--accent-2); }
+  .sv-btn.is-primary[disabled] { opacity: 0.5; cursor: default; }
+  .sv-btn.is-danger:hover { color: var(--neg); border-color: var(--neg); }
+  .sv-btn.is-small { padding: 3px 8px; font-size: 11px; }
+
+  .sv-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    color: var(--text-muted);
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+  }
+  .sv-check input { accent-color: var(--accent); margin: 0; }
+  .sv-check:hover { color: var(--text-soft); }
+
+  /* ── panels ─────────────────────────────────────────────────────── */
+  .sv-panel {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    margin-top: 18px;
+  }
+  .sv-panel-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+    padding: 11px 14px;
+    background: var(--surface-2);
+    border-bottom: 1px solid var(--border);
+  }
+  .sv-panel-head h3 { margin: 0; font-size: 15px; }
+  .sv-step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 19px;
+    height: 19px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--on-accent);
+    background: var(--accent);
+    flex-shrink: 0;
+  }
+  .sv-panel-head .sv-hint {
+    font-size: 12px;
+    color: var(--text-dim);
+    flex: 1 1 260px;
+    min-width: 0;
+  }
+  .sv-panel-body { padding: 14px; }
+
+  /* ── help ───────────────────────────────────────────────────────── */
+  .sv-help {
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    margin-top: 14px;
+    font-size: 13px;
+  }
+  .sv-help > summary {
+    cursor: pointer;
+    padding: 9px 14px;
+    font-weight: 600;
+    color: var(--text-soft);
+    list-style: none;
+    user-select: none;
+  }
+  .sv-help > summary::-webkit-details-marker { display: none; }
+  .sv-help > summary::before { content: "\25B8"; margin-right: 8px; color: var(--text-dim); }
+  .sv-help[open] > summary::before { content: "\25BE"; }
+  .sv-help-body { padding: 0 14px 14px; color: var(--text-muted); line-height: 1.65; }
+  .sv-help-body ol { margin: 0 0 10px; padding-left: 20px; }
+  .sv-help-body li { margin-bottom: 5px; }
+  .sv-help-body p { margin: 0 0 10px; }
+  .sv-help-body strong { color: var(--text-soft); }
+  .sv-help-body code {
+    background: var(--inset);
+    border: 1px solid var(--border-soft);
+    padding: 0 4px;
+    font-size: 12px;
+  }
+
+  /* ── team tabs ──────────────────────────────────────────────────── */
+  .sv-team-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+    padding: 10px 14px 0;
+  }
+  .sv-team-tab {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--surface-2);
+    border: 1px solid var(--border);
+    border-bottom: none;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .sv-team-tab:hover { color: var(--text-strong); }
+  .sv-team-tab.is-active { color: var(--accent); background: var(--surface); border-color: var(--border-hi); }
+  .sv-team-tab .sv-dot {
+    width: 8px; height: 8px; flex-shrink: 0;
+    background: var(--border-3);
+  }
+  .sv-team-tab.is-active .sv-dot { background: var(--accent); }
+
+  .sv-team-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-end;
+    padding-bottom: 12px;
+    margin-bottom: 12px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .sv-import { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+  .sv-import textarea { width: 100%; box-sizing: border-box; min-height: 74px; font-size: 12px; }
+  .sv-import-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .sv-msg { font-size: 12px; color: var(--text-dim); }
+  .sv-msg.is-err { color: var(--neg); }
+  .sv-msg.is-ok { color: var(--pos); }
+
+  /* ── roster ─────────────────────────────────────────────────────── */
+  .sv-roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(330px, 1fr)); gap: 10px; }
+  .sv-mon {
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    padding: 10px;
+  }
+  .sv-mon.is-known { border-left: 3px solid var(--pos-2); }
+  .sv-mon.is-unknown { border-left: 3px solid var(--accent); }
+  .sv-mon-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .sv-sprite {
+    width: 40px; height: 30px; flex-shrink: 0;
+    background-image: url("{{ url_for('static', filename='pokemonicons-sheet.png') }}");
+    background-size: 480px auto;
+    background-repeat: no-repeat;
+  }
+  .sv-mon-name { flex: 1 1 auto; min-width: 0; }
+  .sv-mon-name b { display: block; font-size: 14px; color: var(--text-strong); }
+  .sv-mon-name small { display: block; font-size: 11px; color: var(--text-dim); }
+  .sv-mon-fields {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 6px;
+    margin-bottom: 8px;
+  }
+  .sv-mon-fields label { display: flex; flex-direction: column; gap: 3px; font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: var(--text-dim); }
+  .sv-mon-fields select, .sv-mon-fields input { width: 100%; box-sizing: border-box; font-size: 12px; padding: 4px 6px; }
+
+  .sv-evs { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 4px; }
+  .sv-evs label { display: flex; flex-direction: column; gap: 3px; align-items: center; }
+  .sv-evs span { font-size: 10px; font-weight: 700; color: var(--text-dim); letter-spacing: 0.4px; }
+  .sv-evs input {
+    width: 100%;
+    box-sizing: border-box;
+    text-align: center;
+    padding: 4px 2px;
+    font-size: 12px;
+  }
+  .sv-evs input.is-blank { border-style: dashed; border-color: var(--accent-tint-2); }
+  .sv-ev-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+    margin-top: 7px;
+    font-size: 11px;
+    color: var(--text-dim);
+  }
+  .sv-ev-foot .over { color: var(--neg); }
+
+  /* ── observations ───────────────────────────────────────────────── */
+  .sv-obs {
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    margin-bottom: 10px;
+  }
+  .sv-obs.is-off { opacity: 0.5; }
+  .sv-obs.is-off .sv-obs-head { opacity: 1; }
+  .sv-obs.is-collapsed .sv-obs-body { display: none; }
+  .sv-obs.is-collapsed .sv-obs-head { border-bottom: none; }
+  /* The whole header bar toggles, so show it as clickable — except over the
+     controls sitting in it, which keep their own cursor. */
+  .sv-obs-head { cursor: pointer; }
+  .sv-obs-head label, .sv-obs-head button { cursor: default; }
+  .sv-obs-head .sv-check, .sv-obs-head .sv-btn, .sv-collapse { cursor: pointer; }
+  .sv-collapse {
+    background: none;
+    border: none;
+    color: var(--text-dim);
+    font-size: 11px;
+    line-height: 1;
+    padding: 3px 4px;
+    font-family: inherit;
+    flex-shrink: 0;
+  }
+  .sv-collapse:hover { color: var(--accent); }
+  .sv-obs-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .sv-obs-tag {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border: 1px solid var(--border-2);
+    color: var(--text-muted);
+  }
+  .sv-obs-tag.dmg { color: var(--accent); border-color: var(--accent-tint-2); }
+  .sv-obs-tag.spd { color: var(--info-text); border-color: var(--info-border); }
+  .sv-obs-title { flex: 1 1 240px; font-size: 12px; color: var(--text-muted); min-width: 0; }
+  .sv-obs-body { padding: 10px; display: flex; flex-direction: column; gap: 9px; }
+  .sv-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .sv-row .sv-arrow { color: var(--text-dim); font-size: 13px; }
+  .sv-row-label {
+    font-size: 10px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    width: 72px;
+    flex-shrink: 0;
+  }
+  .sv-checkbank { display: flex; flex-wrap: wrap; gap: 4px 14px; }
+  .sv-obs details { border-top: 1px solid var(--border-soft); margin: 2px -10px -10px; }
+  .sv-obs details > summary {
+    cursor: pointer;
+    padding: 7px 10px;
+    font-size: 11px;
+    color: var(--text-dim);
+    list-style: none;
+    user-select: none;
+  }
+  .sv-obs details > summary::-webkit-details-marker { display: none; }
+  .sv-obs details > summary::before { content: "\25B8 "; }
+  .sv-obs details[open] > summary::before { content: "\25BE "; }
+  .sv-obs details .sv-adv { padding: 0 10px 10px; display: flex; flex-direction: column; gap: 9px; }
+
+  .sv-empty {
+    padding: 22px 14px;
+    text-align: center;
+    color: var(--text-dim);
+    font-size: 13px;
+    border: 1px dashed var(--border-2);
+  }
+
+  /* ── results ────────────────────────────────────────────────────── */
+  .sv-status { font-size: 12px; color: var(--text-muted); margin-bottom: 10px; }
+  .sv-progress { height: 3px; background: var(--inset); margin-bottom: 12px; }
+  .sv-progress > div { height: 100%; background: var(--accent); width: 0; transition: width 0.15s; }
+
+  .sv-result {
+    border: 1px solid var(--border);
+    background: var(--surface-2);
+    margin-bottom: 14px;
+  }
+  .sv-result-head {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    background: var(--surface-3);
+    border-bottom: 1px solid var(--border);
+  }
+  .sv-result-head b { font-size: 15px; color: var(--text-strong); }
+  .sv-result-head .sv-team-name { font-size: 11px; color: var(--text-dim); }
+  .sv-verdict {
+    margin-left: auto;
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border: 1px solid;
+  }
+  .sv-verdict.ok { color: var(--pos-2); border-color: var(--pos-2); }
+  .sv-verdict.warn { color: var(--accent); border-color: var(--accent); }
+  .sv-verdict.bad { color: var(--neg); border-color: var(--neg); }
+  .sv-result-body { padding: 12px; }
+
+  .sv-headline {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: baseline;
+    gap: 10px;
+    padding: 9px 11px;
+    background: var(--inset);
+    border: 1px solid var(--border-soft);
+    margin-bottom: 12px;
+  }
+  .sv-headline .spread {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  }
+  .sv-headline .meta { font-size: 11px; color: var(--text-dim); }
+
+  .sv-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  .sv-table th {
+    text-align: left;
+    font-size: 10px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    font-weight: 600;
+    padding: 5px 7px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  .sv-table td {
+    padding: 5px 7px;
+    border-bottom: 1px solid var(--border-soft);
+    color: var(--text-soft);
+    vertical-align: top;
+  }
+  .sv-table tr:last-child td { border-bottom: none; }
+  .sv-table td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .sv-table td.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .sv-table tr.is-best td { background: var(--accent-tint); }
+  .sv-src {
+    font-size: 10px;
+    letter-spacing: 0.4px;
+    padding: 1px 5px;
+    border: 1px solid var(--border-2);
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+  .sv-src.usage { color: var(--info-text); border-color: var(--info-border); }
+  .sv-src.paste { color: var(--pos); border-color: var(--pos-2); }
+
+  .sv-sub-h {
+    font-size: 10px;
+    letter-spacing: 0.7px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin: 16px 0 7px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .sv-marginals { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+  .sv-marg { border: 1px solid var(--border-soft); padding: 7px 8px; background: var(--surface); }
+  .sv-marg > b { font-size: 11px; color: var(--text-soft); display: block; margin-bottom: 5px; }
+  .sv-bar { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; font-size: 11px; }
+  .sv-bar .v { width: 30px; text-align: right; color: var(--text-muted); font-variant-numeric: tabular-nums; }
+  .sv-bar .track { flex: 1 1 auto; height: 7px; background: var(--inset); }
+  .sv-bar .track > i { display: block; height: 100%; background: var(--accent); }
+  .sv-bar .p { width: 36px; text-align: right; color: var(--text-dim); font-variant-numeric: tabular-nums; }
+  .sv-marg.is-free { opacity: 0.62; }
+  .sv-marg .free-note { font-size: 11px; color: var(--text-dim); }
+
+  .sv-flag {
+    padding: 8px 10px;
+    font-size: 12px;
+    line-height: 1.55;
+    border: 1px solid var(--danger-text);
+    background: var(--danger-bg);
+    color: var(--danger-text);
+    margin-bottom: 10px;
+  }
+  .sv-flag.is-note {
+    border-color: var(--info-border);
+    background: var(--info-bg);
+    color: var(--info-text);
+  }
+  .sv-flag b { display: block; margin-bottom: 3px; }
+
+  /* Team output: where each EV came from */
+  .sv-ev-solved { color: var(--accent); }
+  .sv-ev-given { color: var(--pos); }
+  .sv-ev-inferred { color: var(--text-dim); }
+  .sv-paste {
+    margin: 0;
+    padding: 10px 12px;
+    background: var(--inset);
+    border: 1px solid var(--border-soft);
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--text-soft);
+    white-space: pre;
+    overflow-x: auto;
+    max-height: 340px;
+    overflow-y: auto;
+  }
+
+  .sv-foot-note {
+    margin-top: 22px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.65;
+  }
+  .sv-foot-note a { color: var(--accent); text-decoration: none; }
+  .sv-foot-note a:hover { text-decoration: underline; }
+
+  @media (max-width: 760px) {
+    .sv-wrap { padding: 14px 12px 40px; }
+    .sv-roster { grid-template-columns: 1fr; }
+    .sv-evs { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .sv-row-label { width: 100%; }
+    .sv-panel-body { padding: 10px; }
+  }
+  @media (max-width: 700px) {
+    .top-bar { padding: 2px 0; }
+    .twitter-follow-div { display: none; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "_tabs.html" %}
+{% include "_tools_subtabs.html" %}
+
+<div class="sv-wrap">
+  <div class="sv-head">
+    <h2>{{ _('Spread Solver') }}</h2>
+    <p class="sv-sub">{{ _('Work backwards from a battle. Enter the teams you know, log what each attack actually did and who moved first, and the solver keeps only the EV spreads that could have produced every number you saw — ranked by how likely the damage rolls were and how often real players run that spread.') }}</p>
+    <div class="sv-controls">
+      <label class="sv-field">
+        <span>{{ _('Format') }}</span>
+        <select id="sv-format">
+          {% for code, display in solver_formats %}
+          <option value="{{ code }}"{% if code == solver_format %} selected{% endif %}>{{ display }}</option>
+          {% endfor %}
+        </select>
+      </label>
+      <label class="sv-field">
+        <span>{{ _('Rating') }}</span>
+        <select id="sv-rating"></select>
+      </label>
+      <div class="sv-spacer"></div>
+      <button type="button" class="sv-btn" id="sv-export">{{ _('Export JSON') }}</button>
+      <button type="button" class="sv-btn" id="sv-import-file">{{ _('Import JSON') }}</button>
+      <button type="button" class="sv-btn is-danger" id="sv-reset">{{ _('Clear all') }}</button>
+      <input type="file" id="sv-file" accept="application/json,.json" hidden>
+    </div>
+  </div>
+
+  <details class="sv-help" id="sv-help">
+    <summary>{{ _('How this works') }}</summary>
+    <div class="sv-help-body">
+      <ol>
+        <li>{{ _('Add every team involved — paste the teamsheets. Open Team Sheets give you species, item, ability, Tera and nature but no EVs, which is exactly the gap this fills. Leave an EV box blank to mark it unknown; type a number to pin it.') }}</li>
+        <li>{{ _('Log the interactions. Every attack you saw is a constraint: "this move took Dragonite from 100%% to 35%%" rules out every spread that could not land in that window.') }}</li>
+        <li>{{ _('Log speed order too. Who moved first is often the sharpest constraint on a Speed EV, and it costs nothing to record.') }}</li>
+        <li>{{ _('Hit Solve. Damage is calculated in your browser with the same @smogon/calc engine the site\'s calculator uses; the priors come from ladder usage and published team pastes.') }}</li>
+      </ol>
+      <p><strong>{{ _('Reading the results.') }}</strong> {{ _('Fit is the chance a spread produces every number you logged (a spread that needs the maximum roll four times running scores badly). Prior is how often that spread actually shows up in ladder usage and in published EV spreads for this format. The headline spread is the best combination of the two — when two spreads fit equally well, the one players actually run wins.') }}</p>
+      <p><strong>{{ _('Damage rolls.') }}</strong> {{ _('A single observation rarely pins a stat down; several overlapping ones do. Log spread moves, hits on your own ally, resisted hits and chip damage — every one of them narrows the range.') }}</p>
+      <p><strong>{{ _('Accuracy.') }}</strong> {{ _('Enter exact HP numbers when you have them. Percentages carry a tolerance (default ±1%%) because Showdown rounds what it shows you; loosen it if you are reading a number off a stream.') }}</p>
+      <p>{{ _('Everything is stored in this browser only — nothing is uploaded. Use Export JSON to move a case between devices.') }}</p>
+    </div>
+  </details>
+
+  <section class="sv-panel">
+    <div class="sv-panel-head">
+      <span class="sv-step">1</span>
+      <h3>{{ _('Teams') }}</h3>
+      <span class="sv-hint" id="sv-team-hint">{{ _('Paste each teamsheet. Blank EV boxes are what the solver goes looking for.') }}</span>
+      <button type="button" class="sv-btn" id="sv-add-team">{{ _('+ Add team') }}</button>
+    </div>
+    <div class="sv-team-tabs" id="sv-team-tabs"></div>
+    <div class="sv-panel-body" id="sv-team-body"></div>
+  </section>
+
+  <section class="sv-panel">
+    <div class="sv-panel-head">
+      <span class="sv-step">2</span>
+      <h3>{{ _('Interactions') }}</h3>
+      <span class="sv-hint" id="sv-obs-hint">{{ _('Every damage roll and every speed order you can remember.') }}</span>
+      <button type="button" class="sv-btn" data-add-obs="damage">{{ _('+ Damage') }}</button>
+      <button type="button" class="sv-btn" data-add-obs="speed">{{ _('+ Speed order') }}</button>
+      <button type="button" class="sv-btn" id="sv-collapse-all">{{ _('Collapse all') }}</button>
+      <button type="button" class="sv-btn" id="sv-expand-all">{{ _('Expand all') }}</button>
+    </div>
+    <div class="sv-panel-body" id="sv-obs-list"></div>
+  </section>
+
+  <section class="sv-panel">
+    <div class="sv-panel-head">
+      <span class="sv-step">3</span>
+      <h3>{{ _('Solved spreads') }}</h3>
+      <label class="sv-check" title="{{ _('Re-picks every Pokémon against the others as they actually stand, so an unknown attacker and an unknown defender resolve each other. Off is faster and slightly less accurate.') }}">
+        <input type="checkbox" id="sv-refine" checked> {{ _('Cross-reference teams') }}
+      </label>
+      <label class="sv-check">
+        <input type="checkbox" id="sv-use-community" checked> {{ _('Use published EV spreads') }}
+      </label>
+      <div class="sv-spacer"></div>
+      <button type="button" class="sv-btn is-primary" id="sv-solve">{{ _('Solve') }}</button>
+    </div>
+    <div class="sv-panel-body">
+      <div class="sv-progress" id="sv-progress" hidden><div></div></div>
+      <div class="sv-status" id="sv-status"></div>
+      <div id="sv-results"></div>
+    </div>
+  </section>
+
+  <section class="sv-panel">
+    <div class="sv-panel-head">
+      <span class="sv-step">4</span>
+      <h3>{{ _('Team output') }}</h3>
+      <span class="sv-hint">{{ _('A complete, legal set for every Pokémon — solved where the rolls settled it, inferred everywhere else.') }}</span>
+      <button type="button" class="sv-btn" id="sv-build-sets">{{ _('Build sets') }}</button>
+    </div>
+    <div class="sv-panel-body">
+      <div id="sv-output"></div>
+    </div>
+  </section>
+
+  <p class="sv-foot-note">
+    {{ _('Damage is calculated locally with @smogon/calc. Ladder spread usage comes from Smogon monthly stats; published EV spreads come from') }}
+    <a href="{{ vgcpastes_attribution_url }}" target="_blank" rel="noopener">{{ vgcpastes_attribution }}</a>.
+    {{ _('Estimates are only as good as the interactions you log — treat a spread with one supporting roll as a guess, not a read.') }}
+  </p>
+</div>
+
+<script>
+  window.SOLVER_BOOT = {
+    format: {{ solver_format | tojson }},
+    formatName: {{ solver_format_name | tojson }},
+    rating: {{ solver_rating | tojson }},
+    month: {{ solver_month | tojson }},
+    formatRatings: {{ solver_format_ratings | tojson }},
+  };
+</script>
+<script src="{{ url_for('static', filename='vendor/smogon-calc.js') }}"></script>
+<script src="{{ url_for('static', filename='spread_solver.js') }}?v=1"></script>
+{% endblock %}

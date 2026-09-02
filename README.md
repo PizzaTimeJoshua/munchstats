@@ -87,9 +87,25 @@
 - Spam protection layers: Cloudflare Turnstile captcha, hidden honeypot field, minimum message length, and per-IP rate limiting (3/hour)
 - Hidden unless all four contact env vars are set (see Deployment)
 
+### Tools
+Two sub-tabs at `/tools/`:
+- **Extensions** — the Pokémon Showdown browser extensions (VGC Replay Analyzer, VGC Practice Extension)
+- **Spread Solver** (`/tools/spread-solver/`) — reverse-engineers EV spreads from what a battle showed. Enter two or more teams (Open Team Sheets are the point: species, item, ability, Tera and nature but no EVs), log every damage roll and speed order, and it keeps only the spreads that could have produced all of them
+  - Damage rolls are calculated **in the browser** with the same bundled @smogon/calc the site's calculator uses; the server only supplies base stats and priors
+  - Interactions carry the context that moves a calc: crits, spread vs. single-target hits, Helping Hand, screens, Friend Guard, Tera, weather/terrain, stat stages, item/ability/status overrides, multi-hit and base-power overrides. Hits on your own ally (a spread Earthquake) are logged the same way
+  - Damage can be entered as HP % (with a tolerance, since Showdown rounds), exact HP numbers (which pin max HP outright), or a % range; a KO is matched as "at least the remaining HP"
+  - Speed order constrains Speed EVs, with Tailwind, paralysis, stat stages, Choice Scarf / Booster Energy / weather abilities, Trick Room, and speed ties
+  - **Scoring:** each candidate spread is scored by *fit* — the probability its damage rolls produce every number logged, so a spread needing the maximum roll four times running is discounted — times a *prior* built from ladder spread usage, published EV spreads (VGCPastes teams that reported EVs), and a penalty for EVs that buy no stat point. The prior is flattened (`p^0.5`) before it competes: raw ladder odds are far too confident to weigh against a damage roll, and the teams this tool is pointed at are exactly the ones that deviate from the ladder
+  - **Reading error is modelled.** A percentage read off an HP bar is not exact, so the tolerance is one standard deviation of a Gaussian rather than a hard window; rolls only stop counting past 3σ, where a genuine contradiction begins. A hard box makes the likelihood badly overconfident — a roll 0.99% out counts fully and one 1.01% out counts as impossible — and across a top-cut's worth of interactions those cliffs compound until they overrule a prior that is right. Exact HP, explicit ranges and KOs stay hard, because those are assertions rather than reads
+  - Where both sides of an interaction are unknown they resolve each other: one marginal pass, then a **joint refinement** that pins every Pokémon to one concrete spread and re-picks each against the others as they actually stand. A spread that satisfies every logged interaction always outranks one that does not, whatever usage says. (A *second* marginal pass looks like it should help and measurably does not — it re-estimates from point guesses and the errors compound. The joint pass does the same job against concrete spreads and converges instead of drifting.)
+  - Candidates are enumerated in ascending EV order so the budget check can break rather than skip, which makes a large search space cheap to walk; anything more than 16 log-units below the best fit is discarded unstored, since it carries ~1e-7 of the leader's posterior weight. Both exist to avoid trimming, which measurement showed was the single biggest source of wrong answers
+  - When the search space has to be trimmed, it is trimmed on **evidence only, never on the prior** — a value the rolls rule out is genuinely gone, but a value that is merely uncommon has to survive to be ranked, or the search quietly deletes exactly the unusual spreads the tool exists to find
+  - **Consistency check:** after solving, every interaction is re-run against the final spreads and reported. Anything the answer cannot reproduce is flagged as unexplained rather than buried — the headline, the per-Pokémon evidence table and the exported paste all read from that same joint answer, so they cannot disagree with each other
+  - **Team output:** a complete, legal set for every Pokémon — solved where the rolls settled it, given where you pinned it, inferred everywhere else — as a table and a ready-to-paste Showdown export. EVs are filled by a knapsack over the remaining budget, so a set is always legal and always spends the full 508 (or 66 stat points). Pokémon with no usage data at all are inferred from nature, moves, item and base stats
+  - Cases are stored in the browser only (localStorage), with JSON export/import
+
 ### Other
 - Pokémon merchandise listings via eBay affiliate integration
-- Tools page with Pokémon Showdown browser extensions
 - Shared page chrome (nav tabs, theme/language pickers, meta tags) in `base.html` + `_tabs.html`, extended by every page template
 
 ## Tech Stack
@@ -110,6 +126,7 @@
 - **Limitless cache:** `cache/limitless/` (formats, tournament list, per-tournament standings) — fetched lazily at runtime, safe to delete
 - **VGCPastes cache:** `cache/vgcpastes/` (sheet tabs as CSV, fetched Pokepaste texts) — fetched lazily at runtime, safe to delete
 - **Replay-data cache:** `cache/replays/` (replay JSONs pulled from the `replay-data` branch, with `.etag` sidecars) — fetched lazily at runtime, safe to delete
+- **EV corpus cache:** `cache/ev_corpus/` (per-species EV spreads parsed out of VGCPastes pokepastes for the Spread Solver, 12h TTL) — fetched lazily at runtime, safe to delete
 - **Translations:** `translations/es/LC_MESSAGES/messages.po` (+ compiled `.mo`, committed), `messages.pot` template, `babel.cfg`
 - **Metadata:** `stats/pokedex.json`, `stats/moves.json`, `stats/items.json`, `stats/abilities.json`, `stats/forms_index.json`, `stats/meta_names.json`
 - **Champions mod:** `stats/champions_moves.json`, `stats/champions_abilities.json`
@@ -130,7 +147,8 @@
 - `GET /insights/` → meta insight reports (also `/insights/<format_id>/`; `?min=` size tier, `?rating=` ladder cutoff, `?cores=` core size 2–6, `?sort=` core sort wr/usage/lift, `?cut=` top-cut size 8/16/32)
 - `GET /replays/` → replay search (also `/replays/<format_code>/`)
 - `GET /replays/watch/<replay_id>` → replay viewer
-- `GET /tools/` → tools page
+- `GET /tools/` → tools page (Extensions sub-tab)
+- `GET /tools/spread-solver/` → Spread Solver (also `/tools/spread-solver/<format_code>/`)
 - `GET /about/` → about page
 - `GET|POST /contact/` → contact form (hidden unless contact env vars are set)
 - `GET /robots.txt` → robots file
@@ -142,6 +160,7 @@
 - `GET /api/<format_code>/<rating>/` → format index JSON
 - `GET /api/<format_code>/<rating>/calc/<pokemon_name>` → calc data JSON
 - `GET /api/moves/search` → move autocomplete
+- `GET /api/tools/spread-context/<format_code>/<rating>/<pokemon_name>` → Spread Solver priors for one species: base stats, the format's EV rules, ladder spread usage, and published EV spreads scraped from VGCPastes pokepastes (`?community=0` skips the paste corpus, the only slow half)
 - `GET /api/pokemon-teams/<format_code>/<pokemon_name>` → top tournament teams using Pokémon
 - `GET /api/pokemon-replays/<format_code>/<pokemon_name>` → related replay links
 - `GET /api/merch/<pokemon_name>` → eBay merchandise listings
@@ -176,6 +195,7 @@ static/
   damage_calc.js              Damage calculator UI
   replay_search.js            Replay search/filtering
   tournament_stats.js         Tournament page logic
+  spread_solver.js            Spread Solver (EV reverse-engineering, runs client-side)
   theme-boot.js               Theme engine (preset registry, pre-paint apply, picker menu)
   style.css                   Shared site styles + per-theme token blocks
   robots.txt
@@ -184,6 +204,7 @@ static/
 templates/
   base.html                   Shared page chrome (head, meta/OG tags, theme + lang boot)
   _tabs.html                  Nav tabs partial with language and theme pickers
+  _tools_subtabs.html         Sub-tab bar shared by the /tools/ pages
   index.html                  Main stats page
   tournaments.html            Tournament stats page
   teams.html                  VGCPastes team search page
@@ -191,6 +212,7 @@ templates/
   replays.html                Replay search page
   watch.html                  Replay viewer
   contact.html                Contact form
+  tools_solver.html           Spread Solver page
   tools.html, about.html, 404.html, 500.html
 stats/
   {YYYY-MM}/                  Per-Pokémon split stats by month/format/rating
