@@ -1,4 +1,5 @@
 import difflib
+import gzip
 import json
 import os
 import re
@@ -24,21 +25,35 @@ def updateMetagames():
         f"https://www.smogon.com/stats/{year}-{month}-H1/chaos/",
         f"https://www.smogon.com/stats/{year}-{month}-H2/chaos/",
     ]
+    session = requests.Session()
     for url in urls:
-        response = requests.get(url)
-        if response.status_code == 200:
+        listing = session.get(url)
+        if listing.status_code == 200:
             print(f"Getting stats from {url}")
-            soup = BeautifulSoup(response.text, "html.parser")
+            soup = BeautifulSoup(listing.text, "html.parser")
             links = soup.find_all("a", href=True)
-            for link in links:
-                href = link["href"]
-                if ".json" in href and ".gz" not in href:
-                    print(f"Downloading {href}...")
-                    response = requests.get(url + href)
-                    with open(
-                        f"stats/{year}-{month}-{href}", "w", encoding="utf-8"
-                    ) as file:
-                        file.write(response.text)
+            # Smogon serves the chaos files gzipped; fall back to plain JSON for
+            # older months that still have it. Only fetch one copy per format.
+            hrefs = [link["href"] for link in links]
+            plain = {h for h in hrefs if h.endswith(".json")}
+            targets = [h for h in hrefs if h.endswith(".json.gz") and h[:-3] not in plain]
+            targets += sorted(plain)
+            for href in targets:
+                print(f"Downloading {href}...")
+                response = session.get(url + href)
+                if response.status_code != 200:
+                    print(f"  Failed ({response.status_code}), skipping.")
+                    continue
+                if href.endswith(".gz"):
+                    text = gzip.decompress(response.content).decode("utf-8")
+                    name = href[:-3]
+                else:
+                    text = response.text
+                    name = href
+                with open(
+                    f"stats/{year}-{month}-{name}", "w", encoding="utf-8"
+                ) as file:
+                    file.write(text)
             break
     else:
         print("Unable to update metagames.")
