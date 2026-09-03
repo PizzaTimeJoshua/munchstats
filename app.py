@@ -2059,9 +2059,15 @@ def compile_page_data(format_code, rating_threshold="", pokemon_name="", month=N
 
     default_format = DEFAULT_META
     chosen_format = format_code if format_code in month_format_codes else default_format
-    # Fall back further if default isn't in this month either
+    # Fall back further if default isn't in this month either. The in-game
+    # Champions entries lead every month's list but carry no ladder rating
+    # cutoffs, so picking one here returns no data and bounces the request back
+    # to the current month -- skip them and take a real ladder format, which the
+    # list orders newest generation first.
     if chosen_format not in month_format_codes and month_formats:
-        chosen_format = month_formats[0][0]
+        ladder = [f[0] for f in month_formats if not is_champions_game_format(f[0])]
+        if ladder:
+            chosen_format = ladder[0]
     display_name = formatDisplayNames.get(chosen_format, chosen_format)
     selected_format = [chosen_format, display_name]
 
