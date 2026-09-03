@@ -863,14 +863,18 @@ function summaryLines(req) {
   const rows = (req.summaries || [])
     .map((s, ci) => ({ s, ci, col: req.columns[ci] }))
     .filter((r) => r.s.beats > 0)
-    .sort(
-      (a, b) =>
+    .sort((a, b) => {
+      // An ability row needs its weather or terrain up, so it ranks with the
+      // other things the board has to provide rather than as a free win.
+      const cond = (r) => r.col.setupCount + (r.col.ability ? 1 : 0);
+      return (
         b.s.beats - a.s.beats ||
-        a.col.setupCount - b.col.setupCount ||
+        cond(a) - cond(b) ||
         a.col.mods.length - b.col.mods.length ||
         (a.col.nature !== 0) - (b.col.nature !== 0) ||
         a.s.enoughEv - b.s.enoughEv
-    );
+      );
+    });
   if (!rows.length) {
     return `<p class="dr-verdict"><strong>${t(
       "Speed is not the lever here."
@@ -883,7 +887,10 @@ function summaryLines(req) {
         (col.mods.length ? esc(col.modLabel) + ", " : "") +
         nat +
         (col.role === "mega" ? ", " + t("as Mega") : "") +
-        (col.role === "pre-mega" ? ", " + t("pre-Mega") : "");
+        (col.role === "pre-mega" ? ", " + t("pre-Mega") : "") +
+        (col.ability
+          ? ` <span class="dr-cond">${esc(col.abilityLabel)} ${esc(col.abilityWhen)}</span>`
+          : "");
       return `<li class="${s.clearsAll ? "is-clear" : ""}">
           <details${i === 0 ? " open" : ""}>
             <summary>
@@ -918,10 +925,11 @@ function groupTargets(list, allTargets) {
   });
   const got = {};
   list.forEach((tg) => {
-    const label =
-      tg.theirMods && tg.theirMods.length
-        ? tg.label + " + " + tg.theirModLabel
-        : tg.label;
+    let label = tg.label;
+    if (tg.theirMods && tg.theirMods.length) label += " + " + tg.theirModLabel;
+    // A Swift Swim row is a different threat from the same Pokemon's ordinary
+    // one, so it has to be named rather than folded in silently.
+    if (tg.ability) label += " + " + tg.abilityLabel;
     (got[tg.name] = got[tg.name] || []).push(label);
   });
   return Object.keys(got)
@@ -975,9 +983,12 @@ function requirementCard(req, res) {
         .map((n) => `<td>${reqCell(opt[String(n)], req)}</td>`)
         .join("");
       const theirs =
-        tg.theirMods && tg.theirMods.length
+        (tg.theirMods && tg.theirMods.length
           ? ` <span class="dr-how">+ ${esc(tg.theirModLabel)}</span>`
-          : "";
+          : "") +
+        (tg.ability
+          ? ` <span class="dr-cond">${esc(tg.abilityLabel)} ${esc(tg.abilityWhen)}</span>`
+          : "");
       return `<tr>
           <td>${usageLink(tg.name)}${theirs}</td>
           <td class="dr-how">${esc(tg.label)}</td>
@@ -1018,8 +1029,14 @@ function ladderTable(res) {
     .map(
       (r) =>
         `<tr class="${r.side === "mine" ? "dr-mine" : "dr-theirs"}">
-           <td>${usageLink(r.name)}</td>
-           <td style="color:var(--text-dim)">${esc(r.label)}</td>
+           <td>${usageLink(r.name)}${
+             r.ability
+               ? ` <span class="dr-cond">${esc(r.abilityLabel)}</span>`
+               : ""
+           }</td>
+           <td style="color:var(--text-dim)">${esc(r.label)}${
+             r.ability ? " · " + esc(r.abilityWhen) : ""
+           }</td>
            <td class="dr-num"><b>${r.speed}</b></td>
            <td style="color:var(--text-dim);font-size:11px">${r.side === "mine" ? t("mine") : t("theirs")}</td>
          </tr>`

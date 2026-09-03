@@ -359,6 +359,11 @@
     color: var(--text-dim); margin-left: 4px;
   }
   .dr-forme-tag.is-mega { color: var(--accent); border-color: var(--border-hi); }
+  /* Conditional rows (Swift Swim in rain, etc.) — flagged so a doubled Speed
+     is never mistaken for an unconditional one. */
+  .dr-cond {
+    color: var(--warn); font-size: 10px; white-space: nowrap;
+  }
 
   /* ladder */
   table.dr-ladder { border-collapse: collapse; width: 100%; font-size: 12px; }

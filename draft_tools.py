@@ -846,20 +846,21 @@ def speed_stat(base, ev=0, iv=31, nature=0, level=DEFAULT_LEVEL, system="ev"):
 
 
 def apply_speed_modifiers(stat, tailwind=False, scarf=False, paralysis=False,
-                          stage=0, ability_x2=False, booster=False):
+                          stage=0, ability=None):
     """Battle modifiers, applied in Showdown's order.
 
-    Stat stages first, then multiplicative item/ability modifiers, then the
-    paralysis halving last. Order matters: each step floors, so folding them
-    into a single multiply gives a different (wrong) number.
+    Stat stages first, then multiplicative ability and item modifiers, then
+    the paralysis halving last. Order matters: each step floors, so folding
+    them into a single multiply gives a different (wrong) number.
+
+    `ability` is a (numerator, denominator) pair -- (2, 1) for Swift Swim and
+    friends, (13, 10) for the Booster abilities, (1, 2) for Slow Start.
     """
     if stage:
         num, den = (2 + stage, 2) if stage > 0 else (2, 2 - stage)
         stat = stat * num // den
-    if ability_x2:
-        stat = stat * 2
-    if booster:
-        stat = stat * 13 // 10   # Quark Drive / Protosynthesis: 1.3x on Speed
+    if ability:
+        stat = stat * ability[0] // ability[1]
     if scarf:
         stat = stat * 3 // 2
     if tailwind:
@@ -867,6 +868,54 @@ def apply_speed_modifiers(stat, tailwind=False, scarf=False, paralysis=False,
     if paralysis:
         stat = stat // 2
     return max(stat, 1)
+
+
+# Abilities that change Speed, with the condition each needs. They are offered
+# only to Pokemon that actually have them -- a blanket "Swift Swim" toggle
+# would invite nonsense -- and every row is labelled with its condition,
+# because a doubled Speed that needs rain on the field is not the same claim
+# as an unconditional one.
+SPEED_ABILITIES = {
+    "swiftswim":      ("Swift Swim", "in rain", (2, 1)),
+    "chlorophyll":    ("Chlorophyll", "in sun", (2, 1)),
+    "sandrush":       ("Sand Rush", "in sand", (2, 1)),
+    "slushrush":      ("Slush Rush", "in snow", (2, 1)),
+    "surgesurfer":    ("Surge Surfer", "in Electric Terrain", (2, 1)),
+    "unburden":       ("Unburden", "once its item is gone", (2, 1)),
+    "quickfeet":      ("Quick Feet", "when statused", (3, 2)),
+    "protosynthesis": ("Protosynthesis", "in sun / Booster Energy", (13, 10)),
+    "quarkdrive":     ("Quark Drive", "in Electric Terrain / Booster Energy", (13, 10)),
+    "slowstart":      ("Slow Start", "for its first five turns", (1, 2)),
+}
+
+# Booster abilities raise the highest stat, not Speed specifically.
+_BOOSTER_ABILITIES = {"protosynthesis", "quarkdrive"}
+
+
+def speed_abilities_for(species_id, dex=DEFAULT_DEX):
+    """Speed-changing abilities this species can actually have.
+
+    Protosynthesis and Quark Drive are filtered on whether Speed is the
+    species' highest base stat: they boost whichever stat is highest, so on
+    Flutter Mane (highest Special Attack) they do nothing to Speed and
+    reporting a 1.3x there would be wrong.
+    """
+    entry = load_species(dex).get(species_id) or {}
+    stats = entry.get("baseStats") or {}
+    out = []
+    for ability_id in abilities_for(species_id, dex):
+        info = SPEED_ABILITIES.get(ability_id)
+        if not info:
+            continue
+        if ability_id in _BOOSTER_ABILITIES:
+            # Ties go to the earlier stat in Showdown's order, which is what
+            # iterating the dict in its natural hp/atk/def/spa/spd/spe order
+            # gives -- so a tie never resolves to Speed.
+            if not stats or max(stats, key=lambda k: stats[k]) != "spe":
+                continue
+        label, when, mult = info
+        out.append({"id": ability_id, "label": label, "when": when, "mult": mult})
+    return out
 
 
 # Benchmarks an opponent's Pokemon is assumed to be at when its real spread is
@@ -910,7 +959,7 @@ def speed_curve(base, nature=0, iv=31, level=DEFAULT_LEVEL, system="ev",
 
 
 def benchmarks_for(species_id, benchmarks=DEFAULT_BENCHMARKS, level=DEFAULT_LEVEL,
-                   dex=DEFAULT_DEX, **modifiers):
+                   dex=DEFAULT_DEX, include_abilities=True, **modifiers):
     """Speed numbers to beat for one opposing Pokemon."""
     entry = load_species(dex).get(species_id) or {}
     base = (entry.get("baseStats") or {}).get("spe")
@@ -918,18 +967,28 @@ def benchmarks_for(species_id, benchmarks=DEFAULT_BENCHMARKS, level=DEFAULT_LEVE
         return []
     system = stat_system_for(dex)
     iv = 31 if STAT_SYSTEMS[system]["has_ivs"] else 0
+    # An unconditional row plus one per Speed ability the species can have.
+    # Skipped entirely for the vast majority of Pokemon, which have none.
+    variants = [{"id": None, "label": "", "when": "", "mult": None}]
+    if include_abilities:
+        variants += speed_abilities_for(species_id, dex)
     out = []
-    for label, ev, nat in benchmarks:
-        invested = _benchmark_investment(ev, system)
-        out.append({
-            "species": species_id,
-            "name": entry.get("name", species_id),
-            "label": label,
-            "ev": invested,
-            "nature": nat,
-            "speed": apply_speed_modifiers(
-                speed_stat(base, invested, iv, nat, level, system), **modifiers),
-        })
+    for variant in variants:
+        for label, ev, nat in benchmarks:
+            invested = _benchmark_investment(ev, system)
+            out.append({
+                "species": species_id,
+                "name": entry.get("name", species_id),
+                "label": label,
+                "ev": invested,
+                "nature": nat,
+                "ability": variant["id"],
+                "abilityLabel": variant["label"],
+                "abilityWhen": variant["when"],
+                "speed": apply_speed_modifiers(
+                    speed_stat(base, invested, iv, nat, level, system),
+                    ability=variant["mult"], **modifiers),
+            })
     return out
 
 
@@ -1233,29 +1292,39 @@ def speed_requirements(species_id, opponent_ids, dex=DEFAULT_DEX,
         base = ((species.get(forme["id"]) or {}).get("baseStats") or {}).get("spe")
         if base is None:
             continue
+        # Your own Speed abilities are columns too: if this Pokemon has Swift
+        # Swim, "how much Speed do I need" has a very different answer under
+        # rain, and leaving it out would over-state the investment needed.
+        ability_variants = [{"id": None, "label": "", "when": "", "mult": None}]
+        ability_variants += speed_abilities_for(forme["id"], dex)
         for combo in my_combos:
             if combo["usesItem"] and holds_stone:
                 continue
-            for nature in natures:
-                columns.append({
-                    "forme": forme["id"],
-                    "formeName": forme["name"],
-                    "role": forme["role"],
-                    "mods": combo["ids"],
-                    "modLabel": combo["label"],
-                    "setupCount": combo["setupCount"],
-                    "nature": nature,
-                    "base": base,
-                    "maxSpeed": apply_speed_modifiers(
-                        speed_stat(base, rules["max_per_stat"], iv, nature,
-                                   level, system), **combo["mods"]),
-                })
-                column_mods.append(combo["mods"])
-                cells.append([
-                    min_investment_to_beat(base, t["speed"], nature, iv, level,
-                                           system, combo["mods"], tie_ok=True)
-                    for t in targets
-                ])
+            for variant in ability_variants:
+                mods = dict(combo["mods"], ability=variant["mult"])
+                for nature in natures:
+                    columns.append({
+                        "forme": forme["id"],
+                        "formeName": forme["name"],
+                        "role": forme["role"],
+                        "mods": combo["ids"],
+                        "modLabel": combo["label"],
+                        "setupCount": combo["setupCount"],
+                        "ability": variant["id"],
+                        "abilityLabel": variant["label"],
+                        "abilityWhen": variant["when"],
+                        "nature": nature,
+                        "base": base,
+                        "maxSpeed": apply_speed_modifiers(
+                            speed_stat(base, rules["max_per_stat"], iv, nature,
+                                       level, system), **mods),
+                    })
+                    column_mods.append(mods)
+                    cells.append([
+                        min_investment_to_beat(base, t["speed"], nature, iv,
+                                               level, system, mods, tie_ok=True)
+                        for t in targets
+                    ])
 
     # Per configuration, the single number a player actually writes on the
     # spread: the least investment that beats everything this configuration
@@ -1298,7 +1367,11 @@ def speed_requirements(species_id, opponent_ids, dex=DEFAULT_DEX,
             cell = cells[ci][ti]
             if not cell or cell["tie"]:
                 continue
-            key = (col["setupCount"], len(col["mods"]), cell["ev"])
+            # A Speed ability counts as another thing the board must provide:
+            # Swift Swim needs rain up, so it should not outrank an answer
+            # that works on a bare field.
+            conditions = col["setupCount"] + (1 if col.get("ability") else 0)
+            key = (conditions, len(col["mods"]), cell["ev"])
             prev = per_nature.get(col["nature"])
             if prev is None or key < prev["_key"]:
                 per_nature[col["nature"]] = {"_key": key, "column": ci, **cell}
