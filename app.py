@@ -22,6 +22,7 @@ from flask import Flask, Response, jsonify, redirect, render_template, request, 
 from flask_babel import Babel, get_locale, gettext
 import pyjson5
 
+import draft_tools
 import insights
 import limitless_stats
 import og_card
@@ -3236,6 +3237,332 @@ def tools_solver_page(format_code=""):
         vgcpastes_attribution_url=vgcpastes.ATTRIBUTION_URL,
         **_tools_chrome(),
     )
+
+
+# ─── Draft Scout ─────────────────────────────────────────────────────────
+
+def _draft_formats(month):
+    """Formats the draft tool can overlay usage from.
+
+    Restricted to Gen 9 because every learnset index is built for Gen 9 rule
+    sets; offering a Gen 4 ladder next to a Gen 9 movepool would pair usage
+    numbers with a legality answer that does not apply to them. Which of the
+    three rosters a format implies is decided by draft_tools.dex_for_format.
+    """
+    return [
+        fmt for fmt in get_formats_for_month(month)
+        if extract_generation_from_format(fmt[0]) == 9
+    ]
+
+
+def _draft_species_payload(species_ids, dex=draft_tools.DEFAULT_DEX):
+    """Name, sprite, types, base stats and abilities for a roster."""
+    species = draft_tools.load_species(dex)
+    out = []
+    for sid in species_ids:
+        entry = species.get(sid) or {}
+        name = entry.get("name", sid)
+        forme = entry.get("forme") or ""
+        row = {
+            "id": sid,
+            "name": name,
+            "sprite": get_pokemon_sprite(name),
+            "types": entry.get("types") or [],
+            "baseStats": entry.get("baseStats") or {},
+            "abilities": [
+                {"id": draft_tools.to_id(a), "name": a}
+                for a in (entry.get("abilities") or {}).values()
+            ],
+        }
+        # A Mega has no learnset of its own in any generation, so its moves
+        # are its base forme's. Said out loud rather than left to be assumed,
+        # since the stats and typing on the same row genuinely are the Mega's.
+        if forme.startswith(("Mega", "Primal")) and entry.get("baseSpecies"):
+            row["inheritsFrom"] = entry["baseSpecies"]
+        # Champions shows a different number in game than the stat formula
+        # produces; carry it so the UI can label which is which.
+        if entry.get("displayStats"):
+            row["displayStats"] = entry["displayStats"]
+        out.append(row)
+    return out
+
+
+def _draft_usage(format_code, rating, species_ids, month):
+    """{species id: {move id: fraction}} for a roster, or {} where unknown.
+
+    A species absent from the ladder is left out of the mapping entirely
+    rather than mapped to an empty dict: attach_usage() reads "missing" as
+    "no data" and "present but zero" as "nobody runs it", and collapsing the
+    two would turn an unranked Pokemon into a claim that it runs nothing.
+    """
+    species = draft_tools.load_species(draft_tools.dex_for_format(format_code))
+    out = {}
+    for sid in species_ids:
+        name = (species.get(sid) or {}).get("name", sid)
+        data = fetch_pokemon_data(format_code, rating, name, month)
+        if data and data.get("Moves"):
+            out[sid] = draft_tools.usage_from_stats(data)
+    return out
+
+
+@app.route("/tools/draft/")
+@app.route("/tools/draft/<format_code>/")
+def tools_draft_page(format_code=""):
+    """Draft Scout: movepool coverage and Speed breakpoints across two rosters.
+
+    The page ships the format pickers, the preset catalogue and the species
+    list; every roster change is answered by /tools/api/draft/scout so the
+    rosters can live in the URL and be shared.
+    """
+    month = get_latest_month()
+    formats = _draft_formats(month)
+    codes = {fmt[0] for fmt in formats}
+    chosen = format_code if format_code in codes else DEFAULT_META
+    if chosen not in codes:
+        chosen = formats[0][0] if formats else DEFAULT_META
+    format_ratings = {
+        fmt[0]: get_valid_rating_thresholds(fmt[0], month) for fmt in formats
+    }
+    ratings = format_ratings.get(chosen) or ["0"]
+
+    # The roster follows the chosen format: Champions, National Dex and the SV
+    # dex list genuinely different Pokemon, and picking from the wrong one is
+    # how Runerigus and Mr. Rime went missing.
+    active_dex = draft_tools.dex_for_format(chosen)
+    species = _draft_species_list(active_dex)
+    preset_catalog = draft_tools.preset_catalog("doubles")
+    move_names = {
+        mid: (moveDetails.get(mid) or {}).get("name", mid)
+        for group in preset_catalog for mid in group["moves"]
+    }
+    return render_template(
+        "tools_draft.html",
+        tools_tab="draft",
+        draft_formats=formats,
+        draft_format=chosen,
+        draft_format_name=formatDisplayNames.get(chosen, chosen),
+        draft_format_ratings=format_ratings,
+        draft_rating=ratings[0],
+        draft_month=month,
+        active_dex=active_dex,
+        draft_species=species,
+        draft_presets=preset_catalog,
+        # Where a Pokemon's usage page lives for the format on screen. The
+        # client appends the name; built here because only the server knows
+        # the routing.
+        draft_usage_base=url_for(
+            "display_pokemon_page", format_code=chosen,
+            rating_threshold=ratings[0], pokemon_name=""),
+        draft_ability_presets=[
+            {"id": aid, "label": label,
+             "abilities": [{"id": a, "name": (abilityDetails.get(a) or {}).get("name", a)}
+                           for a in ids]}
+            for aid, label, ids in draft_tools.PRESET_ABILITIES
+        ],
+        draft_move_names=move_names,
+        # Override the shared tools chrome so the nav's "Usage Stats" tab
+        # follows the format picked here rather than the site default -- from
+        # this page it was landing on an unrelated ladder.
+        **dict(_tools_chrome(),
+               selected_format=[chosen, formatDisplayNames.get(chosen, chosen)],
+               selected_rating=ratings[0]),
+    )
+
+
+@lru_cache(maxsize=len(draft_tools.DEXES))
+def _draft_species_list(dex):
+    """Roster for a rule set, with sprites. Cached: it is rebuilt per dex only."""
+    return [
+        dict(s, sprite=get_pokemon_sprite(s["name"]))
+        for s in draft_tools.species_list(dex)
+    ]
+
+
+@app.route("/tools/api/draft/species")
+def tools_draft_species():
+    """The species a rule set allows.
+
+    Served rather than embedded three times over: Champions, National Dex and
+    the SV dex together are ~2600 entries, and the page only ever needs the
+    one whose format is selected.
+    """
+    dex = request.args.get("dex", draft_tools.DEFAULT_DEX)
+    if dex not in draft_tools.DEXES:
+        return jsonify({"error": "unknown dex"}), 400
+    return jsonify({"dex": dex, "species": _draft_species_list(dex)})
+
+
+@app.route("/tools/api/draft/resolve")
+def tools_draft_resolve():
+    """Turn pasted text into species ids.
+
+    Split out from /scout so pasting a roster does not also load a usage file
+    per Pokemon: resolution is the only thing the paste box needs, and the
+    scout call that follows will fetch usage once for the merged roster.
+    """
+    dex = request.args.get("dex", draft_tools.DEFAULT_DEX)
+    if dex not in draft_tools.DEXES:
+        dex = draft_tools.DEFAULT_DEX
+    text = request.args.get("text", "")
+    ids, unknown = draft_tools.parse_roster(text.replace(",", "\n"), dex=dex)
+    return jsonify({"species": _draft_species_payload(ids, dex),
+                    "unknown": unknown, "dex": dex})
+
+
+@app.route("/tools/api/draft/lookup")
+def tools_draft_lookup():
+    """Move and ability autocomplete across everything, not just the presets."""
+    q = draft_tools.to_id(request.args.get("q", ""))
+    if len(q) < 2:
+        return jsonify([])
+    out = []
+    for move_id, info in (moveDetails or {}).items():
+        name = info.get("name", move_id)
+        if q in draft_tools.to_id(name):
+            out.append({
+                "kind": "move", "id": move_id, "name": name,
+                "priority": info.get("priority", 0),
+                "type": info.get("type", ""),
+                "starts": draft_tools.to_id(name).startswith(q),
+            })
+    for ability_id, info in (abilityDetails or {}).items():
+        name = info.get("name", ability_id)
+        if q in draft_tools.to_id(name):
+            out.append({
+                "kind": "ability", "id": ability_id, "name": name,
+                "starts": draft_tools.to_id(name).startswith(q),
+            })
+    out.sort(key=lambda r: (not r["starts"], r["kind"] != "move", r["name"]))
+    return jsonify(out[:25])
+
+
+@app.route("/tools/api/draft/scout")
+def tools_draft_scout():
+    """Coverage + Speed breakpoints for two rosters.
+
+    Query: mine, theirs (comma-separated species ids or names), moves,
+    abilities, fmt, rating, tailwind/scarf/para/trickroom toggles.
+    """
+    month = get_latest_month()
+    fmt = request.args.get("fmt") or DEFAULT_META
+    rating = request.args.get("rating") or "0"
+    if not re.fullmatch(r"[a-z0-9]+", fmt) or not rating.isdigit():
+        return jsonify({"error": "bad format"}), 400
+
+    active_dex = draft_tools.dex_for_format(fmt)
+    # Unresolved names are reported for BOTH sides. Dropping your own side's
+    # silently meant a Pokemon you had added just vanished from the page --
+    # and it vanishes for a real reason (Runerigus is not in the SV dex), so
+    # the reason is exactly what needs saying.
+    mine, mine_unknown = draft_tools.parse_roster(
+        request.args.get("mine", "").replace(",", "\n"), dex=active_dex)
+    theirs, theirs_unknown = draft_tools.parse_roster(
+        request.args.get("theirs", "").replace(",", "\n"), dex=active_dex)
+    unknown = list(dict.fromkeys(mine_unknown + theirs_unknown))
+
+    move_ids = [m for m in (request.args.get("moves", "").split(",")) if m]
+    for preset in request.args.get("presets", "").split(","):
+        if preset:
+            move_ids.extend(draft_tools.preset_moves(preset))
+    move_ids = list(dict.fromkeys(move_ids))
+    ability_ids = [a for a in request.args.get("abilities", "").split(",") if a]
+
+    # Which modifiers to ENUMERATE, not which to assume. The tool reports what
+    # each option costs rather than asking the player to commit to one up
+    # front -- that is the difference between "here is your Speed under
+    # Tailwind" and "Tailwind is what gets you past Sneasler".
+    known_mods = {m for m, _, _, _ in draft_tools.SPEED_MODIFIERS}
+    my_modifiers = [m for m in request.args.get("my_mods", "").split(",")
+                    if m in known_mods]
+    their_modifiers = [m for m in request.args.get("their_mods", "").split(",")
+                       if m in known_mods]
+    theirs_mods, mine_mods = {}, {}
+
+    # An unresolved name is usually one of two very different problems: a
+    # typo, or a real Pokemon that this format's dex does not contain. Saying
+    # which -- and where it does exist -- turns a dead end into a fix.
+    elsewhere = {}
+    for name in unknown:
+        found = [d for d in draft_tools.DEXES
+                 if d != active_dex and draft_tools.resolve_species(name, d)]
+        if found:
+            elsewhere[name] = found
+
+    usage = _draft_usage(fmt, rating, mine + theirs, month)
+    result = {
+        "dex": active_dex,
+        "unknownElsewhere": elsewhere,
+        "usageBase": url_for("display_pokemon_page", format_code=fmt,
+                            rating_threshold=rating, pokemon_name=""),
+        "mine": _draft_species_payload(mine, active_dex),
+        "theirs": _draft_species_payload(theirs, active_dex),
+        "unknown": unknown,
+        "moveNames": {
+            m: (moveDetails.get(m) or {}).get("name", m) for m in move_ids
+        },
+        "movePriority": {
+            m: (moveDetails.get(m) or {}).get("priority", 0) for m in move_ids
+        },
+        "conditionalPriority": draft_tools.CONDITIONAL_PRIORITY,
+        "abilityNames": {
+            a: (abilityDetails.get(a) or {}).get("name", a) for a in ability_ids
+        },
+    }
+    for side, ids in (("mine", mine), ("theirs", theirs)):
+        cov = draft_tools.coverage(ids, move_ids, dex=active_dex)
+        result[side + "Coverage"] = draft_tools.attach_usage(cov, usage)
+        result[side + "Abilities"] = draft_tools.ability_coverage(
+            ids, ability_ids, dex=active_dex)
+
+    # Speed: every one of yours planned against their whole roster, at every
+    # nature rather than one the player had to choose in advance.
+    result["natures"] = [0, 1]
+    result["modifiers"] = [
+        {"id": mid, "label": label, "kind": kind}
+        for mid, label, _, kind in draft_tools.SPEED_MODIFIERS
+    ]
+    result["myModifiers"] = my_modifiers
+    result["theirModifiers"] = their_modifiers
+    result["speed"] = [
+        plan for plan in (
+            draft_tools.speed_plan(sid, theirs, nature=nat, mine=mine_mods,
+                                   theirs=theirs_mods, dex=active_dex)
+            for sid in mine for nat in (0, 1)
+        ) if plan
+    ]
+    result["requirements"] = [
+        draft_tools.speed_requirements(
+            sid, theirs, dex=active_dex, my_modifiers=my_modifiers,
+            their_modifiers=their_modifiers)
+        for sid in mine
+    ]
+    result["underspeed"] = [
+        u for u in (draft_tools.underspeed_plan(sid, theirs, theirs=theirs_mods,
+                                                dex=active_dex)
+                    for sid in mine) if u
+    ]
+    result["ladder"] = _draft_speed_ladder(
+        mine, theirs, mine_mods, theirs_mods, active_dex)
+    return jsonify(result)
+
+
+def _draft_speed_ladder(mine, theirs, mine_mods, theirs_mods,
+                        dex=draft_tools.DEFAULT_DEX):
+    """Both rosters' Speed benchmarks merged into one sorted ladder.
+
+    A Mega contributes its pre-Mega forme too: whether to Mega Evolve is
+    decided during the game, so the slower row is a real state the ladder
+    has to show rather than a hypothetical.
+    """
+    rows = []
+    for side, ids, mods in (("theirs", theirs, theirs_mods),
+                            ("mine", mine, mine_mods)):
+        for sid in ids:
+            for forme in draft_tools.forme_group(sid, dex):
+                for b in draft_tools.benchmarks_for(forme["id"], dex=dex, **mods):
+                    rows.append({**b, "side": side, "role": forme["role"]})
+    rows.sort(key=lambda r: -r["speed"])
+    return rows
 
 
 @app.route("/replays/")

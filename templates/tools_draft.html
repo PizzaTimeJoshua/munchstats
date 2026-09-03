@@ -1,0 +1,553 @@
+{% extends "base.html" %}
+{% set active_tab = 'tools' %}
+{% set og_description = "Scout a draft league opponent's whole roster at once — who has Fake Out, priority, speed control or screens, and exactly how much Speed investment it takes to outspeed them. MunchStats Draft Scout." %}
+
+{% block title %}Draft Scout | MunchStats{% endblock %}
+
+{% block head %}
+<style>
+  h2, h3 { font-weight: 600; letter-spacing: -0.3px; }
+
+  .dr-wrap { max-width: 1180px; margin: 0 auto; padding: 18px 20px 60px; }
+
+  /* ── header ─────────────────────────────────────────────────────── */
+  .dr-head h2 { margin: 0 0 6px; font-size: 22px; }
+  .dr-sub {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.6;
+    margin: 0 0 14px;
+    max-width: 860px;
+  }
+  .dr-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: flex-end;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--border);
+  }
+  .dr-field { display: flex; flex-direction: column; gap: 4px; }
+  .dr-field > span {
+    font-size: 10px;
+    letter-spacing: 0.6px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+  }
+  .dr-spacer { flex: 1 1 auto; }
+
+  /* ── inputs ─────────────────────────────────────────────────────── */
+  .dr-wrap select,
+  .dr-wrap input[type="text"],
+  .dr-wrap textarea {
+    background: var(--inset);
+    color: var(--text);
+    border: 1px solid var(--border-2);
+    border-radius: 0;
+    padding: 5px 8px;
+    font-size: 13px;
+    font-family: inherit;
+  }
+  .dr-wrap textarea { line-height: 1.45; resize: vertical; width: 100%; }
+  .dr-wrap select:focus,
+  .dr-wrap input:focus,
+  .dr-wrap textarea:focus { outline: none; border-color: var(--border-focus); }
+  .dr-wrap input::placeholder, .dr-wrap textarea::placeholder { color: var(--text-ghost); }
+
+  .dr-btn {
+    background: var(--surface-3);
+    color: var(--text-soft);
+    border: 1px solid var(--border-2);
+    padding: 6px 13px;
+    font-size: 12px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    transition: color 0.15s, background 0.15s, border-color 0.15s;
+  }
+  .dr-btn:hover { color: var(--text-strong); border-color: var(--border-focus); }
+  .dr-btn.is-primary {
+    background: var(--accent); color: var(--on-accent); border-color: var(--accent);
+  }
+  .dr-btn.is-on { background: var(--surface-3); color: var(--accent); border-color: var(--border-hi); }
+  .dr-btn.is-tiny { padding: 3px 8px; font-size: 11px; font-weight: 500; }
+
+  /* ── two rosters ────────────────────────────────────────────────── */
+  .dr-sides {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    margin: 16px 0 20px;
+  }
+  .dr-side {
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 12px;
+  }
+  .dr-side.is-mine { border-top: 3px solid var(--pos-2); }
+  .dr-side.is-theirs { border-top: 3px solid var(--accent); }
+  .dr-side-head {
+    display: flex; align-items: baseline; gap: 8px; margin-bottom: 10px;
+  }
+  .dr-side-head h3 { margin: 0; font-size: 14px; }
+  .dr-side-head small { color: var(--text-dim); font-size: 11px; }
+  .dr-side-head .dr-spacer { flex: 1 1 auto; }
+
+  .dr-addrow { display: flex; gap: 6px; margin-bottom: 8px; position: relative; }
+  .dr-addrow input[type="text"] { flex: 1 1 auto; min-width: 0; }
+
+  .dr-sugg {
+    position: absolute; top: 100%; left: 0; right: 0; z-index: 30;
+    background: var(--surface-2);
+    border: 1px solid var(--border-hi);
+    max-height: 260px; overflow-y: auto;
+  }
+  .dr-sugg div {
+    display: flex; align-items: center; gap: 6px;
+    padding: 3px 8px; font-size: 13px; cursor: pointer;
+  }
+  .dr-sugg div:hover, .dr-sugg div.is-cursor { background: var(--surface-3); color: var(--text-strong); }
+
+  .dr-chips { display: flex; flex-wrap: wrap; gap: 6px; min-height: 34px; }
+  .dr-chip {
+    display: flex; align-items: center; gap: 4px;
+    background: var(--inset);
+    border: 1px solid var(--border-2);
+    padding: 2px 6px 2px 2px;
+    font-size: 12px;
+  }
+  .dr-chip b { font-weight: 600; color: var(--text-strong); }
+  .dr-chip .dr-x {
+    cursor: pointer; color: var(--text-dim); font-size: 14px; line-height: 1;
+    padding: 0 2px;
+  }
+  .dr-chip .dr-x:hover { color: var(--neg); }
+  .dr-chip .dr-spe { color: var(--text-dim); font-size: 11px; }
+
+  .dr-sprite {
+    width: 40px; height: 30px; flex-shrink: 0;
+    background-image: url("{{ url_for('static', filename='pokemonicons-sheet.png') }}");
+    background-size: 480px auto;
+    background-repeat: no-repeat;
+  }
+  /* The sheet is 12 columns of 40x30, so it is 480px wide. Any scaled copy
+     has to scale BOTH axes by the same factor: at 360px wide (0.75x) a cell
+     is 30 x 22.5, not 30 x 24. Rounding the row height up to 24 drifts 1.5px
+     per row, which is invisible near the top of the sheet and shows a
+     completely different Pokemon further down it. */
+  .dr-sprite.is-sm { width: 30px; height: 22.5px; background-size: 360px auto; }
+
+  .dr-paste { margin-top: 8px; }
+  .dr-paste summary {
+    cursor: pointer; font-size: 11px; color: var(--text-dim); user-select: none;
+  }
+  .dr-paste summary:hover { color: var(--text-soft); }
+  .dr-paste textarea { margin-top: 6px; min-height: 90px; font-size: 12px; }
+
+  /* ── query bar ──────────────────────────────────────────────────── */
+  .dr-query { border: 1px solid var(--border); background: var(--surface); padding: 12px; margin-bottom: 20px; }
+  .dr-presets { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 10px; }
+  .dr-moverow { display: flex; gap: 6px; position: relative; }
+  .dr-moverow input[type="text"] { flex: 1 1 auto; min-width: 0; }
+  .dr-selected { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
+  .dr-mtag {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: var(--inset); border: 1px solid var(--border-2);
+    padding: 2px 4px 2px 7px; font-size: 12px;
+  }
+  .dr-mtag .dr-x { cursor: pointer; color: var(--text-dim); font-size: 13px; padding: 0 2px; }
+  .dr-mtag .dr-x:hover { color: var(--neg); }
+  .dr-mtag i { font-style: normal; color: var(--accent); font-size: 10px; font-weight: 700; }
+
+  /* ── matrix ─────────────────────────────────────────────────────── */
+  .dr-panel { margin-bottom: 28px; }
+  .dr-panel > h3 { font-size: 15px; margin: 0 0 4px; }
+  .dr-panel > p.dr-note { font-size: 12px; color: var(--text-dim); margin: 0 0 10px; line-height: 1.5; }
+
+  .dr-scroll { overflow-x: auto; border: 1px solid var(--border); }
+  table.dr-matrix { border-collapse: collapse; width: 100%; font-size: 12px; }
+  table.dr-matrix th, table.dr-matrix td {
+    border-bottom: 1px solid var(--border);
+    padding: 4px 8px; text-align: center; white-space: nowrap;
+  }
+  table.dr-matrix thead th {
+    background: var(--surface-2); color: var(--text-dim);
+    font-weight: 600; font-size: 11px;
+    position: sticky; top: 0; z-index: 2;
+  }
+  table.dr-matrix th.dr-rowhead {
+    text-align: left; position: sticky; left: 0; z-index: 1;
+    background: var(--surface); font-weight: 600;
+  }
+  table.dr-matrix thead th.dr-rowhead { z-index: 3; background: var(--surface-2); }
+  table.dr-matrix tbody tr:hover td { background: var(--surface-2); }
+  table.dr-matrix tbody tr:hover th.dr-rowhead { background: var(--surface-2); }
+  .dr-mon-cell { display: flex; align-items: center; gap: 6px; }
+
+  .dr-hit { color: var(--text-ghost); }
+  .dr-hit b { display: block; font-size: 12px; font-weight: 700; line-height: 1.2; }
+  .dr-hit small { display: block; font-size: 10px; color: var(--text-dim); }
+  .dr-hit.is-yes b { color: var(--pos-2); }
+  .dr-hit.is-common b { color: var(--pos); }
+  .dr-hit.is-rare b { color: var(--warn); }
+  .dr-hit.is-unknown b { color: var(--text-soft); }
+  td.dr-no { color: var(--text-ghost); }
+
+  .dr-count { font-size: 11px; color: var(--text-dim); font-weight: 600; }
+
+  /* ── speed ──────────────────────────────────────────────────────── */
+  .dr-plan {
+    border: 1px solid var(--border); background: var(--surface);
+    padding: 12px; margin-bottom: 12px;
+  }
+  .dr-plan-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .dr-plan-head b { font-size: 14px; color: var(--text-strong); }
+  .dr-plan-head .dr-spacer { flex: 1 1 auto; }
+  .dr-verdict { font-size: 12px; line-height: 1.55; margin: 0 0 10px; }
+  .dr-verdict strong { color: var(--accent); }
+  .dr-verdict .dr-waste { color: var(--warn); font-weight: 600; }
+
+  /* EV strip: 0 -> 252 with a tick wherever the stat passes something. */
+  .dr-strip { position: relative; height: 46px; margin: 14px 0 6px; }
+  .dr-strip-rail {
+    position: absolute; left: 0; right: 0; top: 18px; height: 4px;
+    background: var(--inset); border: 1px solid var(--border-2);
+  }
+  .dr-strip-fill {
+    position: absolute; top: 18px; height: 4px;
+    background: var(--pos-2); opacity: 0.55;
+  }
+  .dr-strip-dead {
+    position: absolute; top: 18px; height: 4px;
+    background: repeating-linear-gradient(
+      45deg, var(--warn) 0 3px, transparent 3px 6px);
+    opacity: 0.5;
+  }
+  .dr-tick { position: absolute; top: 10px; width: 2px; height: 20px; background: var(--pos-2); }
+  .dr-tick.is-tie { background: var(--warn); }
+  .dr-tick-label {
+    position: absolute; top: 32px; font-size: 9px; color: var(--text-dim);
+    transform: translateX(-50%); white-space: nowrap;
+  }
+  .dr-strip-ends {
+    position: absolute; top: 0; left: 0; right: 0;
+    display: flex; justify-content: space-between;
+    font-size: 10px; color: var(--text-dim);
+  }
+
+  table.dr-steps { border-collapse: collapse; width: 100%; font-size: 12px; margin-top: 8px; }
+  table.dr-steps th, table.dr-steps td {
+    border-bottom: 1px solid var(--border); padding: 3px 8px; text-align: left;
+  }
+  table.dr-steps th { color: var(--text-dim); font-weight: 600; font-size: 11px; }
+  table.dr-steps td.dr-num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .dr-tiepill {
+    display: inline-block; background: var(--inset); border: 1px solid var(--warn);
+    color: var(--warn); font-size: 10px; padding: 0 4px; margin-left: 4px;
+  }
+  .dr-unreach { font-size: 11px; color: var(--text-dim); margin-top: 8px; line-height: 1.5; }
+  .dr-unreach b { color: var(--neg); }
+
+  /* Advanced controls and panels. The page answers "who has Fake Out" and
+     "how much Speed do I need" without any of them; everything here is a
+     second question you only ask once the first is answered. Hidden with a
+     class on the wrapper rather than per-element JS so the markup stays
+     declarative and nothing has to be re-rendered to toggle it. */
+  .dr-wrap:not(.show-adv) .dr-adv { display: none !important; }
+  #dr-advanced.is-on { color: var(--accent); border-color: var(--border-hi); }
+
+  /* modifier toggles */
+  .dr-modrow { display: flex; flex-wrap: wrap; gap: 4px; }
+  .dr-panel-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+  .dr-panel-head h3 { margin: 0 0 4px; }
+
+  /* coverage as a list: only matches are printed */
+  .dr-listwrap { margin-bottom: 18px; }
+  .dr-listhead {
+    margin: 0 0 6px; font-size: 11px; letter-spacing: 0.6px;
+    text-transform: uppercase; color: var(--text-dim); font-weight: 600;
+  }
+  ul.dr-list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--border); }
+  ul.dr-list > li {
+    display: flex; gap: 12px; align-items: baseline;
+    padding: 5px 2px; border-bottom: 1px solid var(--border);
+  }
+  .dr-listkey {
+    flex: 0 0 180px; display: flex; align-items: center; gap: 6px;
+    font-weight: 600; color: var(--text-strong); font-size: 12px;
+  }
+  .dr-listvals { flex: 1 1 auto; display: flex; flex-wrap: wrap; gap: 4px; }
+  .dr-tag {
+    display: inline-flex; align-items: center; gap: 3px;
+    border: 1px solid var(--border-2); background: var(--inset);
+    padding: 1px 6px; font-size: 12px; color: var(--text-soft);
+  }
+  .dr-tag i { font-style: normal; font-size: 10px; color: var(--text-dim); }
+  .dr-tag.is-common { border-color: var(--pos); color: var(--text-strong); }
+  .dr-tag.is-common i { color: var(--pos); }
+  .dr-tag.is-yes { border-color: var(--pos-2); }
+  .dr-tag.is-yes i { color: var(--pos-2); }
+  .dr-tag.is-rare { color: var(--text-dim); }
+  .dr-tag.is-unknown { border-style: dashed; }
+  .dr-tag.is-ability { border-color: var(--border-hi); color: var(--accent); }
+  .dr-none { font-size: 11px; color: var(--text-ghost); margin: 6px 0 0; line-height: 1.5; }
+
+  /* Pokémon names link through to their usage page for the selected format.
+     Underlined only on hover: nearly every name on this page is a link, and
+     underlining them all turns the lists into noise. */
+  .dr-wrap a { color: inherit; text-decoration: none; }
+  .dr-wrap a:hover { color: var(--accent); text-decoration: underline; }
+  .dr-chip a:hover, .dr-tag a:hover { color: var(--accent); }
+
+  /* "run N EVs" summary lines. Each expands to name the Pokémon it beats:
+     a bare "22/30" gives no sense of whether that is a good result. */
+  ul.dr-runlist { list-style: none; margin: 0 0 10px; padding: 0; }
+  ul.dr-runlist > li {
+    border-left: 3px solid var(--border-2);
+    background: var(--inset); margin-bottom: 4px; font-size: 12px;
+  }
+  ul.dr-runlist > li.is-clear { border-left-color: var(--pos-2); }
+  ul.dr-runlist summary {
+    display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap;
+    padding: 5px 8px; cursor: pointer; list-style: none;
+  }
+  ul.dr-runlist summary::-webkit-details-marker { display: none; }
+  ul.dr-runlist summary::before {
+    content: "▸"; color: var(--text-dim); font-size: 10px;
+    flex: 0 0 auto; transition: transform 0.12s;
+  }
+  ul.dr-runlist details[open] > summary::before { content: "▾"; }
+  ul.dr-runlist summary:hover { background: var(--surface-2); }
+  .dr-runline b { color: var(--accent); font-size: 13px; }
+  .dr-beats {
+    margin-left: auto; font-size: 11px; color: var(--text-dim);
+    font-variant-numeric: tabular-nums;
+  }
+  .dr-beats.is-clear { color: var(--pos-2); font-weight: 600; }
+  .dr-detail {
+    padding: 2px 8px 8px 22px; border-top: 1px solid var(--border);
+    margin-top: 2px;
+  }
+  .dr-beat-line { margin: 6px 0 0; font-size: 12px; line-height: 1.6; }
+  .dr-beat-line b { font-size: 10px; letter-spacing: 0.5px;
+    text-transform: uppercase; margin-right: 6px; }
+  .dr-beat-line b.is-beat { color: var(--pos-2); }
+  .dr-beat-line b.is-miss { color: var(--neg); }
+
+  @media (max-width: 700px) {
+    .dr-listkey { flex-basis: 100%; }
+  }
+
+  /* requirement grid */
+  table.dr-req { border-collapse: collapse; width: 100%; font-size: 12px; }
+  table.dr-req th, table.dr-req td {
+    border-bottom: 1px solid var(--border); padding: 4px 8px; white-space: nowrap;
+  }
+  table.dr-req th { color: var(--text-dim); font-weight: 600; font-size: 11px; text-align: left; }
+  table.dr-req td.dr-num { text-align: right; font-variant-numeric: tabular-nums; }
+  table.dr-req tbody tr:hover td { background: var(--surface-2); }
+  .dr-req-head {
+    display: flex; align-items: center; gap: 8px; margin: 0 0 6px; flex-wrap: wrap;
+  }
+  .dr-req-head b { font-size: 14px; color: var(--text-strong); }
+  .dr-cost { font-weight: 700; color: var(--pos-2); }
+  .dr-cost.is-none { color: var(--neg); font-weight: 400; }
+  .dr-cost.is-free { color: var(--pos); }
+  .dr-how { color: var(--text-dim); font-size: 11px; }
+  .dr-forme-tag {
+    font-size: 10px; padding: 0 4px; border: 1px solid var(--border-2);
+    color: var(--text-dim); margin-left: 4px;
+  }
+  .dr-forme-tag.is-mega { color: var(--accent); border-color: var(--border-hi); }
+
+  /* ladder */
+  table.dr-ladder { border-collapse: collapse; width: 100%; font-size: 12px; }
+  table.dr-ladder th, table.dr-ladder td {
+    border-bottom: 1px solid var(--border); padding: 3px 8px; text-align: left;
+  }
+  table.dr-ladder th { color: var(--text-dim); font-weight: 600; font-size: 11px; }
+  table.dr-ladder td.dr-num { text-align: right; font-variant-numeric: tabular-nums; }
+  tr.dr-mine td { background: color-mix(in srgb, var(--pos-2) 8%, transparent); }
+  tr.dr-theirs td:first-child { border-left: 3px solid var(--accent); }
+  tr.dr-mine td:first-child { border-left: 3px solid var(--pos-2); }
+
+  .dr-empty {
+    border: 1px dashed var(--border-2); padding: 22px; text-align: center;
+    color: var(--text-dim); font-size: 13px;
+  }
+  .dr-warn {
+    border: 1px solid var(--warn); background: color-mix(in srgb, var(--warn) 8%, transparent);
+    color: var(--text-soft); padding: 8px 10px; font-size: 12px; margin-bottom: 12px;
+  }
+  .dr-foot-note {
+    font-size: 11px; color: var(--text-dim); line-height: 1.6;
+    border-top: 1px solid var(--border); padding-top: 12px; margin-top: 28px;
+  }
+
+  @media (max-width: 860px) {
+    .dr-sides { grid-template-columns: minmax(0, 1fr); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% include "_tabs.html" %}
+{% include "_tools_subtabs.html" %}
+
+<div class="dr-wrap">
+  <div class="dr-head">
+    <h2>{{ _('Draft Scout') }}</h2>
+    <p class="dr-sub">
+      {{ _('Check a whole roster at once instead of one Pokémon at a time. Add your opponent\'s draft on the right and yours on the left, then ask who has Fake Out, priority, speed control or screens — and see exactly how much Speed investment it takes to outspeed each of them. It reports the numbers; the team building stays yours.') }}
+    </p>
+  </div>
+
+  <div class="dr-controls">
+    <label class="dr-field">
+      <span>{{ _('Usage from') }}</span>
+      <select id="dr-format">
+        {% for code, name in draft_formats %}
+        <option value="{{ code }}" {% if code == draft_format %}selected{% endif %}>{{ name }}</option>
+        {% endfor %}
+      </select>
+    </label>
+    <label class="dr-field dr-adv">
+      <span>{{ _('Rating') }}</span>
+      <select id="dr-rating"></select>
+    </label>
+    <label class="dr-field dr-adv">
+      <span>{{ _('Play style') }}</span>
+      <select id="dr-style">
+        <option value="doubles">{{ _('Doubles / VGC') }}</option>
+        <option value="singles">{{ _('Singles') }}</option>
+      </select>
+    </label>
+    <div class="dr-field dr-adv">
+      <span>{{ _('Consider for me') }}</span>
+      <div class="dr-modrow" id="dr-my-mods"></div>
+    </div>
+    <div class="dr-field dr-adv">
+      <span>{{ _('Consider for them') }}</span>
+      <div class="dr-modrow" id="dr-their-mods"></div>
+    </div>
+    <span class="dr-spacer"></span>
+    <button type="button" class="dr-btn" id="dr-advanced"></button>
+    <button type="button" class="dr-btn" id="dr-share">{{ _('Copy link') }}</button>
+    <button type="button" class="dr-btn" id="dr-clear">{{ _('Clear') }}</button>
+  </div>
+
+  <div class="dr-sides">
+    <div class="dr-side is-mine">
+      <div class="dr-side-head">
+        <h3>{{ _('My roster') }}</h3>
+        <span class="dr-spacer"></span>
+        <small id="dr-mine-count"></small>
+      </div>
+      <div class="dr-addrow">
+        <input type="text" id="dr-mine-input" autocomplete="off"
+               placeholder="{{ _('Add a Pokémon…') }}">
+      </div>
+      <div class="dr-chips" id="dr-mine-chips"></div>
+      <details class="dr-paste">
+        <summary>{{ _('Paste a list or Showdown export') }}</summary>
+        <textarea id="dr-mine-paste"
+                  placeholder="{{ _('Incineroar, Rillaboom, Amoonguss…  — or paste a full Showdown team') }}"></textarea>
+        <button type="button" class="dr-btn is-tiny" data-paste="mine" style="margin-top:6px">{{ _('Add these') }}</button>
+      </details>
+    </div>
+
+    <div class="dr-side is-theirs">
+      <div class="dr-side-head">
+        <h3>{{ _('Opponent roster') }}</h3>
+        <span class="dr-spacer"></span>
+        <small id="dr-theirs-count"></small>
+      </div>
+      <div class="dr-addrow">
+        <input type="text" id="dr-theirs-input" autocomplete="off"
+               placeholder="{{ _('Add a Pokémon…') }}">
+      </div>
+      <div class="dr-chips" id="dr-theirs-chips"></div>
+      <details class="dr-paste">
+        <summary>{{ _('Paste a list or Showdown export') }}</summary>
+        <textarea id="dr-theirs-paste"
+                  placeholder="{{ _('Paste their whole draft — one per line, comma separated, or a Showdown export') }}"></textarea>
+        <button type="button" class="dr-btn is-tiny" data-paste="theirs" style="margin-top:6px">{{ _('Add these') }}</button>
+      </details>
+    </div>
+  </div>
+
+  <div class="dr-query">
+    <div class="dr-presets" id="dr-presets"></div>
+    <div class="dr-moverow">
+      <input type="text" id="dr-move-input" autocomplete="off"
+             placeholder="{{ _('Add a specific move or ability…') }}">
+    </div>
+    <div class="dr-selected" id="dr-selected"></div>
+  </div>
+
+  <div id="dr-warn"></div>
+
+  <div class="dr-panel" id="dr-coverage-panel">
+    <div class="dr-panel-head">
+      <h3>{{ _('Move coverage') }}</h3>
+      <span class="dr-spacer"></span>
+      <div class="dr-modrow dr-adv" id="dr-listby">
+        <button type="button" class="dr-btn is-tiny" data-listby="move">{{ _('By move') }}</button>
+        <button type="button" class="dr-btn is-tiny" data-listby="pokemon">{{ _('By Pokémon') }}</button>
+        <button type="button" class="dr-btn is-tiny" data-listby="grid">{{ _('Grid') }}</button>
+      </div>
+    </div>
+    <p class="dr-note dr-adv">
+      {{ _('Only matches are listed — a Pokémon or a move with nothing to show is summarised on one line at the end rather than filling a column with blanks. A percentage is how often that Pokémon actually runs the move on the selected ladder; “can learn” and “does run” are different questions and the second is usually the one that matters. No percentage means no usage data, which is not the same as 0%%.') }}
+    </p>
+    <div id="dr-coverage"></div>
+  </div>
+
+  <div class="dr-panel" id="dr-req-panel">
+    <h3>{{ _('What it takes to outspeed') }}</h3>
+    <p class="dr-note dr-adv">
+      {{ _('For every Pokémon on their side, the least investment that gets you past it — reported for a neutral and a +Speed nature separately, because whether that nature slot is free depends on what else you need it for. Turn on Choice Scarf, Tailwind or a boost above to have those options costed too, on either side. A Mega is listed alongside its pre-Mega forme, since Mega Evolution happens during the game and the slower row is a real turn.') }}
+    </p>
+    <div id="dr-req"></div>
+  </div>
+
+  <div class="dr-panel dr-adv" id="dr-speed-panel">
+    <h3>{{ _('Speed investment curve') }}</h3>
+    <p class="dr-note">
+      {{ _('Every investment amount that actually raises the stat, and which of their benchmarks it newly beats. Investment stops paying at the last tick — past that, the points buy nothing against this roster. Speed ties are shown as ties, never as wins.') }}
+    </p>
+    <div id="dr-speed"></div>
+  </div>
+
+  <div class="dr-panel" id="dr-ladder-panel">
+    <h3>{{ _('Speed ladder') }}</h3>
+    <p class="dr-note">
+      {{ _('Both rosters merged and sorted. Opponents appear at three benchmarks because their real spread is unknown — uninvested, max neutral, and max with a boosting nature.') }}
+    </p>
+    <div class="dr-scroll" id="dr-ladder"></div>
+  </div>
+
+  <p class="dr-foot-note dr-adv">
+    {{ _('Legality comes from Pokémon Showdown\'s published learnsets, filtered to this generation\'s sources only — a move that exists solely as a past-generation entry is not counted. Usage percentages come from Smogon monthly statistics for the selected format and rating. Opponent Speed benchmarks are assumptions, not reads: if you know a spread from a replay, the Spread Solver will pin it down.') }}
+    {{ _('Names are matched loosely, so “Hisuian Zoroark”, “Zoroark-Hisui” and “Zoroark Hisuian” all resolve to the same Pokémon — check the chips to confirm it picked what you meant. Megas are included with their own stats, typing and ability; their movepool is the base forme\'s, marked †.') }}
+    {{ _('The roster follows the selected format, because the rule sets disagree about which Pokémon exist: Runerigus and Mr. Rime are absent from Scarlet/Violet but present in both National Dex and Champions, while Rillaboom and Flutter Mane are in the first two and not in Champions. Champions also spends 66 stat points rather than 508 EVs, so its Speed panel is measured in SP.') }}
+  </p>
+</div>
+
+<script>
+  window.DRAFT_BOOT = {
+    format: {{ draft_format | tojson }},
+    formatName: {{ draft_format_name | tojson }},
+    rating: {{ draft_rating | tojson }},
+    month: {{ draft_month | tojson }},
+    formatRatings: {{ draft_format_ratings | tojson }},
+    dex: {{ active_dex | tojson }},
+    usageBase: {{ draft_usage_base | tojson }},
+    species: {{ draft_species | tojson }},
+    presets: {{ draft_presets | tojson }},
+    abilityPresets: {{ draft_ability_presets | tojson }},
+    moveNames: {{ draft_move_names | tojson }},
+  };
+</script>
+<script src="{{ url_for('static', filename='draft_scout.js') }}?v=1"></script>
+{% endblock %}

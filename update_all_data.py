@@ -126,6 +126,244 @@ def updateData():
     extract_battle_icon_indexes_from_url(url, "stats/forms_index.json")
 
 
+# A learnset source string is generation + method letter + an optional number:
+# "9M" = Gen 9 TM, "9L30" = Gen 9 by level-up at 30, "9E" = Gen 9 egg move.
+# Methods seen with a Gen 9 tag: M=TM, L=level-up, E=egg, S=event, R=reminder.
+# All five are obtainable in SV, so all five count as "can learn". A source
+# without a leading 9 is a past-generation entry and is dropped -- that filter
+# is the whole reason transfer-only moves do not leak into the index.
+#
+# The trailing number means different things per method and only means "level"
+# after L. After S it is an index into the entry's eventData array, so it is
+# discarded: printing "Event 11" next to a move would read as a level and be
+# wrong. Incineroar is the case that makes this concrete -- its own Fake Out
+# entry is "7S0", a Gen 7 event, which the gen filter drops; the move is legal
+# in SV only because Litten learns it as "9E" and it survives evolution.
+LEARNSET_SOURCE_LABEL = {
+    "M": "TM", "L": "Level", "E": "Egg", "S": "Event", "R": "Reminder",
+}
+LEARNSET_KEEPS_LEVEL = {"L"}
+# Formes that exist only outside the Gen 9 games (Gmax, CAP, LGPE, and every
+# past-generation-only species).
+LEARNSET_SKIP_NONSTANDARD = {"Past", "Future", "CAP", "LGPE", "Custom"}
+
+# Megas and Primals are the exception to that skip. Showdown marks them
+# "Past" because SV has no Mega Evolution, but draft leagues draft them
+# constantly and the site's own default format is a Champions regulation
+# where they are legal via held stones. They never carry a learnset of their
+# own in any generation -- a Mega's movepool IS its base forme's -- so the
+# baseSpecies fallback already produces the right answer, and a Mega whose
+# base has no Gen 9 movepool drops out on its own. Their stats, typing and
+# ability still come from their own dex entry, which is the whole reason to
+# list them separately.
+LEARNSET_KEEP_FORMES = ("Mega", "Primal")
+
+
+def _to_id(name):
+    """Showdown's toID(): lowercase, strip everything but a-z0-9."""
+    return re.sub(r"[^a-z0-9]", "", (name or "").lower())
+
+
+def buildLearnsets(gen="9", mode="gen9"):
+    """Build a learnset index -- who can learn what.
+
+    Two indexes are produced, because draft leagues run both rule sets and
+    they disagree about which Pokemon exist at all:
+
+      mode="gen9"    stats/learnsets_gen9.json -- the Scarlet/Violet dex, with
+                     only Gen 9 move sources. Correct for VGC and any SV
+                     ladder format.
+      mode="natdex"  stats/learnsets_natdex.json -- National Dex: every
+                     species, with moves from any generation. Runerigus,
+                     Mr. Rime, Obstagoon and Cursola are not in SV at all, so
+                     a Gen 9 index has nothing to say about them, but they are
+                     drafted constantly in National Dex leagues.
+
+    The two are kept as separate files rather than one file with per-move
+    generation tags. A draft is played under one rule set at a time, so the
+    useful thing is an index that is internally consistent and can be named
+    in the UI -- not a merged one that has to be re-filtered on every query
+    and can quietly answer under the wrong rules.
+
+    Source is Showdown's published learnsets.json, which lists every move a
+    species has ever learned tagged with the generation and method it came
+    from ("9M" = Gen 9 TM, "8L30" = Gen 8 at level 30). In gen9 mode only the
+    tags for this generation are kept, and that is what makes the answer
+    trustworthy: a move that exists solely as an "8M" entry cannot be brought
+    into SV, and a tool that reported it would be worse than no tool at all.
+    In natdex mode every generation counts, which is the National Dex rule --
+    a transferred Pokemon keeps what it could learn where it came from.
+
+    Two inheritance rules are applied, both of them load-bearing:
+
+      prevo        An evolution keeps everything its pre-evolutions could
+                   learn. Incineroar's Fake Out is an egg move on Litten.
+      baseSpecies  A forme with no Gen 9 movepool of its own shares its base
+                   forme's. This fallback fires on an entry that yields *no
+                   Gen 9 moves*, not merely on a missing entry -- every
+                   Therian forme has an entry carrying only pre-Gen-9 sources,
+                   so testing presence alone silently left Tornadus-Therian
+                   with an empty movepool.
+
+    The fallback deliberately does not merge: a forme that does have its own
+    Gen 9 moves keeps them and never consults the base. That is what stops
+    Wicked Blow and Surging Strikes leaking across the two Urshifu formes,
+    and Glacial Lance across the two Calyrex formes.
+
+    Moves are interned into a shared list and referenced by index, which takes
+    the file from a few megabytes to a few hundred kilobytes -- it is loaded
+    whole at request time, so the size is worth the small indirection.
+    """
+    print("Getting learnset data.")
+    url = "https://play.pokemonshowdown.com/data/learnsets.json"
+    raw = json.loads(requests.get(url, timeout=120).text)
+
+    with open("stats/pokedex.json", "r", encoding="utf-8") as f:
+        dex = pyjson5.loads(f.read())
+
+    memo = {}
+
+    natdex = mode == "natdex"
+
+    natdex = mode == "natdex"
+
+    # Pools are carried as {move id: (generation, {method tokens})} and only
+    # rendered to a string at the end. Merging needs the generation as a
+    # number to compare, and folding it into the token string first would
+    # mean parsing it back out on every merge.
+    def own(sid):
+        """The in-scope slice of one species' OWN learnset entry. No fallback."""
+        out = {}
+        learnset = (raw.get(sid) or {}).get("learnset") or {}
+        for move_id, sources in learnset.items():
+            best_gen, tokens = None, set()
+            for s in sources:
+                if not s[:1].isdigit():
+                    continue
+                if not natdex and s[:1] != gen:
+                    continue
+                method = s[1:2]
+                if method not in LEARNSET_SOURCE_LABEL:
+                    continue
+                # A move can come from several generations. The newest is the
+                # honest label: that is the game a set would actually be built
+                # in, and older entries are the same move by transfer.
+                src_gen = int(s[:1])
+                if best_gen is not None and src_gen < best_gen:
+                    continue
+                if best_gen is None or src_gen > best_gen:
+                    best_gen, tokens = src_gen, set()
+                rest = s[2:]
+                tokens.add(method + rest
+                           if method in LEARNSET_KEEPS_LEVEL and rest
+                           else method)
+            if tokens:
+                out[move_id] = (best_gen, tokens)
+        return out
+
+    def merge_into(pool, other):
+        """Union two pools, keeping the newer generation's methods per move."""
+        for move_id, (src_gen, tokens) in other.items():
+            have = pool.get(move_id)
+            if have is None:
+                pool[move_id] = (src_gen, set(tokens))
+            elif src_gen > have[0]:
+                pool[move_id] = (src_gen, set(tokens))
+            elif src_gen == have[0]:
+                have[1].update(tokens)
+        return pool
+
+    def render(pool):
+        """Serialise {move: (gen, tokens)} to the on-disk string form."""
+        out = {}
+        for move_id, (src_gen, tokens) in pool.items():
+            # Lowest level first, bare methods ahead of levelled ones, so the
+            # rendered hint reads "TM, Level 30".
+            label = ",".join(sorted(
+                tokens, key=lambda t: (t[0], int(t[1:] or 0))))
+            # Natdex entries carry the generation, so a move only reachable by
+            # transfer from an older game can be seen to be one.
+            out[move_id] = f"g{src_gen}:{label}" if natdex else label
+        return out
+
+    def resolve(sid):
+        if sid in memo:
+            return memo[sid]
+        memo[sid] = {}  # guards against a malformed prevo or forme cycle
+        pool = own(sid)
+        if not pool:
+            # No Gen 9 moves of its own: this is a forme that shares its base
+            # forme's movepool (a Mega, a Therian, an Ogerpon mask). Take the
+            # base's FULLY RESOLVED pool, not just its own entry -- the base's
+            # pre-evolution moves belong to the forme too, and reading only
+            # the base entry silently cost Mega Charizard the seven moves
+            # Charmander and Charmeleon pass up to Charizard.
+            base = (dex.get(sid) or {}).get("baseSpecies")
+            base_id = _to_id(base) if base else None
+            if base_id and base_id != sid:
+                pool = dict(resolve(base_id))
+                memo[sid] = pool
+                return pool
+        prevo = (dex.get(sid) or {}).get("prevo")
+        if prevo:
+            merge_into(pool, resolve(_to_id(prevo)))
+        memo[sid] = pool
+        return pool
+
+    move_index = {}
+
+    def intern(move_id):
+        if move_id not in move_index:
+            move_index[move_id] = len(move_index)
+        return move_index[move_id]
+
+    # National Dex still excludes the things that are not real Pokemon in any
+    # game -- CAP creations, Let's Go exclusives and Gmax formes, which are a
+    # battle state rather than a drafted species.
+    skip = {"CAP", "Custom", "Future", "LGPE"} if natdex else LEARNSET_SKIP_NONSTANDARD
+
+    pokemon = {}
+    borrowed = []
+    for sid, entry in dex.items():
+        forme = entry.get("forme") or ""
+        if forme.startswith("Gmax"):
+            continue
+        is_kept_forme = forme.startswith(LEARNSET_KEEP_FORMES)
+        if entry.get("isNonstandard") in skip and not is_kept_forme:
+            continue
+        if is_kept_forme:
+            borrowed.append(sid)
+        pool = resolve(sid)
+        if not pool:
+            continue
+        rendered = render(pool)
+        # Sorted by index so the file diffs cleanly between data refreshes.
+        pokemon[sid] = sorted(
+            [intern(move_id), letters] for move_id, letters in rendered.items()
+        )
+
+    out = {
+        "generatedAt": datetime.utcnow().isoformat() + "Z",
+        "gen": None if natdex else int(gen),
+        "mode": mode,
+        "source": url,
+        "sourceLabels": LEARNSET_SOURCE_LABEL,
+        "count": len(pokemon),
+        "moves": [m for m, _ in sorted(move_index.items(), key=lambda kv: kv[1])],
+        # Formes whose movepool is their base forme's rather than their own,
+        # so a reader can be told that rather than left to assume otherwise.
+        "inheritsMovepool": sorted(s for s in borrowed if s in pokemon),
+        "pokemon": pokemon,
+    }
+    path = ("stats/learnsets_natdex.json" if natdex
+            else f"stats/learnsets_gen{gen}.json")
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(out, f, separators=(",", ":"))
+    print(f"  Wrote {mode} movepools for {len(pokemon)} Pokemon "
+          f"({len(move_index)} distinct moves, "
+          f"{len(out['inheritsMovepool'])} borrowing a base forme's).")
+
+
 def updateImage():
     print("Getting images.")
     url = "https://play.pokemonshowdown.com/sprites/pokemonicons-sheet.png"
@@ -573,6 +811,8 @@ def updateChampionsIndex():
 
 if __name__ == "__main__":
     updateData()
+    buildLearnsets(mode="gen9")
+    buildLearnsets(mode="natdex")
     updateImage()
     updateMetagames()
     splitMetagameFiles()

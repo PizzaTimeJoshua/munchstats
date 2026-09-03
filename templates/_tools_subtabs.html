@@ -50,4 +50,6 @@
      href="{{ url_for('tools_page') }}">{{ _('Extensions') }}</a>
   <a class="tools-subtab{% if tools_tab | default('') == 'solver' %} is-active{% endif %}"
      href="{{ url_for('tools_solver_page') }}">{{ _('Spread Solver') }}</a>
+  <a class="tools-subtab{% if tools_tab | default('') == 'draft' %} is-active{% endif %}"
+     href="{{ url_for('tools_draft_page') }}">{{ _('Draft Scout') }}</a>
 </nav>

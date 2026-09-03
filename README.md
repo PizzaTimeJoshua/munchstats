@@ -88,8 +88,21 @@
 - Hidden unless all four contact env vars are set (see Deployment)
 
 ### Tools
-Two sub-tabs at `/tools/`:
+Three sub-tabs at `/tools/`:
 - **Extensions** — the Pokémon Showdown browser extensions (VGC Replay Analyzer, VGC Practice Extension)
+- **Draft Scout** (`/tools/draft/`) — scout a draft-league opponent's whole roster at once instead of checking Pokémon one at a time. Two rosters (yours and theirs), and two questions answered across all of them
+  - **Move coverage:** who has Fake Out, priority, speed control, screens, redirection, hazards…? Curated preset groups plus free-text search over every move and ability. Results are a **list, not a matrix** — only matches are printed, with everything that matched nothing collapsed onto one line at the end. A twelve-ability preset against ten Pokémon is a 120-cell grid that is almost entirely blank; the same query as a list is usually two or three lines. Groupable by move ("who has Fake Out") or by Pokémon ("what does this bring"), with the old grid still available via `?view=grid`. The Priority group is *derived* from `moves.json` (`priority > 0`) rather than hand-listed, so it cannot fall behind a new generation; moves whose priority is conditional (Grassy Glide) are folded back in explicitly, since the static field reads 0 for them
+  - **Usage overlay:** each hit shows how often that Pokémon *actually runs* the move on the selected ladder, not just whether it can learn it — Garchomp, Landorus-T and Rillaboom all learn Earthquake, but at 95%/73%/3% those are three different facts. A Pokémon with no usage row reads as unknown, never as 0%
+  - **Speed investment:** for each of your Pokémon, every Speed EV amount that actually raises the stat and which opposing benchmarks it newly beats — plus where investment *stops paying*, so you can put the rest into bulk instead of buying nothing. Speed ties are reported as ties, never rounded up into wins. The Trick Room direction (max EVs while staying slower) is reported alongside
+  - **"What it takes to outspeed":** nature is an *output*, not an input. For every Pokémon on their side, the grid reports the least investment that gets past it under a neutral nature and under a +Speed nature separately — whether that nature slot is affordable depends on what else it is doing for damage, which is the player's call. Optional modifiers (Choice Scarf, Tailwind, +1/+2, −1/−2, paralysis) can be switched on **for either side** to have those lines costed too — the drops cover Icy Wind, Electroweb, Sticky Web and Cotton Spore, and are as useful on their side (what your Icy Wind buys) as on yours (what surviving one costs). The four stage changes are mutually exclusive, since they all name one stat stage. The held-item rule applies to *both* sides: their Mega Gengar cannot be given a Choice Scarf either, and assuming one there is the more dangerous error — it invents a threat that cannot exist and would have you over-invest to beat it. A stat drop is not an item, so those still apply to a Mega. Each configuration also gets a one-line **"run N EVs"** summary — the least investment that beats everything that configuration can beat, which is the number that actually goes on the spread ("Scarf Gallade, +Speed: run 172 EVs → 201 Speed, clears the roster, 80 EVs spare"). Within a nature the recommendation ranks by what an option costs to *arrange* — self-contained first (a Scarf is a set slot; Tailwind needs an ally's turn and expires), so Scarf-at-44-EVs beats Tailwind-at-0
+  - **Megas are costed as two rows**, the Mega and its pre-Mega forme, because Mega Evolution happens mid-battle and the slower turn is real. Held-item modifiers are excluded from **every** column of a Mega's card, the pre-Mega row included: drafting a Mega spends the item slot on its stone for the whole set, so the base forme is already holding it on turn one. "Mega Gengar + Choice Scarf" is an impossible set at any point in the turn, not just after evolving. Wanting a Scarf on the base forme is a different draft pick and is available as one — adding plain Gengar yields a single base row with every item option open, which is also where the real trade-off shows up: Scarf Gengar (110 base × 1.5 = 214) outruns Mega Gengar (130 base, no item, 193)
+  - Opponent Speed is shown at three benchmarks (uninvested / max neutral / max +nature) because their real spread is unknown; a Showdown paste pins it where you do know it
+  - Rosters accept typed names, bulk lists, or a full Showdown export, and live in the URL so a scouting link can be shared
+  - **Name tolerance:** draft documents never agree on forme names, so resolution is form-aware rather than purely fuzzy — a qualifier may sit before or after the base name and be spelled either way (`Hisuian Zoroark` / `Zoroark-Hisui` / `Zoroark Hisuian` / `Zoroark-Hisuian` / `H-Zoroark`), Mega orderings all work (`Mega Charizard X` / `Charizard-Mega-X` / `M-Charizard X`), qualifier order is permuted (`Tauros-Paldea-Aqua` / `Tauros Aqua Paldean`), and spoken-only words are dropped (`Shadow Rider Calyrex`, `Zacian Crowned Sword`). Form matching runs *before* fuzzy matching on purpose: fuzzy matching will happily call "Hisuian Zoroark" a good-enough match for plain Zoroark, and silently swapping a forme for its base is worse than admitting ignorance. A trailing `(F)` is treated as a forme where gender is one (Indeedee, Meowstic, Basculegion, Oinkologne — Indeedee-F gets Follow Me and Indeedee-M does not) and as cosmetic everywhere else
+  - **Megas** are included with their own stats, typing and ability, movepool inherited from the base forme (marked †). Showdown flags them `isNonstandard: Past` since SV has no Mega Evolution, but draft leagues draft them and the site's default format is a Champions regulation where they are legal via held stones
+  - **The roster follows the selected format**, because the three rule sets disagree about which Pokémon exist at all. Runerigus and Mr. Rime are absent from Scarlet/Violet but present in both National Dex and Champions; Rillaboom and Flutter Mane are in the first two and not in Champions. `draft_tools.dex_for_format()` maps a format code to one of `gen9` (983 species) / `natdex` (1377) / `champions` (315, including 77 Megas), and the species picker reloads from `/tools/api/draft/species` when the format implies a different one
+  - **Champions is a different stat system, not just a different roster.** It spends 66 stat points (max 32 per stat, step 1, no IVs) through `floor((base + points + 20) * nature)` rather than 508 EVs through the cartridge formula, so its Speed panel is measured in SP with a 0–32 axis. `draft_tools.speed_stat(..., system="champions")` is checked against `app.py`'s own `calculate_champions_stat_value()` so the two cannot drift. The +75 HP / +20 elsewhere in `champions_index_static.json` are the **in-game display stats, not base stats** — feeding them to the formula would apply the bonus twice, so base stats are recovered by removing the bonus. That also picks up the documented Floette override for free (Champions battles it as Floette-Eternal, 92 Speed rather than 52) instead of duplicating the table
+  - Deliberately **not** a team builder: it reports data and leaves the decisions to the player
 - **Spread Solver** (`/tools/spread-solver/`) — reverse-engineers EV spreads from what a battle showed. Enter two or more teams (Open Team Sheets are the point: species, item, ability, Tera and nature but no EVs), log every damage roll and speed order, and it keeps only the spreads that could have produced all of them
   - Damage rolls are calculated **in the browser** with the same bundled @smogon/calc the site's calculator uses; the server only supplies base stats and priors
   - Interactions carry the context that moves a calc: crits, spread vs. single-target hits, Helping Hand, screens, Friend Guard, Tera, weather/terrain, stat stages, item/ability/status overrides, multi-hit and base-power overrides. Hits on your own ally (a spread Earthquake) are logged the same way
@@ -129,6 +142,7 @@ Two sub-tabs at `/tools/`:
 - **EV corpus cache:** `cache/ev_corpus/` (per-species EV spreads parsed out of VGCPastes pokepastes for the Spread Solver, 12h TTL) — fetched lazily at runtime, safe to delete
 - **Translations:** `translations/es/LC_MESSAGES/messages.po` (+ compiled `.mo`, committed), `messages.pot` template, `babel.cfg`
 - **Metadata:** `stats/pokedex.json`, `stats/moves.json`, `stats/items.json`, `stats/abilities.json`, `stats/forms_index.json`, `stats/meta_names.json`
+- **Learnsets:** `stats/learnsets_gen9.json` (SV dex, Gen 9 sources only — 983 Pokémon, ~610KB) and `stats/learnsets_natdex.json` (National Dex: every species, moves from any generation, each labelled with the newest generation it came from — 1377 Pokémon, ~1.3MB). Champions uses its own movepools from `champions_index_static.json`, plus 77 Megas grafted on: that index is built from the Champions mod's learnsets, where Mega Evolution is a held stone rather than a species, so it lists only base formes — a Mega is added when its base forme is on the roster, taking the base's movepool and the Mega's own stats, typing and ability (this picks up the Champions-only Megas such as Mega Raichu and Mega Victreebel too). Without them "Mega Charizard Y" resolved to plain Charizard, which is the silently-wrong-forme failure the resolver exists to avoid. Two files rather than one with per-move generation tags: a draft is played under one rule set at a time, so the useful thing is an index that is internally consistent and can be named in the UI. Built by `buildLearnsets()` from Showdown's `learnsets.json`, keeping only sources tagged for this gen so transfer-only moves cannot leak in. Move ids are interned into a shared list and referenced by index. Two inheritance rules apply: evolutions keep their pre-evolutions' moves (Incineroar's Fake Out is an egg move on Litten — its own entry is a Gen 7 event and is correctly dropped), and a forme with no Gen 9 movepool of its own falls back to its base forme (every Therian forme has an entry carrying only pre-Gen-9 sources). The fallback does not *merge*, which is what keeps Wicked Blow and Surging Strikes on separate Urshifu formes — and it takes the base's **fully resolved** pool, not just its own entry, or a Mega would silently lose the moves its base inherits from pre-evolutions. Megas and Primals are kept despite their `Past` flag (see Draft Scout); `inheritsMovepool` lists the formes whose pool came from another forme
 - **Champions mod:** `stats/champions_moves.json`, `stats/champions_abilities.json`
 
 ## Routes (Flask)
@@ -149,6 +163,7 @@ Two sub-tabs at `/tools/`:
 - `GET /replays/watch/<replay_id>` → replay viewer
 - `GET /tools/` → tools page (Extensions sub-tab)
 - `GET /tools/spread-solver/` → Spread Solver (also `/tools/spread-solver/<format_code>/`)
+- `GET /tools/draft/` → Draft Scout (also `/tools/draft/<format_code>/`; rosters and query carried in `?mine=`/`?theirs=`/`?moves=`/`?presets=`/`?abilities=`)
 - `GET /about/` → about page
 - `GET|POST /contact/` → contact form (hidden unless contact env vars are set)
 - `GET /robots.txt` → robots file
@@ -161,6 +176,10 @@ Two sub-tabs at `/tools/`:
 - `GET /api/<format_code>/<rating>/calc/<pokemon_name>` → calc data JSON
 - `GET /api/moves/search` → move autocomplete
 - `GET /api/tools/spread-context/<format_code>/<rating>/<pokemon_name>` → Spread Solver priors for one species: base stats, the format's EV rules, ladder spread usage, and published EV spreads scraped from VGCPastes pokepastes (`?community=0` skips the paste corpus, the only slow half)
+- `GET /tools/api/draft/scout` → Draft Scout coverage + Speed plans + outspeed-requirement grid for two rosters (`?mine=`, `?theirs=`, `?moves=`, `?presets=`, `?abilities=`, `?fmt=`, `?rating=`, `?my_mods=`, `?their_mods=`). `my_mods`/`their_mods` name modifiers to *enumerate* (scarf, tailwind, boost1, boost2, para), not to assume — each adds a costed column rather than changing one answer
+- `GET /tools/api/draft/resolve` → resolve pasted roster text (list or Showdown export) to species, without loading usage (`?dex=`)
+- `GET /tools/api/draft/lookup` → move + ability autocomplete for the Draft Scout query box
+- `GET /tools/api/draft/species?dex=gen9|natdex|champions` → the species one rule set allows (served rather than embedded; the three together are ~2600 entries)
 - `GET /api/pokemon-teams/<format_code>/<pokemon_name>` → top tournament teams using Pokémon
 - `GET /api/pokemon-replays/<format_code>/<pokemon_name>` → related replay links
 - `GET /api/merch/<pokemon_name>` → eBay merchandise listings
@@ -196,6 +215,7 @@ static/
   replay_search.js            Replay search/filtering
   tournament_stats.js         Tournament page logic
   spread_solver.js            Spread Solver (EV reverse-engineering, runs client-side)
+  draft_scout.js              Draft Scout (two rosters, coverage matrix, EV strips)
   theme-boot.js               Theme engine (preset registry, pre-paint apply, picker menu)
   style.css                   Shared site styles + per-theme token blocks
   robots.txt
@@ -213,6 +233,7 @@ templates/
   watch.html                  Replay viewer
   contact.html                Contact form
   tools_solver.html           Spread Solver page
+  tools_draft.html            Draft Scout page
   tools.html, about.html, 404.html, 500.html
 stats/
   {YYYY-MM}/                  Per-Pokémon split stats by month/format/rating
@@ -227,6 +248,7 @@ translations/
 app.py                        Flask application
 limitless_stats.py            Limitless API client + online tournament usage aggregation
 insights.py                   Meta insight report builders (pure functions over loaded data)
+draft_tools.py                Draft Scout engine: movepool queries, preset groups, Speed maths
 vgcpastes.py                  VGCPastes sheet client + team search
 og_card.py                    Open Graph stat card renderer (Pillow, Flask-free)
 update_all_data.py            Data pipeline (downloads, splits, generates trends)
@@ -244,7 +266,7 @@ Run `update_all_data.py` to update all data:
 python update_all_data.py
 ```
 This will:
-1. Download latest Pokémon data (pokedex, moves, items, abilities, sprites)
+1. Download latest Pokémon data (pokedex, moves, items, abilities, sprites) and build the Gen 9 learnset index
 2. Download current month's usage stats from Smogon
 3. Split monolithic JSON files into per-Pokémon files
 4. Generate 12-month usage trend data from Smogon chaos files
