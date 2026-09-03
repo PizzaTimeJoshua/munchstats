@@ -440,13 +440,16 @@ def get_remote_formats_for_month(month):
             formats = {}
             for a in soup.find_all("a", href=True):
                 href = a["href"]
-                if href.endswith(".json") and ".gz" not in href:
+                # Smogon serves these gzipped; some months still carry plain
+                # JSON too, so accept either and dedupe the ratings.
+                name = href[:-3] if href.endswith(".gz") else href
+                if name.endswith(".json"):
                     # Parse "gen9ou-0.json" -> format_code="gen9ou", rating="0"
-                    name = href.rsplit(".", 1)[0]
+                    name = name.rsplit(".", 1)[0]
                     parts = name.rsplit("-", 1)
                     if len(parts) == 2 and parts[1].isdigit():
                         fmt, rat = parts
-                        formats.setdefault(fmt, []).append(rat)
+                        formats.setdefault(fmt, set()).add(rat)
             for fmt in formats:
                 formats[fmt] = sorted(formats[fmt], key=int)
             return formats
