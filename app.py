@@ -441,13 +441,16 @@ def get_remote_formats_for_month(month):
             formats = {}
             for a in soup.find_all("a", href=True):
                 href = a["href"]
-                if href.endswith(".json") and ".gz" not in href:
+                # Smogon serves these gzipped; some months still carry plain
+                # JSON too, so accept either and dedupe the ratings.
+                name = href[:-3] if href.endswith(".gz") else href
+                if name.endswith(".json"):
                     # Parse "gen9ou-0.json" -> format_code="gen9ou", rating="0"
-                    name = href.rsplit(".", 1)[0]
+                    name = name.rsplit(".", 1)[0]
                     parts = name.rsplit("-", 1)
                     if len(parts) == 2 and parts[1].isdigit():
                         fmt, rat = parts
-                        formats.setdefault(fmt, []).append(rat)
+                        formats.setdefault(fmt, set()).add(rat)
             for fmt in formats:
                 formats[fmt] = sorted(formats[fmt], key=int)
             return formats
@@ -2057,9 +2060,15 @@ def compile_page_data(format_code, rating_threshold="", pokemon_name="", month=N
 
     default_format = DEFAULT_META
     chosen_format = format_code if format_code in month_format_codes else default_format
-    # Fall back further if default isn't in this month either
+    # Fall back further if default isn't in this month either. The in-game
+    # Champions entries lead every month's list but carry no ladder rating
+    # cutoffs, so picking one here returns no data and bounces the request back
+    # to the current month -- skip them and take a real ladder format, which the
+    # list orders newest generation first.
     if chosen_format not in month_format_codes and month_formats:
-        chosen_format = month_formats[0][0]
+        ladder = [f[0] for f in month_formats if not is_champions_game_format(f[0])]
+        if ladder:
+            chosen_format = ladder[0]
     display_name = formatDisplayNames.get(chosen_format, chosen_format)
     selected_format = [chosen_format, display_name]
 
