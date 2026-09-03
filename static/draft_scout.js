@@ -93,7 +93,7 @@ const state = {
  * check. The rest stay one click away rather than crowding the default. */
 const COMMON_PRESETS = new Set([
   "fake_out", "speed_control", "priority", "screens", "redirection",
-  "disruption",
+  "disruption", "setup",
 ]);
 const COMMON_ABILITY_PRESETS = new Set(["intimidate_family", "speed_abilities"]);
 
