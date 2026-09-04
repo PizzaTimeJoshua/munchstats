@@ -3461,11 +3461,15 @@ def tools_draft_scout():
     unknown = list(dict.fromkeys(mine_unknown + theirs_unknown))
 
     move_ids = [m for m in (request.args.get("moves", "").split(",")) if m]
+    ability_ids = [a for a in request.args.get("abilities", "").split(",") if a]
+    # A preset expands into both: asking "who sets sun" and getting only Sunny
+    # Day back would miss Torkoal, which is usually the answer.
     for preset in request.args.get("presets", "").split(","):
         if preset:
             move_ids.extend(draft_tools.preset_moves(preset))
+            ability_ids.extend(draft_tools.preset_abilities(preset))
     move_ids = list(dict.fromkeys(move_ids))
-    ability_ids = [a for a in request.args.get("abilities", "").split(",") if a]
+    ability_ids = list(dict.fromkeys(ability_ids))
 
     # Which modifiers to ENUMERATE, not which to assume. The tool reports what
     # each option costs rather than asking the player to commit to one up

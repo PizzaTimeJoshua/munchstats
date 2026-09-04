@@ -256,6 +256,11 @@
   .dr-wrap:not(.show-adv) .dr-adv { display: none !important; }
   #dr-advanced.is-on { color: var(--accent); border-color: var(--border-hi); }
 
+  /* Marks a preset that brings abilities as well as moves (Weather pulls in
+     Drought and Drizzle alongside Sunny Day). */
+  .dr-abil-dot { color: var(--accent); margin-left: 3px; font-size: 14px;
+    line-height: 0; vertical-align: middle; }
+
   /* modifier toggles */
   .dr-modrow { display: flex; flex-wrap: wrap; gap: 4px; }
   .dr-panel-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
@@ -365,6 +370,54 @@
     color: var(--warn); font-size: 10px; white-space: nowrap;
   }
 
+  /* Saved comparisons — kept in this browser, so a draft you check every week
+     does not have to be retyped. */
+  .dr-savedbar {
+    display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+    margin: 12px 0 0; padding: 8px 10px;
+    border: 1px solid var(--border); background: var(--surface);
+    font-size: 12px;
+  }
+  .dr-savedbar input[type="text"] { flex: 0 1 200px; min-width: 120px; }
+  .dr-savedbar select { flex: 0 1 240px; min-width: 140px; }
+  .dr-savedbar-sep {
+    width: 1px; align-self: stretch; background: var(--border); margin: 0 4px;
+  }
+  .dr-savedbar .dr-how { margin-left: auto; }
+  .dr-savedstatus {
+    margin-left: auto; display: flex; align-items: center; gap: 6px;
+  }
+  .dr-autosave { color: var(--pos-2); font-size: 11px; }
+  .dr-autosave b { color: var(--text-strong); }
+
+  /* Ladder row hiding. The button leads the row so it sits beside the name it
+     removes, and it is a real target rather than a bare glyph: a 22px box,
+     always visible at low contrast so it can be found without hunting. */
+  td.dr-hidecell { width: 1%; padding: 0 0 0 4px; }
+  .dr-hidebtn {
+    display: block; width: 22px; height: 22px; line-height: 20px;
+    padding: 0; text-align: center;
+    background: transparent; color: var(--text-ghost);
+    border: 1px solid transparent; border-radius: 0;
+    font-size: 15px; font-family: inherit; cursor: pointer;
+    transition: color 0.12s, background 0.12s, border-color 0.12s;
+  }
+  table.dr-ladder tbody tr:hover .dr-hidebtn { color: var(--text-dim); }
+  .dr-hidebtn:hover, .dr-hidebtn:focus-visible {
+    color: var(--neg); border-color: var(--neg); background: var(--surface-3);
+    outline: none;
+  }
+  /* Highlighting the whole row on hover ties the button to what it removes,
+     which a control at the far end of a wide table could not do. */
+  table.dr-ladder tbody tr:hover td { background: var(--surface-2); }
+  .dr-hidebar {
+    display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    padding: 6px 8px; margin-bottom: 6px;
+    border: 1px dashed var(--border-2); font-size: 11px;
+    color: var(--text-dim);
+  }
+  .dr-hidebar button { margin-left: auto; }
+
   /* ladder */
   table.dr-ladder { border-collapse: collapse; width: 100%; font-size: 12px; }
   table.dr-ladder th, table.dr-ladder td {
@@ -439,6 +492,16 @@
     <button type="button" class="dr-btn" id="dr-advanced"></button>
     <button type="button" class="dr-btn" id="dr-share">{{ _('Copy link') }}</button>
     <button type="button" class="dr-btn" id="dr-clear">{{ _('Clear') }}</button>
+  </div>
+
+  <div class="dr-savedbar">
+    <input type="text" id="dr-saved-name" autocomplete="off" maxlength="60"
+           placeholder="{{ _('Name this comparison…') }}">
+    <button type="button" class="dr-btn is-tiny" id="dr-saved-save">{{ _('Save') }}</button>
+    <span class="dr-savedbar-sep"></span>
+    <select id="dr-saved"></select>
+    <button type="button" class="dr-btn is-tiny" id="dr-saved-delete">{{ _('Delete') }}</button>
+    <span class="dr-savedstatus" id="dr-saved-status"></span>
   </div>
 
   <div class="dr-sides">

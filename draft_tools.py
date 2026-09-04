@@ -333,9 +333,15 @@ PRESET_GROUPS = [
     ]),
     ("weather", "Weather", "both", [
         "sunnyday", "raindance", "sandstorm", "snowscape", "chillyreception",
+        "drought", "drizzle", "sandstream", "snowwarning", "orichalcumpulse",
+        "hadronengine", "electricsurge", "grassysurge", "mistysurge",
+        "psychicsurge", "desolateland", "primordialsea",
+        "airlock","cloudnine","deltastream",
     ]),
     ("terrain", "Terrain", "both", [
         "electricterrain", "grassyterrain", "mistyterrain", "psychicterrain",
+        "electricsurge", "grassysurge", "mistysurge",
+        "psychicsurge",
     ]),
     ("pivot", "Pivoting", "both", [
         "uturn", "voltswitch", "flipturn", "partingshot", "teleport",
@@ -347,6 +353,7 @@ PRESET_GROUPS = [
         "tidyup", "victorydance", "honeclaws", "workup", "growth", "coil",
         "curse", "bellydrum", "clangoroussoul", "takeheart", "trailblaze",
         "flamecharge",
+        "coaching", "decorate",
     ]),
     ("support", "Ally Support", "doubles", [
         "helpinghand", "healpulse", "decorate", "coaching", "lifedew",
@@ -365,7 +372,7 @@ PRESET_GROUPS = [
     ]),
     ("trapping", "Trapping", "both", [
         "meanlook", "block", "spiderweb", "jawlock", "thousandwaves",
-        "anchorshot", "spiritshackle", "octolock",
+        "anchorshot", "spiritshackle", "octolock", "shadowtag","arenatrap",
     ]),
 ]
 
@@ -400,6 +407,44 @@ PRESET_ABILITIES = [
 ]
 
 
+# Abilities that belong to a move group. "Who can set sun" is one question,
+# and answering it with only Sunny Day misses Torkoal entirely -- on most
+# rosters the ability is the more likely answer. So a preset expands into both
+# moves and abilities, rather than making the player find a second button.
+PRESET_GROUP_ABILITIES = {
+    "weather": [
+        "drought", "drizzle", "sandstream", "snowwarning", "orichalcumpulse",
+        "desolateland", "primordialsea", "deltastream",
+    ],
+    "terrain": [
+        "electricsurge", "grassysurge", "mistysurge", "psychicsurge",
+        "hadronengine",
+    ],
+    "priority": ["prankster", "galewings", "triage"],
+    # Lightning Rod and Storm Drain redirect a type outright -- the same job
+    # Follow Me does, without spending a turn.
+    "redirection": ["lightningrod", "stormdrain"],
+    "speed_control": ["prankster"],
+    # The abilities are the main way trapping happens at all -- the moves are
+    # a fringe of the category, not the whole of it. Shadow Tag was briefly in
+    # the MOVE list by mistake and removed as an ability rather than moved
+    # here, which left the group unable to answer its own question.
+    "trapping": ["arenatrap", "shadowtag", "magnetpull"],
+    # Scoped to abilities that actually restore HP, matching the move list.
+    # Dry Skin is deliberately here as well as under Damage Immunities: it
+    # heals in rain, which is the same job Rain Dish does, and a preset is a
+    # question rather than a taxonomy -- a Pokemon can be a right answer to
+    # two of them. Status-clearing abilities (Natural Cure, Shed Skin) are
+    # left out, since the group's moves are about HP.
+    "recovery": ["regenerator", "poisonheal", "raindish", "icebody", "dryskin"],
+}
+
+
+def preset_abilities(preset_id):
+    """Ability ids that belong with a preset group, if any."""
+    return list(PRESET_GROUP_ABILITIES.get(preset_id, ()))
+
+
 def preset_moves(preset_id):
     """Move ids for a curated group, or the derived list for 'priority'."""
     if preset_id == "priority":
@@ -420,15 +465,16 @@ def preset_catalog(battle_format="doubles"):
     order = {battle_format: 0, "both": 1}
     groups = [
         {"id": pid, "label": label, "scope": scope,
-         "moves": preset_moves(pid)}
+         "moves": preset_moves(pid), "abilities": preset_abilities(pid)}
         for pid, label, scope, _ in PRESET_GROUPS
     ]
     groups.sort(key=lambda g: (order.get(g["scope"], 2), g["label"]))
     derived = [
         {"id": "priority", "label": "Priority Moves", "scope": "both",
-         "moves": moves_with_priority(1)},
+         "moves": moves_with_priority(1),
+         "abilities": preset_abilities("priority")},
         {"id": "negative_priority", "label": "Negative Priority", "scope": "both",
-         "moves": moves_with_priority(-99, maximum=-1)},
+         "moves": moves_with_priority(-99, maximum=-1), "abilities": []},
     ]
     return derived + groups
 

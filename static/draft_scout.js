@@ -87,29 +87,126 @@ const state = {
   // returning user is not re-simplified, but a shared link's ?advanced= wins
   // so the recipient sees what the sender meant them to see.
   advanced: false,
+  // Ladder rows the user has dismissed as noise. Display-only: hiding
+  // "Farigiraf max +nature" declutters the ladder but does NOT drop it from
+  // the outspeed maths, because a benchmark you stop looking at is still one
+  // you can lose to.
+  hidden: [],
+  // Name of the saved comparison currently being edited, or null. While set,
+  // every change writes straight back to it -- otherwise updating a save
+  // means retyping its name exactly, and a near-miss silently creates a
+  // second copy instead of overwriting the first.
+  //
+  // Deliberately NOT carried in the URL: a shared link would then auto-save
+  // into whatever the recipient happens to have stored under that name.
+  activeSaved: null,
 };
+
+/* ─── local storage ───────────────────────────────────────────────────── */
+
+/* Every read and write is guarded: private windows and blocked site data
+ * throw on access rather than returning null, and none of this is important
+ * enough to break the page over. */
+function lsGet(key, fallback) {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw == null ? fallback : JSON.parse(raw);
+  } catch (e) {
+    return fallback;
+  }
+}
+function lsSet(key, value) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
+
+const SAVED_KEY = "munchstats.draft.saved";
+
+function loadSaved() {
+  const all = lsGet(SAVED_KEY, {});
+  return all && typeof all === "object" && !Array.isArray(all) ? all : {};
+}
+
+/* What a saved comparison holds: the whole query, so loading one restores
+ * exactly what you were looking at rather than just the two rosters. */
+function snapshotState() {
+  return {
+    mine: state.mine.slice(),
+    theirs: state.theirs.slice(),
+    moves: state.moves.slice(),
+    abilities: state.abilities.slice(),
+    presets: state.presets.slice(),
+    myMods: state.myMods.slice(),
+    theirMods: state.theirMods.slice(),
+    hidden: state.hidden.slice(),
+    format: state.format,
+    rating: state.rating,
+    style: state.style,
+    listBy: state.listBy,
+  };
+}
+
+/* Write the current query back into the saved comparison being edited.
+ *
+ * savedAt is left alone and updatedAt moves instead, so auto-saving does not
+ * keep reshuffling the dropdown (which is ordered by when each entry was
+ * deliberately created) every time a toggle is flipped. */
+function autoSave() {
+  if (!state.activeSaved) return;
+  const all = loadSaved();
+  const existing = all[state.activeSaved];
+  if (!existing) {
+    // Deleted from another tab; stop writing to a name that is gone.
+    state.activeSaved = null;
+    renderSaved();
+    return;
+  }
+  all[state.activeSaved] = {
+    savedAt: existing.savedAt || Date.now(),
+    updatedAt: Date.now(),
+    state: snapshotState(),
+  };
+  lsSet(SAVED_KEY, all);
+  renderSaved();
+}
+
+/* Stop editing a save without touching what is on screen. Used wherever a
+ * write-back would be destructive rather than helpful -- Clear being the
+ * obvious one, since auto-saving an emptied page over a comparison would
+ * throw the whole thing away. */
+function detachSaved() {
+  state.activeSaved = null;
+  renderSaved();
+}
+
+function restoreState(snap) {
+  if (!snap) return;
+  ["mine", "theirs", "moves", "abilities", "presets", "myMods", "theirMods",
+   "hidden"].forEach((k) => {
+    state[k] = Array.isArray(snap[k]) ? snap[k].slice() : [];
+  });
+  ["format", "rating", "style", "listBy"].forEach((k) => {
+    if (snap[k]) state[k] = snap[k];
+  });
+}
 
 /* Presets kept in the simple view: the ones people actually open the tool to
  * check. The rest stay one click away rather than crowding the default. */
 const COMMON_PRESETS = new Set([
   "fake_out", "speed_control", "priority", "screens", "redirection",
-  "disruption", "setup",
+  "disruption", "setup","weather",
 ]);
 const COMMON_ABILITY_PRESETS = new Set(["intimidate_family", "speed_abilities"]);
 
 function loadAdvancedPref() {
-  try {
-    return localStorage.getItem("munchstats.draft.advanced") === "1";
-  } catch (e) {
-    return false; // private windows and blocked site data throw here
-  }
+  return lsGet("munchstats.draft.advanced", false) === true;
 }
 function saveAdvancedPref(on) {
-  try {
-    localStorage.setItem("munchstats.draft.advanced", on ? "1" : "0");
-  } catch (e) {
-    /* not important enough to bother the user about */
-  }
+  lsSet("munchstats.draft.advanced", !!on);
 }
 
 let lastResult = null;
@@ -117,6 +214,10 @@ let lastResult = null;
  * hand-picked moves. Kept apart from state.moves so toggling a preset off
  * removes only its own columns and leaves hand-picked moves alone. */
 let columns = [];
+/* The same for abilities: a preset can bring its own (Weather pulls in
+ * Drought and Drizzle), so what to render comes from the server's reply
+ * rather than from state.abilities, which holds only hand-picked ones. */
+let abilityColumns = [];
 
 /* ─── helpers ─────────────────────────────────────────────────────────── */
 
@@ -148,6 +249,16 @@ function spriteStyleSm(sprite) {
 function nameOf(id) {
   const s = BY_ID.get(id);
   return s ? s.name : id;
+}
+
+/* Momentary confirmation on a button, restored afterwards. */
+function flash(btn, text) {
+  if (!btn) return;
+  const old = btn.textContent;
+  btn.textContent = text;
+  setTimeout(() => {
+    btn.textContent = old;
+  }, 1400);
 }
 
 /* Link a Pokemon through to its usage page for the format on screen. The tool
@@ -193,6 +304,7 @@ function readUrl() {
   state.presets = list("presets");
   state.myMods = list("my_mods");
   state.theirMods = list("their_mods");
+  state.hidden = (q.get("hide") || "").split("~").filter(Boolean);
   if (q.get("fmt")) state.format = q.get("fmt");
   if (q.get("rating")) state.rating = q.get("rating");
   if (q.get("style")) state.style = q.get("style");
@@ -218,9 +330,18 @@ function writeUrl(push) {
   if (state.theirMods.length) q.set("their_mods", state.theirMods.join(","));
   if (state.listBy !== "move") q.set("view", state.listBy);
   if (state.advanced) q.set("advanced", "1");
+  // "~" separates keys because the keys themselves contain "|" and spaces.
+  if (state.hidden.length) q.set("hide", state.hidden.join("~"));
   const url = location.pathname + (q.toString() ? "?" + q.toString() : "");
   if (push) history.pushState(null, "", url);
   else history.replaceState(null, "", url);
+  // The URL and the saved comparison hold the same thing -- the query as it
+  // now stands -- so they are written together. Hanging this off writeUrl
+  // rather than off refresh() is what makes it reliable: hiding a ladder row
+  // and switching list view both update state and re-render WITHOUT going
+  // through refresh(), and each one silently skipped the save when
+  // auto-saving was wired to refresh() alone.
+  autoSave();
 }
 
 /* ─── roster editing ──────────────────────────────────────────────────── */
@@ -433,8 +554,15 @@ function renderPresets() {
   const moveBtns = groups.map((g) => {
     const on = state.presets.includes(g.id);
     const adv = !COMMON_PRESETS.has(g.id) && !on ? " dr-adv" : "";
+    const nMoves = (g.moves || []).length;
+    const nAbil = (g.abilities || []).length;
+    const title =
+      `${nMoves} ${t("moves")}` +
+      (nAbil ? ` + ${nAbil} ${t("abilities")}` : "");
     return `<button type="button" class="dr-btn is-tiny${adv}${on ? " is-on" : ""}"
-         data-preset="${esc(g.id)}" title="${esc((g.moves || []).length)} ${t("moves")}">${esc(g.label)}</button>`;
+         data-preset="${esc(g.id)}" title="${esc(title)}">${esc(g.label)}${
+      nAbil ? `<span class="dr-abil-dot" title="${esc(title)}">•</span>` : ""
+    }</button>`;
   });
   const abilBtns = (BOOT.abilityPresets || []).map((g) => {
     const on = (g.abilities || []).every((a) => state.abilities.includes(a.id));
@@ -463,6 +591,37 @@ const FALLBACK_MODS = [
 function renderListToggle() {
   $("dr-listby").querySelectorAll("[data-listby]").forEach((b) =>
     b.classList.toggle("is-on", b.dataset.listby === state.listBy));
+}
+
+function renderSaved() {
+  const all = loadSaved();
+  const names = Object.keys(all).sort((a, b) =>
+    (all[b].savedAt || 0) - (all[a].savedAt || 0) || a.localeCompare(b));
+  const sel = $("dr-saved");
+  if (!sel) return;
+  sel.innerHTML =
+    `<option value="">${
+      names.length ? t("Load a saved comparison…") : t("No saved comparisons yet")
+    }</option>` +
+    names
+      .map((n) => `<option value="${esc(n)}">${esc(n)}</option>`)
+      .join("");
+  sel.value = state.activeSaved && all[state.activeSaved] ? state.activeSaved : "";
+  $("dr-saved-delete").disabled = !sel.value;
+
+  // Which mode you are in has to be visible: silently writing to a save is
+  // only comfortable if you can see that it is happening.
+  const status = $("dr-saved-status");
+  if (status) {
+    status.innerHTML = state.activeSaved
+      ? `<span class="dr-autosave">${t("Auto-saving to")} <b>${esc(
+          state.activeSaved
+        )}</b></span>
+         <button type="button" class="dr-btn is-tiny" id="dr-saved-detach">${t(
+           "Stop"
+         )}</button>`
+      : `<span class="dr-how">${t("Saved in this browser")}</span>`;
+  }
 }
 
 function renderAdvanced() {
@@ -555,7 +714,7 @@ function listFor(sideLabel, side, res) {
   const roster = res[side] || [];
   const cov = res[side + "Coverage"] || { by_species: {}, by_move: {} };
   const abil = res[side + "Abilities"] || { by_species: {}, by_ability: {} };
-  if (!roster.length || (!columns.length && !state.abilities.length)) return "";
+  if (!roster.length || (!columns.length && !abilityColumns.length)) return "";
 
   const names = res.moveNames || {};
   const abilNames = res.abilityNames || {};
@@ -597,7 +756,7 @@ function listFor(sideLabel, side, res) {
       const who = cov.by_move[m] || [];
       if (who.length) entries.push({ label: names[m] || m, who, moveId: m });
     });
-    state.abilities.forEach((a) => {
+    abilityColumns.forEach((a) => {
       const who = abil.by_ability[a] || [];
       if (who.length)
         entries.push({ label: abilNames[a] || a, who, ability: true });
@@ -627,7 +786,7 @@ function listFor(sideLabel, side, res) {
       .filter((m) => !(cov.by_move[m] || []).length)
       .map((m) => names[m] || m)
       .concat(
-        state.abilities
+        abilityColumns
           .filter((a) => !(abil.by_ability[a] || []).length)
           .map((a) => abilNames[a] || a)
       );
@@ -647,7 +806,7 @@ function matrixFor(sideLabel, side, res) {
   const cov = res[side + "Coverage"] || { by_species: {}, by_move: {} };
   const abil = res[side + "Abilities"] || { by_species: {}, by_ability: {} };
   const moves = columns;
-  const abilities = state.abilities;
+  const abilities = abilityColumns;
   if (!roster.length || (!moves.length && !abilities.length)) return "";
 
   const head = [
@@ -1024,11 +1183,29 @@ function requirementCard(req, res) {
 
 /* ─── ladder ──────────────────────────────────────────────────────────── */
 
+/* Stable identity for a ladder row, so a hidden row stays hidden across
+ * reloads and is not confused with the same Pokemon's other spreads. */
+function ladderKey(r) {
+  return [r.side, r.species, r.label, r.ability || ""].join("|");
+}
+
 function ladderTable(res) {
-  const rows = (res.ladder || [])
-    .map(
-      (r) =>
-        `<tr class="${r.side === "mine" ? "dr-mine" : "dr-theirs"}">
+  const all = res.ladder || [];
+  const hidden = new Set(state.hidden);
+  const shown = all.filter((r) => !hidden.has(ladderKey(r)));
+  const hiddenCount = all.length - shown.length;
+
+  const rows = shown
+    .map((r) => {
+      const key = ladderKey(r);
+      // The hide control leads the row, immediately before the name it
+      // removes. On the far right it sat a whole table away from the thing
+      // being read, which made it easy to dismiss the wrong spread.
+      return `<tr class="${r.side === "mine" ? "dr-mine" : "dr-theirs"}">
+           <td class="dr-hidecell"><button type="button" class="dr-hidebtn"
+                 data-hide="${esc(key)}"
+                 title="${t("Hide")} ${esc(r.name)} ${esc(r.label)}"
+                 aria-label="${t("Hide")} ${esc(r.name)} ${esc(r.label)}">×</button></td>
            <td>${usageLink(r.name)}${
              r.ability
                ? ` <span class="dr-cond">${esc(r.abilityLabel)}</span>`
@@ -1039,15 +1216,32 @@ function ladderTable(res) {
            }</td>
            <td class="dr-num"><b>${r.speed}</b></td>
            <td style="color:var(--text-dim);font-size:11px">${r.side === "mine" ? t("mine") : t("theirs")}</td>
-         </tr>`
-    )
+         </tr>`;
+    })
     .join("");
-  return rows
-    ? `<table class="dr-ladder"><thead><tr>
-         <th>${t("Pokémon")}</th><th>${t("Assumed spread")}</th>
-         <th style="text-align:right">${t("Speed")}</th><th></th>
-       </tr></thead><tbody>${rows}</tbody></table>`
+
+  // Hiding is cosmetic. Said out loud, because a row you stopped looking at
+  // is still a Pokémon that outspeeds you.
+  const note = hiddenCount
+    ? `<div class="dr-hidebar">
+         <span>${hiddenCount} ${
+           hiddenCount === 1 ? t("row hidden") : t("rows hidden")
+         } · <span class="dr-how">${t(
+           "hidden here only — still counted in the outspeed maths"
+         )}</span></span>
+         <button type="button" class="dr-btn is-tiny" data-unhide="all">${t(
+           "Show all"
+         )}</button>
+       </div>`
     : "";
+
+  if (!rows) {
+    return note || "";
+  }
+  return `${note}<table class="dr-ladder"><thead><tr>
+         <th></th><th>${t("Pokémon")}</th><th>${t("Assumed spread")}</th>
+         <th style="text-align:right">${t("Speed")}</th><th></th>
+       </tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 /* ─── render ──────────────────────────────────────────────────────────── */
@@ -1076,7 +1270,7 @@ function renderResult(res) {
     ? `<div class="dr-warn">${notes.join("<br>")}</div>`
     : "";
 
-  const hasQuery = columns.length || state.abilities.length;
+  const hasQuery = columns.length || abilityColumns.length;
   const render = state.listBy === "grid" ? matrixFor : listFor;
   const cov =
     render(t("Opponent"), "theirs", res) + render(t("Mine"), "mine", res);
@@ -1157,6 +1351,7 @@ function refresh() {
       // The server owns preset expansion, so the columns come from its reply
       // rather than being re-derived here — the two cannot then disagree.
       columns = Object.keys(res.moveNames || {});
+      abilityColumns = Object.keys(res.abilityNames || {});
       renderResult(res);
     })
     .catch(() => {
@@ -1187,6 +1382,7 @@ function init() {
   renderModifiers();
   renderListToggle();
   renderAdvanced();
+  renderSaved();
 
   attachAutocomplete($("dr-mine-input"), speciesMatches, (item) => {
     if (item.id) {
@@ -1229,9 +1425,19 @@ function init() {
   });
 
   document.addEventListener("click", (e) => {
-    const el = e.target.closest("[data-remove],[data-preset],[data-abilpreset],[data-unmove],[data-unabil],[data-paste],[data-mod],[data-listby]");
+    const el = e.target.closest("[data-remove],[data-preset],[data-abilpreset],[data-unmove],[data-unabil],[data-paste],[data-mod],[data-listby],[data-hide],[data-unhide]");
     if (!el) return;
-    if (el.dataset.listby) {
+    if (el.dataset.hide) {
+      if (!state.hidden.includes(el.dataset.hide)) {
+        state.hidden.push(el.dataset.hide);
+      }
+      writeUrl(false);
+      if (lastResult) renderResult(lastResult);
+    } else if (el.dataset.unhide) {
+      state.hidden = [];
+      writeUrl(false);
+      if (lastResult) renderResult(lastResult);
+    } else if (el.dataset.listby) {
       state.listBy = el.dataset.listby;
       writeUrl(false);
       renderListToggle();
@@ -1274,6 +1480,62 @@ function init() {
     }
   });
 
+  $("dr-saved-save").addEventListener("click", () => {
+    const input = $("dr-saved-name");
+    const name = (input.value || "").trim().slice(0, 60);
+    if (!name) {
+      input.focus();
+      return;
+    }
+    const all = loadSaved();
+    all[name] = { savedAt: Date.now(), state: snapshotState() };
+    if (!lsSet(SAVED_KEY, all)) {
+      $("dr-warn").innerHTML = `<div class="dr-warn">${t(
+        "Could not save — this browser is blocking local storage."
+      )}</div>`;
+      return;
+    }
+    input.value = "";
+    // Saving under a name switches editing to it, so the next tweak updates
+    // the thing you just made rather than nothing at all.
+    state.activeSaved = name;
+    renderSaved();
+    flash($("dr-saved-save"), t("Saved"));
+  });
+
+  $("dr-saved").addEventListener("change", (e) => {
+    const name = e.target.value;
+    if (!name) {
+      detachSaved();
+      return;
+    }
+    const entry = loadSaved()[name];
+    if (!entry) return;
+    restoreState(entry.state);
+    state.activeSaved = name;
+    // The saved format may imply a different roster than the one loaded.
+    fillRatings();
+    $("dr-format").value = state.format;
+    $("dr-style").value = state.style;
+    ensureDex(state.format).then(refresh);
+  });
+
+  $("dr-saved-delete").addEventListener("click", () => {
+    const name = $("dr-saved").value;
+    if (!name) return;
+    const all = loadSaved();
+    delete all[name];
+    lsSet(SAVED_KEY, all);
+    // Nothing left to write to; without this the next edit would recreate it.
+    if (state.activeSaved === name) state.activeSaved = null;
+    renderSaved();
+  });
+
+  // "Stop" is rendered into the status line, so it is bound by delegation.
+  $("dr-saved-status").addEventListener("click", (e) => {
+    if (e.target.closest("#dr-saved-detach")) detachSaved();
+  });
+
   $("dr-clear").addEventListener("click", () => {
     state.mine = [];
     state.theirs = [];
@@ -1282,6 +1544,11 @@ function init() {
     state.presets = [];
     state.myMods = [];
     state.theirMods = [];
+    state.hidden = [];
+    // Detach BEFORE refreshing. Auto-saving an emptied page back over the
+    // comparison would destroy it, and Clear is meant to clear the screen,
+    // not the save.
+    detachSaved();
     refresh();
   });
 
@@ -1299,10 +1566,7 @@ function init() {
   $("dr-share").addEventListener("click", () => {
     writeUrl(false);
     navigator.clipboard.writeText(location.href).then(() => {
-      const b = $("dr-share");
-      const old = b.textContent;
-      b.textContent = t("Copied");
-      setTimeout(() => (b.textContent = old), 1400);
+      flash($("dr-share"), t("Copied"));
     });
   });
 
