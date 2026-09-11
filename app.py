@@ -106,6 +106,18 @@ DATA_DIRECTORY = "stats"
 os.makedirs(DATA_DIRECTORY, exist_ok=True)
 
 DEFAULT_META = "gen9championsvgc2026regmbbo3"
+
+# The regulation currently being played in-game and at events. Smogon's
+# ladder stats land a month behind, so DEFAULT_META (the newest format with
+# usage data) trails this for the first month of a new reg.
+CURRENT_VGC_FORMAT = "gen9championsvgc2026regmc"
+
+# What "/" shows. The in-game Champions Doubles ladder plays the current
+# regulation from day one, so it is the only current-reg usage data there is
+# until Smogon publishes the month. Point this back at DEFAULT_META once the
+# new reg's ladder stats land (Reg M-C: 2026-10-01).
+LANDING_FORMAT = "championsdoubles"
+
 SMOGON_STATS_URL = "https://www.smogon.com/stats/"
 
 # Global dictionaries for loaded data
@@ -2336,18 +2348,21 @@ def champions_page(fmt="doubles", pokemon_name=""):
     if data is None:
         return redirect(url_for("champions_page", fmt="doubles"))
     # Redirect to the canonical URL when the Pokémon was defaulted/corrected.
-    if data["selected_pokemon"] != pokemon_name:
+    # Not on the homepage, which renders this format in place at "/".
+    if request.path != "/" and data["selected_pokemon"] != pokemon_name:
         return redirect(url_for(
             "champions_page", fmt=fmt.lower(), pokemon_name=data["selected_pokemon"],
         ))
-    og = {
-        "og_image": url_for(
-            "og_card_champions", fmt=fmt.lower(),
-            pokemon_name=data["selected_pokemon"],
-            v=OG_CARD_REV, _external=True,
-        ),
-        "og_card": "summary_large_image",
-    }
+    og = {}
+    if request.path != "/":
+        og = {
+            "og_image": url_for(
+                "og_card_champions", fmt=fmt.lower(),
+                pokemon_name=data["selected_pokemon"],
+                v=OG_CARD_REV, _external=True,
+            ),
+            "og_card": "summary_large_image",
+        }
     return render_template(
         "index.html", **data, availableFormats=data["month_formats"], **og
     )
@@ -5773,11 +5788,12 @@ def _top_teams_source_format(format_code):
     """Resolve the page format to the format used for Top Teams lookups.
 
     The Champions in-game Doubles ladder plays the current VGC regulation,
-    so its page shows the current reg's tournament teams. In-game Singles
+    so its page shows the current reg's tournament teams — CURRENT_VGC_FORMAT,
+    not DEFAULT_META, which trails it while Smogon catches up. In-game Singles
     has no tournament scene.
     """
     if format_code in CHAMPIONS_GAME_FORMATS:
-        return normalize_format(DEFAULT_META) if format_code == "championsdoubles" else None
+        return normalize_format(CURRENT_VGC_FORMAT) if format_code == "championsdoubles" else None
     return format_code
 
 
@@ -6243,7 +6259,9 @@ def internal_server_error(e):
 
 @app.route("/", methods=["GET"])
 def index():
-    return display_pokemon_page(DEFAULT_META)
+    if is_champions_game_format(LANDING_FORMAT):
+        return champions_page(CHAMPIONS_GAME_FORMATS[LANDING_FORMAT].lower())
+    return display_pokemon_page(LANDING_FORMAT)
 
 
 if __name__ == "__main__":

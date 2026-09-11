@@ -104,24 +104,46 @@ def _api_get(path, params=None):
     return None
 
 
+# Regulations Limitless has not added to its /games list yet. Events for a
+# new reg appear on the site from day one, but with the dropdown left on the
+# previous reg or on "CUSTOM" -- and with no format id for it, resolve_format_id
+# has no candidate to match against the reg named in their titles, so they all
+# file under the old reg. Seeding the id makes that name match work. Harmless
+# once the API catches up: the API's own entry wins, and this drops out.
+PENDING_VGC_FORMATS = {"M-C": "Regulation Set M-C"}
+
+
+def _with_pending(formats):
+    """Prepend the not-yet-listed regulations, keeping newest-first order."""
+    if not formats:
+        return dict(formats or {})
+    merged = {f: d for f, d in PENDING_VGC_FORMATS.items() if f not in formats}
+    merged.update(formats)
+    return merged
+
+
 def get_vgc_formats():
     """Return the {format_id: display_name} dict for VGC from /games.
 
     The first key is the most recent regulation. Cached 12h on disk with
-    stale fallback; returns {} when nothing is available at all.
+    stale fallback; returns {} when nothing is available at all. The cache
+    stores the API's list verbatim; PENDING_VGC_FORMATS is merged on the
+    way out so a stale cache never pins the pending regulation in place.
     """
     path = _cache_path("formats")
     cached = _cache_read(path, ttl=FORMATS_CACHE_TTL)
     if cached is not None:
-        return cached
+        return _with_pending(cached)
     games = _api_get("/games")
     if games:
         for game in games:
             if game.get("id") == "VGC":
                 formats = game.get("formats") or {}
                 _cache_write(path, formats)
-                return formats
-    return _cache_read(path, ttl=FORMATS_CACHE_TTL, allow_stale=True) or {}
+                return _with_pending(formats)
+    return _with_pending(
+        _cache_read(path, ttl=FORMATS_CACHE_TTL, allow_stale=True) or {}
+    )
 
 
 def get_vgc_tournaments():

@@ -38,6 +38,12 @@ SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/"
 # "limitless_reg" is the regulation token matching the corresponding
 # Limitless online-tournament format (see app._limitless_reg_token).
 REPOSITORIES = {
+    "champions-mc": {
+        "sheet": "Champions M-C",
+        "display": "Champions M-C",
+        "code_label": "Replica Code",
+        "limitless_reg": "mc",
+    },
     "champions-mb": {
         "sheet": "Champions M-B",
         "display": "Champions M-B",
@@ -57,7 +63,7 @@ REPOSITORIES = {
         "limitless_reg": "i",
     },
 }
-DEFAULT_REPOSITORY = "champions-mb"
+DEFAULT_REPOSITORY = "champions-mc"
 
 # Fixed column layout of every repository tab (header rows 0-2, data from 3).
 _COL_TEAM_ID = 0
