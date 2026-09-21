@@ -1,5 +1,18 @@
 [
   {
+    "id": "BA002-JL3KVbvivVKNAc",
+    "name": "2027 Baltimore Pokémon VGC Regional Championships",
+    "date": "2026-09-18",
+    "location": "",
+    "type": "Regional",
+    "total_players": 1079,
+    "day2_count": 156,
+    "day2_source": "pairings",
+    "teams_scraped": 1079,
+    "scraped_at": "2026-09-21T21:03:01.587714Z",
+  "format": "gen9championsvgc2026regmc"
+  },
+  {
     "id": "WCS02wAQpCIaqFmXxER4",
     "name": "2026 Pokémon VGC World Championship",
     "date": "2026-08-28",
