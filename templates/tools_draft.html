@@ -126,7 +126,7 @@
 
   .dr-sprite {
     width: 40px; height: 30px; flex-shrink: 0;
-    background-image: url("{{ url_for('static', filename='pokemonicons-sheet.png') }}");
+    background-image: url("{{ asset_url('pokemonicons-sheet.png') }}");
     background-size: 480px auto;
     background-repeat: no-repeat;
   }
@@ -617,5 +617,5 @@
     moveNames: {{ draft_move_names | tojson }},
   };
 </script>
-<script src="{{ url_for('static', filename='draft_scout.js') }}?v=1"></script>
+<script src="{{ asset_url('draft_scout.js') }}"></script>
 {% endblock %}

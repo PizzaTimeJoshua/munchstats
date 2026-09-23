@@ -5,3 +5,12 @@ node_modules/
 response_time.py
 .env
 cache/
+
+# Mobile offline packs, built by build_packs.py.
+#
+# Deliberately not on main: they are tens of megabytes of data derived from
+# stats/, they would push the Heroku slug up for files the dyno never reads,
+# and a data-only change should not trigger a redeploy. They are published to
+# the mobile-packs branch instead and fetched by the app straight from
+# raw.githubusercontent.com -- the same arrangement as the replay-data branch.
+stats/*/_packs/

@@ -6,9 +6,9 @@
     <title>About | MunchStats</title>
     <meta property="og:title" content="About | MunchStats">
     <meta name="description" content="Learn about MunchStats - a free, ad-free Pokemon Showdown usage statistics site.">
-    <link rel="icon" href="{{ url_for('static', filename='favicon.ico') }}" type="image/x-icon">
-    <script src="{{ url_for('static', filename='theme-boot.js') }}?v=2"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v=4">
+    <link rel="icon" href="{{ asset_url('favicon.ico') }}" type="image/x-icon">
+    <script src="{{ asset_url('theme-boot.js') }}"></script>
+    <link rel="stylesheet" href="{{ asset_url('style.css') }}">
     <style>
       * {
         margin: 0;
@@ -116,22 +116,12 @@
         color: var(--text-strong);
       }
     </style>
-    <!-- Google tag (gtag.js) -->
-    <script async src="https://www.googletagmanager.com/gtag/js?id=G-K1B7P5XXK6"></script>
-    <script>
-      window.dataLayer = window.dataLayer || [];
-      function gtag() {
-        dataLayer.push(arguments);
-      }
-      gtag("js", new Date());
-      gtag("config", "G-K1B7P5XXK6");
-    </script>
   </head>
   <body>
     <div class="container">
       <h1>{{ _('About MunchStats') }}</h1>
       <p class="intro">
-        {{ _("This here is a side project that I've worked on just for fun. It runs ad-free! The site does include affiliate eBay merch links — if you happen to buy something, a small commission helps keep the site running. If I receive any kind of donation, it'll go directly to keeping this site up. This site was the product of \"Pikalytics is taking a while to update its usage stats.\" So instead of waiting, I made this site.") }}
+        {{ _("This here is a side project that I've worked on just for fun. It runs ad-free, with no analytics and no trackers of any kind — nothing on this site is measuring you. If I receive any kind of donation, it'll go directly to keeping this site up. This site was the product of \"Pikalytics is taking a while to update its usage stats.\" So instead of waiting, I made this site.") }}
       </p>
 
       <div class="faq-section">
@@ -223,6 +213,7 @@
       </div>
 
       <div class="button-container">
+        <a href="{{ url_for('privacy') }}" class="home-button">{{ _('Privacy Policy') }}</a>
         <a href="{{ url_for('index') }}" class="home-button">{{ _('Go back to the homepage') }}</a>
       </div>
     </div>

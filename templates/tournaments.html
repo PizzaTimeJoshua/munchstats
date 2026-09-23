@@ -312,14 +312,14 @@
   .image-item {
     width: 24px; height: 24px;
     justify-items: center; line-height: 24px;
-    background-image: url({{ url_for('static', filename='itemicons-sheet.png') }});
+    background-image: url({{ asset_url('itemicons-sheet.png') }});
     background-position: -24px -24px;
     background-repeat: no-repeat;
   }
   .image-pokemon {
     width: 40px; height: 30px;
     justify-items: center; line-height: 30px;
-    background-image: url({{ url_for('static', filename='pokemonicons-sheet.png') }});
+    background-image: url({{ asset_url('pokemonicons-sheet.png') }});
     background-position: 0px 0px;
     background-repeat: no-repeat;
   }
@@ -491,7 +491,7 @@
     display: inline-block;
     width: 40px;
     height: 30px;
-    background-image: url({{ url_for('static', filename='pokemonicons-sheet.png') }});
+    background-image: url({{ asset_url('pokemonicons-sheet.png') }});
     background-repeat: no-repeat;
     vertical-align: middle;
     margin-right: 2px;
@@ -609,112 +609,6 @@
   }
   .team-copy-btn:hover { color: var(--text-strong); background: var(--raised); }
   .team-copy-btn.copied { color: var(--accent); }
-  /* Merch section */
-  .merch-toggle {
-    background: var(--surface-3);
-    border: 1px solid var(--border-2);
-    color: var(--text-muted);
-    font-size: 12px;
-    padding: 4px 14px;
-    cursor: pointer;
-    border-radius: 4px;
-    transition: color 0.2s, background 0.2s;
-    margin-left: 8px;
-    vertical-align: middle;
-  }
-  .merch-toggle:hover { color: var(--text-strong); background: var(--raised); }
-  .merch-section.collapsed .merch-carousel { display: none; }
-  .merch-collapsed-msg {
-    display: none;
-    color: var(--text-disabled);
-    font-size: 12px;
-    text-align: center;
-    padding: 10px 0;
-  }
-  .merch-section.collapsed .merch-collapsed-msg { display: block; }
-  .merch-carousel {
-    width: 300px;
-    height: 210px;
-    position: relative;
-    overflow: hidden;
-    box-shadow: 0 0 10px var(--shadow);
-    background: var(--surface);
-    margin-bottom: 20px;
-    margin-right: 10px;
-    justify-self: center;
-    align-self: center;
-  }
-  .merch-track {
-    display: flex;
-    transition: transform 0.4s ease;
-    height: 185px;
-  }
-  .merch-track.no-transition { transition: none; }
-  .merch-card {
-    flex-shrink: 0;
-    width: 150px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    text-decoration: none;
-    color: var(--text);
-    padding: 8px 0;
-  }
-  .merch-card:hover { background: var(--surface-3); }
-  .merch-card img {
-    width: 110px;
-    height: 110px;
-    object-fit: contain;
-    border-radius: 4px;
-    background: #fff;
-  }
-  .merch-card-title {
-    font-size: 11px;
-    color: var(--text-soft);
-    text-align: center;
-    margin-top: 6px;
-    padding: 0 6px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 140px;
-  }
-  .merch-card-price {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--accent);
-    margin-top: 3px;
-  }
-  .merch-nav {
-    position: absolute;
-    bottom: 4px;
-    left: 0; right: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-  }
-  .merch-arrow {
-    background: var(--surface-scrim);
-    border: 1px solid var(--border-2);
-    color: var(--text-soft);
-    font-size: 16px;
-    cursor: pointer;
-    padding: 1px 6px;
-    line-height: 1;
-    border-radius: 3px;
-    transition: color 0.2s, background 0.2s;
-  }
-  .merch-arrow:hover { color: var(--text-strong); background: var(--raised-3); }
-  .merch-loading {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    height: 100%;
-    color: var(--text-disabled);
-    font-size: 13px;
-  }
   /* Responsive */
   @media (max-width: 1100px) and (min-width: 701px) {
     .grid-container { grid-template-columns: minmax(0, 1fr); grid-gap: 15px; }
@@ -766,7 +660,6 @@
     /* Data cards: fluid width */
     .Data { width: 100%; max-width: 100%; box-sizing: border-box; }
     .Export, .copy-button { width: 100%; max-width: 100%; box-sizing: border-box; margin-right: 0; }
-    .merch-carousel { width: 100%; max-width: 300px; box-sizing: border-box; margin: 0 auto; }
     .Stats { width: 100%; max-width: 400px; margin: 0 auto; box-sizing: border-box; }
     .bar-container { width: 100%; box-sizing: border-box; height: auto; min-height: 28px; padding: 0; }
     .left-container { width: 100%; height: auto; min-height: 28px; }
@@ -1120,15 +1013,6 @@
           <button type="button" class="copy-button" id="copy-button" style="text-align: center;">{{ _('Copy Pokemon to Clipboard') }}</button>
         </div>
 
-        <!-- Merch -->
-        <div class="merch-section" id="merch-section">
-          <h2>{{ _('Merch') }} <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="These are affiliate eBay links that help support the website.">&#xf059;</span> <button type="button" class="merch-toggle" id="merch-toggle">{{ _('Hide') }}</button></h2>
-          <div class="merch-carousel" id="merch-carousel">
-            <div class="merch-loading">{{ _('Loading merch...') }}</div>
-          </div>
-          <div class="merch-collapsed-msg">Merch hidden &mdash; click Show to browse</div>
-        </div>
-
         <!-- Teams using selected Pokemon -->
         <div class="teams-container">
           <h2 id="teams-heading">Teams with {{ selected_pokemon }}</h2>
@@ -1210,6 +1094,6 @@
     window.hubOverview = {{ overview | default(none) | tojson }};
     window.pokemonRequested = {{ pokemon_requested | default(false) | tojson }};
   </script>
-  <script src="{{ url_for('static', filename='tournament_stats.js') }}?v=18"></script>
+  <script src="{{ asset_url('tournament_stats.js') }}"></script>
   {% endif %}
 {% endblock %}

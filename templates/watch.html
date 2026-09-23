@@ -4,12 +4,12 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Replay Viewer</title>
-<link rel="stylesheet" href="/static/replay_assets/style/font-awesome.css?v=2" />
-<link rel="stylesheet" href="/static/replay_assets/style/battle.css?v=2" />
-<link rel="stylesheet" href="/static/replay_assets/style/replay.css?v=2" />
-<link rel="stylesheet" href="/static/replay_assets/style/utilichart.css?v=2" />
-<link rel="stylesheet" href="/static/replay_assets/style/replay-override.css?v=4" />
-<script src="/static/theme-boot.js?v=2"></script>
+<link rel="stylesheet" href="{{ asset_url('replay_assets/style/font-awesome.css') }}" />
+<link rel="stylesheet" href="{{ asset_url('replay_assets/style/battle.css') }}" />
+<link rel="stylesheet" href="{{ asset_url('replay_assets/style/replay.css') }}" />
+<link rel="stylesheet" href="{{ asset_url('replay_assets/style/utilichart.css') }}" />
+<link rel="stylesheet" href="{{ asset_url('replay_assets/style/replay-override.css') }}" />
+<script src="{{ asset_url('theme-boot.js') }}"></script>
 <style>
 /* Theme tokens only - the full style.css must NOT load here: its body
    grid layout breaks the Showdown replay viewer's own styles.
@@ -49,16 +49,6 @@ body {
   text-decoration: none;
 }
 </style>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-K1B7P5XXK6"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag() {
-    dataLayer.push(arguments);
-  }
-  gtag("js", new Date());
-  gtag("config", "G-K1B7P5XXK6");
-</script>
 </head>
 <body>
 <script>
@@ -94,22 +84,22 @@ body {
 
 <!-- Load Showdown scripts in correct order -->
 <script>window.exports = window;</script>
-<script src="/static/replay_assets/js/lib/ps-polyfill.js?v=2"></script>
-<script src="/static/replay_assets/config/config.js?v=2"></script>
-<script src="/static/replay_assets/js/lib/jquery-1.11.0.min.js?v=2"></script>
-<script src="/static/replay_assets/js/lib/html-sanitizer-minified.js?v=2"></script>
-<script src="/static/replay_assets/js/battle-sound.js?v=2"></script>
-<script src="/static/replay_assets/js/battledata.js?v=2"></script>
-<script src="/static/replay_assets/data/pokedex-mini.js?v=2"></script>
-<script src="/static/replay_assets/data/pokedex-mini-bw.js?v=2"></script>
-<script src="/static/replay_assets/data/graphics.js?v=2"></script>
-<script src="/static/replay_assets/data/pokedex.js?v=2"></script>
-<script src="/static/replay_assets/data/moves.js?v=2"></script>
-<script src="/static/replay_assets/data/abilities.js?v=2"></script>
-<script src="/static/replay_assets/data/items.js?v=2"></script>
-<script src="/static/replay_assets/data/teambuilder-tables.js?v=2"></script>
-<script src="/static/replay_assets/js/battle-tooltips.js?v=2"></script>
-<script src="/static/replay_assets/js/battle.js?v=2"></script>
+<script src="{{ asset_url('replay_assets/js/lib/ps-polyfill.js') }}"></script>
+<script src="{{ asset_url('replay_assets/config/config.js') }}"></script>
+<script src="{{ asset_url('replay_assets/js/lib/jquery-1.11.0.min.js') }}"></script>
+<script src="{{ asset_url('replay_assets/js/lib/html-sanitizer-minified.js') }}"></script>
+<script src="{{ asset_url('replay_assets/js/battle-sound.js') }}"></script>
+<script src="{{ asset_url('replay_assets/js/battledata.js') }}"></script>
+<script src="{{ asset_url('replay_assets/data/pokedex-mini.js') }}"></script>
+<script src="{{ asset_url('replay_assets/data/pokedex-mini-bw.js') }}"></script>
+<script src="{{ asset_url('replay_assets/data/graphics.js') }}"></script>
+<script src="{{ asset_url('replay_assets/data/pokedex.js') }}"></script>
+<script src="{{ asset_url('replay_assets/data/moves.js') }}"></script>
+<script src="{{ asset_url('replay_assets/data/abilities.js') }}"></script>
+<script src="{{ asset_url('replay_assets/data/items.js') }}"></script>
+<script src="{{ asset_url('replay_assets/data/teambuilder-tables.js') }}"></script>
+<script src="{{ asset_url('replay_assets/js/battle-tooltips.js') }}"></script>
+<script src="{{ asset_url('replay_assets/js/battle.js') }}"></script>
 
 <script>
 var Replays = {

@@ -121,7 +121,8 @@ Three sub-tabs at `/tools/`:
   - Cases are stored in the browser only (localStorage), with JSON export/import
 
 ### Other
-- Pokémon merchandise listings via eBay affiliate integration
+- Privacy policy at `/privacy/` (covers the site and the Android app; linked from About and required by the Play listing)
+- No analytics, no ads, no affiliate links, no third-party tracking scripts — removed September 2026 so the site needs no cookie-consent banner
 - Shared page chrome (nav tabs, theme/language pickers, meta tags) in `base.html` + `_tabs.html`, extended by every page template
 
 ## Tech Stack
@@ -185,7 +186,6 @@ Three sub-tabs at `/tools/`:
 - `GET /tools/api/draft/species?dex=gen9|natdex|champions` → the species one rule set allows (served rather than embedded; the three together are ~2600 entries)
 - `GET /api/pokemon-teams/<format_code>/<pokemon_name>` → top tournament teams using Pokémon
 - `GET /api/pokemon-replays/<format_code>/<pokemon_name>` → related replay links
-- `GET /api/merch/<pokemon_name>` → eBay merchandise listings
 - `GET /tournaments/api/<tournament_id>/<day_filter>/` → tournament data JSON
 - `GET /tournaments/api/<tournament_id>/teams/<pokemon_name>` → teams using Pokémon
 - `GET /tournaments/api/<tournament_id>/standings` → player standings
@@ -202,6 +202,107 @@ Three sub-tabs at `/tools/`:
 - `GET /replays/api/search` → replay search with filters
 - `GET /replays/api/default` → default replay listing
 - `GET /replays/api/rankings` → team usage rankings
+
+### Mobile API v1 (`mobile_api.py`)
+Versioned, offline-oriented endpoints for the Android app (repo: `munchstats-app`).
+Shaping and revision rules live in `mobile_api.py`; the routes are in `app.py`.
+
+- `GET /api/v1/meta` → months, formats and rating cutoffs the app may request
+- `GET /api/v1/sync/manifest?month=` → a content-derived `revision` per format/rating dataset, plus one covering the whole month
+- `GET /api/v1/index/<format_code>/<rating>/?month=` → the ranked species list for one dataset
+- `GET /api/v1/pokemon/<format_code>/<rating>/<pokemon_name>?month=` → one Pokémon, without the page chrome (`?graph=1` adds the stat-distribution histogram — see below)
+- `GET /api/v1/pack/manifest?month=` → what precomputed detail packs exist, with sizes and revisions
+- `GET /api/v1/pack/<format_code>/<rating>/?month=` → **every Pokémon's full detail** for one dataset, served as the precomputed gzipped file (`Content-Encoding: gzip`, no decompress-recompress). This is what makes a format usable offline rather than merely browsable
+- `GET /api/v1/pack/indexes?month=` → **every** dataset's species list in one response (252 datasets, 72k rows, 2.4 MB raw / 0.54 MB gzipped). What the app downloads on first run and at a month boundary; memoised like the manifest (~4 s cold, ~60 ms warm)
+- `GET /api/v1/champions/<format_code>/` → species list for an in-game Champions format
+- `GET /api/v1/champions/<format_code>/<pokemon_name>` → one in-game Pokémon
+
+Formats are tagged with a `category` (`in_game` or `showdown`) so the app can
+build its In-Game / Showdown tabs without pattern-matching format codes, and
+every species payload carries a `value_kind` (`usage` or `rank`): the ladder
+ranks by usage share, the in-game feed publishes a placing, and a client that
+assumed one would render `#1` as `1%`. Trend series carry the same distinction —
+usage trends climb as a Pokémon gets popular, rank trends fall.
+
+Three things differ from the web `/api/` endpoints, and each is deliberate:
+
+**Chrome is hoisted out.** A web detail response is 78–80% data that is identical
+for every Pokémon in the format — the ~850-entry species list, the format list,
+the month list. Caching a whole format on a phone costs 39 MB that way and 16 MB
+here. Passing `include_species_list=False` to `compile_page_data()` also skips
+*building* that list, which is ~2x faster per request.
+
+**Revisions are content-derived, never mtimes.** A revision is hashed from the
+battle count, species count and index size in `_index.json`. A Heroku redeploy
+rewrites every file's mtime without changing any data, and an mtime-keyed
+revision would tell every installed app to re-download all ~250 datasets because
+a slug was rebuilt.
+
+**Local months only, and no fuzzy matching.** These endpoints never fall back to
+`fetch_remote_format_data()` — it parses a 17–40 MB document, and a phone walking
+formats could pin several at once on a 512 MB dyno. Unknown months, formats and
+ratings 404. Unlike the web pages, a misspelled Pokémon name 404s instead of
+resolving to the nearest match, because the app caches responses under the name
+it asked for and would otherwise file one species' data under another's.
+
+Everything is ETagged and answers `If-None-Match` with a `304`, so an app launch
+that finds nothing new costs headers and no body. Manifests are memoised on a
+stat-only signature of the month's directories (building one opens ~250 files:
+1000 ms cold, 6 ms warm).
+
+**Detail packs are precomputed, not built on request.** A 300-species format
+takes ~13 s to assemble; the dyno runs one worker with eight threads and also
+serves the website, so that is not a request. `build_packs.py` writes one
+gzipped file per format/rating into `stats/<month>/_packs/` plus a manifest.
+Run it after `update_all_data.py`; packs are a pure function of the split stats.
+Files are written with `mtime=0`, so rebuilding unchanged data produces
+byte-identical output rather than looking like a change to everything downstream.
+
+**Packs are served from GitHub, not from the dyno.** They are published to the
+`mobile-packs` branch and fetched by the app directly from
+`raw.githubusercontent.com` — the same arrangement as the `replay-data` branch,
+for the same two reasons: a data branch triggers no Heroku redeploy, and tens of
+megabytes per install has no business crossing a 512 MB dyno that is also
+serving the website. `stats/*/_packs/` is gitignored on main so they never reach
+the slug. The API's only part is `/api/v1/pack/manifest`, which names the base
+URL; `/api/v1/pack/<format>/<rating>/` remains as a local fallback for
+development, where nothing is published yet (`PACK_BASE_URL=""` forces it).
+
+Publishing a month:
+
+```bash
+python update_all_data.py
+python build_packs.py                    # -> stats/<month>/_packs/
+git switch mobile-packs                  # orphan branch holding only packs
+git add -f stats/<month>/_packs/
+git commit -m "packs: <month>"
+git push origin mobile-packs
+git switch main
+```
+
+**`graph_data` is opt-in.** It was 6.3 KB of a 13.4 KB species payload (47%) and
+most of the build time, because the histogram walks every recorded spread across
+six stats. The usage lists beside it are already capped at their top 10–15
+entries by `compile_top_data`, so trimming *those* tails saves ~1% — this single
+field is where a payload's weight actually was. Omitting it by default took a
+species from 4.63 KB to 1.55 KB gzipped and 125 ms to 47 ms to build (−67% / −63%),
+which is what makes a whole-format offline pack feasible: 0.42 MB instead of
+1.25 MB for a 277-species VGC format. Pass `?graph=1` where the histogram is
+actually drawn. Web pages are unaffected — `compile_page_data` still returns it.
+
+`fuzzy_match()` now returns an exact (case-insensitive) hit without running
+difflib. The search was ~25% of the time spent building a detail payload, on
+every request, while nearly all of them name a real Pokémon exactly: 1.26 ms →
+0.06 ms on that path. Typos still resolve, so the web pages' tolerance is intact.
+
+**Developing against this server.** `python app.py` binds `0.0.0.0:5000` so a
+phone on the same Wi-Fi can reach it; the app derives that address from Expo's
+dev-server URI rather than hardcoding an IP. `HOST` and `PORT` override, and
+`HOST=127.0.0.1` restores loopback-only.
+
+Werkzeug's interactive debugger is disabled whenever `HOST` is not loopback: it
+runs arbitrary Python from the browser, which is fine on `127.0.0.1` and an open
+door on shared Wi-Fi. The auto-reloader stays on either way.
 
 ### OG Stat Cards (link-preview PNGs)
 - `GET /og-card/<format_code>/<rating_threshold>/<pokemon_name>.png` → ladder stats card
@@ -254,6 +355,8 @@ insights.py                   Meta insight report builders (pure functions over 
 draft_tools.py                Draft Scout engine: movepool queries, preset groups, Speed maths
 vgcpastes.py                  VGCPastes sheet client + team search
 og_card.py                    Open Graph stat card renderer (Pillow, Flask-free)
+mobile_api.py                 Mobile API v1 payload shaping + sync revisions (Flask-free)
+build_packs.py                Precomputes the app's offline detail packs (run after update_all_data.py)
 update_all_data.py            Data pipeline (downloads, splits, generates trends)
 scrape_tournaments.py         Tournament data scraper (RK9.gg)
 babel.cfg                     pybabel extraction config
@@ -306,6 +409,18 @@ pybabel compile -d translations
 ```
 Commit the compiled `.mo` — it is what gets deployed (no compile step on the server). Literal `%` in a translated string must be escaped as `%%`. Pokémon, move, item, and ability names are deliberately left untranslated.
 
+### Static assets & cache busting
+Templates reference static files with `asset_url('name.js')`, **not** `url_for('static', ...)`:
+```jinja
+<script src="{{ asset_url('tools_2.3.js') }}"></script>
+<link rel="stylesheet" href="{{ asset_url('style.css') }}">
+```
+`asset_url` appends `?v=<sha256 prefix>` of the file's contents, so editing a file changes its URL on its own — there are no `?v=N` numbers to bump by hand, and no way to ship an edit that returning visitors keep a stale copy of. (The old manual scheme had already drifted: `style.css` was `?v=9` in `base.html` and `?v=4` in the standalone pages.)
+
+Hashes are computed once per process; in debug they're recomputed per request so local edits appear on reload. Any static URL carrying `?v=` is served `Cache-Control: public, max-age=31536000, immutable` — safe because the URL changes whenever the bytes do. Requests without `?v=` (e.g. `static/replay_assets/`, fetched by hardcoded path from the replay player) keep Flask's default revalidation.
+
+Third-party libraries are vendored under `static/vendor/` rather than loaded from a CDN, so no visitor IP is handed to a third party on page load. Font Awesome's CSS resolves its fonts via `../fonts/`, so keep the `css/` + `fonts/` pair adjacent if you upgrade it.
+
 ## Local Setup
 ```bash
 python -m venv .venv
@@ -320,6 +435,9 @@ npm install                # for damage calc build
 export FLASK_APP=app.py  # Windows: set FLASK_APP=app.py
 flask run
 
+# Dev, reachable from a phone on the same Wi-Fi (what the mobile app uses)
+python app.py            # binds 0.0.0.0:5000; HOST/PORT override both
+
 # Prod-like (mirrors Procfile: single worker + threads to fit Heroku's 512MB dyno;
 # --max-requests recycles the worker periodically to cap memory growth)
 gunicorn app:app --workers 1 --threads 8 --max-requests 6000 --max-requests-jitter 600 --bind 127.0.0.1:8000
@@ -328,9 +446,9 @@ gunicorn app:app --workers 1 --threads 8 --max-requests 6000 --max-requests-jitt
 ## Deployment
 - **Heroku / Render / Fly.io:** use `Procfile` (single gunicorn worker with 8 threads and periodic worker recycling, tuned for a 512MB dyno).
 - Ensure the `/stats` directory is populated at build/deploy time.
-- Set `EBAY_CLIENT_ID` and `EBAY_CLIENT_SECRET` environment variables for merch integration.
 - Optionally set `LIMITLESS_API_KEY` for the Limitless API (works keyless by default).
 - Contact form (all four required, otherwise the form is hidden): `TURNSTILE_SITE_KEY`, `TURNSTILE_SECRET_KEY`, `CONTACT_EMAIL_ADDRESS`, `CONTACT_EMAIL_APP_PASSWORD` (Gmail address + app password; used as both SMTP login and recipient).
+- Optionally set `PACK_BASE_URL` to override where the app fetches offline packs from (defaults to this repo's `mobile-packs` branch on `raw.githubusercontent.com`; empty string = serve them from the API instead, for dev).
 - Optionally set `REPLAY_DATA_URL` to override where replay JSONs are fetched from (defaults to this repo's `replay-data` branch on `raw.githubusercontent.com`; empty string = serve bundled local copies).
 
 ## Contributing

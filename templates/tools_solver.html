@@ -216,7 +216,7 @@
   .sv-mon-top { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
   .sv-sprite {
     width: 40px; height: 30px; flex-shrink: 0;
-    background-image: url("{{ url_for('static', filename='pokemonicons-sheet.png') }}");
+    background-image: url("{{ asset_url('pokemonicons-sheet.png') }}");
     background-size: 480px auto;
     background-repeat: no-repeat;
   }
@@ -615,6 +615,6 @@
     formatRatings: {{ solver_format_ratings | tojson }},
   };
 </script>
-<script src="{{ url_for('static', filename='vendor/smogon-calc.js') }}"></script>
-<script src="{{ url_for('static', filename='spread_solver.js') }}?v=1"></script>
+<script src="{{ asset_url('vendor/smogon-calc.js') }}"></script>
+<script src="{{ asset_url('spread_solver.js') }}"></script>
 {% endblock %}
