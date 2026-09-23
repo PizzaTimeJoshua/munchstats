@@ -111,7 +111,10 @@ def _build_one(job):
 
     blob = json.dumps(body, separators=(",", ":"), default=str).encode("utf8")
     path = os.path.join(out_dir, pack_filename(format_code, rating))
-    tmp = path + ".tmp"
+    # Per-process temp name: two builds running at once (a full run and a
+    # single-format rebuild, say) would otherwise share one path, and whichever
+    # renamed second would leave the loser's file behind to be published.
+    tmp = "%s.%d.tmp" % (path, os.getpid())
     # mtime=0 so rebuilding identical data produces an identical file; otherwise
     # every run would look like a change to anything comparing bytes.
     with open(tmp, "wb") as fh:
@@ -172,6 +175,13 @@ def main():
 
     out_dir = os.path.join(data_dir, month, PACK_DIRNAME)
     os.makedirs(out_dir, exist_ok=True)
+    # Clear anything a killed run left behind, so it cannot be published.
+    for stale in os.listdir(out_dir):
+        if stale.endswith(".tmp"):
+            try:
+                os.remove(os.path.join(out_dir, stale))
+            except OSError:
+                pass
 
     jobs = [(month, fmt, rating, out_dir) for fmt, rating in pairs]
     workers = args.jobs or min(mp.cpu_count(), 8)
