@@ -88,6 +88,58 @@ POKEMON_FIELDS = (
 # not carry it for every one.
 GRAPH_FIELD = "graph_data"
 
+# Points below this share are dropped from the packaged stat distribution.
+# 0.1% is fewer than one set in a thousand: invisible on the chart, and the
+# long tail of them is most of the data. Keeping it cost 85% of the field's
+# size for pixels nobody can see.
+GRAPH_MIN_SHARE = 0.1
+# Percentages are rounded to this many places. The source carries 14, which is
+# 57% of the field on its own and about twelve more digits than a chart can
+# render.
+GRAPH_DECIMALS = 2
+
+
+def compact_graph(graph_data):
+    """Shrink the stat-distribution series for shipping in a pack.
+
+    compile_page_data() returns this as a JSON *string* of six per-stat series
+    of [statValue, percentShare]. Emitted here as a real array -- the client
+    would otherwise parse JSON twice -- rounded and with the negligible tail
+    dropped. Measured on a 277-Pokemon dataset: 613 KB gzipped as-is, 91 KB
+    after, with the chart unchanged to the eye.
+
+    The web page is untouched; it reads compile_page_data() directly.
+    """
+    if isinstance(graph_data, str):
+        try:
+            graph_data = json.loads(graph_data)
+        except (ValueError, TypeError):
+            return None
+    if not isinstance(graph_data, list):
+        return None
+
+    out = []
+    for series in graph_data:
+        if not isinstance(series, list):
+            out.append([])
+            continue
+        kept = []
+        for point in series:
+            if not isinstance(point, (list, tuple)) or len(point) < 2:
+                continue
+            value, share = point[0], point[1]
+            try:
+                share = float(share)
+            except (TypeError, ValueError):
+                continue
+            if share < GRAPH_MIN_SHARE:
+                continue
+            kept.append([value, round(share, GRAPH_DECIMALS)])
+        out.append(kept)
+    # All six empty means there is nothing to draw; say so with None so the
+    # field can be left out entirely rather than shipping [[],[],[],[],[],[]].
+    return out if any(out) else None
+
 
 def is_month(value):
     """True for a well-formed 'YYYY-MM' string."""
@@ -365,7 +417,9 @@ def build_pokemon_payload(page_data, month, format_code, rating, include_graph=F
     for key in POKEMON_FIELDS:
         payload[key] = page_data.get(key)
     if include_graph:
-        payload[GRAPH_FIELD] = page_data.get(GRAPH_FIELD)
+        compacted = compact_graph(page_data.get(GRAPH_FIELD))
+        if compacted is not None:
+            payload[GRAPH_FIELD] = compacted
     return payload
 
 

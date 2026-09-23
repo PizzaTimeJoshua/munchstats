@@ -83,8 +83,12 @@ def _build_one(job):
         if data is None:
             skipped.append(name)
             continue
+        # include_graph: the stat-distribution chart ships in the pack rather
+        # than being fetched per Pokemon. It roughly doubles a pack and the time
+        # to build one, and buys the detail screen working entirely offline --
+        # which is the point of the packs.
         payloads[name] = mobile_api.build_pokemon_payload(
-            data, month, format_code, rating
+            data, month, format_code, rating, include_graph=True
         )
 
     try:
