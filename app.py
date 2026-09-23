@@ -1518,7 +1518,14 @@ def compile_champions_page_data(format_code, pokemon_name=""):
             base.get("sp_defense", primary.get("sp_defense", 0)),
             base.get("speed", primary.get("speed", 0)),
         ]
+    # Typing comes from the Champions API where it has it, and from the pokedex
+    # where it doesn't. The API's metadata lags a new regulation, so recently
+    # added Pokemon (Rillaboom, Salamence) arrived with no types at all and the
+    # page simply showed none -- the same fallback the base stats above already
+    # use, and the same call the Limitless and tournament pages make.
     pokemon_types = summary.get("types") or primary.get("types") or []
+    if not pokemon_types and pokedexEntries:
+        pokemon_types = compile_top_data({"_": 1}, default_pokemon, "Types")
 
     # OCR-corrected names can collide (e.g. "Boost" and "Speed Boost" rows both
     # resolving to Speed Boost); rows are usage-ordered, so keep the first.
