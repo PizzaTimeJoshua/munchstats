@@ -6,10 +6,17 @@ Usage:
     python scrape_tournaments.py <tournament_id> ...      # Scrape specific tournament(s)
     python scrape_tournaments.py --topcut 8 --day2 64     # Override day cutoffs
 
+    python scrape_tournaments.py --pairings [<tournament_id> ...]
+                                                          # (Re)fetch only pairings
+
 Data is saved to stats/tournaments/{tournament_id}/ with:
     metadata.json    - Tournament info (name, date, type, etc.)
     players.json     - Player standings + team lists
     aggregated.json  - Pre-computed usage stats per filter level
+    pairings.json    - Every round's matches: who played whom, and who won
+
+VGC only. RK9 lists TCG events alongside, and they have no team lists this
+scraper can read, so they are skipped rather than saved as empty folders.
 """
 
 import argparse
@@ -209,6 +216,11 @@ def normalize_pokemon_name(raw_name, pokemon_lookup):
     return name.strip()
 
 
+def is_tcg_event(name):
+    """True for a Trading Card Game event. RK9 lists them beside VGC ones."""
+    return bool(re.search(r"\bTCG\b", name or "", re.IGNORECASE))
+
+
 def classify_tournament_type(name):
     """Determine tournament type from its name."""
     lower = name.lower()
@@ -221,24 +233,82 @@ def classify_tournament_type(name):
     return "Regional"
 
 
+def _cell_player_name(cell):
+    """A pairings cell's player name without its [country] tag, or ""."""
+    name_span = cell.find("span", class_="name") if cell else None
+    if not name_span:
+        return ""
+    # First and last names sit in separate tags; joining them without a space
+    # gave "KathrynAplin". Matching normalizes spaces away either way.
+    raw_name = re.sub(r"\s+", " ", name_span.get_text(" ", strip=True))
+    return re.sub(r"\s*\[.*?\]\s*$", "", raw_name).strip()
+
+
+# Match results as stored in pairings.json, from the first player's side.
+RESULT_P1 = 1         # first player won (a bye is a win with no opponent)
+RESULT_P2 = 2         # second player won
+RESULT_TIE = 0
+RESULT_P1_LOST = -1   # first player lost with no opponent: a no-show
+RESULT_BOTH_LOST = -2 # double loss: RK9 marks both sides losers, e.g. both dropped
+# None: not played yet, or RK9 marked no result.
+
+
+def _match_of_row(row):
+    """(player1, player2 or None, result) for one match row, or None.
+
+    Read from the winner/loser classes RK9 puts on each side, never from the
+    record printed beside the name: in Swiss rounds that record already
+    includes the round, and in top cut it does not.
+    """
+    sides = []
+    for cls in ("player1", "player2"):
+        cell = row.find("div", class_=cls)
+        name = _cell_player_name(cell)
+        if name:
+            classes = cell.get("class") or []
+            sides.append((name, "winner" in classes, "loser" in classes))
+    if not sides:
+        return None
+
+    row_classes = row.get("class") or []
+    if "complete" not in row_classes:
+        result = None
+    elif "tie" in row_classes:
+        result = RESULT_TIE
+    elif len(sides) == 2:
+        if sides[0][1]:
+            result = RESULT_P1
+        elif sides[1][1]:
+            result = RESULT_P2
+        elif sides[0][2] and sides[1][2]:
+            result = RESULT_BOTH_LOST
+        else:
+            result = None
+    else:
+        result = RESULT_P1 if sides[0][1] else RESULT_P1_LOST
+
+    second = sides[1][0] if len(sides) == 2 else None
+    return (sides[0][0], second, result)
+
+
 def _parse_round_data(rnd_soup):
     """Parse player names, records, and win/loss results from a round's htmx HTML.
 
-    Returns (match_count, player_data) where player_data is a dict of:
+    Returns (match_count, player_data, matches) where player_data is a dict of:
         normalized_name -> {"name": raw_name, "wins": W, "losses": L}
+    and matches is a list of (player1, player2 or None, result) -- see
+    _match_of_row.
     The record includes the result of this round (winner gets +1 win, loser +1 loss).
     """
     rows = rnd_soup.find_all("div", class_="row")
     match_rows = [m for m in rows if m.find("div", class_="player1")]
 
+    matches = [m for m in (_match_of_row(row) for row in match_rows) if m]
+
     player_data = {}
     for row in match_rows:
         for cell in row.find_all("div", class_=re.compile(r"player[12]")):
-            name_span = cell.find("span", class_="name")
-            if not name_span:
-                continue
-            raw_name = name_span.get_text(strip=True)
-            clean_name = re.sub(r"\s*\[.*?\]\s*$", "", raw_name).strip()
+            clean_name = _cell_player_name(cell)
             if not clean_name:
                 continue
 
@@ -265,7 +335,7 @@ def _parse_round_data(rnd_soup):
                 "losses": losses,
             }
 
-    return len(match_rows), player_data
+    return len(match_rows), player_data, matches
 
 
 def scrape_pairings_data(session, tournament_id):
@@ -275,29 +345,33 @@ def scrape_pairings_data(session, tournament_id):
     - Counts matches (to detect the Day 2 boundary via >50% drop)
     - Tracks each player's record (last seen record is their final record)
 
-    Returns (day2_names, all_player_records) where:
+    Returns (day2_names, all_player_records, pairings) where:
         day2_names: set of normalized player names who appeared in Day 2+ rounds
         all_player_records: dict of normalized_name -> {"name", "wins", "losses"}
+        pairings: {"day2_round": n or None, "rounds": [{"round", "matches"}]},
+            matches named as the pairings page names them -- see
+            build_pairings_payload -- or None when there are no pairings
     """
     # 1. Get pairings page to find total rounds for Masters (pod 2)
     url = f"{RK9_BASE}/pairings/{tournament_id}"
     resp = session.get(url, timeout=30)
     if resp.status_code != 200:
-        return None, {}
+        return None, {}, None
 
     soup = BeautifulSoup(resp.text, "html.parser")
     round_tabs = soup.find_all("a", id=re.compile(r"^P2R\d+-tab$"))
     if not round_tabs:
-        return None, {}
+        return None, {}, None
 
     total_rounds = len(round_tabs)
     if total_rounds < 2:
-        return None, {}
+        return None, {}, None
 
     # 2. Iterate all rounds, tracking records and match counts
     all_records = {}          # normalized_name -> {"name", "wins", "losses"}
     round_match_counts = {}   # round_num -> match_count
     round_players = {}        # round_num -> set of normalized player names
+    rounds = []               # [{"round", "matches"}], for pairings.json
     day2_round = None
 
     for rnd in range(1, total_rounds + 1):
@@ -308,9 +382,10 @@ def scrape_pairings_data(session, tournament_id):
             if rnd_resp.status_code != 200:
                 continue
             rnd_soup = BeautifulSoup(rnd_resp.text, "html.parser")
-            match_count, player_data = _parse_round_data(rnd_soup)
+            match_count, player_data, matches = _parse_round_data(rnd_soup)
             round_match_counts[rnd] = match_count
             round_players[rnd] = set(player_data.keys())
+            rounds.append({"round": rnd, "matches": matches})
             print(f"      Round {rnd}: {match_count} matches, {len(player_data)} players")
 
             # Update running records (last seen = final record)
@@ -327,10 +402,12 @@ def scrape_pairings_data(session, tournament_id):
                 day2_round = rnd
                 print(f"      Day 2 detected at Round {rnd} ({prev} -> {curr} matches)")
 
+    pairings = {"day2_round": day2_round, "rounds": rounds} if rounds else None
+
     # 3. Collect Day 2 player names (everyone who appeared in day2_round or later)
     if day2_round is None:
         print("      No Day 2 boundary detected")
-        return None, all_records
+        return None, all_records, pairings
 
     day2_names = set()
     for rnd in range(day2_round, total_rounds + 1):
@@ -338,7 +415,189 @@ def scrape_pairings_data(session, tournament_id):
             day2_names.update(round_players[rnd])
 
     print(f"      Day 2 players: {len(day2_names)}, Total tracked: {len(all_records)}")
-    return day2_names, all_records
+    return day2_names, all_records, pairings
+
+
+def _top_cut_start(rounds):
+    """Index of the first single-elimination round, or len(rounds) if none.
+
+    Walks back from the final. A round belongs to the cut when its winners are
+    exactly the players of the round after it: true of single elimination, and
+    not of Swiss, where losers keep playing. Counting matches alone would take
+    a last Swiss round of exactly eight for a quarterfinal.
+    """
+    if not rounds or len(rounds[-1]["matches"]) != 1:
+        return len(rounds)
+    start = len(rounds) - 1
+    while start > 0:
+        earlier = rounds[start - 1]["matches"]
+        later = rounds[start]["matches"]
+        winners = {
+            m[0] if m[2] == RESULT_P1 else m[1]
+            for m in earlier
+            if m[2] in (RESULT_P1, RESULT_P2)
+        }
+        players = {p for m in later for p in m[:2] if p}
+        if len(earlier) != 2 * len(later) or winners != players:
+            break
+        start -= 1
+    return start
+
+
+def build_pairings_payload(pairings, match_map):
+    """pairings.json: every round's matches, under the names players.json uses.
+
+    The pairings page and the roster spell names independently, so each name is
+    mapped back through the same fuzzy match that assigns records; a name that
+    never matched is kept as the pairings page wrote it. Each round also gets
+    its stage -- "day1", "day2" or "top" -- which is what lets a player's run
+    read as a tournament rather than a list of numbers.
+    """
+    to_roster = {key: name for name, key in match_map.items()}
+
+    def roster_name(raw):
+        if not raw:
+            return None
+        return to_roster.get(normalize_player_name(raw), raw)
+
+    rounds = pairings["rounds"]
+    top_start = _top_cut_start(rounds)
+    day2_round = pairings.get("day2_round")
+    out = []
+    for i, rnd in enumerate(rounds):
+        if i >= top_start:
+            stage = "top"
+        elif day2_round and rnd["round"] >= day2_round:
+            stage = "day2"
+        else:
+            stage = "day1"
+        out.append({
+            "round": rnd["round"],
+            "stage": stage,
+            "matches": [
+                [roster_name(a), roster_name(b), result]
+                for a, b, result in rnd["matches"]
+            ],
+        })
+    return {"source": "rk9", "rounds": out}
+
+
+def save_pairings(tournament_id, payload):
+    out_dir = os.path.join(TOURNAMENT_DATA_DIR, tournament_id)
+    os.makedirs(out_dir, exist_ok=True)
+    with open(os.path.join(out_dir, "pairings.json"), "w", encoding="utf-8") as f:
+        json.dump(payload, f, separators=(",", ":"), ensure_ascii=False)
+
+
+def records_from_pairings(payload):
+    """Each player's W-L-T, counted from the match results alone."""
+    records = {}
+    for rnd in payload["rounds"]:
+        for a, b, result in rnd["matches"]:
+            for name, won, lost in (
+                (a, result == RESULT_P1,
+                 result in (RESULT_P2, RESULT_P1_LOST, RESULT_BOTH_LOST)),
+                (b, result == RESULT_P2, result in (RESULT_P1, RESULT_BOTH_LOST)),
+            ):
+                if not name:
+                    continue
+                rec = records.setdefault(name, [0, 0, 0])
+                if won:
+                    rec[0] += 1
+                elif lost:
+                    rec[1] += 1
+                elif result == RESULT_TIE:
+                    rec[2] += 1
+    return records
+
+
+def apply_pairings_records(players, payload):
+    """Set each player's record to the one counted from match results.
+
+    The records scrape_pairings_data takes from the printed "(W-L-T)" count one
+    game too many: RK9 prints Swiss records *after* the round, and the parser
+    adds the round's result again. Every saved record carried a duplicate of
+    the player's last result -- 16-2 for a champion who played 17 rounds.
+    Counting results cannot drift with how RK9 prints anything.
+
+    Players sharing a name are left alone: the pairings page cannot tell them
+    apart, so the count would merge two people's matches. Returns the number
+    of records changed.
+    """
+    counted = records_from_pairings(payload)
+    seen = {}
+    for player in players:
+        seen[player["name"]] = seen.get(player["name"], 0) + 1
+    changed = 0
+    for player in players:
+        rec = counted.get(player["name"])
+        if rec is None or seen[player["name"]] > 1:
+            continue
+        record = {"wins": rec[0], "losses": rec[1]}
+        if rec[2]:
+            record["ties"] = rec[2]
+        if player.get("record") != record:
+            player["record"] = record
+            changed += 1
+    return changed
+
+
+def check_pairings_against_records(players, payload):
+    """Print how many saved records the pairings reproduce.
+
+    A cross-check on both sides: a parsing mistake here shows up as a
+    mismatch, and so does a change in how RK9 prints records, which the
+    record-taking in scrape_pairings_data depends on.
+    """
+    counted = records_from_pairings(payload)
+    same = differ = unmatched = 0
+    examples = []
+    for player in players:
+        saved = player.get("record")
+        if not saved:
+            continue
+        rec = counted.get(player["name"])
+        if rec is None:
+            unmatched += 1
+        elif (rec[0], rec[1]) == (saved.get("wins"), saved.get("losses")):
+            same += 1
+        else:
+            differ += 1
+            if len(examples) < 3:
+                examples.append(f"{player['name']}: saved {saved.get('wins')}-"
+                                f"{saved.get('losses')}, pairings {rec[0]}-{rec[1]}")
+    print(f"  Records reproduced: {same} same, {differ} differ, {unmatched} unmatched")
+    for line in examples:
+        print(f"    {line}")
+    return same, differ, unmatched
+
+
+def refresh_pairings(session, tournament_id):
+    """Fetch a saved tournament's pairings: write pairings.json, and correct
+    the records in players.json from them. Teams and usage are untouched."""
+    players_path = os.path.join(TOURNAMENT_DATA_DIR, tournament_id, "players.json")
+    players = load_json(players_path)
+    if not isinstance(players, list) or not players:
+        print(f"Skipping {tournament_id} (no saved players)")
+        return None
+    print(f"\nPairings for {tournament_id}")
+    _, records, pairings = scrape_pairings_data(session, tournament_id)
+    if not pairings:
+        print("  No pairings found.")
+        return None
+    payload = build_pairings_payload(pairings, build_player_match_map(players, records))
+    save_pairings(tournament_id, payload)
+    stages = [r["stage"] for r in payload["rounds"]]
+    print(f"  Saved {len(stages)} rounds: {stages.count('day1')} day 1, "
+          f"{stages.count('day2')} day 2, {stages.count('top')} top cut")
+    before = check_pairings_against_records(players, payload)
+    changed = apply_pairings_records(players, payload)
+    if changed:
+        # Same serialization as save_tournament_data, so the diff is records only.
+        with open(players_path, "w", encoding="utf-8") as f:
+            json.dump(players, f, separators=(",", ":"), ensure_ascii=False)
+        print(f"  Corrected {changed} records from match results")
+    return before
 
 
 def normalize_player_name(name):
@@ -964,6 +1223,9 @@ def scrape_tournament(session, tournament_id, event_info, pokemon_lookup, move_l
     time.sleep(REQUEST_DELAY)
     metadata = scrape_tournament_metadata(session, tournament_id, event_info)
     print(f"  Tournament: {metadata['name']} ({metadata['type']})")
+    if is_tcg_event(metadata["name"]):
+        print("  TCG event, not VGC. Skipping.")
+        return
 
     # 2. Scrape roster
     time.sleep(REQUEST_DELAY)
@@ -977,7 +1239,8 @@ def scrape_tournament(session, tournament_id, event_info, pokemon_lookup, move_l
 
     # 3. Determine Day 2 players from pairings data
     print("  Scraping pairings to determine Day 2 players...")
-    day2_names, player_records = scrape_pairings_data(session, tournament_id)
+    day2_names, player_records, pairings = scrape_pairings_data(session, tournament_id)
+    match_map = {}
 
     if day2_names is not None:
         match_map = build_player_match_map(players, player_records)
@@ -1020,8 +1283,14 @@ def scrape_tournament(session, tournament_id, event_info, pokemon_lookup, move_l
     metadata["teams_scraped"] = teams_with_data
     metadata["scraped_at"] = datetime.utcnow().isoformat() + "Z"
 
-    # 7. Save
+    # 7. Save. Records come from the match results where there are any --
+    # see apply_pairings_records for why the printed ones cannot be trusted.
+    payload = build_pairings_payload(pairings, match_map) if pairings else None
+    if payload:
+        apply_pairings_records(players, payload)
     save_tournament_data(tournament_id, metadata, players, aggregated)
+    if payload:
+        save_pairings(tournament_id, payload)
 
 
 def reteam_tournament(session, tournament_id, pokemon_lookup, move_lookup):
@@ -1062,7 +1331,8 @@ def reteam_tournament(session, tournament_id, pokemon_lookup, move_lookup):
 
     # Reclassify day_reached using pairings data
     print("    Scraping pairings to determine Day 2 players...")
-    day2_names, player_records = scrape_pairings_data(session, tournament_id)
+    day2_names, player_records, pairings = scrape_pairings_data(session, tournament_id)
+    match_map = {}
 
     if day2_names is not None:
         match_map = build_player_match_map(players, player_records)
@@ -1094,9 +1364,14 @@ def reteam_tournament(session, tournament_id, pokemon_lookup, move_lookup):
     metadata["teams_scraped"] = teams_with_data
     metadata["scraped_at"] = datetime.utcnow().isoformat() + "Z"
 
-    # Re-aggregate and save
+    # Re-aggregate and save, with records from the match results
     aggregated = build_aggregated_data(players)
+    payload = build_pairings_payload(pairings, match_map) if pairings else None
+    if payload:
+        apply_pairings_records(players, payload)
     save_tournament_data(tournament_id, metadata, players, aggregated)
+    if payload:
+        save_pairings(tournament_id, payload)
 
 
 def main():
@@ -1110,6 +1385,9 @@ def main():
     parser.add_argument("--reaggregate", action="store_true",
                         help="Rebuild aggregated.json (and re-resolve players.json) from saved data, no scraping")
     parser.add_argument("--discover", action="store_true", help="Discover and list available tournaments")
+    parser.add_argument("--pairings", action="store_true",
+                        help="Fetch only pairings (who played whom) for saved tournaments; "
+                             "players, teams and usage are left untouched")
     args = parser.parse_args()
 
     os.makedirs(TOURNAMENT_DATA_DIR, exist_ok=True)
@@ -1141,6 +1419,31 @@ def main():
             save_tournament_data(tid, metadata, players, aggregated)
         update_tournaments_index()
         print("\nDone.")
+        return
+
+    if args.pairings:
+        # Backfill who-played-whom for tournaments scraped before pairings.json
+        # existed. Nothing else is rewritten, so this cannot disturb their
+        # teams or usage numbers.
+        if args.tournament_ids:
+            tids = args.tournament_ids
+        else:
+            index = load_json(os.path.join(TOURNAMENT_DATA_DIR, "tournaments_index.json"))
+            tids = [t["id"] for t in index if t.get("teams_scraped", 0) > 0] \
+                if isinstance(index, list) else []
+        print(f"Fetching pairings for {len(tids)} tournaments...")
+        totals = [0, 0, 0]
+        for tid in tids:
+            try:
+                checked = refresh_pairings(session, tid)
+            except Exception as e:
+                print(f"ERROR fetching pairings for {tid}: {e}")
+                continue
+            if checked:
+                totals = [a + b for a, b in zip(totals, checked)]
+        print(f"\nAll records reproduced: {totals[0]} same, {totals[1]} differ, "
+              f"{totals[2]} unmatched")
+        print("Done.")
         return
 
     if args.reteam:
@@ -1177,6 +1480,13 @@ def main():
     else:
         # Discover and scrape all tournaments
         tournament_ids, event_info = discover_tournaments(session)
+        # The events page lists TCG beside VGC. Filtering here, where the name
+        # is already known, saves a page fetch per TCG event on every run;
+        # scrape_tournament checks again for names this list did not carry.
+        tournament_ids = [
+            tid for tid in tournament_ids
+            if not is_tcg_event(event_info.get(tid, {}).get("name", ""))
+        ]
         if not tournament_ids:
             print("No tournaments found.")
             return
