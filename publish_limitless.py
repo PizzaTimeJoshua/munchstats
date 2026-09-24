@@ -45,19 +45,27 @@ import app as A  # noqa: E402
 import limitless_stats as L  # noqa: E402
 import tournament_packs as TP  # noqa: E402
 
+# This process has time to wait out the rate limit; the site does not.
+L.WAIT_FOR_RATE_LIMIT = True
+
 # How far back the site can still open an event page. The stats window is
 # L.WINDOW_DAYS (30); this is longer so links to recent-but-older events keep
 # working, and each event is fetched once however long it is kept.
 RETENTION_DAYS = 90
 LIST_PAGE_LIMIT = 10
 
-# Pause between API requests. The first run fetches standings and pairings
-# for three months of events; at the site's 0.3 s, and two requests an event,
-# a local trial had 8 of 174 refused part way (each returned fine a minute
-# later). A second per request keeps a full backfill well inside the job's
-# hour, and later runs fetch only a handful of new events. Anything refused
-# is simply retried on the next run.
-REQUEST_SPACING_SECONDS = 1.0
+# The API allows 50 requests per rolling five minutes without a key, and says
+# so in its RateLimit headers; limitless_stats reads them, and with
+# WAIT_FOR_RATE_LIMIT set it sleeps out an exhausted window rather than send
+# requests that will be refused. The first publish did not, and at one
+# request a second got 50 through and then 115 events refused in a row.
+#
+# 50 per five minutes is about 600 an hour, and a first backfill of three
+# months is more than that, so fetching stops after FETCH_BUDGET_SECONDS and
+# publishes what it has. The next run starts from that snapshot and carries
+# on, newest events first. Steady state is a handful of events per run.
+REQUEST_SPACING_SECONDS = 0.5
+FETCH_BUDGET_SECONDS = 35 * 60
 
 
 def log(msg):
@@ -126,13 +134,18 @@ def publishable(events, now):
 
 
 def fetch_missing(events):
-    """Standings and pairings for each event not already cached."""
-    fetched = failed = 0
+    """Standings and pairings for each event not already cached, newest first,
+    until FETCH_BUDGET_SECONDS runs out. Returns (fetched, failed, deferred)."""
+    started = time.time()
+    fetched = failed = deferred = 0
     for t in events:
         tid = t["id"]
         need_standings = not os.path.exists(L._standings_path(tid))
         need_pairings = not os.path.exists(L._cache_path("pairings", tid))
         if not (need_standings or need_pairings):
+            continue
+        if time.time() - started > FETCH_BUDGET_SECONDS:
+            deferred += 1  # the next run picks it up
             continue
         if need_standings:
             ok = L.get_standings(tid, meta=L._event_meta(t)) is not None
@@ -145,7 +158,7 @@ def fetch_missing(events):
             L.get_pairings(tid)
             time.sleep(REQUEST_SPACING_SECONDS)
         fetched += 1
-    return fetched, failed
+    return fetched, failed, deferred
 
 
 # --- 3. write ----------------------------------------------------------------
@@ -382,8 +395,9 @@ def main():
 
     L.get_vgc_formats()
     events = publishable(fetch_event_list(now), now)
-    fetched, failed = fetch_missing(events)
-    log("%d publishable events: fetched %d new, %d failed" % (len(events), fetched, failed))
+    fetched, failed, deferred = fetch_missing(events)
+    log("%d publishable events: fetched %d new, %d failed, %d left for the next run"
+        % (len(events), fetched, failed, deferred))
 
     if os.path.isdir(args.out):
         shutil.rmtree(args.out)

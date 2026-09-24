@@ -137,22 +137,75 @@ def _published_get(path):
         return None
 
 
-def _api_get(path, params=None):
-    """GET JSON from the Limitless API, or None on any failure."""
+# Limitless states its limit on every response, in the IETF RateLimit headers:
+#   RateLimit-Policy: "50-in-5min"; q=50; w=300
+#   RateLimit: "50-in-5min"; r=49; t=300    (r requests left, t seconds to reset)
+# 50 requests per rolling five minutes per address, without a key. The last
+# reading is kept so nothing is sent while the allowance is spent -- it would
+# only be refused. A first publish at one request a second learned this the
+# hard way: 50 went through, then 115 events in a row were refused.
+_rate = {"remaining": None, "reset_at": 0.0}
+_RATE_RE = re.compile(r"\br=(\d+).*?\bt=(\d+)")
+
+# Whether a request made while the allowance is spent should wait for it to
+# come back (the publisher, which has time) or give up at once (the site, which
+# must not hold a page view for minutes).
+WAIT_FOR_RATE_LIMIT = False
+
+
+def _note_rate(resp):
+    match = _RATE_RE.search(resp.headers.get("RateLimit", ""))
+    if match:
+        _rate["remaining"] = int(match.group(1))
+        _rate["reset_at"] = time.time() + int(match.group(2))
+    elif resp.status_code == 429:
+        retry = resp.headers.get("Retry-After", "")
+        _rate["remaining"] = 0
+        _rate["reset_at"] = time.time() + (int(retry) if retry.isdigit() else 60)
+
+
+def rate_limit_wait():
+    """Seconds until the API will take another request; 0 when it will now."""
+    if _rate["remaining"] is None or _rate["remaining"] > 0:
+        return 0.0
+    return max(0.0, _rate["reset_at"] - time.time())
+
+
+def _api_get(path, params=None, wait=None):
+    """GET JSON from the Limitless API, or None on any failure.
+
+    While the rate limit is spent the request is not sent at all. With wait
+    (WAIT_FOR_RATE_LIMIT by default) it sleeps out the window instead, and
+    retries once if the API refuses anyway.
+    """
+    if wait is None:
+        wait = WAIT_FOR_RATE_LIMIT
     headers = {"User-Agent": "MunchStats (+https://munchstats.com)"}
     if API_KEY:
         headers["X-Access-Key"] = API_KEY
-    try:
-        resp = requests.get(
-            LIMITLESS_API_BASE + path,
-            params=params,
-            timeout=20,
-            headers=headers,
-        )
+    for _ in range(2):
+        pause = rate_limit_wait()
+        if pause:
+            if not wait:
+                return None
+            time.sleep(pause + 1)
+        try:
+            resp = requests.get(
+                LIMITLESS_API_BASE + path,
+                params=params,
+                timeout=20,
+                headers=headers,
+            )
+        except Exception:
+            return None
+        _note_rate(resp)
         if resp.status_code == 200:
-            return resp.json()
-    except Exception:
-        pass
+            try:
+                return resp.json()
+            except ValueError:
+                return None
+        if resp.status_code != 429 or not wait:
+            return None
     return None
 
 
