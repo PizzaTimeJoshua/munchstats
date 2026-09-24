@@ -19,6 +19,9 @@ Layout:
 
 Usage:
     python build_champions_pack.py
+
+Normally run by .github/workflows/update-champions-packs.yml, which rebuilds
+and publishes whenever the scraper pushes new battle data.
 """
 
 import gzip
@@ -127,10 +130,21 @@ def main():
         if skipped:
             print("      %s" % ", ".join(skipped[:4]))
 
+    if not entries:
+        # Nothing to publish. Writing an empty manifest would be worse than
+        # failing: the workflow would commit it, and the check that stops
+        # rebuilds would then believe this source had been built.
+        print("\nno packs built -- is the champions-data branch reachable?")
+        return 1
+
     with open(os.path.join(OUT_DIR, MANIFEST_NAME), "w", encoding="utf8") as fh:
         json.dump({
             "api_version": mobile_api.API_VERSION,
             "generated_at": int(time.time()),
+            # The champions-data commit these were built from. The workflow
+            # compares it with the branch to decide whether to build at all.
+            # Empty for a build by hand, which the next scheduled run replaces.
+            "source_commit": os.environ.get("CHAMPIONS_SOURCE_COMMIT", ""),
             "pack_count": len(entries),
             "total_bytes": sum(e["bytes"] for e in entries),
             "packs": entries,
@@ -139,7 +153,8 @@ def main():
     print("\nbuilt %d packs in %.1f min, %.2f MB total"
           % (len(entries), (time.time() - started) / 60,
              sum(e["bytes"] for e in entries) / 1048576))
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

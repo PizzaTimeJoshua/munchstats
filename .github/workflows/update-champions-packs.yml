@@ -1,0 +1,150 @@
+name: Update in-game packs
+
+# Rebuilds the mobile app's offline in-game packs whenever the Champions
+# scraper publishes, and commits them to the mobile-packs branch. The app
+# re-checks them on raw.githubusercontent.com every time it opens, so this is
+# what decides how fresh its In-Game tab can be -- built by hand, they sat a
+# day behind the site.
+#
+# The scraper force-pushes champions-data as one fresh commit, so its SHA
+# changes with every publish. The published manifest records the SHA it was
+# built from (source_commit), and a scheduled run that finds the two equal
+# stops there: the hourly check costs seconds. Only a real change pays for a
+# build, which checks out the whole site (app.py reads its data files at
+# import) and assembles every species' page.
+#
+# Scheduled runs only fire from the default branch, so the schedule does
+# nothing until this file is on main. Until the mobile API merges, the builder
+# lives on features, which is what gets checked out. Pushing a change to the
+# builder on features rebuilds straight away.
+
+on:
+  schedule:
+    - cron: '41 * * * *'
+  workflow_dispatch:
+  push:
+    branches: [features]
+    paths:
+      - build_champions_pack.py
+      - mobile_api.py
+      - .github/workflows/update-champions-packs.yml
+
+permissions:
+  contents: write
+
+# One writer to mobile-packs at a time.
+concurrency:
+  group: mobile-packs
+  cancel-in-progress: false
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    outputs:
+      build: ${{ steps.compare.outputs.build }}
+      source: ${{ steps.compare.outputs.source }}
+    steps:
+      - name: Compare champions-data with what is published
+        id: compare
+        env:
+          REPO: ${{ github.repository }}
+          EVENT: ${{ github.event_name }}
+        run: |
+          remote="https://github.com/$REPO.git"
+          source=$(git ls-remote "$remote" refs/heads/champions-data | cut -f1)
+          packs=$(git ls-remote "$remote" refs/heads/mobile-packs | cut -f1)
+          if [ -z "$source" ] || [ -z "$packs" ]; then
+            echo "::error::champions-data or mobile-packs is missing"
+            exit 1
+          fi
+          # By commit rather than branch name: raw.githubusercontent.com caches
+          # a branch URL for minutes, and a commit URL cannot go stale.
+          published=$(curl -fsSL "https://raw.githubusercontent.com/$REPO/$packs/stats/champions/_manifest.json" \
+            | python3 -c 'import json, sys; print(json.load(sys.stdin).get("source_commit", ""))' \
+            || true)
+          echo "source=$source" >> "$GITHUB_OUTPUT"
+          if [ "$EVENT" = "schedule" ] && [ "$source" = "$published" ]; then
+            echo "Already built from champions-data ${source:0:7}."
+            echo "build=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Building from champions-data ${source:0:7} (published: ${published:-none})."
+            echo "build=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  build:
+    needs: check
+    if: needs.check.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out the builder
+        uses: actions/checkout@v4
+        with:
+          ref: features
+          path: site
+
+      # Built from a local copy of exactly the commit compared above, not from
+      # raw.githubusercontent.com: a build fetches ~530 files, and one that got
+      # rate-limited part way would quietly publish packs with species missing.
+      - name: Check out the battle data
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.check.outputs.source }}
+          path: data
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: site/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r site/requirements.txt
+
+      - name: Build packs
+        working-directory: site
+        env:
+          MUNCHSTATS_NO_WARM: '1'
+          CHAMPIONS_DATA_URL: http://127.0.0.1:8765/champions/
+          CHAMPIONS_SOURCE_COMMIT: ${{ needs.check.outputs.source }}
+        run: |
+          python -m http.server 8765 --bind 127.0.0.1 --directory ../data >/dev/null 2>&1 &
+          for i in $(seq 1 30); do
+            curl -fsS -o /dev/null http://127.0.0.1:8765/champions/index.json && break
+            sleep 1
+          done
+          python build_champions_pack.py
+
+      - name: Check out mobile-packs
+        uses: actions/checkout@v4
+        with:
+          ref: mobile-packs
+          path: packs
+          # Only the in-game folder. The branch also holds every month's packs,
+          # about a hundred megabytes each, which this job never touches.
+          filter: blob:none
+          sparse-checkout: stats/champions
+
+      - name: Publish
+        working-directory: packs
+        env:
+          SOURCE: ${{ needs.check.outputs.source }}
+        run: |
+          mkdir -p stats/champions
+          cp ../site/stats/champions/*.json.gz ../site/stats/champions/_manifest.json stats/champions/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add stats/champions
+          if git diff --cached --quiet; then
+            echo "Nothing changed."
+            exit 0
+          fi
+          updated=$(python3 -c 'import json; m = json.load(open("stats/champions/_manifest.json")); print(m["packs"][0]["updated"])')
+          git commit -q -m "packs: in-game data, $updated (champions-data ${SOURCE:0:7})"
+          # A month pushed by hand can land between checkout and push.
+          for attempt in 1 2 3; do
+            git push -q origin HEAD:mobile-packs && exit 0
+            git pull -q --rebase origin mobile-packs
+          done
+          exit 1
