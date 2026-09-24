@@ -13,18 +13,17 @@ name: Update in-game packs
 # build, which checks out the whole site (app.py reads its data files at
 # import) and assembles every species' page.
 #
-# Scheduled runs only fire from the default branch, so the schedule does
-# nothing until this file is on main, and it builds with main's code. Pushing a
-# change to the builder rebuilds straight away, with the code that was pushed.
-# Nothing here names a branch to build from, so deleting a merged branch
-# cannot break it.
+# Runs from main only. Scheduled runs fire from the default branch anyway, and
+# the push trigger is limited to main, so a working branch carrying this file
+# never repeats the job main already does. A builder change merged to main
+# rebuilds straight away.
 
 on:
   schedule:
     - cron: '41 * * * *'
   workflow_dispatch:
   push:
-    branches: [main, features]
+    branches: [main]
     paths:
       - build_champions_pack.py
       - mobile_api.py

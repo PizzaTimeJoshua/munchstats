@@ -1,0 +1,91 @@
+name: Update Limitless data
+
+# Every two hours: fetch new Limitless events and publish the site's copy and
+# the app's packs to the limitless-data branch (publish_limitless.py). This is
+# the only thing that calls the Limitless API; the site and the app both read
+# the branch.
+#
+# Two hours because nothing newer exists to find: an event only counts once it
+# has been finished for 12 hours, so polling faster would ask the API the same
+# question again and again.
+#
+# The branch is one orphan commit, force-pushed, like replay-data: it changes
+# with every new event and nothing needs its history, so it never grows. The
+# previous snapshot seeds each run, so only events it has not seen are fetched.
+#
+# Runs from main only, like every workflow here.
+
+on:
+  schedule:
+    - cron: '23 */2 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - publish_limitless.py
+      - limitless_stats.py
+      - tournament_packs.py
+      - .github/workflows/update-limitless.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: limitless-data
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      # The whole site: app.py reads its data files at import.
+      - name: Check out the site
+        uses: actions/checkout@v4
+        with:
+          path: site
+
+      - name: Fetch the previous snapshot
+        run: |
+          git clone -q --depth 1 --branch limitless-data \
+            "https://github.com/${{ github.repository }}.git" seed \
+            || { echo "No previous snapshot: this run fetches everything."; mkdir -p seed; }
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: site/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r site/requirements.txt
+
+      - name: Publish
+        working-directory: site
+        env:
+          MUNCHSTATS_NO_WARM: '1'
+          # Optional. Unset, the keyless API is used, as the site did.
+          LIMITLESS_API_KEY: ${{ secrets.LIMITLESS_API_KEY }}
+        run: python publish_limitless.py --out ../out --seed ../seed
+
+      - name: Push the snapshot
+        working-directory: out
+        env:
+          TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          git init -q -b limitless-data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          # Same content, same tree hash: skip the push rather than churn the
+          # branch with an identical snapshot.
+          tree=$(git write-tree)
+          previous=$(git -C ../seed rev-parse -q --verify 'HEAD^{tree}' 2>/dev/null || true)
+          if [ "$tree" = "$previous" ]; then
+            echo "Nothing new since the last snapshot."
+            exit 0
+          fi
+          git commit -q -m "Limitless data snapshot $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push -q --force "https://x-access-token:${TOKEN}@github.com/${REPO}.git" limitless-data

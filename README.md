@@ -132,15 +132,15 @@ Three sub-tabs at `/tools/`:
 - **Charts:** Chart.js (EV distribution bar chart, usage trend line chart)
 - **Damage Calc:** @smogon/calc 0.11.0 (bundled with esbuild)
 - **Process management:** Gunicorn (Procfile; worker recycled via `--max-requests` to cap memory growth)
-- **Data:** Per-Pokémon JSON files in `stats/`, trend data in `stats/trends/`, tournament data in `stats/tournaments/`, Limitless API cache in `cache/limitless/`, VGCPastes sheet cache in `cache/vgcpastes/`, replay-data cache in `cache/replays/`
-- **Automation:** GitHub Actions (scheduled replay-stats updates published to the `replay-data` branch)
+- **Data:** Per-Pokémon JSON files in `stats/`, trend data in `stats/trends/`, tournament data in `stats/tournaments/`, Limitless data from the `limitless-data` branch cached in `cache/limitless/`, VGCPastes sheet cache in `cache/vgcpastes/`, replay-data cache in `cache/replays/`
+- **Automation:** GitHub Actions, all running from `main` only — replay stats to the `replay-data` branch (4×/day), Limitless data to `limitless-data` (every 2 h), and the mobile app's in-game (hourly check) and official tournament packs (on commit) to `mobile-packs`
 
 ## Data Files
 - **Per-Pokémon stats:** `stats/{YYYY-MM}/{format}/{rating}/{Pokemon}.json`
 - **Index files:** `stats/{YYYY-MM}/{format}/{rating}/_index.json` (Pokémon list + usage + raw count)
 - **Trend data:** `stats/trends/{format}/{rating}.json` (12 months of usage % per Pokémon)
-- **Tournament data:** `stats/tournaments/{tournament_id}/` (metadata, players, aggregated stats)
-- **Limitless cache:** `cache/limitless/` (formats, tournament list, per-tournament standings) — fetched lazily at runtime, safe to delete
+- **Tournament data:** `stats/tournaments/{tournament_id}/` (metadata, players, aggregated stats, and pairings — every round's matches)
+- **Limitless cache:** `cache/limitless/` (formats, tournament list, per-tournament standings and pairings) — copied from the `limitless-data` branch at runtime, safe to delete
 - **VGCPastes cache:** `cache/vgcpastes/` (sheet tabs as CSV, fetched Pokepaste texts) — fetched lazily at runtime, safe to delete
 - **Replay-data cache:** `cache/replays/` (replay JSONs pulled from the `replay-data` branch, with `.etag` sidecars) — fetched lazily at runtime, safe to delete
 - **EV corpus cache:** `cache/ev_corpus/` (per-species EV spreads parsed out of VGCPastes pokepastes for the Spread Solver, 12h TTL) — fetched lazily at runtime, safe to delete
@@ -280,6 +280,24 @@ git push origin mobile-packs
 git switch main
 ```
 
+The rest publishes itself, from `main` only — a working branch carrying the
+workflow files never repeats a job main already does:
+
+| Workflow | When | Publishes |
+| --- | --- | --- |
+| `update-champions-packs.yml` | hourly check; builds only when the scraper has pushed `champions-data` since the last build | in-game packs → `mobile-packs:stats/champions/` |
+| `update-tournament-packs.yml` | a commit touching `stats/tournaments/` | official event packs → `mobile-packs:stats/tournaments/_packs/` |
+| `update-limitless.yml` | every 2 hours | Limitless data and packs → `limitless-data` |
+
+Tournament packs (`tournament_packs.py`, shared by both builders) carry each
+event's numbers exactly as the tournament pages compute them — the builders
+call the same functions — with every cut, the standings with team sheets, and
+every round's pairings. Text shared across Pokémon (move tooltips, item
+descriptions and icons, sprites, types, base stats) is stored once per pack
+rather than per entry, and lists are kept to their top entries. Official
+events come to about 3.4 MB for 33; a Limitless regulation's 30-day pack is
+about 360 KB.
+
 **`graph_data` is opt-in.** It was 6.3 KB of a 13.4 KB species payload (47%) and
 most of the build time, because the histogram walks every recorded spread across
 six stats. The usage lists beside it are already capped at their top 10–15
@@ -382,14 +400,16 @@ This will:
 To update tournament data separately:
 ```bash
 python scrape_tournaments.py
+python scrape_tournaments.py --pairings   # refetch only pairings (and records) for saved events
 ```
+The scraper is VGC-only: RK9 lists TCG events beside VGC ones, and they are skipped. Each event also gets `pairings.json` — every round's matches, who played whom and who won — which is what the app's player runs are built from. **Records come from those results**, not from the "(W-L-T)" RK9 prints beside each name: in Swiss rounds that record already includes the round, and the old parser added the round's result again, so every saved record carried a duplicate of the player's last game (a champion who played 17 rounds was saved as 16-2 instead of 15-2). `--pairings` rewrote the records of every saved event; two players sharing a name are left as they were, since the pairings cannot tell them apart.
 
 ### Limitless Online Data
-Online tournament data needs no pipeline step — it is fetched lazily at runtime from the [Limitless API](https://docs.limitlesstcg.com/developer.html) and cached under `cache/limitless/` to keep API usage minimal (the public API is used without a key):
-- The VGC format list is cached for 12 hours, the tournament list for 1 hour (one shared request covers all formats).
-- Standings of finished tournaments never change, so they are cached forever; each hourly refresh only fetches newly finished events (capped per refresh, with a politeness delay and a cooldown on failed fetches).
-- The cache is warmed in a background thread at app startup, so a fresh deploy (or Heroku dyno restart, which wipes the disk) rebuilds itself before the first visitor.
-- Set `LIMITLESS_API_KEY` to send an access key with requests (optional; only needed if rate-limited).
+The site reads Limitless data from the **`limitless-data` branch**, not from the [Limitless API](https://docs.limitlesstcg.com/developer.html). `.github/workflows/update-limitless.yml` runs `publish_limitless.py` every two hours — the only thing that calls the API — which fetches new events' standings and pairings (finished events of 25+ players from the last 90 days; the previous snapshot seeds each run, so only unseen events are fetched) and publishes them as one force-pushed commit, so the branch never grows:
+- `limitless/` — formats, the event list, and each event's standings and pairings, in the shapes `limitless_stats` caches, so everything past the fetch is unchanged.
+- `app/` — the mobile app's packs: each regulation's 30-day stats at every size tier and cut, and one pack per event in that window.
+
+At runtime `limitless_stats` copies what it needs into `cache/limitless/` (the format list cached 12 hours, the event list 1 hour, standings forever), and the cache is still warmed at startup — from GitHub's CDN now, so a dyno restart costs Limitless nothing. Anything not published falls back to the API as before; `LIMITLESS_API_FALLBACK=0` turns that off, and `LIMITLESS_SOURCE=api` reads the API directly (what the publisher does). `LIMITLESS_API_KEY` sends an access key with API requests (optional; the workflow reads it from a repository secret of the same name).
 
 ### VGCPastes Team Data
 Team data also needs no pipeline step — the public VGCPastes spreadsheet tabs are fetched as CSV at runtime and cached under `cache/vgcpastes/` for 12 hours (with stale fallback if the sheet is unreachable). Pokepaste texts are immutable and cached on first fetch. Like the Limitless cache, it is warmed in a background thread at startup.

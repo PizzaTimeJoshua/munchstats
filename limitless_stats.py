@@ -4,6 +4,18 @@ Fetches tournament lists and standings from the Limitless API
 (https://docs.limitlesstcg.com/developer.html) and aggregates them into
 Pikalytics-style usage stats per regulation format.
 
+Where the data comes from (LIMITLESS_SOURCE):
+  - "published" (the default, what the site runs): the limitless-data branch,
+    which .github/workflows/update-limitless.yml refreshes every two hours
+    by running publish_limitless.py. The dyno reads GitHub's CDN instead of
+    the Limitless API, so page views and restarts cost Limitless nothing.
+    Anything not published -- an event from before the branch existed, a
+    deep link past its retention -- falls back to the API as before, unless
+    LIMITLESS_API_FALLBACK=0.
+  - "api": the Limitless API directly. What the publisher uses.
+Either way the files land in the same local cache in the same shape, so
+everything below the fetch is identical.
+
 Caching strategy (keyless-API friendly):
   - The tournament list for a format is cached on disk for 1 hour.
   - Standings of finished tournaments never change, so they are cached
@@ -16,6 +28,7 @@ Caching strategy (keyless-API friendly):
     large event's standings expand to many MB of Python objects).
 """
 
+import gzip
 import json
 import os
 import re
@@ -30,6 +43,14 @@ import requests
 LIMITLESS_API_BASE = "https://play.limitlesstcg.com/api"
 LIMITLESS_CACHE_DIR = os.path.join("cache", "limitless")
 STANDINGS_DIR = os.path.join(LIMITLESS_CACHE_DIR, "standings")
+PAIRINGS_DIR = os.path.join(LIMITLESS_CACHE_DIR, "pairings")
+
+SOURCE = os.environ.get("LIMITLESS_SOURCE", "published")
+PUBLISHED_URL = os.environ.get(
+    "LIMITLESS_DATA_URL",
+    "https://raw.githubusercontent.com/PizzaTimeJoshua/munchstats/limitless-data/limitless/",
+)
+API_FALLBACK = os.environ.get("LIMITLESS_API_FALLBACK", "1") != "0"
 LIST_CACHE_TTL = 3600  # tournament lists refresh hourly
 FORMATS_CACHE_TTL = 12 * 3600  # /games changes rarely
 PLAYER_TIERS = [25, 50, 100, 200, 500]  # usage-segment thresholds (tournament size)
@@ -47,6 +68,15 @@ ATTRIBUTION_TEXT = "Data from Limitless TCG"
 ATTRIBUTION_URL = "https://play.limitlesstcg.com/"
 
 os.makedirs(STANDINGS_DIR, exist_ok=True)
+os.makedirs(PAIRINGS_DIR, exist_ok=True)
+
+
+def _published():
+    return SOURCE == "published"
+
+
+def _may_use_api():
+    return not _published() or API_FALLBACK
 
 
 def _cache_path(*segments):
@@ -83,6 +113,28 @@ def _cache_write(path, data):
         os.replace(tmp, path)
     except Exception:
         pass
+
+
+def _published_get(path):
+    """GET a file from the published branch, gunzipping .gz; None on failure.
+
+    raw.githubusercontent.com serves .gz as plain octet-stream with no
+    Content-Encoding, so the bytes arrive compressed and are inflated here.
+    """
+    try:
+        resp = requests.get(
+            PUBLISHED_URL + path,
+            timeout=20,
+            headers={"User-Agent": "MunchStats (+https://munchstats.com)"},
+        )
+        if resp.status_code != 200:
+            return None
+        body = resp.content
+        if body[:2] == b"\x1f\x8b":
+            body = gzip.decompress(body)
+        return json.loads(body)
+    except Exception:
+        return None
 
 
 def _api_get(path, params=None):
@@ -134,7 +186,12 @@ def get_vgc_formats():
     cached = _cache_read(path, ttl=FORMATS_CACHE_TTL)
     if cached is not None:
         return _with_pending(cached)
-    games = _api_get("/games")
+    if _published():
+        formats = _published_get("formats.json")
+        if isinstance(formats, dict) and formats:
+            _cache_write(path, formats)
+            return _with_pending(formats)
+    games = _api_get("/games") if _may_use_api() else None
     if games:
         for game in games:
             if game.get("id") == "VGC":
@@ -157,6 +214,16 @@ def get_vgc_tournaments():
     cached = _cache_read(path, ttl=LIST_CACHE_TTL)
     if cached is not None:
         return cached
+
+    # The published list is every event the publisher holds standings for,
+    # so eligibility computed from it never asks for one it does not have.
+    if _published():
+        listed = _published_get("tournaments.json")
+        if isinstance(listed, list) and listed:
+            _cache_write(path, listed)
+            return listed
+    if not _may_use_api():
+        return _cache_read(path, ttl=LIST_CACHE_TTL, allow_stale=True) or []
 
     window_start = datetime.now(timezone.utc) - timedelta(days=WINDOW_DAYS)
     results = []
@@ -346,6 +413,18 @@ def get_standings(tournament_id, fetch=True, meta=None):
         return cached.get("standings")
     if not fetch or _fetch_cooling_down(tournament_id):
         return None
+    if _published():
+        # Published files are the same {id, meta, standings} this cache holds.
+        published = _published_get("standings/" + _safe_id(tournament_id) + ".json.gz")
+        if isinstance(published, dict) and isinstance(published.get("standings"), list):
+            _failed_fetches.pop(tournament_id, None)
+            if meta and not published.get("meta"):
+                published["meta"] = meta
+            _cache_write(path, published)
+            return published["standings"]
+        if not API_FALLBACK:
+            _failed_fetches[tournament_id] = time.time()
+            return None
     data = _api_get("/tournaments/" + tournament_id + "/standings")
     if data is None:
         _failed_fetches[tournament_id] = time.time()
@@ -354,6 +433,39 @@ def get_standings(tournament_id, fetch=True, meta=None):
     if not isinstance(data, list):
         data = []
     _cache_write(path, {"id": tournament_id, "meta": meta or {}, "standings": data})
+    return data
+
+
+def _safe_id(tournament_id):
+    """The id as it appears in a file name -- the same rule as _cache_path."""
+    return re.sub(r"[^A-Za-z0-9_-]", "_", tournament_id)
+
+
+def get_pairings(tournament_id, fetch=True):
+    """Every match of a finished tournament, cached forever like standings.
+
+    The API's shape, unchanged: [{round, phase, winner, player1, player2}],
+    players by username -- the "player" key of a standings row. winner is a
+    username, 0 for a tie, or -1 for a double loss (or, with no player2, a
+    no-show). Phase 1 is Swiss, phase 2 the top cut.
+    """
+    path = _cache_path("pairings", tournament_id)
+    cached = _cache_read(path)
+    if cached is not None:
+        return cached.get("pairings")
+    if not fetch or _fetch_cooling_down("pairings:" + tournament_id):
+        return None
+    data = None
+    if _published():
+        published = _published_get("pairings/" + _safe_id(tournament_id) + ".json.gz")
+        if isinstance(published, dict):
+            data = published.get("pairings")
+    if data is None and _may_use_api():
+        data = _api_get("/tournaments/" + tournament_id + "/pairings")
+    if not isinstance(data, list):
+        _failed_fetches["pairings:" + tournament_id] = time.time()
+        return None
+    _cache_write(path, {"id": tournament_id, "pairings": data})
     return data
 
 
