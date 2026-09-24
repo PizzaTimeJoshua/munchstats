@@ -14,16 +14,17 @@ name: Update in-game packs
 # import) and assembles every species' page.
 #
 # Scheduled runs only fire from the default branch, so the schedule does
-# nothing until this file is on main. Until the mobile API merges, the builder
-# lives on features, which is what gets checked out. Pushing a change to the
-# builder on features rebuilds straight away.
+# nothing until this file is on main, and it builds with main's code. Pushing a
+# change to the builder rebuilds straight away, with the code that was pushed.
+# Nothing here names a branch to build from, so deleting a merged branch
+# cannot break it.
 
 on:
   schedule:
     - cron: '41 * * * *'
   workflow_dispatch:
   push:
-    branches: [features]
+    branches: [main, features]
     paths:
       - build_champions_pack.py
       - mobile_api.py
@@ -77,10 +78,11 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 45
     steps:
+      # The commit that triggered the run: main's tip on a schedule, the pushed
+      # commit on a push.
       - name: Check out the builder
         uses: actions/checkout@v4
         with:
-          ref: features
           path: site
 
       # Built from a local copy of exactly the commit compared above, not from
