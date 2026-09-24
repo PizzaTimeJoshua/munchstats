@@ -76,7 +76,10 @@ def build(format_code):
         "value_kind": mobile_api.VALUE_RANK,
         "updated": index.get("champions_updated", ""),
         "attribution": index.get("champions_attribution", ""),
-        "generated_at": int(time.time()),
+        # No build timestamp in here: the same data has to produce the same
+        # bytes, or every rebuild -- a builder change, a merge -- would make
+        # every installed app download both packs again. The manifest, which
+        # the app never reads, records when they were built.
         "species_count": len(payloads),
         "index": rows,
         "pokemon": payloads,
