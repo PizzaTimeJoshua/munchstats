@@ -111,10 +111,14 @@ def main():
         blob = json.dumps(body, separators=(",", ":"), default=str).encode("utf8")
         path = os.path.join(OUT_DIR, "%s.json.gz" % format_code)
         tmp = "%s.%d.tmp" % (path, os.getpid())
-        # mtime=0 so an unchanged rebuild is byte-identical, which is what lets
-        # the app's conditional request come back 304 instead of re-downloading.
+        # mtime=0 and filename="" so an unchanged rebuild is byte-identical,
+        # which is what lets the app's conditional request come back 304
+        # instead of re-downloading. Without filename="" GzipFile records the
+        # temp file's name in the header -- pid included -- and every build
+        # differed.
         with open(tmp, "wb") as fh:
-            with gzip.GzipFile(fileobj=fh, mode="wb", compresslevel=9, mtime=0) as gz:
+            with gzip.GzipFile(filename="", fileobj=fh, mode="wb", compresslevel=9,
+                               mtime=0) as gz:
                 gz.write(blob)
         os.replace(tmp, path)
 

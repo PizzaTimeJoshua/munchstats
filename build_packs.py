@@ -119,10 +119,13 @@ def _build_one(job):
     # single-format rebuild, say) would otherwise share one path, and whichever
     # renamed second would leave the loser's file behind to be published.
     tmp = "%s.%d.tmp" % (path, os.getpid())
-    # mtime=0 so rebuilding identical data produces an identical file; otherwise
-    # every run would look like a change to anything comparing bytes.
+    # mtime=0 and filename="" so rebuilding identical data produces an identical
+    # file; otherwise every run would look like a change to anything comparing
+    # bytes. The name matters as much as the time: GzipFile stores the file it
+    # writes to, and that is the per-process temp name above, so every build
+    # carried a different pid in its header.
     with open(tmp, "wb") as fh:
-        with gzip.GzipFile(fileobj=fh, mode="wb", compresslevel=9, mtime=0) as gz:
+        with gzip.GzipFile(filename="", fileobj=fh, mode="wb", compresslevel=9, mtime=0) as gz:
             gz.write(blob)
     os.replace(tmp, path)
 
