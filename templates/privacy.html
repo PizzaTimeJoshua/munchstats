@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Privacy Policy | MunchStats</title>
+    <meta property="og:title" content="Privacy Policy | MunchStats">
+    <meta name="description" content="What MunchStats collects, what it doesn't, and who it shares data with.">
+    <link rel="icon" href="{{ asset_url('favicon.ico') }}" type="image/x-icon">
+    <script src="{{ asset_url('theme-boot.js') }}"></script>
+    <link rel="stylesheet" href="{{ asset_url('style.css') }}">
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+      body {
+        background-color: var(--bg);
+        color: var(--text);
+        font-family: Arial, sans-serif;
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px 20px;
+      }
+      .container {
+        max-width: 700px;
+        width: 100%;
+      }
+      h1 {
+        font-size: 36px;
+        color: var(--text-strong);
+        text-align: center;
+        margin-bottom: 8px;
+      }
+      .updated {
+        font-size: 13px;
+        color: var(--text-disabled);
+        text-align: center;
+        margin-bottom: 24px;
+      }
+      .intro {
+        font-size: 16px;
+        color: var(--text-soft);
+        line-height: 1.6;
+        margin-bottom: 36px;
+        padding: 20px;
+        background-color: var(--surface);
+        border-radius: 4px;
+      }
+      .faq-section {
+        margin-bottom: 36px;
+      }
+      .faq-section h2 {
+        font-size: 24px;
+        color: var(--text-strong);
+        margin-bottom: 20px;
+        border-bottom: 1px solid var(--border-soft);
+        padding-bottom: 8px;
+      }
+      .faq-item {
+        margin-bottom: 20px;
+      }
+      .faq-item h3 {
+        font-size: 16px;
+        color: var(--text-strong);
+        margin-bottom: 6px;
+      }
+      .faq-item p {
+        font-size: 15px;
+        color: var(--text-faint);
+        line-height: 1.5;
+      }
+      .faq-item ul {
+        margin: 8px 0 0 20px;
+      }
+      .faq-item li {
+        font-size: 15px;
+        color: var(--text-faint);
+        line-height: 1.6;
+        margin-bottom: 6px;
+      }
+      .faq-item a,
+      .intro a {
+        color: var(--text-soft);
+      }
+      code {
+        font-family: monospace;
+        font-size: 13px;
+        background-color: var(--surface);
+        padding: 1px 5px;
+        border-radius: 3px;
+        color: var(--text-soft);
+      }
+      .contact-section {
+        text-align: center;
+        margin-bottom: 36px;
+        padding: 20px;
+        background-color: var(--surface);
+        border-radius: 4px;
+      }
+      .contact-section h3 {
+        font-size: 16px;
+        color: var(--text-strong);
+        margin-bottom: 10px;
+      }
+      .contact-email {
+        font-size: 16px;
+        color: var(--text-soft);
+        font-family: monospace;
+      }
+      .home-button {
+        background-color: var(--surface);
+        color: var(--text);
+        border: 1px solid var(--border-2);
+        padding: 12px 24px;
+        font-size: 16px;
+        cursor: pointer;
+        transition: background-color 0.3s;
+        text-decoration: none;
+        display: inline-block;
+      }
+      .home-button:hover {
+        background-color: var(--raised);
+        color: var(--text-strong);
+      }
+      .button-container {
+        text-align: center;
+        margin-bottom: 36px;
+      }
+      .footer {
+        text-align: center;
+        font-size: 12px;
+        color: var(--text-disabled);
+        margin-top: auto;
+        padding-top: 20px;
+      }
+      .footer a {
+        color: var(--text-faint);
+        text-decoration: none;
+      }
+      .footer a:hover {
+        color: var(--text-strong);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>{{ _('Privacy Policy') }}</h1>
+      <p class="updated">{{ _('Last updated:') }} {{ privacy_updated }}</p>
+
+      <p class="intro">
+        {{ _('The short version: MunchStats has no accounts, no logins, and no passwords, and it runs no analytics and no ads. You can browse every page without telling us who you are and without being counted. The only thing we ever receive is what you choose to type into the contact form. The Android app collects nothing at all. We have never sold data and never will.') }}
+      </p>
+
+      <div class="faq-section">
+        <h2>{{ _('Who runs this site') }}</h2>
+        <div class="faq-item">
+          <p>{{ _('MunchStats (munchstats.com) and the MunchStats Android app are run by an individual developer as a non-commercial side project. This policy covers both the website and the app. For anything in it, reach us at the contact address at the bottom of this page.') }}</p>
+        </div>
+      </div>
+
+      <div class="faq-section">
+        <h2>{{ _('What the website collects') }}</h2>
+
+        <div class="faq-item">
+          <h3>{{ _('Analytics') }}</h3>
+          <p>{{ _('None. MunchStats used Google Analytics until September 2026. It has been removed and nothing replaced it: there is no analytics script, no tracking pixel, and no fingerprinting anywhere on the site. We genuinely do not measure your visit.') }}</p>
+        </div>
+
+        <div class="faq-item">
+          <h3>{{ _('The contact form') }}</h3>
+          <p>{{ _('If you send a message through the contact page, we receive:') }}</p>
+          <ul>
+            <li>{{ _('The category you picked and the message you wrote') }}</li>
+            <li>{{ _('Your email address — optional, and only used to reply to you') }}</li>
+            <li>{{ _('The page you were on when you opened the form, if you left that field filled in') }}</li>
+            <li>{{ _('Your interface language, so we know which language to reply in') }}</li>
+          </ul>
+          <p style="margin-top: 8px;">{{ _('The message is delivered to a private email inbox. It is not stored in a database and is never used for marketing. We keep messages for as long as it takes to deal with them; you can ask us to delete yours at any time.') }}</p>
+          <p style="margin-top: 8px;">{{ _('Your IP address is used while the form is being submitted — to check the captcha and to enforce the rate limit described below — but it is not included in the message we receive and is not stored anywhere afterwards.') }}</p>
+        </div>
+
+        <div class="faq-item">
+          <h3>{{ _('Spam protection') }}</h3>
+          <p>{{ _('The contact form is protected by Cloudflare Turnstile. When you submit it, your IP address and a challenge token are sent to Cloudflare to confirm you are not a bot. We also keep a short-lived, in-memory count of recent submissions per IP address to rate-limit the form — that list holds at most 1,000 addresses for one hour and is erased whenever the server restarts. It is never written to disk.') }}</p>
+        </div>
+
+        <div class="faq-item">
+          <h3>{{ _('Server logs') }}</h3>
+          <p>{{ _('The site is hosted on Heroku, whose routing layer keeps standard short-term request logs (IP address, requested URL, timestamp, user agent) for operational and security purposes. We do not build profiles from them.') }}</p>
+        </div>
+      </div>
+
+      <div class="faq-section">
+        <h2>{{ _('Cookies and browser storage') }}</h2>
+
+        <div class="faq-item">
+          <h3>{{ _('Strictly functional — never leaves your browser') }}</h3>
+          <ul>
+            <li><code>lang</code> — {{ _('a cookie remembering whether you chose English or Spanish. Lasts one year.') }}</li>
+            <li><code>theme</code> — {{ _('local storage holding your chosen site theme.') }}</li>
+            <li><code>munchstats.calcImportCollapsed</code> — {{ _('local storage remembering whether you collapsed the calculator import box.') }}</li>
+          </ul>
+        </div>
+
+        <div class="faq-item">
+          <h3>{{ _('Nothing else') }}</h3>
+          <p>{{ _('That is the complete list. MunchStats sets no analytics cookies, no advertising cookies, and no cross-site tracking cookies of any kind. Everything above is set by the site itself, stays in your browser, and exists only to remember a preference you chose.') }}</p>
+          <p style="margin-top: 8px;">{{ _('Because the site is served through Cloudflare, Cloudflare sets a security cookie (__cf_bm) to distinguish human visitors from bots. It is used only to protect the site from abuse and is not used to track you across the web.') }}</p>
+        </div>
+      </div>
+
+      <div class="faq-section">
+        <h2>{{ _('Third parties your browser contacts') }}</h2>
+        <div class="faq-item">
+          <p>{{ _('Almost none. Every script, stylesheet, font and image a normal MunchStats page needs is served from munchstats.com itself. The JavaScript libraries the site uses (jQuery, Chart.js, Font Awesome) used to load from public CDNs, and the header buttons used to load code from Ko-fi and Twitter; all of that is now hosted here, so browsing the site sends your IP address to nobody but us.') }}</p>
+          <p style="margin-top: 8px;">{{ _('Exactly two exceptions remain, and neither happens on an ordinary page view:') }}</p>
+          <ul>
+            <li>{{ _('challenges.cloudflare.com — the captcha, loaded only on the contact page') }}</li>
+            <li>{{ _('replay.pokemonshowdown.com — the battle replay player, loaded only on a replay page you chose to open') }}</li>
+          </ul>
+          <p style="margin-top: 8px;">{{ _('Links to other sites (Smogon, Limitless, RK9, Ko-fi, Twitter and so on) are ordinary links. Nothing is requested from those companies unless you click through, at which point their own privacy policies apply.') }}</p>
+        </div>
+
+        <div class="faq-item">
+          <h3>{{ _('No ads, no affiliates') }}</h3>
+          <p>{{ _('MunchStats carries no advertising and no affiliate links. It previously showed eBay merchandise listings; those were removed in September 2026 along with the analytics, so no commercial third party is involved in a page you load. The site is funded by occasional donations and by the person who runs it.') }}</p>
+        </div>
+      </div>
+
+      <div class="faq-section">
+        <h2>{{ _('The MunchStats Android app') }}</h2>
+        <div class="faq-item">
+          <p>{{ _('The app collects no personal data. It contains no analytics SDK, no crash-reporting SDK, no advertising SDK, and no tracking of any kind. It does not ask for your location, contacts, camera, files, or any other sensitive permission.') }}</p>
+          <p style="margin-top: 8px;">{{ _('The only permission it needs is network access, used solely to download Pokémon statistics from munchstats.com. Those statistics are stored on your device so the app keeps working offline. That cached data stays on your phone, is never transmitted anywhere, and is deleted when you clear the app data or uninstall the app.') }}</p>
+          <p style="margin-top: 8px;">{{ _('Our servers see the same thing any web server sees when the app requests data — an IP address and which statistics were asked for. We do not link those requests to an identity, because the app never sends one.') }}</p>
+        </div>
+      </div>
+
+      <div class="faq-section">
+        <h2>{{ _('Tournament and player data') }}</h2>
+        <div class="faq-item">
+          <p>{{ _('MunchStats displays competitive results — player names, placements, and team lists — gathered from publicly published sources: Pokémon Showdown usage statistics and public replays, Limitless, RK9.gg, the community-run VGCPastes spreadsheet, and Pokepaste. We publish only information those sources already make public, and we do not add anything to it.') }}</p>
+          <p style="margin-top: 8px;">{{ _('If you are a player and want your name or team removed from the site, contact us and we will take it down.') }}</p>
+        </div>
+      </div>
+
+      <div class="faq-section">
+        <h2>{{ _('Your rights') }}</h2>
+        <div class="faq-item">
+          <p>{{ _('Depending on where you live — for example under the GDPR in the EU/UK, or the CCPA in California — you may have the right to request access to the personal data we hold about you, to have it corrected or deleted, to object to how we process it, or to receive a copy of it.') }}</p>
+          <p style="margin-top: 8px;">{{ _('In practice we hold very little: unless you have emailed us or used the contact form, we almost certainly hold nothing that identifies you. Where we do process data, the legal basis is our legitimate interest in keeping the site running, secure, and useful. Email us to exercise any of these rights and we will respond as quickly as we reasonably can. We do not sell personal information, and we never have.') }}</p>
+        </div>
+      </div>
+
+      <div class="faq-section">
+        <h2>{{ _('Children') }}</h2>
+        <div class="faq-item">
+          <p>{{ _('MunchStats is a competitive statistics tool intended for a general audience aged 13 and over. It is not directed at children under 13, and we do not knowingly collect personal information from them. If you believe a child has sent us personal information through the contact form, email us and we will delete it.') }}</p>
+        </div>
+      </div>
+
+      <div class="faq-section">
+        <h2>{{ _('Security and changes to this policy') }}</h2>
+        <div class="faq-item">
+          <h3>{{ _('Security') }}</h3>
+          <p>{{ _('The site is served over HTTPS. Because there are no accounts, there are no passwords to steal and no stored profile to breach.') }}</p>
+        </div>
+        <div class="faq-item">
+          <h3>{{ _('Changes') }}</h3>
+          <p>{{ _('If this policy changes we will update the date at the top of the page. Significant changes will also be noted on the About page.') }}</p>
+        </div>
+      </div>
+
+      <div class="contact-section">
+        <h3>{{ _('Contact') }}</h3>
+        <p style="margin-bottom: 12px;">
+          <a href="{{ url_for('contact_page') }}" class="home-button">{{ _('Send feedback / report a bug') }}</a>
+        </p>
+        <span class="contact-email"><tt>cont</tt><tt>act@</tt><tt>munc</tt><tt>hstat</tt><tt>s.com</tt></span>
+      </div>
+
+      <div class="button-container">
+        <a href="{{ url_for('about') }}" class="home-button">{{ _('About MunchStats') }}</a>
+        <a href="{{ url_for('index') }}" class="home-button">{{ _('Go back to the homepage') }}</a>
+      </div>
+    </div>
+    <div class="footer">
+      <p>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</p>
+    </div>
+  </body>
+</html>

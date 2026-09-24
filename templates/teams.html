@@ -139,7 +139,7 @@
   .sprite {
     width: 40px;
     height: 30px;
-    background-image: url("{{ url_for('static', filename='pokemonicons-sheet.png') }}");
+    background-image: url("{{ asset_url('pokemonicons-sheet.png') }}");
     background-size: 480px auto;
     background-repeat: no-repeat;
     flex-shrink: 0;
@@ -148,7 +148,7 @@
     display: inline-block;
     width: 24px;
     height: 24px;
-    background-image: url("{{ url_for('static', filename='itemicons-sheet.png') }}");
+    background-image: url("{{ asset_url('itemicons-sheet.png') }}");
     background-repeat: no-repeat;
     flex-shrink: 0;
     vertical-align: middle;

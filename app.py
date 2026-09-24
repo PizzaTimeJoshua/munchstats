@@ -1,6 +1,6 @@
-import base64
 import difflib
 import gzip
+import hashlib
 import json
 import math
 import os
@@ -18,13 +18,17 @@ from functools import lru_cache
 import ijson
 import requests
 from dotenv import load_dotenv
-from flask import Flask, Response, jsonify, redirect, render_template, request, url_for
+from flask import (
+    Flask, Response, jsonify, redirect, render_template, request, send_file,
+    url_for,
+)
 from flask_babel import Babel, get_locale, gettext
 import pyjson5
 
 import draft_tools
 import insights
 import limitless_stats
+import mobile_api
 import og_card
 import vgcpastes
 
@@ -56,11 +60,10 @@ JS_UI_STRINGS = [
     "Base Stats", "Moves", "Teammates", "Items", "Abilities", "Natures",
     "Tera Types", "EV Spreads", "Stat Point Spreads", "Top EVs By Category",
     "Top Points By Category", "Export Pokemon", "Checks and Counters",
-    "Usage Trend", "Usage Rank Trend", "Merch", "Top Teams", "Recent Replays",
+    "Usage Trend", "Usage Rank Trend", "Top Teams", "Recent Replays",
     "Copy Pokemon to Clipboard", "Copy Team", "Copy Team to Clipboard",
     "Show", "Hide", "Show all", "Export", "Usage", "Rank",
     "Cumulative", "Reverse Cumulative",
-    "Loading merch...", "No merch found", "Could not load merch",
     "Loading tournament data...", "No tournament data found",
     "Could not load tournament data", "Loading replays...",
     "No replays found", "Could not load replays",
@@ -87,7 +90,6 @@ JS_UI_STRINGS = [
     "Most used Pokemon at each stage of the tournament. Δ is the change in usage share (percentage points) from the previous stage. Click a Pokemon for its full stats.",
     "Largest changes in usage share between stages — a quick read on what worked and what didn't.",
     # tooltips injected by JS
-    "These are affiliate eBay links that help support the website.",
     "High-rated replays where this Pokemon was used.",
     "Replays show base form only and may not reflect this specific form.",
 ]
@@ -100,6 +102,54 @@ def _inject_locale():
     if lang != "en":
         js_i18n = {s: gettext(s) for s in JS_UI_STRINGS}
     return {"current_lang": lang, "languages": LANGUAGES, "js_i18n": js_i18n}
+
+
+# ─── Static asset cache busting ──────────────────────────────────────────
+# Templates call asset_url('tools_2.3.js') rather than url_for('static', ...)
+# with a hand-written ?v=N. The version is a content hash, so editing a file
+# changes its URL by itself and "forgot to bump the number" stops being a way
+# to ship stale JS to returning visitors. (It had already drifted: style.css
+# was ?v=9 in base.html and ?v=4 in the standalone pages.)
+#
+# Hashed once per process. In debug the hash is recomputed every request so
+# local edits show up on reload without restarting.
+
+_ASSET_HASHES = {}
+
+
+def asset_url(filename):
+    """URL for a static file, cache-busted by a hash of its contents."""
+    version = None if app.debug else _ASSET_HASHES.get(filename)
+    if version is None:
+        path = os.path.join(app.static_folder, filename)
+        try:
+            digest = hashlib.sha256()
+            with open(path, "rb") as fh:
+                for chunk in iter(lambda: fh.read(65536), b""):
+                    digest.update(chunk)
+            version = digest.hexdigest()[:10]
+        except OSError:
+            # Missing file: fall back to an unversioned URL rather than 500,
+            # but make the typo obvious in the logs.
+            app.logger.warning("asset_url: no such static file %r", filename)
+            return url_for("static", filename=filename)
+        if not app.debug:
+            _ASSET_HASHES[filename] = version
+    return url_for("static", filename=filename, v=version)
+
+
+app.jinja_env.globals["asset_url"] = asset_url
+
+
+@app.after_request
+def _cache_hashed_assets(resp):
+    # A hashed URL names exactly one version of a file, so it is safe to cache
+    # indefinitely -- any change ships under a different URL. Static requests
+    # without ?v= (replay_assets, anything fetched by hand) keep the defaults.
+    if request.endpoint == "static" and request.args.get("v"):
+        resp.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    return resp
+
 
 # Directory and global data definitions
 DATA_DIRECTORY = "stats"
@@ -167,6 +217,19 @@ REPLAY_DATA_URL = os.environ.get(
     "REPLAY_DATA_URL",
     "https://raw.githubusercontent.com/PizzaTimeJoshua/munchstats/replay-data/stats/replays/",
 )
+# The app's offline detail packs are published to the mobile-packs branch and
+# fetched by the app straight from raw.githubusercontent.com -- the same
+# arrangement as replay data above, and for the same two reasons: a data branch
+# does not trigger a Heroku redeploy, and tens of megabytes per install has no
+# business crossing a 512 MB dyno that is also serving the website. The API only
+# hands out the manifest, which names this base; /api/v1/pack/<fmt>/<rating>/
+# stays as a local fallback for development, where nothing is published yet.
+# Set PACK_BASE_URL="" to force the app through the API instead.
+PACK_BASE_URL = os.environ.get(
+    "PACK_BASE_URL",
+    "https://raw.githubusercontent.com/PizzaTimeJoshua/munchstats/mobile-packs/stats/",
+)
+
 REPLAY_CACHE_DIR = os.path.join("cache", "replays")
 os.makedirs(REPLAY_CACHE_DIR, exist_ok=True)
 REPLAY_CACHE_TTL = 30 * 60
@@ -296,8 +359,16 @@ def build_mega_item_lookup():
 def load_data_file(filepath, mode="r", encoding="utf8"):
     """Load and return data from a JSON/JSON5 file if it exists."""
     if os.path.exists(filepath):
-        with open(filepath, mode, encoding=encoding) as file:
-            content = file.read()
+        try:
+            with open(filepath, mode, encoding=encoding) as file:
+                content = file.read()
+        except OSError:
+            # exists() can say yes where open() still fails. The live example is
+            # "Type: Null": on Windows the colon makes the path an NTFS
+            # alternate data stream, so the checkout has a file called "Type"
+            # and no readable "Type: Null.json". Treating that as absent gives a
+            # 404 for the species instead of a 500 for the page.
+            return None
         try:
             return json.loads(content)
         except (json.JSONDecodeError, ValueError):
@@ -594,7 +665,14 @@ def get_valid_rating_thresholds(format_code, month=None):
 def fuzzy_match(target, options):
     """Return the closest match to target within options using fuzzy matching."""
     normalized_options = {option.lower(): option for option in options}
-    matches = difflib.get_close_matches(target.lower(), normalized_options.keys(), 10)
+    lowered = (target or "").lower()
+    # Exact hit first. difflib over several hundred species is ~20 ms, and it
+    # was running on every request including the overwhelming majority that
+    # already name a real Pokemon exactly -- it was a quarter of the time spent
+    # building a detail payload. Only genuine typos pay for the search now.
+    if lowered in normalized_options:
+        return normalized_options[lowered]
+    matches = difflib.get_close_matches(lowered, normalized_options.keys(), 10)
     return normalized_options[matches[0]] if matches else None
 
 
@@ -1440,7 +1518,14 @@ def compile_champions_page_data(format_code, pokemon_name=""):
             base.get("sp_defense", primary.get("sp_defense", 0)),
             base.get("speed", primary.get("speed", 0)),
         ]
+    # Typing comes from the Champions API where it has it, and from the pokedex
+    # where it doesn't. The API's metadata lags a new regulation, so recently
+    # added Pokemon (Rillaboom, Salamence) arrived with no types at all and the
+    # page simply showed none -- the same fallback the base stats above already
+    # use, and the same call the Limitless and tournament pages make.
     pokemon_types = summary.get("types") or primary.get("types") or []
+    if not pokemon_types and pokedexEntries:
+        pokemon_types = compile_top_data({"_": 1}, default_pokemon, "Types")
 
     # OCR-corrected names can collide (e.g. "Boost" and "Speed Boost" rows both
     # resolving to Speed Boost); rows are usage-ordered, so keep the first.
@@ -2051,8 +2136,13 @@ load_all_data()
 build_mega_item_lookup()
 # Rebuild the Limitless cache in the background after (re)start; dyno
 # restarts wipe the disk cache, so don't make the first visitor wait.
-limitless_stats.warm_cache_async(pokedexEntries)
-vgcpastes.warm_cache_async()
+#
+# MUNCHSTATS_NO_WARM is for tools that import this module to reuse its data
+# layer rather than to serve traffic -- build_packs.py spawns a worker per core,
+# and without this each one would start its own Limitless and VGCPastes fetch.
+if os.environ.get("MUNCHSTATS_NO_WARM") != "1":
+    limitless_stats.warm_cache_async(pokedexEntries)
+    vgcpastes.warm_cache_async()
 
 
 @app.route("/robots.txt")
@@ -2065,8 +2155,28 @@ def about():
     return render_template("about.html")
 
 
-def compile_page_data(format_code, rating_threshold="", pokemon_name="", month=None):
-    """Resolve parameters and compile all data needed for a Pokemon page."""
+# Bumped by hand whenever the policy text below materially changes -- Play
+# Console and the app both link here, and the date is what tells a reader
+# (and a reviewer) which version they're looking at.
+PRIVACY_LAST_UPDATED = "September 22, 2026"
+
+
+@app.route("/privacy/")
+def privacy():
+    return render_template("privacy.html", privacy_updated=PRIVACY_LAST_UPDATED)
+
+
+def compile_page_data(format_code, rating_threshold="", pokemon_name="", month=None,
+                      include_species_list=True):
+    """Resolve parameters and compile all data needed for a Pokemon page.
+
+    include_species_list=False drops the pokemon_names sidebar list from the
+    result. The mobile API serves that list from its own /index endpoint once
+    per format instead of repeating it in every detail response, and building
+    it costs a sprite lookup and a trend scan per species -- ~850 of each on
+    the national dex formats -- so skipping it saves the work, not just the
+    bytes. Web callers leave it on.
+    """
     if month is None:
         month = get_latest_month()
 
@@ -2200,7 +2310,7 @@ def compile_page_data(format_code, rating_threshold="", pokemon_name="", month=N
                 get_trend_direction(name) if month == get_latest_month() else "",
             ]
             for name in sorted_pokemon
-        ],
+        ] if include_species_list else [],
         "selected_format": selected_format,
         "selected_pokemon": default_pokemon,
         "selected_rating": chosen_rating,
@@ -2942,6 +3052,382 @@ def api_pokemon_data(format_code, rating_threshold="", pokemon_name=""):
             data["selected_month"], data["pokemon_names"],
         )
     return jsonify(data)
+
+
+# ─── Mobile API v1 ───────────────────────────────────────────────────────────
+# Endpoints the Android app syncs against. Payload shaping and revision rules
+# live in mobile_api.py; these routes do the loading and the HTTP.
+#
+# Every response is ETagged and answers If-None-Match with a 304, because the
+# app's whole update model is "revalidate often, download rarely" -- a launch
+# that finds nothing new should cost a few hundred bytes of headers.
+#
+# Local months only, by design: fetch_remote_format_data() pulls and parses a
+# 17-40 MB chaos dict, and a phone iterating formats could pin several at once
+# on a 512 MB dyno. Unknown months 404 rather than reaching out to Smogon.
+
+# Manifests are memoised on a stat-only signature of the month's directories:
+# building one opens all ~250 _index.json files, which is too much to repeat per
+# request but changes only when the data is re-split.
+_manifest_cache = {}
+_manifest_lock = threading.Lock()
+
+
+def _mobile_response(payload, max_age, etag=None):
+    """JSON + ETag, or 304 when the client's copy is already current.
+
+    `etag` lets a caller pass one it already computed. Deriving it means
+    serialising the payload, and the index pack is 2.4 MB -- doing that on every
+    request, including the 304s that never send a body, was most of the cost of
+    an otherwise memoised endpoint.
+    """
+    if etag is None:
+        etag = mobile_api.payload_etag(payload)
+    if request.headers.get("If-None-Match") == etag:
+        resp = Response(status=304)
+    else:
+        resp = jsonify(payload)
+    resp.headers["ETag"] = etag
+    # must-revalidate: a stale format list is worse than a round trip, and the
+    # round trip is a 304 nearly every time.
+    resp.headers["Cache-Control"] = f"public, max-age={max_age}, must-revalidate"
+    return resp
+
+
+def _mobile_error(message, status):
+    return jsonify({"api_version": mobile_api.API_VERSION, "error": message}), status
+
+
+def _mobile_month(raw):
+    """Resolve a month segment, or None if it is not one we serve locally."""
+    month = raw or get_latest_month()
+    if not mobile_api.is_month(month) or not is_local_month(month):
+        return None
+    return month
+
+
+def _mobile_ratings(format_code, month):
+    """Rating cutoffs for a format, from disk only.
+
+    get_valid_rating_thresholds() falls back to get_remote_formats_for_month()
+    when a format has no local directory, which is a Smogon round trip. That is
+    fine for a page render; it is not fine here, where one /meta call would make
+    one round trip per listed format. Anything not split locally is simply not
+    offered to the app.
+    """
+    if not mobile_api.safe_segment(format_code):
+        return []
+    format_dir = os.path.join(DATA_DIRECTORY, month, format_code)
+    if not os.path.isdir(format_dir):
+        return []
+    return sorted((d for d in os.listdir(format_dir) if d.isdigit()), key=int)
+
+
+@app.route("/api/v1/meta")
+def mobile_meta():
+    months = get_local_months()
+    payload = mobile_api.build_meta(
+        months=months,
+        formats_by_month=lambda m: [(f[0], f[1]) for f in get_formats_for_month(m)],
+        ratings_by_format=lambda m, code: _mobile_ratings(code, m),
+        default_format=DEFAULT_META,
+        default_month=get_latest_month(),
+        category_fn=lambda code: (
+            mobile_api.CATEGORY_IN_GAME if is_champions_game_format(code)
+            else mobile_api.CATEGORY_SHOWDOWN
+        ),
+    )
+    # Formats and ratings only move when a new month lands.
+    return _mobile_response(payload, max_age=3600)
+
+
+@app.route("/api/v1/sync/manifest")
+def mobile_manifest():
+    month = _mobile_month(request.args.get("month"))
+    if month is None:
+        return _mobile_error("unknown month", 404)
+
+    entries = mobile_api.scan_month(DATA_DIRECTORY, month)
+    signature = mobile_api.scan_signature(entries)
+    with _manifest_lock:
+        cached = _manifest_cache.get(month)
+        if cached and cached[0] == signature:
+            payload = cached[1]
+        else:
+            payload = mobile_api.build_manifest(
+                DATA_DIRECTORY, month, formatDisplayNames
+            )
+            _manifest_cache.clear()
+            _manifest_cache[month] = (signature, payload)
+    return _mobile_response(payload, max_age=900)
+
+
+_index_pack_cache = {}
+_index_pack_lock = threading.Lock()
+
+
+def _build_one_index(month, format_code, rating):
+    """Index payload for one dataset, or None if it has no data.
+
+    Shared by /api/v1/index/... and the pack below, so a single dataset and the
+    same dataset inside the pack are byte-identical -- the client stores pack
+    entries under the single-dataset URL and must not be able to tell them apart.
+    """
+    index_data = fetch_index_data(format_code, rating, month)
+    if not index_data or not index_data.get("pokemon"):
+        return None
+    # Trend arrows only mean something on the month they were computed against.
+    trend_fn = None
+    if month == get_latest_month():
+        trend_pokemon = (load_trend_data(format_code, rating) or {}).get("pokemon", {})
+
+        def trend_fn(name):
+            vals = [v for v in (trend_pokemon.get(name) or []) if v is not None]
+            if len(vals) < 2:
+                return ""
+            if vals[-1] > vals[-2]:
+                return "up"
+            return "down" if vals[-1] < vals[-2] else "same"
+
+    try:
+        index_size = os.path.getsize(os.path.join(
+            DATA_DIRECTORY, month, format_code, rating, mobile_api.INDEX_FILE
+        ))
+    except OSError:
+        index_size = 0
+
+    return mobile_api.build_index_payload(
+        index_data, month, format_code,
+        formatDisplayNames.get(format_code, format_code), rating,
+        sprite_fn=get_pokemon_sprite, trend_fn=trend_fn, index_size=index_size,
+    )
+
+
+@app.route("/api/v1/pack/indexes")
+def mobile_index_pack():
+    """Every species list for a month in one response.
+
+    The app's first run and its month-boundary refresh both pull this instead of
+    walking 252 endpoints. Memoised on the same stat-only signature the manifest
+    uses -- building it reads every _index.json (~1.3 s cold, then free).
+    """
+    month = _mobile_month(request.args.get("month"))
+    if month is None:
+        return _mobile_error("unknown month", 404)
+
+    entries_on_disk = mobile_api.scan_month(DATA_DIRECTORY, month)
+    signature = mobile_api.scan_signature(entries_on_disk)
+    with _index_pack_lock:
+        cached = _index_pack_cache.get(month)
+        if cached and cached[0] == signature:
+            _, payload, etag = cached
+        else:
+            manifest = mobile_api.build_manifest(
+                DATA_DIRECTORY, month, formatDisplayNames
+            )
+            built = []
+            for fmt, rating, _path, _size, _mtime in entries_on_disk:
+                one = _build_one_index(month, fmt, rating)
+                if one is not None:
+                    built.append((fmt, formatDisplayNames.get(fmt, fmt),
+                                  rating, one))
+            payload = mobile_api.build_index_pack(
+                month, built, manifest["revision"]
+            )
+            etag = mobile_api.payload_etag(payload)
+            _index_pack_cache.clear()
+            _index_pack_cache[month] = (signature, payload, etag)
+    return _mobile_response(payload, max_age=900, etag=etag)
+
+
+def _packs_dir(month):
+    return os.path.join(DATA_DIRECTORY, month, mobile_api.PACK_DIRNAME)
+
+
+_pack_manifest_cache = {}
+_pack_manifest_lock = threading.Lock()
+
+
+def _pack_manifest(month):
+    """The month's pack manifest, memoised on the file's size and mtime.
+
+    Every pack request reads a revision out of this, so parsing it each time
+    would undo the point of serving packs straight off disk.
+    """
+    path = os.path.join(_packs_dir(month), mobile_api.PACK_MANIFEST_NAME)
+    try:
+        stat = os.stat(path)
+    except OSError:
+        return None
+    signature = (stat.st_size, stat.st_mtime_ns)
+    with _pack_manifest_lock:
+        cached = _pack_manifest_cache.get(month)
+        if cached and cached[0] == signature:
+            return cached[1]
+        try:
+            with open(path, "r", encoding="utf8") as fh:
+                manifest = json.load(fh)
+        except (OSError, ValueError):
+            return None
+        manifest["_by_key"] = {
+            mobile_api.pack_key(p["format"], p["rating"]): p
+            for p in manifest.get("packs", [])
+        }
+        _pack_manifest_cache.clear()
+        _pack_manifest_cache[month] = (signature, manifest)
+        return manifest
+
+
+@app.route("/api/v1/pack/manifest")
+def mobile_pack_manifest():
+    """What detail packs exist for a month, with sizes and revisions.
+
+    The app reads this to decide what to download and to notice when a pack it
+    already holds has been superseded. Written by build_packs.py; absent until
+    that has been run for the month.
+    """
+    month = _mobile_month(request.args.get("month"))
+    if month is None:
+        return _mobile_error("unknown month", 404)
+    manifest = _pack_manifest(month)
+    if manifest is None:
+        return _mobile_error("no packs built for this month", 404)
+    # _by_key is an index built for this process, not part of the contract.
+    payload = {k: v for k, v in manifest.items() if k != "_by_key"}
+    # Where to actually fetch the packs. Empty means "no published copy, use the
+    # API route" -- which is what a dev machine sees.
+    payload["base_url"] = PACK_BASE_URL
+    payload["path_prefix"] = "%s/%s/" % (month, mobile_api.PACK_DIRNAME)
+    return _mobile_response(payload, max_age=900)
+
+
+@app.route("/api/v1/pack/<format_code>/<rating>/")
+def mobile_detail_pack(format_code, rating):
+    """Every Pokemon's detail for one dataset, as a precomputed gzipped file.
+
+    Built offline by build_packs.py -- a 300-species format takes ~13 s to
+    assemble, which is not something to do on a dyno that also serves the site.
+    Here it is sendfile() on bytes that are already gzipped: the file on disk is
+    the response body, so this costs no CPU regardless of how many apps ask.
+
+    Sent with Content-Encoding: gzip rather than decompressed and re-compressed,
+    which is the whole point of storing it that way.
+    """
+    month = _mobile_month(request.args.get("month"))
+    if month is None:
+        return _mobile_error("unknown month", 404)
+    if not (mobile_api.safe_segment(format_code) and mobile_api.safe_segment(rating)):
+        return _mobile_error("unknown format or rating", 404)
+
+    path = os.path.join(_packs_dir(month),
+                        mobile_api.pack_filename(format_code, rating))
+    if not os.path.isfile(path):
+        return _mobile_error("no pack for this format/rating", 404)
+
+    # The pack's identity is the dataset revision that build_packs.py stamped
+    # in, which moves only when the data is re-split. Not mtime, and not the
+    # file size: a redeploy rewrites every mtime, and two different builds can
+    # land on the same byte count.
+    manifest = _pack_manifest(month)
+    row = (manifest or {}).get("_by_key", {}).get(
+        mobile_api.pack_key(format_code, rating)
+    )
+    if row is None:
+        return _mobile_error("no pack for this format/rating", 404)
+    etag = '"pack-%s"' % row["revision"]
+    if request.headers.get("If-None-Match") == etag:
+        resp = Response(status=304)
+    else:
+        resp = send_file(path, mimetype="application/json", conditional=False)
+        # send_file would otherwise advertise the file as a gzip download; what
+        # is wanted is JSON that happens to be gzip-encoded on the wire.
+        resp.headers["Content-Encoding"] = "gzip"
+    resp.headers["ETag"] = etag
+    resp.headers["Cache-Control"] = "public, max-age=900, must-revalidate"
+    # Proxies must not hand a gzip body to a client that asked for identity.
+    resp.headers["Vary"] = "Accept-Encoding"
+    return resp
+
+
+@app.route("/api/v1/index/<format_code>/<rating>/")
+def mobile_index(format_code, rating):
+    month = _mobile_month(request.args.get("month"))
+    if month is None or not mobile_api.safe_segment(format_code):
+        return _mobile_error("unknown month or format", 404)
+    if rating not in _mobile_ratings(format_code, month):
+        return _mobile_error("unknown rating for format", 404)
+
+    payload = _build_one_index(month, format_code, rating)
+    if payload is None:
+        return _mobile_error("no data for format/rating", 404)
+    return _mobile_response(payload, max_age=900)
+
+
+@app.route("/api/v1/pokemon/<format_code>/<rating>/<pokemon_name>")
+def mobile_pokemon(format_code, rating, pokemon_name):
+    month = _mobile_month(request.args.get("month"))
+    if month is None or not all(
+        mobile_api.safe_segment(s) for s in (format_code, rating, pokemon_name)
+    ):
+        return _mobile_error("unknown month, format or pokemon", 404)
+    # Checked before compile_page_data so an unknown format cannot reach its
+    # remote fallback path.
+    if rating not in _mobile_ratings(format_code, month):
+        return _mobile_error("unknown format or rating", 404)
+
+    data = compile_page_data(
+        format_code, rating, pokemon_name, month, include_species_list=False
+    )
+    if data is None:
+        return _mobile_error("no data for pokemon", 404)
+    # compile_page_data falls back to a default format when it does not
+    # recognise one, which would quietly hand the app another format's numbers.
+    if data["selected_format"][0] != format_code or data["selected_rating"] != rating:
+        return _mobile_error("unknown format or rating", 404)
+    if not mobile_api.same_species(pokemon_name, data["selected_pokemon"]):
+        return _mobile_error("unknown pokemon", 404)
+
+    payload = mobile_api.build_pokemon_payload(
+        data, month, format_code, rating,
+        include_graph=bool(request.args.get("graph")),
+    )
+    return _mobile_response(payload, max_age=900)
+
+
+@app.route("/api/v1/champions/<format_code>/")
+def mobile_champions_index(format_code):
+    """Species list for an in-game Champions format (the app's In-Game tab)."""
+    if not is_champions_game_format(format_code):
+        return _mobile_error("unknown in-game format", 404)
+    data = compile_champions_page_data(format_code)
+    if data is None:
+        return _mobile_error("no in-game data", 404)
+    payload = mobile_api.build_champions_index_payload(
+        data, format_code, formatDisplayNames.get(format_code, format_code)
+    )
+    # Shorter than the ladder endpoints: the Champions branch republishes on its
+    # own schedule, and CHAMPIONS_CACHE_TTL is already 30 minutes upstream.
+    return _mobile_response(payload, max_age=300)
+
+
+@app.route("/api/v1/champions/<format_code>/<pokemon_name>")
+def mobile_champions_pokemon(format_code, pokemon_name):
+    if not is_champions_game_format(format_code):
+        return _mobile_error("unknown in-game format", 404)
+    if not mobile_api.safe_segment(pokemon_name):
+        return _mobile_error("unknown pokemon", 404)
+    data = compile_champions_page_data(format_code, pokemon_name)
+    if data is None:
+        return _mobile_error("no in-game data", 404)
+    # Same reason as the ladder route: this compile resolves an unknown name to
+    # the nearest match, and the app caches under the name it asked for.
+    if not mobile_api.same_species(pokemon_name, data["selected_pokemon"]):
+        return _mobile_error("unknown pokemon", 404)
+    payload = mobile_api.build_pokemon_payload(
+        data, data.get("selected_month", ""), format_code, "0",
+        include_graph=bool(request.args.get("graph")),
+    )
+    return _mobile_response(payload, max_age=300)
 
 
 @app.route("/search_pokemon", methods=["POST"])
@@ -5953,141 +6439,6 @@ def api_pokemon_replays(format_code, pokemon_name):
     return jsonify(replays)
 
 
-# ─── eBay Merch API ──────────────────────────────────────────────────────
-
-EBAY_CLIENT_ID = os.environ.get("EBAY_CLIENT_ID", "")
-EBAY_CLIENT_SECRET = os.environ.get("EBAY_CLIENT_SECRET", "")
-
-_ebay_token_cache = {"token": None, "expires": 0}
-_ebay_merch_cache = {}
-MERCH_CACHE_TTL = 86400  # 24 hours for genuine results
-MERCH_FAIL_CACHE_TTL = 600  # 10 minutes when the lookup failed (rate limit, timeout, etc.)
-
-
-def get_ebay_oauth_token():
-    """Get an eBay OAuth application token, cached until expiry."""
-    if _ebay_token_cache["token"] and time.time() < _ebay_token_cache["expires"]:
-        return _ebay_token_cache["token"]
-
-    if not EBAY_CLIENT_ID or not EBAY_CLIENT_SECRET:
-        app.logger.warning("eBay merch: EBAY_CLIENT_ID/SECRET not set in environment")
-        return None
-
-    credentials = base64.b64encode(
-        f"{EBAY_CLIENT_ID}:{EBAY_CLIENT_SECRET}".encode()
-    ).decode()
-
-    try:
-        resp = requests.post(
-            "https://api.ebay.com/identity/v1/oauth2/token",
-            headers={
-                "Content-Type": "application/x-www-form-urlencoded",
-                "Authorization": f"Basic {credentials}",
-            },
-            data={
-                "grant_type": "client_credentials",
-                "scope": "https://api.ebay.com/oauth/api_scope",
-            },
-            timeout=10,
-        )
-        if resp.status_code == 200:
-            data = resp.json()
-            _ebay_token_cache["token"] = data["access_token"]
-            _ebay_token_cache["expires"] = time.time() + data.get("expires_in", 7200) - 60
-            return _ebay_token_cache["token"]
-        app.logger.warning(
-            "eBay merch: OAuth token request failed (status %s): %s",
-            resp.status_code, resp.text[:300],
-        )
-    except Exception as exc:
-        app.logger.warning("eBay merch: OAuth token request errored: %r", exc)
-    return None
-
-
-@app.route("/api/merch/<pokemon_name>")
-def api_merch(pokemon_name):
-    """Return eBay listings for a Pokemon, cached for 24 hours."""
-    cache_key = pokemon_name.lower()
-    cached = _ebay_merch_cache.get(cache_key)
-    if cached and time.time() < cached["expires"]:
-        return jsonify(cached["data"])
-
-    token = get_ebay_oauth_token()
-    if not token:
-        # Token failure is transient — don't return an empty list that the
-        # client would show as "No merch found" without caching a retry window.
-        return jsonify([])
-
-    categories = [
-        ("plush", f"{pokemon_name} Pokemon plush"),
-        ("card", f"{pokemon_name} Pokemon card"),
-        ("figure", f"{pokemon_name} Pokemon figure"),
-        ("merch", f"{pokemon_name} Pokemon"),
-    ]
-
-    # Collect results per category, then interleave. Track whether at least
-    # one category call actually reached eBay successfully — an all-failure
-    # run (rate limit, timeout, 5xx) must not be cached like a genuine empty.
-    per_category = {cat: [] for cat, _ in categories}
-    any_success = False
-    for category, query in categories:
-        try:
-            resp = requests.get(
-                "https://api.ebay.com/buy/browse/v1/item_summary/search",
-                headers={
-                    "Authorization": f"Bearer {token}",
-                    "X-EBAY-C-MARKETPLACE-ID": "EBAY_US",
-                    "X-EBAY-C-ENDUSERCTX": "affiliateCampaignId=5339155159",
-                },
-                params={"q": query, "limit": 2},
-                timeout=10,
-            )
-            if resp.status_code == 200:
-                any_success = True
-                data = resp.json()
-                for item in data.get("itemSummaries", []):
-                    image = item.get("image", {}).get("imageUrl", "")
-                    price_obj = item.get("price", {})
-                    price = price_obj.get("value", "")
-                    currency = price_obj.get("currency", "USD")
-                    per_category[category].append({
-                        "title": item.get("title", ""),
-                        "price": price,
-                        "currency": currency,
-                        "image": image,
-                        "url": item.get("itemAffiliateWebUrl") or item.get("itemWebUrl", ""),
-                        "category": category,
-                    })
-            else:
-                app.logger.warning(
-                    "eBay merch: search '%s' failed (status %s): %s",
-                    query, resp.status_code, resp.text[:300],
-                )
-        except Exception as exc:
-            app.logger.warning("eBay merch: search '%s' errored: %r", query, exc)
-            continue
-
-    # Interleave: [plush1, card1, figure1, merch1, plush2, card2, figure2, merch2]
-    listings = []
-    max_per_cat = max((len(v) for v in per_category.values()), default=0)
-    cat_keys = [cat for cat, _ in categories]
-    for i in range(max_per_cat):
-        for cat in cat_keys:
-            if i < len(per_category[cat]):
-                listings.append(per_category[cat][i])
-
-    now = time.time()
-    # Sweep expired entries so crawler-invented names can't grow this forever.
-    for key in [k for k, v in _ebay_merch_cache.items() if now >= v["expires"]]:
-        del _ebay_merch_cache[key]
-    # Cache genuine results (including a real empty from a successful call) for
-    # 24h. If every eBay call failed, cache the empty list only briefly so a
-    # transient outage doesn't freeze "No merch found" for a full day.
-    ttl = MERCH_CACHE_TTL if (listings or any_success) else MERCH_FAIL_CACHE_TTL
-    _ebay_merch_cache[cache_key] = {"data": listings, "expires": now + ttl}
-    return jsonify(listings)
-
-
 # ─── Contact Form ────────────────────────────────────────────────────────
 
 TURNSTILE_SITE_KEY = os.environ.get("TURNSTILE_SITE_KEY", "")
@@ -6118,7 +6469,18 @@ def contact_form_enabled():
 
 
 def _contact_client_ip():
-    # Heroku router appends the client IP to X-Forwarded-For.
+    # Cloudflare fronts munchstats.com and passes the real client IP in
+    # CF-Connecting-IP, which it overwrites at the edge (so it can't be
+    # spoofed). Don't read X-Forwarded-For here: Heroku's router appends
+    # the *Cloudflare edge node's* IP to whatever CF sent, and that node
+    # rotates per connection -- taking the last entry handed every
+    # submission a fresh key and silently disabled the rate limiter.
+    cf_ip = request.headers.get("CF-Connecting-IP", "").strip()
+    if cf_ip:
+        return cf_ip
+    # No Cloudflare in the path (local dev, or a direct hit on the Heroku
+    # app URL): there the router really does append the true client IP,
+    # so the last X-Forwarded-For entry is the one a client can't spoof.
     forwarded = request.headers.get("X-Forwarded-For", "")
     if forwarded:
         return forwarded.split(",")[-1].strip()
@@ -6157,7 +6519,7 @@ def _verify_turnstile(token, ip):
         return False
 
 
-def _send_contact_email(category, message, reply_email, page, ip, lang="en"):
+def _send_contact_email(category, message, reply_email, page, lang="en"):
     msg = EmailMessage()
     msg["From"] = CONTACT_EMAIL_ADDRESS
     msg["To"] = CONTACT_EMAIL_ADDRESS
@@ -6168,7 +6530,6 @@ def _send_contact_email(category, message, reply_email, page, ip, lang="en"):
         f"Category: {category}",
         f"Reply email: {reply_email or '(none)'}",
         f"Page: {page or '(not given)'}",
-        f"IP: {ip}",
         f"Language: {lang}",
         "",
         message,
@@ -6232,7 +6593,6 @@ def contact_page():
             form["message"][:CONTACT_MAX_MESSAGE_LEN],
             form["email"],
             form["page"][:300],
-            ip,
             lang=str(get_locale()),
         )
     except Exception:
@@ -6264,5 +6624,35 @@ def index():
     return display_pokemon_page(LANDING_FORMAT)
 
 
+def dev_server_options(env=None):
+    """Host, port and debugger setting for `python app.py`.
+
+    Binds every interface by default so a phone on the same Wi-Fi can reach the
+    dev server: the mobile app points at this during development instead of
+    munchstats.com, and "localhost" on a phone means the phone. HOST=127.0.0.1
+    goes back to loopback-only.
+
+    use_debugger is off whenever the port is reachable from the network.
+    Werkzeug's debugger executes arbitrary Python from the browser -- fine on
+    loopback, an open door on shared Wi-Fi. The reloader stays on either way.
+
+    Split out from the __main__ block below so the rule is testable without
+    starting a server.
+    """
+    env = os.environ if env is None else env
+    host = env.get("HOST", "0.0.0.0")
+    try:
+        port = int(env.get("PORT", "5000"))
+    except ValueError:
+        port = 5000
+    return {
+        "host": host,
+        "port": port,
+        "use_debugger": host in ("127.0.0.1", "localhost", "::1"),
+    }
+
+
 if __name__ == "__main__":
-    app.run(debug=True)
+    opts = dev_server_options()
+    print(f" * Mobile app should reach this at http://<this machine's IP>:{opts['port']}")
+    app.run(debug=True, threaded=True, **opts)

@@ -1623,20 +1623,7 @@ $(document).ready(function () {
     // Counters
     var countersHTML = buildCountersHTML(data.counters_list);
     if (countersHTML) html += "<div>" + countersHTML + "</div>";
-    // Merch
-    html += buildMerchSectionHTML();
     return html;
-  }
-
-  function buildMerchSectionHTML() {
-    return '<div class="merch-section" id="merch-section">' +
-      '<h2>' + t("Merch") + ' <span class="fa has-tooltip" style="font-size: 14px; vertical-align: text-top; cursor: pointer;" data-tooltip="' + t("These are affiliate eBay links that help support the website.") + '">&#xf059;</span> ' +
-      '<button type="button" class="merch-toggle" id="merch-toggle">' + t("Hide") + '</button></h2>' +
-      '<div class="merch-carousel" id="merch-carousel">' +
-      '<div class="merch-loading">' + t("Loading merch...") + '</div>' +
-      '</div>' +
-      '<div class="merch-collapsed-msg">Merch hidden &mdash; click Show to browse</div>' +
-      '</div>';
   }
 
   // ========== DYNAMIC PAGE LOADING ==========
@@ -1864,10 +1851,6 @@ $(document).ready(function () {
     updateShowdownSet();
     updateAllHighlights();
 
-    // Merch
-    initMerchToggle();
-    updateMerchSection(data.selected_pokemon);
-
     // Tournament Teams & Recent Replays
     window.hasTournamentData = !!data.has_tournament_data;
     window.hasReplayData = !!data.has_replay_data;
@@ -1916,166 +1899,6 @@ $(document).ready(function () {
     },
     ""
   );
-
-  // ========== MERCH CAROUSEL ==========
-  var merchInterval = null;
-  var merchCurrentSlide = 0;
-  var merchLoaded = false;
-  var merchPokemon = "";
-  var MERCH_VISIBLE = 2;
-  var MERCH_CARD_W = 150;
-  var merchItemCount = 0;
-
-  function escapeAttrMerch(str) {
-    if (!str) return "";
-    return str.replace(/&/g, "&amp;").replace(/"/g, "&quot;")
-              .replace(/</g, "&lt;").replace(/>/g, "&gt;");
-  }
-
-  function updateMerchSection(pokemonName) {
-    var section = document.getElementById("merch-section");
-    if (!section) return;
-    merchPokemon = pokemonName;
-    merchLoaded = false;
-    clearInterval(merchInterval);
-    var carousel = document.getElementById("merch-carousel");
-    if (carousel) {
-      carousel.innerHTML = '<div class="merch-loading">' + t("Loading merch...") + '</div>';
-    }
-    if (!section.classList.contains("collapsed")) {
-      fetchMerchListings(pokemonName);
-    }
-  }
-
-  function fetchMerchListings(pokemonName) {
-    if (merchLoaded && merchPokemon === pokemonName) return;
-    var carousel = document.getElementById("merch-carousel");
-    if (!carousel) return;
-    fetch("/api/merch/" + encodeURIComponent(pokemonName))
-      .then(function (res) { return res.json(); })
-      .then(function (listings) {
-        merchLoaded = true;
-        if (!listings || listings.length === 0) {
-          carousel.innerHTML = '<div class="merch-loading">' + t("No merch found") + '</div>';
-          return;
-        }
-        renderMerchCarousel(carousel, listings);
-      })
-      .catch(function () {
-        carousel.innerHTML = '<div class="merch-loading">' + t("Could not load merch") + '</div>';
-      });
-  }
-
-  function buildCardHtml(item) {
-    return '<a class="merch-card" href="' + escapeAttrMerch(item.url) +
-      '" target="_blank" rel="noopener nofollow">' +
-      '<img src="' + escapeAttrMerch(item.image) + '" alt="' + escapeAttrMerch(item.title) + '" loading="lazy">' +
-      '<div class="merch-card-title">' + escapeAttrMerch(item.title) + '</div>' +
-      '<div class="merch-card-price">$' + escapeAttrMerch(item.price) + '</div>' +
-      '</a>';
-  }
-
-  // Affiliate tracking is now handled server-side via the Browse API
-  // X-EBAY-C-ENDUSERCTX header, so no client-side EPN script needed.
-
-  function renderMerchCarousel(carousel, listings) {
-    merchItemCount = listings.length;
-    var html = '<div class="merch-track">';
-    for (var c = listings.length - MERCH_VISIBLE; c < listings.length; c++) {
-      html += buildCardHtml(listings[c]);
-    }
-    listings.forEach(function (item) { html += buildCardHtml(item); });
-    for (var c2 = 0; c2 < MERCH_VISIBLE; c2++) {
-      html += buildCardHtml(listings[c2]);
-    }
-    html += '</div>';
-    html += '<div class="merch-nav">';
-    html += '<button type="button" class="merch-arrow merch-prev">&#8249;</button>';
-    html += '<button type="button" class="merch-arrow merch-next">&#8250;</button>';
-    html += '</div>';
-    carousel.innerHTML = html;
-
-    var track = carousel.querySelector(".merch-track");
-    merchCurrentSlide = 0;
-    setTrackPos(track, false);
-
-    function restartMerchInterval() {
-      clearInterval(merchInterval);
-      if (merchItemCount > MERCH_VISIBLE) {
-        merchInterval = setInterval(function () {
-          merchCurrentSlide++;
-          setTrackPos(track, true);
-        }, 5000);
-      }
-    }
-
-    carousel.querySelector(".merch-prev").addEventListener("click", function (e) {
-      e.preventDefault(); e.stopPropagation();
-      merchCurrentSlide--;
-      setTrackPos(track, true);
-      restartMerchInterval();
-    });
-    carousel.querySelector(".merch-next").addEventListener("click", function (e) {
-      e.preventDefault(); e.stopPropagation();
-      merchCurrentSlide++;
-      setTrackPos(track, true);
-      restartMerchInterval();
-    });
-    track.addEventListener("transitionend", function () {
-      if (merchCurrentSlide >= merchItemCount) {
-        merchCurrentSlide = 0;
-        setTrackPos(track, false);
-      } else if (merchCurrentSlide < 0) {
-        merchCurrentSlide = merchItemCount - 1;
-        setTrackPos(track, false);
-      }
-    });
-
-    restartMerchInterval();
-  }
-
-  function setTrackPos(track, animate) {
-    var offset = (merchCurrentSlide + MERCH_VISIBLE) * MERCH_CARD_W;
-    if (!animate) {
-      track.classList.add("no-transition");
-      track.offsetHeight;
-    }
-    track.style.transform = "translateX(-" + offset + "px)";
-    if (!animate) {
-      track.offsetHeight;
-      track.classList.remove("no-transition");
-    }
-  }
-
-  function initMerchToggle() {
-    var section = document.getElementById("merch-section");
-    var toggle = document.getElementById("merch-toggle");
-    if (!section || !toggle) return;
-    if (localStorage.getItem("merchCollapsed") === "true") {
-      section.classList.add("collapsed");
-      toggle.textContent = t("Show");
-    }
-    toggle.addEventListener("click", function () {
-      var collapsed = section.classList.toggle("collapsed");
-      toggle.textContent = collapsed ? t("Show") : t("Hide");
-      localStorage.setItem("merchCollapsed", collapsed);
-      if (!collapsed && !merchLoaded && merchPokemon) {
-        fetchMerchListings(merchPokemon);
-      }
-      if (collapsed) {
-        clearInterval(merchInterval);
-      } else {
-        var carousel = document.getElementById("merch-carousel");
-        var track = carousel ? carousel.querySelector(".merch-track") : null;
-        if (track && merchItemCount > MERCH_VISIBLE) {
-          merchInterval = setInterval(function () {
-            merchCurrentSlide++;
-            setTrackPos(track, true);
-          }, 5000);
-        }
-      }
-    });
-  }
 
   // ========== TOURNAMENT TEAMS & RECENT REPLAYS ==========
 
@@ -2438,12 +2261,6 @@ $(document).ready(function () {
       '<div class="Data" style="height: auto; max-height: 210px;">' +
       '<div class="section-loading" id="recent-replays-loading">' + t("Loading replays...") + '</div>' +
       '</div></div>';
-  }
-
-  // Initial load merch
-  initMerchToggle();
-  if (window.currentPokemonName) {
-    updateMerchSection(window.currentPokemonName);
   }
 
   // Initial load tournament teams & replays

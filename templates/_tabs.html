@@ -42,12 +42,17 @@
         </div>
       </div>
     </div>
+    {# Both of these are deliberately plain links with self-hosted assets.
+       The Ko-fi badge used to hotlink storage.ko-fi.com and the follow
+       button used to load platform.twitter.com/widgets.js -- that script
+       set its own cookies on every page, which is a consent-banner
+       trigger in the EU. A plain <a> does the same job with no third
+       party involved. Don't reintroduce the widget script. #}
     <div class="twitter-follow-div">
-      <a href="https://ko-fi.com/V7V2QR4P2" target="_blank">
-        <img height="29" style="border:0px;height:29px;" src="https://storage.ko-fi.com/cdn/kofi4.png?v=3" border="0" alt="Buy Me a Coffee at ko-fi.com" />
+      <a href="https://ko-fi.com/V7V2QR4P2" target="_blank" rel="noopener">
+        <img height="29" style="border:0px;height:29px;" src="{{ asset_url('kofi-button.png') }}" border="0" alt="Buy Me a Coffee at ko-fi.com" />
       </a>
-      <a href="https://twitter.com/MunchStats?ref_src=twsrc%5Etfw" class="twitter-follow-button" data-size="large" data-show-screen-name="false" data-dnt="true" data-show-count="false">Follow @MunchStats</a>
-      <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+      <a href="https://twitter.com/MunchStats" class="about-link" target="_blank" rel="noopener">{{ _('Follow') }} @MunchStats</a>
     </div>
   </div>
 </div>
