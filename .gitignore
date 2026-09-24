@@ -14,3 +14,4 @@ cache/
 # the mobile-packs branch instead and fetched by the app straight from
 # raw.githubusercontent.com -- the same arrangement as the replay-data branch.
 stats/*/_packs/
+stats/champions/
