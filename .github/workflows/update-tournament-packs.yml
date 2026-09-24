@@ -1,0 +1,90 @@
+name: Update tournament packs
+
+# Rebuilds the mobile app's official tournament packs whenever
+# stats/tournaments/ changes on main -- a newly scraped event, a re-scrape --
+# and commits them to the mobile-packs branch, where the app reads them.
+# Nothing is fetched: the scraper already committed everything the packs are
+# built from, so this is the whole of what publishing an event takes.
+#
+# Runs from main only, like every workflow here: a working branch carrying
+# this file never repeats what main does.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'stats/tournaments/**'
+      - build_tournament_packs.py
+      - tournament_packs.py
+      - .github/workflows/update-tournament-packs.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Shares mobile-packs with the in-game workflow: one writer at a time.
+concurrency:
+  group: mobile-packs
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      # The whole site: app.py reads its data files at import.
+      - name: Check out the site
+        uses: actions/checkout@v4
+        with:
+          path: site
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: site/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r site/requirements.txt
+
+      - name: Build packs
+        working-directory: site
+        env:
+          MUNCHSTATS_NO_WARM: '1'
+        run: python build_tournament_packs.py
+
+      - name: Check out mobile-packs
+        uses: actions/checkout@v4
+        with:
+          ref: mobile-packs
+          path: packs
+          # Only the tournaments folder; the branch also holds every month's
+          # packs, a hundred megabytes each, which this job never touches.
+          filter: blob:none
+          sparse-checkout: stats/tournaments
+
+      - name: Publish
+        working-directory: packs
+        run: |
+          # Replace the folder wholesale, so an event removed upstream goes too.
+          rm -rf stats/tournaments/_packs
+          mkdir -p stats/tournaments/_packs
+          cp ../site/stats/tournaments/_packs/*.json.gz \
+             ../site/stats/tournaments/_packs/index.json \
+             stats/tournaments/_packs/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A stats/tournaments
+          if git diff --cached --quiet; then
+            echo "Nothing changed."
+            exit 0
+          fi
+          count=$(python3 -c 'import json; print(len(json.load(open("stats/tournaments/_packs/index.json"))["events"]))')
+          git commit -q -m "packs: official tournaments ($count events)"
+          # A month pushed by hand can land between checkout and push.
+          for attempt in 1 2 3; do
+            git push -q origin HEAD:mobile-packs && exit 0
+            git pull -q --rebase origin mobile-packs
+          done
+          exit 1
