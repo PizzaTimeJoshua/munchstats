@@ -104,6 +104,26 @@ jobs:
           MUNCHSTATS_DIRECTORY: ${{ github.workspace }}/site-data
         run: python replay-downloader-nogui.py
 
+      # The mobile app's files (build_replay_packs.py): each format's replays
+      # in one small file per day, its top teams, and sprite names -- read from
+      # the raw lists, so before they are compressed. Only the builder and the
+      # two data files it reads are checked out.
+      - name: Check out the app-file builder
+        if: steps.cfg.outputs.configured == 'true'
+        uses: actions/checkout@v4
+        with:
+          path: site
+          filter: blob:none
+          sparse-checkout: |
+            build_replay_packs.py
+            stats/pokedex.json
+            stats/forms_index.json
+          sparse-checkout-cone-mode: false
+
+      - name: Build the app's replay files
+        if: steps.cfg.outputs.configured == 'true'
+        run: python site/build_replay_packs.py --src site-data/stats/replays --data site/stats --out site-data/app
+
       # The busiest formats produce JSONs past GitHub's 100MB hard file limit,
       # which the pre-receive hook rejects. Gzip runs them ~7x smaller (and
       # shrinks the blobs force-pushed here every 6h by the same factor).
