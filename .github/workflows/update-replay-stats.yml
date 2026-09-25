@@ -110,6 +110,9 @@ jobs:
       # two data files it reads are checked out.
       - name: Check out the app-file builder
         if: steps.cfg.outputs.configured == 'true'
+        # Never at the site's expense: if the app's files cannot be built, the
+        # replay data below is still compressed and published as it always was.
+        continue-on-error: true
         uses: actions/checkout@v4
         with:
           path: site
@@ -122,6 +125,7 @@ jobs:
 
       - name: Build the app's replay files
         if: steps.cfg.outputs.configured == 'true'
+        continue-on-error: true
         run: python site/build_replay_packs.py --src site-data/stats/replays --data site/stats --out site-data/app
 
       # The busiest formats produce JSONs past GitHub's 100MB hard file limit,
