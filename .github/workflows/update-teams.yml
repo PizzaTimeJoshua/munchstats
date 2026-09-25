@@ -1,0 +1,90 @@
+name: Update team packs
+
+# Every six hours: read the VGCPastes sheet, fetch the Pokepaste of each team
+# not seen before, and publish the site's copy and the app's packs to the
+# teams-data branch (publish_teams.py). The site and the app both read the
+# branch; the sheet and pokepast.es are asked by this job alone.
+#
+# Six hours, not the twelve the site used to cache the sheet for: a check that
+# lands just before the sheet changes leaves the change waiting a whole
+# interval, so checking twice as often halves that worst case.
+#
+# The branch is one orphan commit, force-pushed, like limitless-data: nothing
+# needs its history, so it never grows. The previous snapshot seeds each run --
+# a paste never changes -- so only new teams' pastes are fetched.
+#
+# Runs from main only, like every workflow here.
+
+on:
+  schedule:
+    - cron: '37 */6 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - publish_teams.py
+      - vgcpastes.py
+      - tournament_packs.py
+      - .github/workflows/update-teams.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: teams-data
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 50
+    steps:
+      # The whole site: app.py reads its data files at import, and the pastes
+      # are parsed with its own helpers.
+      - name: Check out the site
+        uses: actions/checkout@v4
+        with:
+          path: site
+
+      - name: Fetch the previous snapshot
+        run: |
+          git clone -q --depth 1 --branch teams-data \
+            "https://github.com/${{ github.repository }}.git" seed \
+            || { echo "No previous snapshot: this run starts the backfill."; mkdir -p seed; }
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+          cache-dependency-path: site/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r site/requirements.txt
+
+      - name: Publish
+        working-directory: site
+        env:
+          MUNCHSTATS_NO_WARM: '1'
+        run: python publish_teams.py --out ../out --seed ../seed
+
+      - name: Push the snapshot
+        working-directory: out
+        env:
+          TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+        run: |
+          git init -q -b teams-data
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          # Same content, same tree hash: skip the push rather than churn the
+          # branch with an identical snapshot.
+          tree=$(git write-tree)
+          previous=$(git -C ../seed rev-parse -q --verify 'HEAD^{tree}' 2>/dev/null || true)
+          if [ "$tree" = "$previous" ]; then
+            echo "Nothing new since the last snapshot."
+            exit 0
+          fi
+          git commit -q -m "Teams snapshot $(date -u +'%Y-%m-%d %H:%M UTC')"
+          git push -q --force "https://x-access-token:${TOKEN}@github.com/${REPO}.git" teams-data

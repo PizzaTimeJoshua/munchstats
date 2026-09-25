@@ -68,11 +68,11 @@ jobs:
         working-directory: packs
         run: |
           # Replace the folder wholesale, so an event removed upstream goes too.
+          # The build is a fresh checkout's, so the folder holds only its output:
+          # the event packs, teams/ for the Teams tab, and the index.
           rm -rf stats/tournaments/_packs
-          mkdir -p stats/tournaments/_packs
-          cp ../site/stats/tournaments/_packs/*.json.gz \
-             ../site/stats/tournaments/_packs/index.json \
-             stats/tournaments/_packs/
+          mkdir -p stats/tournaments
+          cp -r ../site/stats/tournaments/_packs stats/tournaments/_packs
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add -A stats/tournaments

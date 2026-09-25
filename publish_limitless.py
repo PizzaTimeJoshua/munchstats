@@ -10,8 +10,9 @@ what it publishes (limitless_stats in "published" mode) and so does the app.
   2. Fetch the regulations, the recent event list, and standings and pairings
      for every finished event of 25+ players from the last RETENTION_DAYS.
   3. Write the site's copy of those, and the app's packs: one per regulation
-     (its 30-day stats at every size tier and cut) and one per event in that
-     window (usage by cut, standings with teams, every round).
+     (its 30-day stats at every size tier and cut), one per event in that
+     window (usage by cut, standings with teams, every round), and one per
+     regulation of every team in the window, for the Teams tab.
 
 Output (--out), published as one orphan commit so the branch never grows:
     limitless/formats.json               the site's inputs, same shapes as
@@ -21,6 +22,7 @@ Output (--out), published as one orphan commit so the branch never grows:
     app/index.json                       what the app lists and downloads
     app/formats/<format>.json.gz
     app/events/<id>.json.gz
+    app/teams/<format>.json.gz
 
 Usage:
     python publish_limitless.py --out out [--seed previous-snapshot]
@@ -312,13 +314,45 @@ def format_pack(fmt, name):
     }
 
 
+def team_runs_pack(fmt, name):
+    """Every team a regulation's events published in the 30-day window, for the
+    app's Teams tab (see TP.TeamRuns), or None when there are none."""
+    entries = L.get_all_teams(fmt, A.pokedexEntries)
+    if not entries:
+        return None
+    runs = TP.TeamRuns(TP.PackDict(A))
+    by_event = {}
+    for e in entries:
+        by_event.setdefault(e["tournament"].get("id", ""), []).append(e)
+    # Newest event first, and each event's runs in finishing order, so the same
+    # standings always write the same file.
+    ordered = sorted(by_event.values(),
+                     key=lambda es: ((es[0]["tournament"].get("date") or ""),
+                                     es[0]["tournament"].get("id", "")),
+                     reverse=True)
+    for group in ordered:
+        meta = group[0]["tournament"]
+        event = runs.add_event(meta.get("id", ""), meta.get("name", ""),
+                               meta.get("date", ""), meta.get("players") or 0)
+        for e in sorted(group, key=lambda e: (e.get("placing") or 9999, e.get("player") or "")):
+            record = e.get("record") or {}
+            runs.add_run(event, e.get("placing"), e.get("player") or "",
+                         [record.get("wins", 0), record.get("losses", 0), record.get("ties", 0)],
+                         e["team"])
+    if not runs.runs:
+        return None
+    return runs.body(kind="limitless_teams", format=fmt, format_name=name,
+                     reg=A._limitless_reg_token(fmt, name), window_days=L.WINDOW_DAYS,
+                     attribution=L.ATTRIBUTION_TEXT)
+
+
 def write_app_packs(out):
     root = os.path.join(out, "app")
-    for sub in ("formats", "events"):
+    for sub in ("formats", "events", "teams"):
         os.makedirs(os.path.join(root, sub), exist_ok=True)
 
     formats = L.get_available_formats()
-    format_rows, event_rows, seen = [], [], set()
+    format_rows, event_rows, team_rows, seen = [], [], [], set()
     for fmt, name in formats.items():
         t0 = time.time()
         body = format_pack(fmt, name)
@@ -339,6 +373,23 @@ def write_app_packs(out):
         })
         log("  format %-6s %3d events %6d teams  %5.0f KB  %4.1fs"
             % (fmt, tier0["events"], tier0["cuts"][0]["teams"], size / 1024, time.time() - t0))
+
+        teams = team_runs_pack(fmt, name)
+        if teams is not None:
+            filename = "teams/%s.json.gz" % L._safe_id(fmt)
+            size, revision = TP.write_pack(os.path.join(root, filename), teams)
+            team_rows.append({
+                "format": fmt,
+                "format_name": name,
+                "reg": teams["reg"],
+                "events": len(teams["events"]),
+                "runs": len(teams["runs"]),
+                "file": filename,
+                "bytes": size,
+                "revision": revision,
+            })
+            log("  teams  %-6s %3d events %6d runs %6d sets  %5.0f KB"
+                % (fmt, len(teams["events"]), len(teams["runs"]), len(teams["sets"]), size / 1024))
 
         for t in L.eligible_tournaments(L.get_tournament_list(fmt)):
             if t["id"] in seen:
@@ -374,8 +425,9 @@ def write_app_packs(out):
         "attribution": L.ATTRIBUTION_TEXT,
         "formats": format_rows,
         "events": event_rows,
+        "teams": team_rows,
     })
-    return format_rows, event_rows
+    return format_rows, event_rows, team_rows
 
 
 def main():
@@ -404,10 +456,11 @@ def main():
     listed = write_site_copy(args.out, events)
     log("site copy: %d events" % len(listed))
 
-    format_rows, event_rows = write_app_packs(args.out)
-    total = sum(r["bytes"] for r in format_rows + event_rows)
-    log("app packs: %d formats, %d events, %.2f MB, in %.1f min"
-        % (len(format_rows), len(event_rows), total / 1048576, (time.time() - started) / 60))
+    format_rows, event_rows, team_rows = write_app_packs(args.out)
+    total = sum(r["bytes"] for r in format_rows + event_rows + team_rows)
+    log("app packs: %d formats, %d events, %d team files, %.2f MB, in %.1f min"
+        % (len(format_rows), len(event_rows), len(team_rows), total / 1048576,
+           (time.time() - started) / 60))
     if not format_rows:
         log("no format produced a pack -- refusing to publish an empty snapshot")
         return 1

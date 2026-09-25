@@ -10,8 +10,12 @@ Normally run by .github/workflows/update-tournament-packs.yml, which publishes
 the output to the mobile-packs branch whenever stats/tournaments/ changes on
 main.
 
+Also one file per regulation of every run's team (tournament_packs.TeamRuns),
+which the app's Teams tab groups into archetypes.
+
 Layout:
     stats/tournaments/_packs/<id>.json.gz
+    stats/tournaments/_packs/teams/<format>.json.gz
     stats/tournaments/_packs/index.json
 
 Usage:
@@ -107,14 +111,65 @@ def build_event(meta):
     }
 
 
+def build_team_files(events):
+    """One file per regulation of every official run's team, for the app's
+    Teams tab (see TP.TeamRuns). Returns the index rows."""
+    by_format = {}
+    for meta in events:
+        fmt = meta.get("format") or ""
+        if not TP.reg_token(fmt):
+            continue
+        players = A.load_tournament_players(meta["id"])
+        if not any(p.get("team") for p in players):
+            continue
+        runs = by_format.get(fmt)
+        if runs is None:
+            runs = by_format[fmt] = TP.TeamRuns(TP.PackDict(A))
+        event = runs.add_event(meta["id"], meta.get("name", ""), meta.get("date", ""),
+                               meta.get("total_players") or len(players))
+        for p in sorted(players, key=lambda p: p.get("placement") or 9999):
+            record = p.get("record") or {}
+            runs.add_run(event, p.get("placement"), p.get("name", ""),
+                         [record.get("wins", 0), record.get("losses", 0), record.get("ties", 0)],
+                         p.get("team"), p.get("day_reached", ""))
+
+    os.makedirs(os.path.join(OUT_DIR, "teams"), exist_ok=True)
+    rows = []
+    for fmt in sorted(by_format):
+        runs = by_format[fmt]
+        if not runs.runs:
+            continue
+        name = A.formatDisplayNames.get(fmt, fmt)
+        body = runs.body(kind="official_teams", format=fmt, format_name=name,
+                         reg=TP.reg_token(fmt))
+        filename = "teams/%s.json.gz" % fmt
+        size, revision = TP.write_pack(os.path.join(OUT_DIR, filename), body)
+        rows.append({
+            "format": fmt,
+            "format_name": name,
+            "reg": TP.reg_token(fmt),
+            "events": len(runs.events),
+            "runs": len(runs.runs),
+            "file": filename,
+            "bytes": size,
+            "revision": revision,
+        })
+        print("  teams %-30s %2d events %5d runs %5d sets  %5.0f KB"
+              % (fmt, len(runs.events), len(runs.runs), len(runs.sets), size / 1024))
+    return rows
+
+
 def main():
     os.makedirs(OUT_DIR, exist_ok=True)
-    for stale in os.listdir(OUT_DIR):
-        if stale.endswith(".tmp"):
-            try:
-                os.remove(os.path.join(OUT_DIR, stale))
-            except OSError:
-                pass
+    for folder in (OUT_DIR, os.path.join(OUT_DIR, "teams")):
+        if not os.path.isdir(folder):
+            continue
+        for stale in os.listdir(folder):
+            if stale.endswith(".tmp"):
+                try:
+                    os.remove(os.path.join(folder, stale))
+                except OSError:
+                    pass
 
     events = A.load_tournament_list()  # VGC events with teams, newest first
     print("building %d official tournament packs -> %s\n" % (len(events), OUT_DIR))
@@ -150,12 +205,16 @@ def main():
         print("\nno packs built")
         return 1
 
+    print()
+    team_rows = build_team_files(events)
+
     # No build timestamp: the index changes only when an event does, so an
     # unchanged rebuild is a 304 for every installed app.
     TP.write_json(os.path.join(OUT_DIR, INDEX_NAME), {
         "api_version": TP.API_VERSION,
         "kind": "official",
         "events": rows,
+        "teams": team_rows,
     })
     print("\nbuilt %d packs in %.1f min, %.2f MB total"
           % (len(rows), (time.time() - started) / 60,

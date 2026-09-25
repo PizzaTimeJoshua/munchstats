@@ -50,12 +50,12 @@
 
 ### Team Search (VGCPastes)
 - Searchable team repository at `/teams/` — team data from the [VGCPastes Repository](https://twitter.com/VGCPastes) (public Google Sheet)
-- Repository selector (Champions M-A/M-B, SV Regulation I)
+- Repository selector (Champions M-C/M-B/M-A, SV Regulation I)
 - Slot-scoped comma-group search: within a comma group, every term must match the same team slot (Pokémon + held item) or the team's metadata; `mode=any` matches any group instead of all
 - Filters: has EV spreads, has rental/replica code, has tournament report; sort by newest/oldest/random
 - Team cards with Pokémon and item sprites, player/event/rank metadata, and source/report links
-- In-site team viewer: fetches the raw Showdown paste from Pokepaste (immutable, cached on disk) into a modal
-- Sheet tabs cached on disk for 12 hours with stale fallback; cache warmed in a background thread at startup
+- In-site team viewer: the raw Showdown paste, from the published copy (Pokepaste itself only for a team newer than it)
+- Reads the copy `publish_teams.py` publishes to the `teams-data` branch every 6 hours (see Data Pipeline), re-read hourly, with the sheet and Pokepaste as fallback
 
 ### Meta Insights
 - Analysis page at `/insights/` combining the site's data sources into three reports per VGC regulation:
@@ -132,8 +132,8 @@ Three sub-tabs at `/tools/`:
 - **Charts:** Chart.js (EV distribution bar chart, usage trend line chart)
 - **Damage Calc:** @smogon/calc 0.11.0 (bundled with esbuild)
 - **Process management:** Gunicorn (Procfile; worker recycled via `--max-requests` to cap memory growth)
-- **Data:** Per-Pokémon JSON files in `stats/`, trend data in `stats/trends/`, tournament data in `stats/tournaments/`, Limitless data from the `limitless-data` branch cached in `cache/limitless/`, VGCPastes sheet cache in `cache/vgcpastes/`, replay-data cache in `cache/replays/`
-- **Automation:** GitHub Actions, all running from `main` only — replay stats to the `replay-data` branch (4×/day), Limitless data to `limitless-data` (every 2 h), and the mobile app's in-game (hourly check) and official tournament packs (on commit) to `mobile-packs`
+- **Data:** Per-Pokémon JSON files in `stats/`, trend data in `stats/trends/`, tournament data in `stats/tournaments/`, Limitless data from the `limitless-data` branch cached in `cache/limitless/`, VGCPastes teams from the `teams-data` branch cached in `cache/vgcpastes/`, replay-data cache in `cache/replays/`
+- **Automation:** GitHub Actions, all running from `main` only — replay stats to the `replay-data` branch (4×/day), Limitless data to `limitless-data` (every 2 h), VGCPastes teams to `teams-data` (every 6 h), and the mobile app's in-game (hourly check) and official tournament packs (on commit) to `mobile-packs`
 
 ## Data Files
 - **Per-Pokémon stats:** `stats/{YYYY-MM}/{format}/{rating}/{Pokemon}.json`
@@ -141,7 +141,7 @@ Three sub-tabs at `/tools/`:
 - **Trend data:** `stats/trends/{format}/{rating}.json` (12 months of usage % per Pokémon)
 - **Tournament data:** `stats/tournaments/{tournament_id}/` (metadata, players, aggregated stats, and pairings — every round's matches)
 - **Limitless cache:** `cache/limitless/` (formats, tournament list, per-tournament standings and pairings) — copied from the `limitless-data` branch at runtime, safe to delete
-- **VGCPastes cache:** `cache/vgcpastes/` (sheet tabs as CSV, fetched Pokepaste texts) — fetched lazily at runtime, safe to delete
+- **VGCPastes cache:** `cache/vgcpastes/` (sheet tabs, Pokepaste texts newer than the published copy) — copied from the `teams-data` branch at runtime, safe to delete
 - **Replay-data cache:** `cache/replays/` (replay JSONs pulled from the `replay-data` branch, with `.etag` sidecars) — fetched lazily at runtime, safe to delete
 - **EV corpus cache:** `cache/ev_corpus/` (per-species EV spreads parsed out of VGCPastes pokepastes for the Spread Solver, 12h TTL) — fetched lazily at runtime, safe to delete
 - **Translations:** `translations/es/LC_MESSAGES/messages.po` (+ compiled `.mo`, committed), `messages.pot` template, `babel.cfg`
@@ -288,6 +288,7 @@ workflow files never repeats a job main already does:
 | `update-champions-packs.yml` | hourly check; builds only when the scraper has pushed `champions-data` since the last build | in-game packs → `mobile-packs:stats/champions/` |
 | `update-tournament-packs.yml` | a commit touching `stats/tournaments/` | official event packs → `mobile-packs:stats/tournaments/_packs/` |
 | `update-limitless.yml` | every 2 hours | Limitless data and packs → `limitless-data` |
+| `update-teams.yml` | every 6 hours | VGCPastes teams and pastes, and the app's team packs → `teams-data` |
 
 Tournament packs (`tournament_packs.py`, shared by both builders) carry each
 event's numbers exactly as the tournament pages compute them — the builders
@@ -297,6 +298,18 @@ descriptions and icons, sprites, types, base stats) is stored once per pack
 rather than per entry, and lists are kept to their top entries. Official
 events come to about 3.4 MB for 33; a Limitless regulation's 30-day pack is
 about 360 KB.
+
+Both builders also write one file per regulation of every run's team
+(`teams/<format>.json.gz`, `tournament_packs.TeamRuns`) for the app's Teams
+tab, which groups them into archetypes. Each distinct set is stored once and
+runs refer to it by position — players copy sets, and a month of M-C events
+had 42,000 slots but 15,000 distinct sets — so a regulation's online month is
+about 330 KB and an official regulation 30–350 KB.
+
+The Teams tab's VGCPastes packs come from `publish_teams.py` on `teams-data`:
+one per repository (`app/<repo>.json.gz`, listed in `app/index.json`), each
+team with its paste parsed into sets by the calc import's own helpers — about
+250 bytes a team gzipped, roughly 1 MB for all four repositories.
 
 **`graph_data` is opt-in.** It was 6.3 KB of a 13.4 KB species payload (47%) and
 most of the build time, because the histogram walks every recorded spread across
@@ -367,11 +380,13 @@ translations/
   es/LC_MESSAGES/             Spanish catalog (messages.po + compiled messages.mo)
 .github/workflows/
   update-replay-stats.yml     Scheduled replay-stats update (GitHub Actions)
+  update-teams.yml            VGCPastes teams → teams-data, every 6 hours
 app.py                        Flask application
 limitless_stats.py            Limitless API client + online tournament usage aggregation
 insights.py                   Meta insight report builders (pure functions over loaded data)
 draft_tools.py                Draft Scout engine: movepool queries, preset groups, Speed maths
 vgcpastes.py                  VGCPastes sheet client + team search
+publish_teams.py              Publishes VGCPastes teams, pastes and the app's team packs (teams-data)
 og_card.py                    Open Graph stat card renderer (Pillow, Flask-free)
 mobile_api.py                 Mobile API v1 payload shaping + sync revisions (Flask-free)
 build_packs.py                Precomputes the app's offline detail packs (run after update_all_data.py)
@@ -412,7 +427,12 @@ The site reads Limitless data from the **`limitless-data` branch**, not from the
 At runtime `limitless_stats` copies what it needs into `cache/limitless/` (the format list cached 12 hours, the event list 1 hour, standings forever), and the cache is still warmed at startup — from GitHub's CDN now, so a dyno restart costs Limitless nothing. Anything not published falls back to the API as before; `LIMITLESS_API_FALLBACK=0` turns that off, and `LIMITLESS_SOURCE=api` reads the API directly (what the publisher does). `LIMITLESS_API_KEY` sends an access key with API requests (optional; the workflow reads it from a repository secret of the same name).
 
 ### VGCPastes Team Data
-Team data also needs no pipeline step — the public VGCPastes spreadsheet tabs are fetched as CSV at runtime and cached under `cache/vgcpastes/` for 12 hours (with stale fallback if the sheet is unreachable). Pokepaste texts are immutable and cached on first fetch. Like the Limitless cache, it is warmed in a background thread at startup.
+The site reads VGCPastes teams from the **`teams-data` branch**. `.github/workflows/update-teams.yml` runs `publish_teams.py` every six hours — the only thing that reads the sheet and pokepast.es — which reads each repository's tab of the public spreadsheet, fetches the Pokepaste of every team the previous snapshot lacks (pastes never change, so only new teams'; one request a second, newest first, within a 30-minute budget), and publishes one force-pushed commit:
+
+- `site/<repo>.json.gz` — the tab as `vgcpastes` parses it; `site/pastes/<repo>.json.gz` — `{paste id: text}` for its teams
+- `app/index.json`, `app/<repo>.json.gz` — the mobile app's packs, each team's paste parsed into sets
+
+Six hours rather than the twelve the site used to cache the sheet for: a check that lands just before the sheet changes leaves the change waiting a whole interval. At runtime `vgcpastes` re-reads the tabs hourly and holds each repository's pastes in memory, so the team viewer and the Spread Solver's published spreads need no Pokepaste request (the Solver now counts every team the copy holds, not the newest 30). The sheet and Pokepaste remain the fallback — before the branch exists, when it is unreachable, and for a team added since the last run. `VGCPASTES_SOURCE=live` reads them directly (what the publisher does). Like the Limitless cache, it is warmed in a background thread at startup.
 
 ### Replay Stats Automation
 `.github/workflows/update-replay-stats.yml` runs the replay scraper on a schedule (4×/day) via GitHub Actions: it scrapes new Showdown replays, rebuilds the searcher/team-ranking JSONs, and publishes them to this repo's **`replay-data` branch** — not `main`, so no Heroku redeploy is triggered. They are stored gzipped (`.json.gz`): the busiest formats exceed GitHub's 100MB file limit uncompressed, and gzip runs them roughly 7× smaller. The app fetches them from `raw.githubusercontent.com` on demand, decompresses them into `cache/replays/`, and revalidates at most every 30 minutes using ETags (unchanged checks are cheap 304s); it falls back to a stale cached copy, then to the snapshot bundled in the deploy at `stats/replays/`. Set `REPLAY_DATA_URL=""` to skip remote fetching and serve the local `stats/replays/` copies directly (dev).

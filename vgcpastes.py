@@ -1,19 +1,29 @@
-"""VGCPastes team repository (Google Sheets, cached 12h).
+"""VGCPastes team repository (Google Sheets, cached).
 
 Fetches the public VGCPastes spreadsheet tabs as CSV and parses them into
 searchable team entries. The sheet holds the team roster (six Pokémon +
 held items), player/event metadata and a Pokepaste link per team; the
 actual movesets live at the Pokepaste, which the UI links out to.
 
+Where the teams come from (SOURCE):
+  - "published" (the default): the copy publish_teams.py puts on the
+    teams-data branch every six hours -- each tab as parsed here, and every
+    team's paste. The sheet and pokepast.es are asked only when that copy
+    is out of reach, or for a paste newer than it.
+  - "live": the sheet and pokepast.es directly. The publisher runs this way.
+
 Caching strategy:
-  - Each repository tab is cached on disk for 12 hours with stale
-    fallback, matching the Champions battle-data pattern (Heroku dynos
-    wipe the disk daily; warm_cache_async rebuilds it at boot).
+  - Each repository tab is cached on disk with stale fallback, matching
+    the Champions battle-data pattern (Heroku dynos wipe the disk daily;
+    warm_cache_async rebuilds it at boot): an hour when published, since
+    re-reading GitHub is cheap and the copy changes every six hours; 12
+    hours when live.
   - The parsed team list is memoized in-process, keyed on cache mtime.
 """
 
 import csv
 import difflib
+import gzip
 import io
 import json
 import os
@@ -29,6 +39,16 @@ import requests
 SHEET_ID = "1axlwmzPA49rYkqXh7zHvAtSP-TKbM0ijGYBPRflLSWw"
 CACHE_DIR = os.path.join("cache", "vgcpastes")
 CACHE_TTL = 12 * 3600
+
+SOURCE = os.environ.get("VGCPASTES_SOURCE", "published")
+PUBLISHED_URL = os.environ.get(
+    "VGCPASTES_PUBLISHED_URL",
+    "https://raw.githubusercontent.com/PizzaTimeJoshua/munchstats/teams-data/site/",
+)
+PUBLISHED_TTL = 3600
+# After a failed read of the published pastes, how long to wait before asking
+# again -- before the branch exists, every paste view would otherwise try.
+PUBLISHED_RETRY = 10 * 60
 ATTRIBUTION_TEXT = "Team data from the VGCPastes Repository"
 ATTRIBUTION_URL = "https://twitter.com/VGCPastes"
 SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/"
@@ -37,30 +57,36 @@ SHEET_URL = f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/"
 # (Champions teams share replica codes, cartridge VGC teams rental codes).
 # "limitless_reg" is the regulation token matching the corresponding
 # Limitless online-tournament format (see app._limitless_reg_token).
+# "format" is the regulation's format code, which decides how its pastes
+# parse (Champions moves and abilities, stat points rather than EVs).
 REPOSITORIES = {
     "champions-mc": {
         "sheet": "Champions M-C",
         "display": "Champions M-C",
         "code_label": "Replica Code",
         "limitless_reg": "mc",
+        "format": "gen9championsvgc2026regmc",
     },
     "champions-mb": {
         "sheet": "Champions M-B",
         "display": "Champions M-B",
         "code_label": "Replica Code",
         "limitless_reg": "mb",
+        "format": "gen9championsvgc2026regmb",
     },
     "champions-ma": {
         "sheet": "Champions M-A",
         "display": "Champions M-A",
         "code_label": "Replica Code",
         "limitless_reg": "ma",
+        "format": "gen9championsvgc2026regma",
     },
     "sv-regulation-i": {
         "sheet": "SV Regulation I",
         "display": "SV Regulation I",
         "code_label": "Rental Code",
         "limitless_reg": "i",
+        "format": "gen9vgc2026regi",
     },
 }
 DEFAULT_REPOSITORY = "champions-mc"
@@ -93,10 +119,14 @@ def _cache_path(repo_id):
     return os.path.join(CACHE_DIR, safe + ".json")
 
 
+def _cache_ttl():
+    return PUBLISHED_TTL if SOURCE == "published" else CACHE_TTL
+
+
 def _cache_read(path, allow_stale=False):
     if not os.path.exists(path):
         return None
-    if not allow_stale and (time.time() - os.path.getmtime(path)) > CACHE_TTL:
+    if not allow_stale and (time.time() - os.path.getmtime(path)) > _cache_ttl():
         return None
     try:
         with open(path, "r", encoding="utf-8") as f:
@@ -193,6 +223,34 @@ def _fetch_repository(sheet_name):
         return None
 
 
+def _published_get(path):
+    """GET a file from the published branch, gunzipping .gz; None on failure.
+
+    raw.githubusercontent.com serves .gz as plain octet-stream with no
+    Content-Encoding, so the bytes arrive compressed and are inflated here.
+    """
+    try:
+        resp = requests.get(
+            PUBLISHED_URL + path,
+            timeout=20,
+            headers={"User-Agent": "MunchStats (+https://munchstats.com)"},
+        )
+        if resp.status_code != 200:
+            return None
+        body = resp.content
+        if body[:2] == b"\x1f\x8b":
+            body = gzip.decompress(body)
+        return json.loads(body)
+    except Exception:
+        return None
+
+
+def _fetch_published(repo_id):
+    """One repository's teams from the published copy, or None."""
+    teams = _published_get(repo_id + ".json.gz")
+    return teams if isinstance(teams, list) and teams else None
+
+
 # Parsed team lists are small (<1MB); memoize per repo on cache mtime.
 _teams_mem = {}
 
@@ -209,13 +267,15 @@ def get_teams(repo_id):
         memo is not None
         and mtime is not None
         and memo["mtime"] == mtime
-        and (time.time() - mtime) <= CACHE_TTL
+        and (time.time() - mtime) <= _cache_ttl()
     ):
         return memo["teams"]
 
     teams = _cache_read(path)
     if teams is None:
-        teams = _fetch_repository(repo["sheet"])
+        teams = _fetch_published(repo_id) if SOURCE == "published" else None
+        if teams is None:
+            teams = _fetch_repository(repo["sheet"])
         if teams is not None:
             _cache_write(path, teams)
         else:
@@ -365,21 +425,69 @@ def get_team(repo_id, team_id):
     return None
 
 
-_PASTE_URL_RE = re.compile(r"^https://pokepast\.es/([0-9a-f]+)/?$")
+_PASTE_URL_RE = re.compile(r"^https?://(?:www\.)?pokepast\.es/([0-9a-f]+)/?$")
 _PASTES_DIR = os.path.join(CACHE_DIR, "pastes")
 os.makedirs(_PASTES_DIR, exist_ok=True)
 
 
-def get_paste_text(paste_url):
+def paste_id(paste_url):
+    """The id of a pokepast.es link ("https://pokepast.es/<id>"), or None."""
+    match = _PASTE_URL_RE.match(paste_url or "")
+    return match.group(1) if match else None
+
+
+# {repo_id: {"at": fetched, "pastes": {paste id: text}}}. A whole repository's
+# pastes are one download of a few hundred kilobytes, after which every paste
+# view and the Spread Solver's corpus read memory instead of pokepast.es.
+_published_pastes_mem = {}
+_published_pastes_lock = threading.Lock()
+
+
+def published_pastes(repo_id):
+    """{paste id: text} for a repository's teams from the published copy.
+
+    {} when not in published mode or the copy is out of reach; a failed
+    refresh keeps serving the last copy it had.
+    """
+    if SOURCE != "published" or repo_id not in REPOSITORIES:
+        return {}
+
+    def fresh(memo):
+        ttl = PUBLISHED_TTL if memo["pastes"] else PUBLISHED_RETRY
+        return time.time() - memo["at"] <= ttl
+
+    memo = _published_pastes_mem.get(repo_id)
+    if memo is not None and fresh(memo):
+        return memo["pastes"]
+    with _published_pastes_lock:
+        memo = _published_pastes_mem.get(repo_id)
+        if memo is not None and fresh(memo):
+            return memo["pastes"]
+        data = _published_get("pastes/" + repo_id + ".json.gz")
+        if isinstance(data, dict) and data:
+            pastes = data
+        else:
+            pastes = memo["pastes"] if memo else {}
+        _published_pastes_mem[repo_id] = {"at": time.time(), "pastes": pastes}
+        return pastes
+
+
+def get_paste_text(paste_url, repo_id=None):
     """Return the raw Showdown-format text of a pokepast.es paste, or None.
 
-    Pastes are immutable, so cached copies never expire (the dyno wiping
+    With repo_id, the published copy of that repository's pastes answers
+    first. Otherwise, and for a paste newer than that copy, pokepast.es:
+    pastes are immutable, so cached copies never expire (the dyno wiping
     the disk just means a cheap refetch on next view).
     """
-    match = _PASTE_URL_RE.match(paste_url or "")
-    if not match:
+    pid = paste_id(paste_url)
+    if not pid:
         return None
-    path = os.path.join(_PASTES_DIR, match.group(1) + ".txt")
+    if repo_id:
+        text = published_pastes(repo_id).get(pid)
+        if text is not None:
+            return text
+    path = os.path.join(_PASTES_DIR, pid + ".txt")
     if os.path.exists(path):
         try:
             with open(path, "r", encoding="utf-8") as f:
@@ -388,7 +496,7 @@ def get_paste_text(paste_url):
             pass
     try:
         resp = requests.get(
-            f"https://pokepast.es/{match.group(1)}/raw",
+            f"https://pokepast.es/{pid}/raw",
             timeout=15,
             headers={"User-Agent": "MunchStats (+https://munchstats.com)"},
         )

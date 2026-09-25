@@ -4402,7 +4402,7 @@ def api_vgcpastes_paste(repo_id, team_id):
     team = vgcpastes.get_team(repo_id, team_id)
     if team is None:
         return jsonify({"error": "Unknown team"}), 404
-    text = vgcpastes.get_paste_text(team["pokepaste"])
+    text = vgcpastes.get_paste_text(team["pokepaste"], repo_id)
     if text is None:
         return jsonify({"error": "Paste unavailable"}), 502
     return jsonify({"url": team["pokepaste"], "text": text})
@@ -4418,9 +4418,11 @@ def api_vgcpastes_paste(repo_id, team_id):
 EV_CORPUS_CACHE_DIR = os.path.join("cache", "ev_corpus")
 os.makedirs(EV_CORPUS_CACHE_DIR, exist_ok=True)
 EV_CORPUS_TTL = 12 * 3600
-# A miss costs one Pokepaste fetch per team, so cap how many teams a species
-# consults and give the whole batch a deadline. Pastes are immutable and cached
-# on disk forever, so the corpus fills in across visits rather than in one hit.
+# Pastes come from the published copy (vgcpastes.published_pastes), all of a
+# repository in memory at once. Without it a miss costs one Pokepaste fetch per
+# team, so cap how many teams a species consults and give the whole batch a
+# deadline. Pastes are immutable and cached on disk forever, so the corpus
+# fills in across visits rather than in one hit.
 EV_CORPUS_MAX_TEAMS = 30
 EV_CORPUS_WORKERS = 6
 EV_CORPUS_DEADLINE = 9.0
@@ -4493,7 +4495,19 @@ def _ev_corpus_candidate_teams(repo_id, pokemon_name):
                 continue
             matches.append(team)
             break
-    return matches[:EV_CORPUS_MAX_TEAMS]
+    # A paste the published copy holds is already in memory, and parsing one
+    # takes half a millisecond, so every such team counts. Only pastes it
+    # lacks -- all of them without it, a new team's with it -- cost a
+    # pokepast.es round trip, and those stay capped.
+    held = vgcpastes.published_pastes(repo_id)
+    kept, live = [], 0
+    for team in matches:
+        if vgcpastes.paste_id(team["pokepaste"]) not in held:
+            if live >= EV_CORPUS_MAX_TEAMS:
+                continue
+            live += 1
+        kept.append(team)
+    return kept
 
 
 def community_ev_spreads(format_code, pokemon_name):
@@ -4520,7 +4534,7 @@ def community_ev_spreads(format_code, pokemon_name):
     def fetch(team):
         if time.time() > deadline:
             return None
-        return team, vgcpastes.get_paste_text(team["pokepaste"])
+        return team, vgcpastes.get_paste_text(team["pokepaste"], repo_id)
 
     fetched = []
     if teams:

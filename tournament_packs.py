@@ -43,13 +43,31 @@ class PackDict:
     def add_species(self, name):
         if not name or name in self.species:
             return
-        A = self.A
-        has_dex = bool(A.pokedexEntries)
         self.species[name] = {
-            "sprite": list(A.get_pokemon_sprite(name)),
-            "types": A.compile_top_data({"_": 1}, name, "Types") if has_dex else [],
-            "stats": A.compile_top_data({"_": 1}, name, "Stats") if has_dex else [],
+            "sprite": list(self.A.get_pokemon_sprite(name)),
+            "types": self._dex(name, "Types"),
+            "stats": self._dex(name, "Stats"),
         }
+
+    def _dex(self, name, kind):
+        """The site's Types/Stats for a species. A cosmetic forme's entry
+        (Gastrodon-East, as a VGCPastes sheet writes it) holds only a pointer
+        to its base species, so it answers with that species'."""
+        A = self.A
+        if not A.pokedexEntries:
+            return []
+        try:
+            return A.compile_top_data({"_": 1}, name, kind)
+        except (KeyError, TypeError):
+            pass
+        entry = A.pokedexEntries.get(re.sub(r"[^a-z0-9]+", "", name.lower())) or {}
+        base = entry.get("baseSpecies")
+        if base and base != name:
+            try:
+                return A.compile_top_data({"_": 1}, base, kind)
+            except (KeyError, TypeError):
+                pass
+        return []
 
     def add_item(self, name):
         """For items met outside a usage list, e.g. in a team sheet."""
@@ -180,6 +198,65 @@ def unique_index(names):
     for i, name in enumerate(names):
         seen.setdefault(name, []).append(i)
     return {name: spots[0] for name, spots in seen.items() if len(spots) == 1}
+
+
+def reg_token(format_code):
+    """The regulation a format code names: gen9championsvgc2026regmc -> "mc".
+
+    The same token vgcpastes.REPOSITORIES files each repository under, so the
+    app can put a regulation's pastes and its tournament teams side by side.
+    """
+    match = re.search(r"reg([a-z0-9]+)$", (format_code or "").lower())
+    return match.group(1) if match else ""
+
+
+class TeamRuns:
+    """A regulation's tournament teams, for the app's Teams tab.
+
+    Every run -- one player's team and result at one event -- with each
+    distinct set stored once and referred to by position. Players copy sets:
+    a month of M-C events had 42,000 team slots and 15,000 distinct sets, and
+    storing each once takes a third off the file even after gzip, whose 32 KB
+    window cannot see a set that last appeared a few hundred teams earlier.
+
+    The app groups runs into archetypes itself, after its own search and
+    filters, so nothing here decides what counts as the same team.
+    """
+
+    def __init__(self, pdict):
+        self.pdict = pdict
+        self.events = []
+        self.sets = []
+        self.runs = []
+        self._set_ids = {}
+
+    def add_event(self, event_id, name, date, players):
+        self.events.append({"id": event_id, "name": name, "date": (date or "")[:10],
+                            "players": players or 0})
+        return len(self.events) - 1
+
+    def add_run(self, event, place, name, record, slots, reached=""):
+        """record is [wins, losses, ties]; slots as the team_sheet() input."""
+        refs = []
+        for row in team_sheet(slots, self.pdict):
+            key = json.dumps(row, ensure_ascii=False)
+            ref = self._set_ids.get(key)
+            if ref is None:
+                ref = self._set_ids[key] = len(self.sets)
+                self.sets.append(row)
+            refs.append(ref)
+        if refs:
+            self.runs.append([event, place, name, list(record), refs, reached or ""])
+
+    def body(self, **fields):
+        return dict(
+            fields,
+            api_version=API_VERSION,
+            events=self.events,
+            sets=self.sets,
+            runs=self.runs,
+            dict=self.pdict.body(),
+        )
 
 
 def write_pack(path, body):
