@@ -119,6 +119,8 @@ jobs:
           filter: blob:none
           sparse-checkout: |
             build_replay_packs.py
+            build_battle_packs.py
+            battle_codec.py
             stats/pokedex.json
             stats/forms_index.json
           sparse-checkout-cone-mode: false
@@ -127,6 +129,27 @@ jobs:
         if: steps.cfg.outputs.configured == 'true'
         continue-on-error: true
         run: python site/build_replay_packs.py --src site-data/stats/replays --data site/stats --out site-data/app
+
+      # The battles themselves, coded small for the app to watch offline
+      # (build_battle_packs.py). Built on the files last published: each
+      # format's model is kept for its month and a coded battle never changes,
+      # so a run codes only the replays that are new -- the first run's
+      # backfill takes a few runs, a --budget of minutes at a time. Only the
+      # app's files are fetched, not the replay lists beside them.
+      - name: Fetch the app's files as last published
+        if: steps.cfg.outputs.configured == 'true'
+        continue-on-error: true
+        run: |
+          git clone --quiet --depth 1 --filter=blob:none --no-checkout --branch replay-data \
+            "https://github.com/${{ github.repository }}.git" prev
+          git -C prev sparse-checkout set app
+          git -C prev checkout --quiet
+
+      - name: Build the app's offline battles
+        if: steps.cfg.outputs.configured == 'true'
+        continue-on-error: true
+        timeout-minutes: 150
+        run: python site/build_battle_packs.py --out site-data/app --logs scraper/replays --prev prev/app --budget 90
 
       # The busiest formats produce JSONs past GitHub's 100MB hard file limit,
       # which the pre-receive hook rejects. Gzip runs them ~7x smaller (and

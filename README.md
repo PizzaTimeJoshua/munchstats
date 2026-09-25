@@ -289,7 +289,7 @@ workflow files never repeats a job main already does:
 | `update-tournament-packs.yml` | a commit touching `stats/tournaments/` | official event packs → `mobile-packs:stats/tournaments/_packs/` |
 | `update-limitless.yml` | every 2 hours | Limitless data and packs → `limitless-data` |
 | `update-teams.yml` | every 6 hours | VGCPastes teams and pastes, and the app's team packs → `teams-data` |
-| `update-replay-stats.yml` | 4×/day | replay lists and team rankings, and the app's replay files (`app/`) → `replay-data` |
+| `update-replay-stats.yml` | 4×/day | replay lists and team rankings, and the app's replay files and coded battles (`app/`) → `replay-data` |
 
 Tournament packs (`tournament_packs.py`, shared by both builders) carry each
 event's numbers exactly as the tournament pages compute them — the builders
@@ -388,6 +388,8 @@ insights.py                   Meta insight report builders (pure functions over 
 draft_tools.py                Draft Scout engine: movepool queries, preset groups, Speed maths
 vgcpastes.py                  VGCPastes sheet client + team search
 build_replay_packs.py         Builds the app's replay files (run by update-replay-stats.yml)
+build_battle_packs.py         Codes each replay's battle for the app to watch offline (same workflow)
+battle_codec.py               The battle codec: canonical battle lines, the model, the file formats
 publish_teams.py              Publishes VGCPastes teams, pastes and the app's team packs (teams-data)
 og_card.py                    Open Graph stat card renderer (Pillow, Flask-free)
 mobile_api.py                 Mobile API v1 payload shaping + sync revisions (Flask-free)
@@ -440,6 +442,8 @@ Six hours rather than the twelve the site used to cache the sheet for: a check t
 `.github/workflows/update-replay-stats.yml` runs the replay scraper on a schedule (4×/day) via GitHub Actions: it scrapes new Showdown replays, rebuilds the searcher/team-ranking JSONs, and publishes them to this repo's **`replay-data` branch** — not `main`, so no Heroku redeploy is triggered. They are stored gzipped (`.json.gz`): the busiest formats exceed GitHub's 100MB file limit uncompressed, and gzip runs them roughly 7× smaller. The app fetches them from `raw.githubusercontent.com` on demand, decompresses them into `cache/replays/`, and revalidates at most every 30 minutes using ETags (unchanged checks are cheap 304s); it falls back to a stale cached copy, then to the snapshot bundled in the deploy at `stats/replays/`. Set `REPLAY_DATA_URL=""` to skip remote fetching and serve the local `stats/replays/` copies directly (dev).
 
 The same run builds the mobile app's replay files into `app/` on that branch (`build_replay_packs.py`, standard library only, so the workflow checks out just it and two data files): each format's replays split into one small file per upload day — a past day never changes, so after the first download the app fetches only today's every six hours — plus the top 500 teams per format and a species → [icon, Showdown sprite id] table. About 10 MB for all formats; the app searches it on the phone rather than asking the site, and fetches a battle's log from Showdown only when it is watched.
+
+Then the battles themselves (`build_battle_packs.py`, with `battle_codec.py`): every replay's battle coded small enough that a month of every format is about 25 MB, where the logs are nearly 2 GB. The codec keeps what the battle shows — the protocol lines and open team sheets, nicknames as species — and drops chat, timers and the like; everything it keeps comes back exactly. Each decision in a battle (which command, which Pokémon, which move, how much HP) is coded against what the battle has shown so far, by a context-mixing model trained on the format's recent games and shipped to the app as a table: `app/battles/<format>/model-<id>.bin.gz`, one a month, and `app/battles/<format>/<day>.bin`, one battle per replay in that day's replays file, in its order. `index.json` lists them: the format's models under `battles`, each day's battle file on its row with the revision of the replays file it follows. The phone decodes one battle at a time against the model (the app's `src/replays/codec`, a port of the decoder, checked against files this builds). The build starts from the files last published: a model is kept for its month and a coded battle never changes, so a run codes only new replays — the first run's backfill takes a few runs, 90 minutes at a time, and replays not coded yet are fetched from Showdown by the app.
 
 The raw replay cache is carried between workflow runs via `actions/cache`, seeded from a release asset on the private scraper repo. Requires one repository secret, `SCRAPER_TOKEN` (fine-grained PAT with Contents:Read on the scraper repo); until it is set, runs are silent no-ops. It can also be triggered manually via `workflow_dispatch`.
 
