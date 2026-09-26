@@ -120,6 +120,7 @@ jobs:
           sparse-checkout: |
             build_replay_packs.py
             build_battle_packs.py
+            build_sprite_pack.py
             battle_codec.py
             stats/pokedex.json
             stats/forms_index.json
@@ -150,6 +151,18 @@ jobs:
         continue-on-error: true
         timeout-minutes: 150
         run: python site/build_battle_packs.py --out site-data/app --logs scraper/replays --prev prev/app --budget 90
+
+      # The replay player's Mystery Dungeon sprites (build_sprite_pack.py):
+      # every Pokemon the replays show, as the PMD Sprite Collab draws it
+      # (CC BY-NC 4.0; the app credits its artists). Built on the pack last
+      # published, so only sprites the collab has changed are fetched.
+      - name: Build the app's sprite pack
+        if: steps.cfg.outputs.configured == 'true'
+        continue-on-error: true
+        timeout-minutes: 20
+        run: |
+          pip install --quiet pillow
+          python site/build_sprite_pack.py --out site-data/app --prev prev/app --pokedex site/stats/pokedex.json
 
       # The busiest formats produce JSONs past GitHub's 100MB hard file limit,
       # which the pre-receive hook rejects. Gzip runs them ~7x smaller (and
