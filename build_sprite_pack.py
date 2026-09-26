@@ -40,10 +40,11 @@ app/pmd/index.json.gz says, per Pokémon, its image's size and revision, the
 scale it is saved at, and each animation's frames: for how long each is
 shown (in 1/60 s), the one an attack strikes on, which cell each frame is
 when a drawing is shown more than once, and per facing
-[x, y, per row, w, h, ax, ay] -- where its cells start, how many to a row,
-their size and where the Pokémon stands in them (the frame's centre in the
-collab's sheets: its shadow falls 4 pixels below) -- and, if its frames are
-not the others' cells, its own list of them. An animation the collab draws
+[x, y, per row, w, h, ax, ay] -- where its cells start, how many to a row
+(a pixel apart, across and down), their size and where the Pokémon stands
+in them (the frame's centre in the collab's sheets: its shadow falls 4
+pixels below) -- and, if its frames are not the others' cells, its own list
+of them. An animation the collab draws
 as another is that one's name. Then the artists to credit, each with
 the Pokémon they drew. index.json gains "pmd": that file, its size and
 revision.
@@ -78,7 +79,7 @@ from concurrent.futures import ThreadPoolExecutor
 from PIL import Image
 
 # The layout of what this writes: a change to it rebuilds every image.
-VERSION = 1
+VERSION = 2
 RAW = "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/"
 DIR = "pmd"
 # The animations the player uses, and the facings of each it needs; the
@@ -98,6 +99,10 @@ ANIMS = {
 SCALE = 2
 MAX_SIDE = 4096          # a side: the largest texture most phones draw
 MAX_AREA = 4 << 20       # 16 MB decoded
+# Clear pixels after each cell, across and down: a phone scaling the image
+# smooths each pixel into the next, and a frame drawn right up to its cell's
+# edge would show a sliver of the one beside it.
+GUTTER = 1
 
 
 def norm(text):
@@ -292,16 +297,17 @@ def cut(a, sheet, facings):
 
 def pack(strips):
     """Strips of cells in one image about as wide as it is tall: each strip's
-    cells in rows of as many as fit, the strips in shelves, tallest first.
-    (image, [(x, y, cells to a row)] in the strips' order)."""
-    area = sum(len(s["cells"]) * s["w"] * s["h"] for s in strips)
-    width = max(max(s["w"] for s in strips), math.ceil(math.sqrt(area) * 1.05))
+    cells in rows of as many as fit, a GUTTER after each, the strips in
+    shelves, tallest first. (image, [(x, y, cells to a row)] in the strips'
+    order)."""
+    area = sum(len(s["cells"]) * (s["w"] + GUTTER) * (s["h"] + GUTTER) for s in strips)
+    width = max(max(s["w"] + GUTTER for s in strips), math.ceil(math.sqrt(area) * 1.05))
     places = [None] * len(strips)
     x = y = shelf = right = 0
     for i in sorted(range(len(strips)), key=lambda i: -strips[i]["h"]):
         s = strips[i]
-        cols = max(1, min(len(s["cells"]), width // s["w"]))
-        w, h = cols * s["w"], -(-len(s["cells"]) // cols) * s["h"]
+        cols = max(1, min(len(s["cells"]), width // (s["w"] + GUTTER)))
+        w, h = cols * (s["w"] + GUTTER), -(-len(s["cells"]) // cols) * (s["h"] + GUTTER)
         if x and x + w > width:
             x, y, shelf = 0, y + shelf, 0
         places[i] = (x, y, cols)
@@ -311,7 +317,7 @@ def pack(strips):
     atlas = Image.new("RGBA", (right, y + shelf), (0, 0, 0, 0))
     for s, (sx, sy, cols) in zip(strips, places):
         for i, cell in enumerate(s["cells"]):
-            atlas.paste(cell, (sx + (i % cols) * s["w"], sy + (i // cols) * s["h"]))
+            atlas.paste(cell, (sx + (i % cols) * (s["w"] + GUTTER), sy + (i // cols) * (s["h"] + GUTTER)))
     return atlas, places
 
 
