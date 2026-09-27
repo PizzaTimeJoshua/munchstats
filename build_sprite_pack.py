@@ -1,5 +1,6 @@
 """Build the app's Mystery Dungeon sprites: every Pokémon in the replay data
-as the PMD Sprite Collab draws it, for the replay player.
+as the PMD Sprite Collab draws it -- animated, and its portrait -- for the
+replay player.
 
 Run by .github/workflows/update-replay-stats.yml after the app's replay files
 are built, and before they are published:
@@ -28,6 +29,10 @@ to its target (toward the left is the right mirrored):
 (The collab draws more -- a double strike, a swing, a hop -- which would
 double the pack for moves Attack shows well enough.)
 
+And its portrait -- the collab's Normal one, 40 by 40 -- for the player's
+team preview. A Pokémon the collab has a portrait of but no sprite yet (many
+Megas, Amoonguss) is its portrait alone.
+
 A Pokémon's animations are trimmed to what is drawn in them, each frame
 drawn once (a frame shown twice is kept once), and laid out in rows in one
 image, about as wide as it is tall; scaled twice (nearest neighbour, so the
@@ -37,7 +42,8 @@ app/pmd/<Showdown sprite id>.png, about 17 KB each, so a change fetches just
 that Pokémon again.
 
 app/pmd/index.json.gz says, per Pokémon, its image's size and revision, the
-scale it is saved at, and each animation's frames: for how long each is
+scale it is saved at, where its portrait is ([x, y, w, h]) and each
+animation's frames: for how long each is
 shown (in 1/60 s), the one an attack strikes on, which cell each frame is
 when a drawing is shown more than once, and per facing
 [x, y, per row, w, h, ax, ay] -- where its cells start, how many to a row
@@ -45,16 +51,17 @@ when a drawing is shown more than once, and per facing
 in them (the frame's centre in the collab's sheets: its shadow falls 4
 pixels below) -- and, if its frames are not the others' cells, its own list
 of them. An animation the collab draws
-as another is that one's name. Then the artists to credit, each with
-the Pokémon they drew. index.json gains "pmd": that file, its size and
+as another is that one's name. Then the artists to credit, each with the
+Pokémon whose sprites they drew and those whose portraits. index.json gains "pmd": that file, its size and
 revision.
 
 --out holds the replay files build_replay_packs.py wrote: index.json and
 sprites.json.gz, which names every species the replays show (species id ->
 [icon, Showdown sprite id]); each is matched to the collab's tracker by its
 national dex number and forme. --prev is the app's files as last published:
-a Pokémon whose sprite the collab has not changed since (the tracker's
-"sprite_modified") is copied from there, not fetched again, and so is one
+a Pokémon whose sprite and portrait the collab has not changed since (the
+tracker's "sprite_modified", "portrait_modified") is copied from there,
+not fetched again, and so is one
 that could not be fetched this time; a run that cannot reach the collab at
 all publishes the pack as it was.
 
@@ -79,7 +86,7 @@ from concurrent.futures import ThreadPoolExecutor
 from PIL import Image
 
 # The layout of what this writes: a change to it rebuilds every image.
-VERSION = 2
+VERSION = 3
 RAW = "https://raw.githubusercontent.com/PMDCollab/SpriteCollab/master/"
 DIR = "pmd"
 # The animations the player uses, and the facings of each it needs; the
@@ -206,8 +213,14 @@ def form_node(tracker, num, forme, cosmetic=False, alias=None):
     return fallback
 
 
+def drawn(node):
+    """What the collab has drawn of a Pokémon: (a sprite, its Normal portrait)."""
+    node = node or {}
+    return bool(node.get("sprite_files")), "Normal" in (node.get("portrait_files") or {})
+
+
 def targets(table, pokedex, tracker):
-    """Showdown sprite id -> (collab path, node), for each the collab has a sprite of."""
+    """Showdown sprite id -> (collab path, node), for each the collab has a sprite or a portrait of."""
     cosmetic = {}
     for base, info in pokedex.items():
         for name in info.get("cosmeticFormes") or ():
@@ -222,7 +235,7 @@ def targets(table, pokedex, tracker):
             continue
         num, forme, only_cosmetic = found
         node = form_node(tracker, num, forme, only_cosmetic, ALIASES.get(species))
-        if node and node[1] and node[1].get("sprite_files"):
+        if node and any(drawn(node[1])):
             out[sprite_id] = node
     return out
 
@@ -325,44 +338,58 @@ def fits(w, h, scale):
     return max(w, h) * scale <= MAX_SIDE and w * h * scale * scale <= MAX_AREA
 
 
-def build_sprite(path):
-    """(image bytes, {scale, size, anims}) for the collab sprite at `path`,
-    or None: when any of it could not be fetched, to be tried again another
-    run (a sheet the collab does not have is only left out), or when there
-    is no Idle."""
-    base = RAW + "sprite/" + path + "/"
-    try:
-        anims = anim_table(fetch(base + "AnimData.xml"))
-    except Exception:
-        return None
-    # The sheets, each once, with every facing the animations drawn from it need.
-    uses = {}
-    for name, facings in ANIMS.items():
-        a = anims.get(name)
-        if a is not None:
-            uses.setdefault(a.findtext("Name"), [a, set()])[1].update(facings)
-    blocks = {}
-    for sheet, (a, facings) in uses.items():
+def build_sprite(path, sprite=True, portrait=True):
+    """(image bytes, {scale, size, anims, portrait?}) for the collab's Pokémon
+    at `path` -- its animations when it has a sprite, its portrait when it has
+    one -- or None: when any of it could not be fetched, to be tried again
+    another run (a sheet or portrait the collab does not have is only left
+    out), or when there is neither an Idle nor a portrait."""
+    anims, blocks, named = {}, {}, []
+    if sprite:
+        base = RAW + "sprite/" + path + "/"
         try:
-            image = Image.open(io.BytesIO(fetch(base + sheet + "-Anim.png"))).convert("RGBA")
+            anims = anim_table(fetch(base + "AnimData.xml"))
         except Exception as err:
-            if missing(err):
-                continue
-            return None
-        block = cut(a, image, sorted(facings))
-        if block:
-            blocks[sheet] = block
-    named = [(name, anims[name].findtext("Name")) for name in ANIMS if name in anims and anims[name].findtext("Name") in blocks]
-    if not named or named[0][0] != "Idle":
+            if not missing(err):
+                return None
+        # The sheets, each once, with every facing the animations drawn from it need.
+        uses = {}
+        for name, facings in ANIMS.items():
+            a = anims.get(name)
+            if a is not None:
+                uses.setdefault(a.findtext("Name"), [a, set()])[1].update(facings)
+        for sheet, (a, facings) in uses.items():
+            try:
+                image = Image.open(io.BytesIO(fetch(base + sheet + "-Anim.png"))).convert("RGBA")
+            except Exception as err:
+                if missing(err):
+                    continue
+                return None
+            block = cut(a, image, sorted(facings))
+            if block:
+                blocks[sheet] = block
+        named = [(name, anims[name].findtext("Name")) for name in ANIMS if name in anims and anims[name].findtext("Name") in blocks]
+        # Animations need their Idle to stand in.
+        if named and named[0][0] != "Idle":
+            named = []
+    face = None
+    if portrait:
+        try:
+            face = Image.open(io.BytesIO(fetch(RAW + "portrait/" + path + "/Normal.png"))).convert("RGBA")
+        except Exception as err:
+            if not missing(err):
+                return None
+    if not named and face is None:
         return None
+    extra = [{"w": face.width, "h": face.height, "cells": [face]}] if face is not None else []
     # The whole, at the largest scale it fits; if it does not fit as drawn,
     # the last animations are let go until it does.
     while True:
         sheets = list(dict.fromkeys(sheet for _, sheet in named))
         strips = [(sheet, f) for sheet in sheets for f in blocks[sheet]["strips"]]
-        atlas, places = pack([blocks[sheet]["strips"][f] for sheet, f in strips])
+        atlas, places = pack([blocks[sheet]["strips"][f] for sheet, f in strips] + extra)
         scale = next((s for s in (SCALE, 1) if fits(atlas.width, atlas.height, s)), 0)
-        if scale or len(named) == 1:
+        if scale or not named:
             break
         named.pop()
     if not scale:
@@ -395,7 +422,11 @@ def build_sprite(path):
         atlas = atlas.resize((atlas.width * scale, atlas.height * scale), Image.NEAREST)
     buf = io.BytesIO()
     atlas.quantize(colors=64, method=Image.Quantize.FASTOCTREE).save(buf, "PNG", optimize=True)
-    return buf.getvalue(), {"scale": scale, "size": [atlas.width // scale, atlas.height // scale], "anims": layout}
+    out = {"scale": scale, "size": [atlas.width // scale, atlas.height // scale], "anims": layout}
+    if face is not None:
+        x, y, _ = places[len(strips)]
+        out["portrait"] = [x, y, face.width, face.height]
+    return buf.getvalue(), out
 
 
 # ─── all of them ──────────────────────────────────────────────────────────
@@ -421,7 +452,12 @@ def read_json_gz(path):
         return None
 
 
-LAID_OUT = ("scale", "size", "anims")
+LAID_OUT = ("scale", "size", "anims", "portrait")
+
+
+def modified_of(node):
+    """When the collab last changed what is drawn of a Pokémon: its sprite, and its portrait."""
+    return "%s|%s" % (node.get("sprite_modified", ""), node.get("portrait_modified", ""))
 
 
 def build(out, prev, pokedex_path, workers=16, limit=0):
@@ -446,21 +482,21 @@ def build(out, prev, pokedex_path, workers=16, limit=0):
         """(sprite id, collab path, its tracker node, when the collab last
         changed what is written, its layout or None, whether fetched)."""
         sprite_id, (path, node) = item
-        modified = node.get("sprite_modified", "")
+        modified = modified_of(node)
         was = old.get(sprite_id)
         src = os.path.join(prev, DIR, sprite_id + ".png") if prev else ""
         dst = os.path.join(out, DIR, sprite_id + ".png")
         kept = bool(was) and os.path.exists(src)
         if kept and was.get("path") == path and was.get("modified") == modified:
             shutil.copyfile(src, dst)
-            return sprite_id, path, node, modified, {k: was[k] for k in LAID_OUT}, False
-        built = build_sprite(path)
+            return sprite_id, path, node, modified, {k: was[k] for k in LAID_OUT if k in was}, False
+        built = build_sprite(path, *drawn(node))
         if not built:
             # Not fetched this time: the one last published, if there is one,
             # under its old date so that the next run tries again.
             if kept:
                 shutil.copyfile(src, dst)
-                return sprite_id, was["path"], node, was.get("modified", ""), {k: was[k] for k in LAID_OUT}, False
+                return sprite_id, was["path"], node, was.get("modified", ""), {k: was[k] for k in LAID_OUT if k in was}, False
             return sprite_id, path, node, modified, None, False
         data, layout = built
         with open(dst, "wb") as fh:
@@ -477,11 +513,14 @@ def build(out, prev, pokedex_path, workers=16, limit=0):
             fetched += new
             with open(os.path.join(out, DIR, sprite_id + ".png"), "rb") as fh:
                 data = fh.read()
-            credit = node.get("sprite_credit") or {}
-            for key in [credit.get("primary")] + list(credit.get("secondary") or []):
-                if key:
-                    name, contact = names.get(key, (key, ""))
-                    artists.setdefault(name, {"name": name, "contact": contact, "pokemon": set()})["pokemon"].add(sprite_id)
+            # Credited for what is used of theirs: a sprite's artists, a portrait's.
+            for kind, field, used in (("pokemon", "sprite_credit", bool(layout["anims"])), ("portraits", "portrait_credit", "portrait" in layout)):
+                credit = (node.get(field) or {}) if used else {}
+                for key in [credit.get("primary")] + list(credit.get("secondary") or []):
+                    if key:
+                        name, contact = names.get(key, (key, ""))
+                        entry = artists.setdefault(name, {"name": name, "contact": contact, "pokemon": set(), "portraits": set()})
+                        entry[kind].add(sprite_id)
             sprites[sprite_id] = {
                 "bytes": len(data),
                 "revision": hashlib.sha256(data).hexdigest()[:16],
@@ -497,8 +536,9 @@ def build(out, prev, pokedex_path, workers=16, limit=0):
         "license_url": "https://creativecommons.org/licenses/by-nc/4.0/",
         "sprites": sprites,
         "artists": sorted(
-            ({"name": a["name"], "contact": a["contact"], "pokemon": sorted(a["pokemon"])} for a in artists.values()),
-            key=lambda a: (-len(a["pokemon"]), a["name"].lower()),
+            ({"name": a["name"], "contact": a["contact"], "pokemon": sorted(a["pokemon"]), "portraits": sorted(a["portraits"])}
+             for a in artists.values()),
+            key=lambda a: (-(len(a["pokemon"]) + len(a["portraits"])), a["name"].lower()),
         ),
     }
     blob = gzip.compress(json.dumps(body, separators=(",", ":"), ensure_ascii=False).encode("utf8"), 9, mtime=0)
