@@ -219,6 +219,11 @@ def drawn(node):
     return bool(node.get("sprite_files")), "Normal" in (node.get("portrait_files") or {})
 
 
+# Sprites that are not a Pokemon's, by the id the app asks for: the tracker's
+# number and form.
+EXTRAS = {"substitute": ("0000", "0001")}
+
+
 def targets(table, pokedex, tracker):
     """Showdown sprite id -> (collab path, node), for each the collab has a sprite or a portrait of."""
     cosmetic = {}
@@ -237,6 +242,13 @@ def targets(table, pokedex, tracker):
         node = form_node(tracker, num, forme, only_cosmetic, ALIASES.get(species))
         if node and any(drawn(node[1])):
             out[sprite_id] = node
+    # Not a Pokemon: the substitute doll, which the collab keeps as a form of
+    # Missingno (#0000's "Substitute", Chunsoft's) -- for the doll the app
+    # draws in front of a Pokemon behind one.
+    for sprite_id, (num, key) in EXTRAS.items():
+        sub = ((tracker.get(num) or {}).get("subgroups") or {}).get(key)
+        if sub and drawn(sub)[0]:
+            out[sprite_id] = ("%s/%s" % (num, key), sub)
     return out
 
 
