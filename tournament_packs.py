@@ -231,8 +231,14 @@ class TeamRuns:
         self._set_ids = {}
 
     def add_event(self, event_id, name, date, players):
-        self.events.append({"id": event_id, "name": name, "date": (date or "")[:10],
-                            "players": players or 0})
+        event = {"id": event_id, "name": name, "date": (date or "")[:10],
+                 "players": players or 0}
+        # The start time as well, when the source has one ("2026-09-20T17:00:00
+        # .000Z"): the app's Insights split the window at a moment, as the
+        # site's tournament momentum does, not at a day.
+        if date and len(date) > 10:
+            event["at"] = date
+        self.events.append(event)
         return len(self.events) - 1
 
     def add_run(self, event, place, name, record, slots, reached=""):
