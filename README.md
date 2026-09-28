@@ -268,17 +268,22 @@ the slug. The API's only part is `/api/v1/pack/manifest`, which names the base
 URL; `/api/v1/pack/<format>/<rating>/` remains as a local fallback for
 development, where nothing is published yet (`PACK_BASE_URL=""` forces it).
 
-Publishing a month:
+Publishing a month is part of the monthly update: once the stats are split,
+`update_all_data.py` builds the month's packs (`build_packs.py`) and publishes
+them to `mobile-packs` (`publish_packs.py`, in a temporary worktree that checks
+out only that month's folder, rebasing onto the workflows' own pushes if they
+land first):
 
 ```bash
-python update_all_data.py
-python build_packs.py                    # -> stats/<month>/_packs/
-git switch mobile-packs                  # orphan branch holding only packs
-git add -f stats/<month>/_packs/
-git commit -m "packs: <month>"
-git push origin mobile-packs
-git switch main
+python update_all_data.py                # ... ends by building and publishing the packs
+python update_all_data.py --no-publish   # build them, publish later:
+python publish_packs.py --month <month>  #   (--dry-run commits without pushing)
+python update_all_data.py --no-packs     # neither
 ```
+
+Then commit the month's stats to `main` and deploy: the app changes month when
+the site's `/api/v1/meta` names the new one, and downloads its packs from
+`mobile-packs` then.
 
 The rest publishes itself, from `main` only — a working branch carrying the
 workflow files never repeats a job main already does:
@@ -394,7 +399,8 @@ battle_codec.py               The battle codec: canonical battle lines, the mode
 publish_teams.py              Publishes VGCPastes teams, pastes and the app's team packs (teams-data)
 og_card.py                    Open Graph stat card renderer (Pillow, Flask-free)
 mobile_api.py                 Mobile API v1 payload shaping + sync revisions (Flask-free)
-build_packs.py                Precomputes the app's offline detail packs (run after update_all_data.py)
+build_packs.py                Precomputes the app's offline detail packs (run by update_all_data.py)
+publish_packs.py              Publishes a month's packs to the mobile-packs branch (run by update_all_data.py)
 update_all_data.py            Data pipeline (downloads, splits, generates trends)
 scrape_tournaments.py         Tournament data scraper (RK9.gg)
 babel.cfg                     pybabel extraction config
@@ -416,6 +422,7 @@ This will:
 4. Generate 12-month usage trend data from Smogon chaos files
 5. Generate format name mappings
 6. Download Champions mod data
+7. Build the mobile app's packs for the month and publish them to the `mobile-packs` branch (`--no-publish` to build only, `--no-packs` to skip)
 
 To update tournament data separately:
 ```bash

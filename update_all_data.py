@@ -1,8 +1,11 @@
+import argparse
 import difflib
 import gzip
 import json
 import os
 import re
+import subprocess
+import sys
 from datetime import datetime
 
 import pyjson5
@@ -10,14 +13,18 @@ import requests
 from bs4 import BeautifulSoup
 
 
-def updateMetagames():
+def statsMonth():
+    """The month whose stats Smogon has just published: last month, "2026-08"."""
     year = datetime.now().year
     month = datetime.now().month - 1
     if month == 0:
         month = 12
         year = year - 1
-    month = str(month).zfill(2)
-    year = str(year)
+    return f"{year}-{str(month).zfill(2)}"
+
+
+def updateMetagames():
+    year, month = statsMonth().split("-")
     urls = [
         f"https://www.smogon.com/stats/{year}-{month}/chaos/",
         f"https://www.smogon.com/stats/{year}-{month}-DLC1/chaos/",
@@ -809,7 +816,34 @@ def updateChampionsIndex():
     print(f"  Wrote static index for {len(entries)} Pokemon.")
 
 
+def buildMobilePacks(month, publish=True):
+    """The mobile app's packs for the month just split -- one gzipped file per
+    format and rating (build_packs.py) -- published to the mobile-packs
+    branch, where the app downloads them (publish_packs.py). Last, because a
+    pack carries the trends and format names the steps before it write."""
+    if not os.path.isdir(os.path.join("stats", month)):
+        print(f"No split stats for {month}; the app's packs were not built.")
+        return
+    print(f"Building the app's packs for {month}...")
+    built = subprocess.run([sys.executable, "build_packs.py", "--month", month])
+    if built.returncode != 0:
+        print("build_packs.py failed; the app's packs were not published.")
+        return
+    if not publish:
+        print(f"Packs built in stats/{month}/_packs; publish with: python publish_packs.py --month {month}")
+        return
+    import publish_packs
+
+    if not publish_packs.publish(month):
+        print(f"The packs were not published; retry with: python publish_packs.py --month {month}")
+
+
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Monthly data update: stats, trends, formats, and the app's packs.")
+    parser.add_argument("--no-packs", action="store_true", help="skip building the mobile app's packs")
+    parser.add_argument("--no-publish", action="store_true", help="build the app's packs, but do not push them")
+    args = parser.parse_args()
+
     updateData()
     buildLearnsets(mode="gen9")
     buildLearnsets(mode="natdex")
@@ -820,4 +854,6 @@ if __name__ == "__main__":
     generateFormatList()
     updateChampionsMods()
     updateChampionsIndex()
+    if not args.no_packs:
+        buildMobilePacks(statsMonth(), publish=not args.no_publish)
     print("Update done.")
