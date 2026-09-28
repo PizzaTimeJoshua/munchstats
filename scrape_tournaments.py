@@ -5,15 +5,23 @@ Usage:
     python scrape_tournaments.py                          # Scrape all past VGC tournaments
     python scrape_tournaments.py <tournament_id> ...      # Scrape specific tournament(s)
     python scrape_tournaments.py --topcut 8 --day2 64     # Override day cutoffs
+    python scrape_tournaments.py <tournament_id> --format gen9vgc2026regi
+                                                          # Tag with a format other than the current one
 
     python scrape_tournaments.py --pairings [<tournament_id> ...]
                                                           # (Re)fetch only pairings
+    python scrape_tournaments.py --missing-teams [<tournament_id> ...]
+                                                          # Fetch only team lists a scrape failed to get
 
 Data is saved to stats/tournaments/{tournament_id}/ with:
-    metadata.json    - Tournament info (name, date, type, etc.)
+    metadata.json    - Tournament info (name, date, type, format, etc.)
     players.json     - Player standings + team lists
     aggregated.json  - Pre-computed usage stats per filter level
     pairings.json    - Every round's matches: who played whom, and who won
+
+A new event is tagged with app.py's CURRENT_VGC_FORMAT, the regulation being
+played now. --format names another for an event that wasn't: a backfill, or a
+region still on the previous regulation.
 
 VGC only. RK9 lists TCG events alongside, and they have no team lists this
 scraper can read, so they are skipped rather than saved as empty folders.
@@ -38,12 +46,29 @@ REQUEST_DELAY = 1.5
 # Load local data for name normalization
 STATS_DIR = "stats"
 
+# Where CURRENT_VGC_FORMAT is set -- see current_vgc_format.
+APP_SOURCE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "app.py")
+
 
 def load_json(path):
     if os.path.exists(path):
         with open(path, "r", encoding="utf-8") as f:
             return json.load(f)
     return {}
+
+
+def current_vgc_format():
+    """app.py's CURRENT_VGC_FORMAT: the regulation events are playing now.
+
+    New events are tagged with it, since a format's pages pick their
+    tournaments by that tag. Read from the source rather than imported:
+    importing app loads the whole site's data.
+    """
+    with open(APP_SOURCE, "r", encoding="utf-8") as f:
+        match = re.search(r"^CURRENT_VGC_FORMAT\s*=\s*[\"']([^\"']+)[\"']", f.read(), re.M)
+    if not match:
+        sys.exit(f"No CURRENT_VGC_FORMAT in {APP_SOURCE}; pass --format instead.")
+    return match.group(1)
 
 
 def load_name_lookups():
@@ -1201,7 +1226,9 @@ def update_tournaments_index():
             if meta:
                 tournaments.append(meta)
 
-    tournaments.sort(key=lambda t: t.get("date", ""), reverse=True)
+    # Newest first, and the bigger of two events on the same day ahead of the
+    # smaller -- the first is what a tournament page opens on.
+    tournaments.sort(key=lambda t: (t.get("date", ""), t.get("total_players") or 0), reverse=True)
 
     with open(os.path.join(TOURNAMENT_DATA_DIR, "tournaments_index.json"), "w", encoding="utf-8") as f:
         json.dump(tournaments, f, indent=2, ensure_ascii=False)
@@ -1210,12 +1237,19 @@ def update_tournaments_index():
 
 
 def scrape_tournament(session, tournament_id, event_info, pokemon_lookup, move_lookup,
-                      day2_override=None, force=False):
-    """Full pipeline for one tournament."""
+                      day2_override=None, force=False, event_format=None, default_format=None):
+    """Full pipeline for one tournament.
+
+    The event is tagged with event_format when one is given. Otherwise a
+    re-scrape keeps the format it was saved with, and a new event gets
+    default_format.
+    """
     out_dir = os.path.join(TOURNAMENT_DATA_DIR, tournament_id)
-    if not force and os.path.exists(os.path.join(out_dir, "metadata.json")):
+    meta_path = os.path.join(out_dir, "metadata.json")
+    if not force and os.path.exists(meta_path):
         print(f"Skipping {tournament_id} (already scraped). Use --force to re-scrape.")
         return
+    fmt = event_format or load_json(meta_path).get("format") or default_format
 
     print(f"\nScraping tournament: {tournament_id}")
 
@@ -1226,6 +1260,7 @@ def scrape_tournament(session, tournament_id, event_info, pokemon_lookup, move_l
     if is_tcg_event(metadata["name"]):
         print("  TCG event, not VGC. Skipping.")
         return
+    print(f"  Format: {fmt}")
 
     # 2. Scrape roster
     time.sleep(REQUEST_DELAY)
@@ -1282,6 +1317,7 @@ def scrape_tournament(session, tournament_id, event_info, pokemon_lookup, move_l
     aggregated = build_aggregated_data(players)
     metadata["teams_scraped"] = teams_with_data
     metadata["scraped_at"] = datetime.utcnow().isoformat() + "Z"
+    metadata["format"] = fmt
 
     # 7. Save. Records come from the match results where there are any --
     # see apply_pairings_records for why the printed ones cannot be trusted.
@@ -1374,14 +1410,48 @@ def reteam_tournament(session, tournament_id, pokemon_lookup, move_lookup):
         save_pairings(tournament_id, payload)
 
 
+def fill_missing_teams(session, tournament_id, pokemon_lookup, move_lookup):
+    """Fetch only the team lists a saved tournament is missing, and re-aggregate.
+
+    A team list whose request failed -- the network dropped mid-scrape, say --
+    is saved as an empty team beside its link. Fetching just those costs a
+    request each, where --reteam fetches the whole field again. Records,
+    pairings and the format stay as saved. Returns (missing, filled).
+    """
+    out_dir = os.path.join(TOURNAMENT_DATA_DIR, tournament_id)
+    metadata = load_json(os.path.join(out_dir, "metadata.json"))
+    players = load_json(os.path.join(out_dir, "players.json"))
+    if not metadata or not isinstance(players, list) or not players:
+        print(f"Skipping {tournament_id} (no saved data)")
+        return 0, 0
+
+    missing = [p for p in players if p.get("team_link") and not p.get("team")]
+    if not missing:
+        return 0, 0
+    print(f"\n  {metadata.get('name', tournament_id)}: {len(missing)} team lists missing")
+    # The same dicts as in players, so fetched teams land there too.
+    scrape_team_lists(session, missing, tournament_id, pokemon_lookup, move_lookup)
+    filled = sum(1 for p in missing if p.get("team"))
+    if filled:
+        metadata["teams_scraped"] = sum(1 for p in players if p.get("team"))
+        save_tournament_data(tournament_id, metadata, players, build_aggregated_data(players))
+    return len(missing), filled
+
+
 def main():
     parser = argparse.ArgumentParser(description="Scrape VGC tournament data from RK9.gg")
     parser.add_argument("tournament_ids", nargs="*", help="Specific tournament IDs to scrape")
     parser.add_argument("--topcut", type=int, default=None, help="(Deprecated, ignored)")
     parser.add_argument("--day2", type=int, default=None, help="Override day 2 placement cutoff")
     parser.add_argument("--force", action="store_true", help="Re-scrape even if data exists")
+    parser.add_argument("--format", default=None,
+                        help="Format code to tag scraped events with (default: app.py's "
+                             "CURRENT_VGC_FORMAT for new events; a re-scrape keeps its saved format)")
     parser.add_argument("--reteam", action="store_true",
                         help="Re-scrape team lists for existing tournaments (uses saved roster/team_links)")
+    parser.add_argument("--missing-teams", action="store_true",
+                        help="Fetch only the team lists saved tournaments are missing (requests "
+                             "that failed mid-scrape), then re-aggregate")
     parser.add_argument("--reaggregate", action="store_true",
                         help="Rebuild aggregated.json (and re-resolve players.json) from saved data, no scraping")
     parser.add_argument("--discover", action="store_true", help="Discover and list available tournaments")
@@ -1468,12 +1538,39 @@ def main():
         print("\nDone.")
         return
 
+    if args.missing_teams:
+        # Only the team lists a scrape failed to fetch, e.g. while the network
+        # was down; --reteam would fetch every team again.
+        tids = args.tournament_ids or [
+            d for d in sorted(os.listdir(TOURNAMENT_DATA_DIR))
+            if os.path.exists(os.path.join(TOURNAMENT_DATA_DIR, d, "players.json"))
+        ]
+        print(f"Checking {len(tids)} tournaments for missing team lists...")
+        missing = filled = 0
+        for tid in tids:
+            try:
+                m, f = fill_missing_teams(session, tid, pokemon_lookup, move_lookup)
+            except Exception as e:
+                print(f"ERROR filling team lists for {tid}: {e}")
+                continue
+            missing += m
+            filled += f
+        if filled:
+            update_tournaments_index()
+        print(f"\nFilled {filled} of {missing} missing team lists.")
+        print("Done.")
+        return
+
+    # Read before any scraping, so a missing CURRENT_VGC_FORMAT stops the run
+    # here rather than after an event's worth of requests.
+    default_format = args.format or current_vgc_format()
+
     if args.tournament_ids:
         # Scrape specific tournaments
         for tid in args.tournament_ids:
             try:
                 scrape_tournament(session, tid, {}, pokemon_lookup, move_lookup,
-                                  args.day2, args.force)
+                                  args.day2, args.force, args.format, default_format)
             except Exception as e:
                 print(f"ERROR scraping {tid}: {e}")
                 continue
@@ -1502,7 +1599,7 @@ def main():
         for tid in tournament_ids:
             try:
                 scrape_tournament(session, tid, event_info, pokemon_lookup, move_lookup,
-                                  args.day2, args.force)
+                                  args.day2, args.force, args.format, default_format)
             except Exception as e:
                 print(f"ERROR scraping {tid}: {e}")
                 continue

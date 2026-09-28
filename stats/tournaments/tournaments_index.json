@@ -1,5 +1,31 @@
 [
   {
+    "id": "FR002-fiunEHp9wx4mh4",
+    "name": "2027 Frankfurt Pokémon VGC Regional Championships",
+    "date": "2026-09-26",
+    "location": "",
+    "type": "Regional",
+    "total_players": 1129,
+    "day2_count": 163,
+    "day2_source": "pairings",
+    "teams_scraped": 1129,
+    "scraped_at": "2026-09-28T18:50:05.083409Z",
+    "format": "gen9championsvgc2026regmc"
+  },
+  {
+    "id": "BR002-IU5yO1W76UpdyA",
+    "name": "2027 Brisbane Pokémon VGC Regional Championships",
+    "date": "2026-09-26",
+    "location": "",
+    "type": "Regional",
+    "total_players": 327,
+    "day2_count": 47,
+    "day2_source": "pairings",
+    "teams_scraped": 327,
+    "scraped_at": "2026-09-28T18:13:53.217098Z",
+    "format": "gen9championsvgc2026regmc"
+  },
+  {
     "id": "BA002-JL3KVbvivVKNAc",
     "name": "2027 Baltimore Pokémon VGC Regional Championships",
     "date": "2026-09-18",
@@ -79,20 +105,6 @@
     "format": "gen9vgc2026regi"
   },
   {
-    "id": "CA02wLAJ2mRyQI5kryVw",
-    "name": "2026 Campinas Pokémon VGC Regional Championships",
-    "date": "2026-05-16",
-    "location": "2026 Campinas Pokémon Regional Championships",
-    "type": "Regional",
-    "total_players": 221,
-    "topcut_cutoff_standing": 8,
-    "day2_cutoff_standing": 32,
-    "teams_scraped": 220,
-    "scraped_at": "2026-05-30T07:18:43.056074Z",
-    "day2_source": "pairings",
-    "format": "gen9vgc2026regf"
-  },
-  {
     "id": "UT02wFHDCjnKgZ9Gscu7",
     "name": "2026 Utrecht Pokémon VGC Regional Championships",
     "date": "2026-05-16",
@@ -105,6 +117,20 @@
     "scraped_at": "2026-05-30T07:30:45.786612Z",
     "day2_source": "pairings",
     "format": "gen9vgc2026regi"
+  },
+  {
+    "id": "CA02wLAJ2mRyQI5kryVw",
+    "name": "2026 Campinas Pokémon VGC Regional Championships",
+    "date": "2026-05-16",
+    "location": "2026 Campinas Pokémon Regional Championships",
+    "type": "Regional",
+    "total_players": 221,
+    "topcut_cutoff_standing": 8,
+    "day2_cutoff_standing": 32,
+    "teams_scraped": 220,
+    "scraped_at": "2026-05-30T07:18:43.056074Z",
+    "day2_source": "pairings",
+    "format": "gen9vgc2026regf"
   },
   {
     "id": "LS02w5lpCOiMwPPo7QWD",
@@ -233,20 +259,6 @@
     "format": "gen9vgc2026regf"
   },
   {
-    "id": "ST02KJ5wqNl34q3KGE8N",
-    "name": "2026 Santiago Pokémon VGC Regional Championships",
-    "date": "2026-02-07",
-    "location": "2026 Santiago Pokémon Regional Championships",
-    "type": "Regional",
-    "total_players": 214,
-    "topcut_cutoff_standing": 8,
-    "day2_cutoff_standing": 31,
-    "teams_scraped": 214,
-    "scraped_at": "2026-05-30T10:21:08.191905Z",
-    "day2_source": "pairings",
-    "format": "gen9vgc2026regf"
-  },
-  {
     "id": "SY02sMDp6JmCcnCynSLn",
     "name": "2026 Sydney Pokémon VGC Regional Championships",
     "date": "2026-02-07",
@@ -257,6 +269,20 @@
     "day2_cutoff_standing": 25,
     "teams_scraped": 277,
     "scraped_at": "2026-05-30T10:29:18.788173Z",
+    "day2_source": "pairings",
+    "format": "gen9vgc2026regf"
+  },
+  {
+    "id": "ST02KJ5wqNl34q3KGE8N",
+    "name": "2026 Santiago Pokémon VGC Regional Championships",
+    "date": "2026-02-07",
+    "location": "2026 Santiago Pokémon Regional Championships",
+    "type": "Regional",
+    "total_players": 214,
+    "topcut_cutoff_standing": 8,
+    "day2_cutoff_standing": 31,
+    "teams_scraped": 214,
+    "scraped_at": "2026-05-30T10:21:08.191905Z",
     "day2_source": "pairings",
     "format": "gen9vgc2026regf"
   },
@@ -345,20 +371,6 @@
     "format": "gen9vgc2025regh"
   },
   {
-    "id": "BR02nX95OUm3tbvzmSPv",
-    "name": "2026 Brisbane Pokémon VGC Regional Championships",
-    "date": "2025-11-01",
-    "location": "2026 Brisbane Pokémon Regional Championships",
-    "type": "Regional",
-    "total_players": 210,
-    "topcut_cutoff_standing": 8,
-    "day2_cutoff_standing": 31,
-    "teams_scraped": 210,
-    "scraped_at": "2026-05-30T12:17:58.800287Z",
-    "day2_source": "pairings",
-    "format": "gen9vgc2025regh"
-  },
-  {
     "id": "GD02yFCaTDuKwnIR9IKd",
     "name": "2026 Gdańsk Pokémon VGC Regional Championships",
     "date": "2025-11-01",
@@ -369,6 +381,20 @@
     "day2_cutoff_standing": 38,
     "teams_scraped": 417,
     "scraped_at": "2026-05-30T12:30:01.617671Z",
+    "day2_source": "pairings",
+    "format": "gen9vgc2025regh"
+  },
+  {
+    "id": "BR02nX95OUm3tbvzmSPv",
+    "name": "2026 Brisbane Pokémon VGC Regional Championships",
+    "date": "2025-11-01",
+    "location": "2026 Brisbane Pokémon Regional Championships",
+    "type": "Regional",
+    "total_players": 210,
+    "topcut_cutoff_standing": 8,
+    "day2_cutoff_standing": 31,
+    "teams_scraped": 210,
+    "scraped_at": "2026-05-30T12:17:58.800287Z",
     "day2_source": "pairings",
     "format": "gen9vgc2025regh"
   },

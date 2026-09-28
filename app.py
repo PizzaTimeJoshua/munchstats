@@ -4735,7 +4735,11 @@ def get_tournament_formats():
 
 
 def load_tournament_list():
-    """Load tournament index, sorted newest first. Filters out tournaments with no team data."""
+    """Load tournament index, sorted newest first. Filters out tournaments with no team data.
+
+    Of two events on the same day the bigger comes first, and so is the one a
+    tournament page opens on -- the order the scraper writes the index in.
+    """
     index_path = os.path.join(TOURNAMENT_DATA_DIR, "tournaments_index.json")
     data = load_data_file(index_path)
     if not data:
@@ -4750,7 +4754,7 @@ def load_tournament_list():
                         data.append(meta)
     # Only keep tournaments that have team data scraped
     tournaments = [t for t in data if t.get("teams_scraped", 0) > 0]
-    tournaments.sort(key=lambda t: t.get("date", ""), reverse=True)
+    tournaments.sort(key=lambda t: (t.get("date", ""), t.get("total_players") or 0), reverse=True)
     return tournaments
 
 

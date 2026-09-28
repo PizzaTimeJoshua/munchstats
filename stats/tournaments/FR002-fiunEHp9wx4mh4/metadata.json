@@ -1,0 +1,13 @@
+{
+  "id": "FR002-fiunEHp9wx4mh4",
+  "name": "2027 Frankfurt Pokémon VGC Regional Championships",
+  "date": "2026-09-26",
+  "location": "",
+  "type": "Regional",
+  "total_players": 1129,
+  "day2_count": 163,
+  "day2_source": "pairings",
+  "teams_scraped": 1129,
+  "scraped_at": "2026-09-28T18:50:05.083409Z",
+  "format": "gen9championsvgc2026regmc"
+}

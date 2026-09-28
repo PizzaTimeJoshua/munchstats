@@ -1,0 +1,13 @@
+{
+  "id": "BR002-IU5yO1W76UpdyA",
+  "name": "2027 Brisbane Pokémon VGC Regional Championships",
+  "date": "2026-09-26",
+  "location": "",
+  "type": "Regional",
+  "total_players": 327,
+  "day2_count": 47,
+  "day2_source": "pairings",
+  "teams_scraped": 327,
+  "scraped_at": "2026-09-28T18:13:53.217098Z",
+  "format": "gen9championsvgc2026regmc"
+}
