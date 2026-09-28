@@ -333,6 +333,10 @@ msgid "Bug report"
 msgstr "Reporte de error"
 
 #: templates/contact.html:143
+msgid "Mobile app"
+msgstr "Aplicación móvil"
+
+#: templates/contact.html:143
 msgid "Feature suggestion"
 msgstr "Sugerencia de función"
 

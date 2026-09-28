@@ -287,6 +287,10 @@ msgid "Bug report"
 msgstr ""
 
 #: templates/contact.html:143
+msgid "Mobile app"
+msgstr ""
+
+#: templates/contact.html:143
 msgid "Feature suggestion"
 msgstr ""
 

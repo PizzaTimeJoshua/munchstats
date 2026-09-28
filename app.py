@@ -6462,7 +6462,7 @@ TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY", "")
 CONTACT_EMAIL_ADDRESS = os.environ.get("CONTACT_EMAIL_ADDRESS", "")
 CONTACT_EMAIL_APP_PASSWORD = os.environ.get("CONTACT_EMAIL_APP_PASSWORD", "")
 
-CONTACT_CATEGORIES = ["bug", "feature", "improvement", "translation", "other"]
+CONTACT_CATEGORIES = ["bug", "app", "feature", "improvement", "translation", "other"]
 CONTACT_MAX_MESSAGE_LEN = 5000
 CONTACT_MIN_MESSAGE_LEN = 10
 
@@ -6565,6 +6565,14 @@ def contact_page():
         "error": None,
         "form": {"category": "bug", "message": "", "email": "", "page": ""},
     }
+    if request.method == "GET":
+        # A link can fill the form in: the app's "Report a bug" opens it on
+        # "Mobile app" with its version and device, and a crash with the error.
+        category = request.args.get("category", "")
+        if category in CONTACT_CATEGORIES:
+            ctx["form"]["category"] = category
+        ctx["form"]["page"] = request.args.get("page", "")[:300]
+        ctx["form"]["message"] = request.args.get("message", "")[:CONTACT_MAX_MESSAGE_LEN]
     if request.method == "GET" or not ctx["enabled"]:
         return render_template("contact.html", **ctx)
 
