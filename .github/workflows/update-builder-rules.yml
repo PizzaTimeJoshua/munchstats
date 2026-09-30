@@ -1,0 +1,70 @@
+name: Update teambuilder rules
+
+# Keep the app's data-only Champions legality snapshot current without a new
+# Android build. The app reads the published file from mobile-packs.
+on:
+  schedule:
+    - cron: '17 5 * * *'
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - build_builder_rules.mjs
+      - .github/workflows/update-builder-rules.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mobile-packs
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out builder
+        uses: actions/checkout@v4
+        with:
+          path: site
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: site/package-lock.json
+
+      - name: Build rules from a single Showdown revision
+        working-directory: site
+        run: |
+          npm ci --ignore-scripts
+          node build_builder_rules.mjs --ref master
+
+      - name: Check out mobile-packs
+        uses: actions/checkout@v4
+        with:
+          ref: mobile-packs
+          path: packs
+          filter: blob:none
+          sparse-checkout: stats/builder
+
+      - name: Publish data-only snapshot
+        working-directory: packs
+        run: |
+          mkdir -p stats/builder
+          cp ../site/stats/builder/champions-rules.json stats/builder/
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add stats/builder/champions-rules.json
+          if git diff --cached --quiet; then
+            echo "Rules are already current."
+            exit 0
+          fi
+          source=$(node -p "require('./stats/builder/champions-rules.json').source_commit.slice(0, 7)")
+          git commit -q -m "packs: Champions builder rules from Showdown $source"
+          for attempt in 1 2 3; do
+            git push -q origin HEAD:mobile-packs && exit 0
+            git pull -q --rebase origin mobile-packs
+          done
+          exit 1

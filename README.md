@@ -291,10 +291,17 @@ workflow files never repeats a job main already does:
 | Workflow | When | Publishes |
 | --- | --- | --- |
 | `update-champions-packs.yml` | hourly check; builds only when the scraper has pushed `champions-data` since the last build | in-game packs → `mobile-packs:stats/champions/` |
+| `update-builder-rules.yml` | daily and when the builder changes; compiles Showdown's current Champions legality tables | teambuilder rules → `mobile-packs:stats/builder/champions-rules.json` |
 | `update-tournament-packs.yml` | a commit touching `stats/tournaments/` | official event packs → `mobile-packs:stats/tournaments/_packs/` |
 | `update-limitless.yml` | every 2 hours | Limitless data and packs → `limitless-data` |
 | `update-teams.yml` | every 6 hours | VGCPastes teams and pastes, and the app's team packs → `teams-data` |
 | `update-replay-stats.yml` | 4×/day | replay lists and team rankings, and the app's replay files and coded battles (`app/`) → `replay-data` |
+
+`build_builder_rules.mjs` resolves one Showdown commit and compiles its
+Champions format definitions, tiers, learnsets, moves, items, abilities, and
+rulesets into data-only JSON. The app bundles a snapshot and checks the
+published copy when Champions rules are needed. Run
+`node build_builder_rules.mjs --ref <Showdown SHA>` to reproduce a snapshot.
 
 Tournament packs (`tournament_packs.py`, shared by both builders) carry each
 event's numbers exactly as the tournament pages compute them — the builders
