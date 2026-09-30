@@ -25,6 +25,9 @@ Output (--out):
                                   content hashes
     sprites.json.gz               every species name -> [icon number, Showdown
                                   sprite id], for sprites in lists and the player
+    species.json.gz               each format's Pokemon, as the base of their
+                                  Showdown sprite ids, so the app keeps only the
+                                  battle sprites of the formats it keeps
     replays/<format>/<day>.json.gz
     teams/<format>.json.gz        the TOP_TEAMS best teams by the site's score
 
@@ -144,6 +147,25 @@ def sprite_table(data_dir):
     return dict(sorted(table.items()))
 
 
+def species_bases(replays, table):
+    """The Pokemon a format's replays bring, as the base of their Showdown
+    sprite ids -- "urshifu" for Urshifu-Rapid-Strike, "charizard" for
+    Charizard. The app keeps the battle sprites of these and of their formes
+    (a Mega, a forme changed in battle: "charizard-megax") for the formats it
+    keeps, rather than all 1,400: a Champions format needs a quarter of them.
+    Teams, not battles: a Pokemon in a battle is on one of its teams, or a
+    forme of one."""
+    bases = set()
+    for r in replays:
+        for team in r.get("teams") or []:
+            for name in team or []:
+                row = table.get(to_id(name))
+                sprite_id = row[1] if row else to_id(name)
+                if sprite_id:
+                    bases.add(sprite_id.split("-")[0])
+    return sorted(bases)
+
+
 # --- replays -------------------------------------------------------------------
 
 def format_name(replays, fmt):
@@ -246,6 +268,8 @@ def teams_file(fmt, rankings):
 
 def build(src, data_dir, out):
     formats = []
+    table = sprite_table(data_dir)
+    bases = {}
     for path in sorted(glob.glob(os.path.join(src, "search-replays-list-*.json*"))):
         fmt = re.sub(r"^search-replays-list-|\.json(\.gz)?$", "", os.path.basename(path))
         replays = read_json(path) or []
@@ -275,6 +299,7 @@ def build(src, data_dir, out):
                              "revision": revision}
                 break
 
+        bases[fmt] = species_bases(replays, table)
         formats.append({
             "id": fmt,
             "name": name,
@@ -297,7 +322,10 @@ def build(src, data_dir, out):
         print("no replay lists found in %s -- nothing built" % src)
         return 1
 
-    size, revision = write_pack(os.path.join(out, "sprites.json.gz"), sprite_table(data_dir))
+    size, revision = write_pack(os.path.join(out, "sprites.json.gz"), table)
+    species_size, species_revision = write_pack(
+        os.path.join(out, "species.json.gz"),
+        {"api_version": API_VERSION, "formats": dict(sorted(bases.items()))})
     order = list(SHORT_NAMES)
     formats.sort(key=lambda f: (order.index(f["id"]) if f["id"] in order else len(order),
                                 -f["replays"]))
@@ -306,6 +334,8 @@ def build(src, data_dir, out):
             "api_version": API_VERSION,
             "kind": "replays",
             "sprites": {"file": "sprites.json.gz", "bytes": size, "revision": revision},
+            "species": {"file": "species.json.gz", "bytes": species_size,
+                        "revision": species_revision},
             "formats": formats,
         }, fh, separators=(",", ":"), ensure_ascii=False)
     total = sum(d["bytes"] for f in formats for d in f["days"])
