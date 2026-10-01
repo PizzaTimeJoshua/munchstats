@@ -155,7 +155,7 @@ def _cache_hashed_assets(resp):
 DATA_DIRECTORY = "stats"
 os.makedirs(DATA_DIRECTORY, exist_ok=True)
 
-DEFAULT_META = "gen9championsvgc2026regmbbo3"
+DEFAULT_META = "gen9championsvgc2026regmcbo3"
 
 # The regulation currently being played in-game and at events. Smogon's
 # ladder stats land a month behind, so DEFAULT_META (the newest format with
