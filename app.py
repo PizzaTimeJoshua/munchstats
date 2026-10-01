@@ -555,6 +555,15 @@ def fetch_index_data(format_code, rating, month=None):
         file_path = os.path.join(DATA_DIRECTORY, month, format_code, str(rating), "_index.json")
         data = load_data_file(file_path)
         if data:
+            # Smogon writes "usage": null where no battle carried any weight at
+            # the cutoff (2026-09 gen9monocolor 1760: one battle, all 12 null),
+            # and the splitter copies it through. Every caller sorts or scales
+            # usage, so fill it from the raw count as the remote path does.
+            num_battles = (data.get("info") or {}).get("number of battles", 0)
+            for entry in (data.get("pokemon") or {}).values():
+                if entry.get("usage") is None:
+                    raw = entry.get("raw", 0)
+                    entry["usage"] = raw / (num_battles * 2) if raw and num_battles else 0
             return data
     # Fall back to remote Smogon fetch
     remote_data = fetch_remote_format_data(month, format_code, str(rating))
