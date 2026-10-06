@@ -11,7 +11,7 @@ replays per format per day. Beside each of those day files this writes the
 same day's battles, one per replay in the same order, coded by battle_codec
 against a model trained on that format's recent games:
 
-    battles/<format>/model-<id>.bin.gz    a model, trained once a month
+    battles/<format>/model-<id>.bin.gz    its model, trained once a month
     battles/<format>/<day>.bin            that day's battles
 
 and adds them to index.json: the format's models under "battles", and each
@@ -19,12 +19,17 @@ day's battle file on the day's row. A day's battle file records the revision
 of the day file it follows, row for row, so the app never pairs mismatched
 files.
 
---prev is the app's files as last published. A model is kept for its month,
-so the phone downloads each one once; a day's battles are copied when its
-replays have not changed, and otherwise only its new replays are coded. A
-coded battle never changes, so the one-time cost is the backfill, which runs
-in --budget minutes a run -- replays not yet coded are empty rows, and the
-app fetches those from Showdown until a later run fills them in.
+--prev is the app's files as last published. A format has one model: a new
+one is trained each month (sooner for a young format, as its games double),
+and every day coded with the one before is coded again with it, so the phone
+keeps one model a format, not one for each month its days span. A day's
+battles are copied when its replays have not changed and its model is the
+current one, and otherwise only its new replays are coded. Each run codes the
+new replays first, then the days still on an older model, in --budget
+minutes: a day moves to the new model only once all of it is coded again,
+keeping its battles and their model until then. Replays not yet coded are
+empty rows, and the app fetches those from Showdown until a later run fills
+them in.
 
 --logs is the scraper's cache: <format>/<replay id>.json, Showdown's replay
 JSON with the battle in "log".
@@ -46,6 +51,10 @@ import battle_codec as B
 
 TRAIN_GAMES = 3000        # a model's training games: the format's latest
 MIN_TRAIN = 300           # fewer than this and a format waits for more
+REFIT_PASSES = 1          # passes refitting the weights (battle_codec.refit)
+PRUNE = True              # keep only the cells worth their bytes (battle_codec.prune)
+JUDGE_GAMES = 3000        # the games before the training ones, to judge cells on
+MIN_JUDGE = 1000          # fewer, and the cells are judged on the training games
 # A model trained on few games (a format days old) is retrained when there
 # are twice as many -- until it has UPGRADE_UNTIL.
 UPGRADE_UNTIL = 2000
@@ -122,13 +131,27 @@ def previous_codes(prev, before, path):
 # ─── models ────────────────────────────────────────────────────────────────
 
 def train_model(task):
-    """(format, [(text, teams)], replays in the index, model id) -> model
-    file bytes, or None if training failed."""
-    fmt, games, replays, model_id = task
+    """(format, [(text, teams)] to train on, [(text, teams)] to judge its
+    cells on, replays in the index, model id) -> model file bytes, or None
+    if training failed."""
+    fmt, games, judge, replays, model_id = task
     try:
         codec = B.train(games)
         _, parts = B.ship(codec, min_seen(replays))
-        meta = {"format": fmt, "id": model_id, "games": len(games), "min_seen": min_seen(replays)}
+        # The weights fitted again to the table as shipped (battle_codec.refit),
+        # then only the cells worth their bytes over a month of the format's
+        # battles kept, judged on games the model did not train on where there
+        # are enough (battle_codec.prune), and the weights fitted again: a
+        # smaller model, quicker to load, and fewer bytes a battle with the
+        # model's share counted (battles a little bigger in small formats).
+        _, parts = B.refit(codec, parts, games, REFIT_PASSES)
+        meta = {"format": fmt, "id": model_id, "games": len(games), "min_seen": min_seen(replays),
+                "refit": REFIT_PASSES}
+        if PRUNE:
+            judged = judge if len(judge) >= MIN_JUDGE else games
+            parts = B.prune(codec, parts, judged, replays)
+            _, parts = B.refit(codec, parts, games, REFIT_PASSES)
+            meta.update(pruned=B.PRUNE_STRICT, judged=len(judged) if judged is judge else 0)
         return fmt, model_id, len(games), B.model_file(parts, meta)
     except Exception as e:  # one format's trouble is not every format's
         print("  %-30s training failed: %r" % (fmt, e), flush=True)
@@ -184,7 +207,7 @@ def code_battle(task):
 
 # ─── the build ─────────────────────────────────────────────────────────────
 
-def build(out, logs, prev, budget, workers):
+def build(out, logs, prev, budget, workers, retrain=False):
     started = time.time()
     index_path = os.path.join(out, "index.json")
     index = read_json(index_path)
@@ -216,12 +239,13 @@ def build(out, logs, prev, budget, workers):
         grown = (current is not None and current.get("games", 0) < UPGRADE_UNTIL
                  and f["replays"] >= 2 * current.get("games", 0))
         plans[fmt] = {"models": models, "current": current}
-        if stale or grown:
-            games = training_games(out, logs, fmt, f["days"], TRAIN_GAMES)
-            if len(games) >= MIN_TRAIN and (stale or len(games) >= 2 * current.get("games", 0)):
+        if stale or grown or retrain:
+            found = training_games(out, logs, fmt, f["days"], TRAIN_GAMES + JUDGE_GAMES)
+            games, judge = found[-TRAIN_GAMES:], found[:-TRAIN_GAMES]
+            if len(games) >= MIN_TRAIN and (stale or retrain or len(games) >= 2 * current.get("games", 0)):
                 # Down to the minute: a young format can be retrained the same
-                # day, and its earlier days keep the model they were coded with.
-                to_train.append((fmt, games, f["replays"], today.strftime("%Y-%m-%d-%H%M")))
+                # day, and its earlier days are then coded again with it.
+                to_train.append((fmt, games, judge, f["replays"], today.strftime("%Y-%m-%d-%H%M")))
     if to_train:
         print("training %d models: %s" % (len(to_train), ", ".join("%s (%d games)" % (t[0], len(t[1]))
                                                                      for t in to_train)), flush=True)
@@ -238,16 +262,33 @@ def build(out, logs, prev, budget, workers):
                 print("  %-30s model %s: %d games, %.0f KB" % (fmt, model_id, games, size / 1024), flush=True)
         del to_train
 
-    # 2. Days: copied when unchanged, else the new replays coded.
+    # 2. Days: copied when unchanged, else coded -- the new replays first, then
+    # the days still on an older model, coded again with the current one.
     deadline = started + budget * 60
+    work = {}
+    fresh = []
+    again = []
     for f in index["formats"]:
         try:
-            build_days(f, plans[f["id"]], prev_formats, out, logs, prev, deadline, workers)
+            work[f["id"]], tasks, recodes = plan_days(f, plans[f["id"]], prev_formats, out, logs, prev)
         except Exception as e:
             print("  %-30s battles failed: %r" % (f["id"], e), flush=True)
-            for day in f["days"]:
-                day.pop("battles", None)
-            f.pop("battles", None)
+            drop_battles(f)
+            continue
+        fresh += tasks
+        again.append(recodes)
+    # The smallest formats' first: a format is down to one model only once
+    # every one of its days is.
+    again.sort(key=len)
+    done = code_all(fresh + [t for recodes in again for t in recodes], workers, deadline)
+    for f in index["formats"]:
+        if f["id"] not in work:
+            continue
+        try:
+            finish_days(f, plans[f["id"]], work[f["id"]], done, out)
+        except Exception as e:
+            print("  %-30s battles failed: %r" % (f["id"], e), flush=True)
+            drop_battles(f)
 
     with open(index_path, "w", encoding="utf8") as fh:
         json.dump(index, fh, separators=(",", ":"), ensure_ascii=False)
@@ -255,53 +296,123 @@ def build(out, logs, prev, budget, workers):
     return 0
 
 
-def build_days(f, plan, prev_formats, out, logs, prev, deadline, workers):
-    """A format's days: each day's battles, copied, topped up or coded."""
+def drop_battles(f):
+    for day in f["days"]:
+        day.pop("battles", None)
+    f.pop("battles", None)
+
+
+def code_all(tasks, workers, deadline):
+    """Each task's coded battle by its key, in order, as many as there is time for."""
+    done = {}
+    if not tasks or time.time() >= deadline:
+        return done
+    with multiprocessing.Pool(workers) as pool:
+        for key, data in pool.imap_unordered(code_battle, tasks, chunksize=16):
+            done[key] = data
+            if time.time() > deadline:
+                pool.terminate()
+                break
+    return done
+
+
+def plan_days(f, plan, prev_formats, out, logs, prev):
+    """A format's days as work: each day's battles as they stand -- copied,
+    topped up, or coded -- and, for a day coded with an older model, the whole
+    day again with the current one. Returns (work, tasks, re-code tasks)."""
     fmt = f["id"]
-    if plan["current"] is None:
-        return
+    current = plan["current"]
+    work = {"days": [], "tasks": 0}
+    if current is None:
+        return work, [], []
     old = prev_formats.get(fmt) or {}
     if (old.get("battles") or {}).get("version") != B.VERSION:
         old = {}
     old_days = {d["day"]: d for d in old.get("days") or []}
     tasks = []
-    pending = {}
+    recodes = []
     for day in f["days"]:
         before = old_days.get(day["day"]) or {}
         had = before.get("battles")
         model = plan["models"].get(had["model"]) if had else None
         path = os.path.join(prev, had["file"]) if had and prev else None
+        entry = {"day": day, "model": model, "copy": None, "codes": None, "again": None}
+        rows = None
         if model is not None and path and os.path.exists(path):
             if had.get("matches") == day["revision"] and had.get("games") == day["replays"]:
                 # The same replays, every one coded: as it was.
-                size, revision = write_file(os.path.join(out, had["file"]), open(path, "rb").read())
-                day["battles"] = dict(had, bytes=size, revision=revision)
-                continue
-            reuse = previous_codes(prev, before, path)
+                entry["copy"] = (path, had)
+            else:
+                reuse = previous_codes(prev, before, path)
+                rows = day_rows(out, day)
+                entry["codes"] = [reuse.get(number, b"") for number, _, _ in rows]
         else:
-            model, reuse = plan["current"], {}
-        rows = day_rows(out, day)
-        codes = [reuse.get(number, b"") for number, _, _ in rows]
-        pending[day["day"]] = (day, model, codes)
-        for i, (number, teams, _) in enumerate(rows):
-            if not codes[i]:
-                tasks.append(((day["day"], i), model["path"], logs, fmt, number, teams))
-    if tasks and time.time() < deadline:
-        with multiprocessing.Pool(workers) as pool:
-            done = 0
-            for (dkey, i), data in pool.imap_unordered(code_battle, tasks, chunksize=16):
-                pending[dkey][2][i] = data
-                done += 1
-                if time.time() > deadline:
-                    pool.terminate()
-                    break
-        print("  %-30s coded %d of %d battles%s" % (fmt, done, len(tasks),
-                                                     "" if done == len(tasks) else " (out of time)"), flush=True)
-    for dkey, (day, model, codes) in pending.items():
-        rel = "battles/%s/%s.bin" % (fmt, dkey)
+            entry["model"] = current
+            rows = day_rows(out, day)
+            entry["codes"] = [b""] * len(rows)
+        if entry["codes"] is not None:
+            for i, (number, teams, _) in enumerate(rows):
+                if not entry["codes"][i]:
+                    tasks.append(((fmt, day["day"], i), entry["model"]["path"], logs, fmt, number, teams))
+        if entry["model"]["id"] != current["id"]:
+            if rows is None:
+                rows = day_rows(out, day)
+            entry["again"] = len(rows)
+            for i, (number, teams, _) in enumerate(rows):
+                recodes.append(((fmt, day["day"], "again", i), current["path"], logs, fmt, number, teams))
+        work["days"].append(entry)
+    work["tasks"] = len(tasks)
+    return work, tasks, recodes
+
+
+def finish_days(f, plan, work, done, out):
+    """A format's days written as the run left them, and its models: those
+    the days use, and no others. A day coded again moves to the current
+    model only when every replay is back, and no fewer coded than before
+    (a log gone from the cache since); until then it keeps what it had."""
+    fmt = f["id"]
+    current = plan["current"]
+    if current is None:
+        return
+    coded = 0
+    moved = 0
+    short = 0
+    for entry in work["days"]:
+        day = entry["day"]
+        model, codes = entry["model"], entry["codes"]
+        if codes is not None:
+            for i in range(len(codes)):
+                data = done.get((fmt, day["day"], i))
+                if data is not None:
+                    codes[i] = data
+                    coded += 1
+        if entry["again"] is not None:
+            fresh = [done.get((fmt, day["day"], "again", i)) for i in range(entry["again"])]
+            if all(c is not None for c in fresh):
+                have = entry["copy"][1]["games"] if entry["copy"] else sum(1 for c in codes if c)
+                if sum(1 for c in fresh if c) >= have:
+                    model, codes, entry["copy"] = current, fresh, None
+                    moved += 1
+                else:
+                    short += 1
+        if entry["copy"]:
+            path, had = entry["copy"]
+            size, revision = write_file(os.path.join(out, had["file"]), open(path, "rb").read())
+            day["battles"] = dict(had, bytes=size, revision=revision)
+            continue
+        rel = "battles/%s/%s.bin" % (fmt, day["day"])
         size, revision = write_file(os.path.join(out, rel), B.day_file(model["id"], day["revision"], codes))
         day["battles"] = {"file": rel, "bytes": size, "revision": revision, "model": model["id"],
                           "matches": day["revision"], "games": sum(1 for c in codes if c)}
+    if work["tasks"]:
+        print("  %-30s coded %d of %d battles%s" % (fmt, coded, work["tasks"],
+                                                     "" if coded == work["tasks"] else " (out of time)"), flush=True)
+    again = sum(1 for e in work["days"] if e["again"] is not None)
+    if again:
+        print("  %-30s %d of %d days coded again with model %s%s%s"
+              % (fmt, moved, again, current["id"],
+                 " (%d kept: fewer of their logs left)" % short if short else "",
+                 " (the rest next run)" if moved + short < again else ""), flush=True)
 
     # The models the days use, and no others.
     used = {d["battles"]["model"] for d in f["days"] if d.get("battles")}
@@ -327,8 +438,10 @@ def main():
     parser.add_argument("--prev", default="", help="the app's files as last published, if any")
     parser.add_argument("--budget", type=float, default=90, help="minutes to spend coding battles")
     parser.add_argument("--workers", type=int, default=os.cpu_count() or 2)
+    parser.add_argument("--retrain", action="store_true",
+                        help="train every format a new model now, not only when the month turns (days follow)")
     args = parser.parse_args()
-    return build(args.out, args.logs, args.prev, args.budget, args.workers)
+    return build(args.out, args.logs, args.prev, args.budget, args.workers, args.retrain)
 
 
 if __name__ == "__main__":

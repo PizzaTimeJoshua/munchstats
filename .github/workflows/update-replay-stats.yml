@@ -132,11 +132,12 @@ jobs:
         run: python site/build_replay_packs.py --src site-data/stats/replays --data site/stats --out site-data/app
 
       # The battles themselves, coded small for the app to watch offline
-      # (build_battle_packs.py). Built on the files last published: each
-      # format's model is kept for its month and a coded battle never changes,
-      # so a run codes only the replays that are new -- the first run's
-      # backfill takes a few runs, a --budget of minutes at a time. Only the
-      # app's files are fetched, not the replay lists beside them.
+      # (build_battle_packs.py). Built on the files last published: a run
+      # codes the replays that are new, and in the first runs of a month, when
+      # each format's model is retrained, codes its days again with the new
+      # one so a format has one model -- a --budget of minutes at a time, the
+      # rest left to the next run. Only the app's files are fetched, not the
+      # replay lists beside them.
       - name: Fetch the app's files as last published
         if: steps.cfg.outputs.configured == 'true'
         continue-on-error: true

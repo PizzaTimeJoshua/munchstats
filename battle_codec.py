@@ -39,6 +39,7 @@ without the site's dependencies.
 
 import gzip
 import json
+import math
 import re
 import zlib
 
@@ -289,7 +290,9 @@ class Model:
     Learning: cells[key] = {node: [p, n]}, p the chance of a 1 in 65536ths
     and n how often seen; the mixers' weights learn too.
     Frozen: table[fingerprint] = {node: stretch}; nothing shared learns.
-    Keys starting "L" are the game's own in either case, and learn."""
+    Keys starting "L" are the game's own in either case, and learn.
+    Refitting (refit): frozen, but the weights learn, against the table as
+    shipped -- only on the server, before the weights are written."""
 
     def __init__(self, table=None, weights=None):
         self.rc = None
@@ -299,6 +302,7 @@ class Model:
         self.local = {}
         self.weights = weights if weights is not None else {}
         self.fps = {}
+        self.refitting = False
 
     def _srcs(self, ctxs):
         out = []
@@ -324,7 +328,7 @@ class Model:
         ws = self.weights.get(wkey)
         if ws is None:
             ws = [[W0] * (k - 1) + [0] for _ in range(rows)]
-            if not self.frozen:
+            if not self.frozen or self.refitting:
                 self.weights[wkey] = ws
         return ws
 
@@ -351,7 +355,7 @@ class Model:
             dot += w[j] * st[j]
         p1 = squash(dot >> 16)
         b = self.rc.put(4096 - p1, bit)
-        if not self.frozen:
+        if not self.frozen or self.refitting:
             err = ((b << 12) - p1) * LR
             for j in range(k):
                 w[j] += (st[j] * err) >> 16
@@ -1516,6 +1520,146 @@ def ship(codec, min_seen=8):
     parts = {"table": table, "weights": codec.m.weights, "pools": pools, "vocab": vocab, "lits": list(codec.lits),
              "commands": codec.d.commands, "strings": codec.d.strings}
     return frozen_codec(codec.d, table, codec.m.weights, pools, vocab, codec.lits), parts
+
+
+def refit(codec, parts, games, passes=1):
+    """The mixers' weights learned again over games -- [(canonical text,
+    teams)], oldest first -- with the shipped table as the decoder has it:
+    pruned, quantized and fixed. Training learned them alongside cells that
+    were still learning; this fits them to the cells as shipped. The table
+    and everything else stay as they are, and so do the model file's layout
+    and size: only the weights' values change. Returns (frozen codec, parts),
+    as ship does.
+
+    A pass costs about as much as training on the same games did. Measured
+    on September 2026's battles, one pass over the training games codes
+    held-out battles 1.2% smaller in Gen 9 OU, 0.7% in VGC and 3.7% in BSS."""
+    weights = {k: [list(row) for row in rows] for k, rows in parts["weights"].items()}
+    for _ in range(passes):
+        frozen = frozen_codec(codec.d, parts["table"], weights, parts["pools"], parts["vocab"], parts["lits"])
+        frozen.m.refitting = True
+        frozen.m.rc = Encoder()
+        for text, teams in games:
+            frozen.game(text, teams)
+    parts = dict(parts, weights=weights)
+    return frozen_codec(codec.d, parts["table"], weights, parts["pools"], parts["vocab"], parts["lits"]), parts
+
+
+# What a shipped cell costs in the model file once compressed: its value and
+# node (about 4.3 + 1.6 bits), and its context's fingerprint and cell count
+# (about 9 + 2.6 bits, once a context). From a Gen 9 OU model's breakdown.
+CELL_BITS = 6.5
+CONTEXT_BITS = 12.0
+# How much of that cost a cell's measured saving must cover to be kept. A
+# cell's saving is measured with every other cell in place, and cells cover
+# for each other, so taken one by one they look worth less than they are:
+# pruning at full cost (1.0) cut too much. 0.25 did best in Gen 9 OU, VGC and
+# BSS alike.
+PRUNE_STRICT = 0.25
+
+
+def _bits(x, b):
+    """What a decision costs, in bits, at logit x (within the coder's +-8)."""
+    x = -8.0 if x < -8.0 else 8.0 if x > 8.0 else x
+    p1 = 1.0 / (1.0 + math.exp(-x))
+    return -math.log2(p1 if b else 1.0 - p1)
+
+
+class _Judge(Model):
+    """A frozen model refitting its weights (as refit does) that adds up, for
+    every shipped cell, the bits it saves: each decision's cost with the cell
+    in the mix, against without it. Only on the server, in prune."""
+
+    def __init__(self, table, weights):
+        super().__init__(table, weights)
+        self.refitting = True
+        self.saved = {}
+
+    def _bit(self, srcs, w, node, bit):
+        st = []
+        cells = []
+        used = []
+        for j, (a, shipped) in enumerate(srcs):
+            if shipped:
+                v = a.get(node)
+                if v is None:
+                    st.append(0)
+                else:
+                    st.append(v)
+                    used.append((j, a))
+                continue
+            c = a.get(node)
+            if c is None:
+                c = a[node] = [32768, 0]
+                st.append(ST_HALF)
+            else:
+                st.append(STRETCH[c[0] >> 4])
+            cells.append(c)
+        st.append(256)
+        k = len(st)
+        dot = 0
+        for j in range(k):
+            dot += w[j] * st[j]
+        p1 = squash(dot >> 16)
+        b = self.rc.put(4096 - p1, bit)
+        if used:
+            x = dot / 16777216.0
+            cost = _bits(x, b)
+            for j, a in used:
+                key = (id(a), node)
+                self.saved[key] = self.saved.get(key, 0.0) + _bits(x - w[j] * st[j] / 16777216.0, b) - cost
+        err = ((b << 12) - p1) * LR
+        for j in range(k):
+            w[j] += (st[j] * err) >> 16
+        for c in cells:
+            p, n = c
+            if b:
+                p += ((65536 - p) * RATE[n]) >> 16
+            else:
+                p -= (p * RATE[n]) >> 16
+            c[0] = 32 if p < 32 else (65504 if p > 65504 else p)
+            if n < LIMIT:
+                c[1] = n + 1
+        return b
+
+
+def prune(codec, parts, games, battles, strict=PRUNE_STRICT):
+    """Only the shipped cells worth their bytes. Each cell's saving is
+    measured over games -- best, games the model neither trained on nor will
+    code; else its training games -- and scaled to the battles the model
+    will code (a month of the format's replays). A cell is kept if that
+    covers strict times what it costs in the model file (CELL_BITS), and a
+    context if its kept cells' savings cover its fingerprint (CONTEXT_BITS)
+    too. A pruned model is smaller and quicker to load, and, cells with
+    nothing to show on fresh games gone, codes about as small or smaller.
+    Refit the weights after (refit). Returns parts with the pruned table.
+
+    Measured on September 2026's battles, with refit before and after:
+    Gen 9 OU's model 463 -> 281 KB, VGC's 302 -> 198 KB, BSS's 143 -> 65 KB;
+    held-out battles 2.2% and 1.0% smaller in OU and VGC, 13% bigger in BSS,
+    where the model is most of the bytes. With each battle's share of its
+    model over a month: 6%, 3% and 25% fewer bytes a battle."""
+    weights = {k: [list(row) for row in rows] for k, rows in parts["weights"].items()}
+    frozen = frozen_codec(codec.d, parts["table"], weights, parts["pools"], parts["vocab"], parts["lits"])
+    judge = frozen.m = _Judge(parts["table"], weights)
+    judge.rc = Encoder()
+    for text, teams in games:
+        frozen.game(text, teams)
+    saved = {}
+    by_id = {id(cells): f for f, cells in parts["table"].items()}
+    for (aid, node), bits in judge.saved.items():
+        f = by_id.get(aid)
+        if f is not None:
+            saved.setdefault(f, {})[node] = bits
+    scale = battles / max(len(games), 1)
+    cell, context = CELL_BITS * strict, CONTEXT_BITS * strict
+    table = {}
+    for f, cells in parts["table"].items():
+        got = saved.get(f, {})
+        kept = {node: v for node, v in cells.items() if got.get(node, 0.0) * scale > cell}
+        if kept and sum(got[node] * scale - cell for node in kept) > context:
+            table[f] = kept
+    return dict(parts, table=table)
 
 
 def encode_game(codec, text, teams):
