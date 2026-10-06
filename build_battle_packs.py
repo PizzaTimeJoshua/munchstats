@@ -414,8 +414,12 @@ def finish_days(f, plan, work, done, out):
                  " (%d kept: fewer of their logs left)" % short if short else "",
                  " (the rest next run)" if moved + short < again else ""), flush=True)
 
-    # The models the days use, and no others.
+    # The models the days use, and the current one even before any day does:
+    # left out, a model trained this run with no day yet coded again with it
+    # (out of time) would be lost, and the next run would carry on with the
+    # one before. The app downloads only the models days use.
     used = {d["battles"]["model"] for d in f["days"] if d.get("battles")}
+    used.add(current["id"])
     models = []
     for model_id in sorted(used):
         m = plan["models"][model_id]
