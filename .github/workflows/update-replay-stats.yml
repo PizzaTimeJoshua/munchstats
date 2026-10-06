@@ -19,7 +19,21 @@ on:
     # 2:17 / 8:17 / 14:17 / 20:17 Pacific Daylight Time (cron is UTC;
     # shifts one hour later in local terms when PST is in effect)
     - cron: '17 3,9,15,21 * * *'
+  # Run by hand (Actions tab, or `gh workflow run update-replay-stats.yml`).
+  # Scheduled runs take the defaults. A test run publishes to another branch,
+  # e.g. -f branch=replay-data-test, which a dev build of the app reads with
+  # EXPO_PUBLIC_REPLAYS_BASE_URL; it starts from the live files, and nothing
+  # it publishes reaches replay-data.
   workflow_dispatch:
+    inputs:
+      retrain:
+        description: Train every format a new battle model now, and code its days again with it
+        type: boolean
+        default: false
+      branch:
+        description: Branch to publish to (replay-data is what the app and site read)
+        type: string
+        default: replay-data
 
 permissions:
   contents: write
@@ -138,12 +152,18 @@ jobs:
       # one so a format has one model -- a --budget of minutes at a time, the
       # rest left to the next run. Only the app's files are fetched, not the
       # replay lists beside them.
+      # A test run (branch input) builds on its own branch's last files, or on
+      # replay-data's the first time.
       - name: Fetch the app's files as last published
         if: steps.cfg.outputs.configured == 'true'
         continue-on-error: true
+        env:
+          BRANCH: ${{ inputs.branch || 'replay-data' }}
         run: |
-          git clone --quiet --depth 1 --filter=blob:none --no-checkout --branch replay-data \
-            "https://github.com/${{ github.repository }}.git" prev
+          for b in "$BRANCH" replay-data; do
+            git clone --quiet --depth 1 --filter=blob:none --no-checkout --branch "$b" \
+              "https://github.com/${{ github.repository }}.git" prev && break
+          done
           git -C prev sparse-checkout set app
           git -C prev checkout --quiet
 
@@ -151,7 +171,7 @@ jobs:
         if: steps.cfg.outputs.configured == 'true'
         continue-on-error: true
         timeout-minutes: 150
-        run: python site/build_battle_packs.py --out site-data/app --logs scraper/replays --prev prev/app --budget 90
+        run: python site/build_battle_packs.py --out site-data/app --logs scraper/replays --prev prev/app --budget 90 ${{ inputs.retrain && '--retrain' || '' }}
 
       # The replay player's Mystery Dungeon sprites (build_sprite_pack.py):
       # every Pokemon the replays show, as the PMD Sprite Collab draws it
@@ -180,7 +200,15 @@ jobs:
       - name: Publish data to replay-data branch
         if: steps.cfg.outputs.configured == 'true'
         working-directory: site-data
+        env:
+          BRANCH: ${{ inputs.branch || 'replay-data' }}
         run: |
+          # Only replay-data or a replay-data-* test branch: a typo must not
+          # force-push over main.
+          case "$BRANCH" in
+            replay-data|replay-data-*) ;;
+            *) echo "::error::Will only publish to replay-data or replay-data-*, not '$BRANCH'"; exit 1 ;;
+          esac
           git init -q -b replay-data
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
@@ -190,7 +218,7 @@ jobs:
             exit 0
           fi
           git commit -q -m "Replay data snapshot $(date -u +'%Y-%m-%d %H:%M UTC')"
-          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" replay-data
+          git push -q --force "https://x-access-token:${{ github.token }}@github.com/${{ github.repository }}.git" "HEAD:refs/heads/$BRANCH"
 
       # Save even on failure/timeout so download progress is never lost;
       # the pipeline is incremental and self-heals on the next run.
