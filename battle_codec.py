@@ -13,7 +13,9 @@ canonical(log)
     The battle as the app's player needs it, and nothing else: the protocol
     lines that show the battle and open team sheets, nicknames replaced by
     species, levels and genders dropped from details, players as p1/p2. Chat,
-    timers and the like go. Everything this keeps comes back exactly.
+    timers and the like go, but not how a player lost if the battle doesn't
+    show it: a forfeit, or running out of time. Everything this keeps comes
+    back exactly.
 
 The model (Model)
     Every decision is a small binary tree. Each bit of it is predicted by
@@ -66,6 +68,10 @@ _PLAYER = re.compile(r"^\|player\|(p[1-4])\|([^|]*)")
 _SIDE_NAMED = re.compile(r"^(\[of\] )?(p[1-4]): (.+)$")
 _DETAILS_FIELD = {"switch": 2, "drag": 2, "replace": 2, "detailschange": 2, "-formechange": 2}
 _DROPPED_DETAIL = re.compile(r"L\d+|M|F")
+# How a player lost besides by the battle, as the log ends the line naming
+# them, and as canonical keeps it ("|-message|timeout"): who lost is whoever
+# did not win, so the name isn't kept.
+LOSSES = {" forfeited.": "forfeit", " lost due to inactivity.": "timeout", " lost by being offline too long.": "offline"}
 
 
 def canonical(log):
@@ -93,10 +99,11 @@ def canonical(log):
         if m:
             species.setdefault((m.group(2), m.group(3)), m.group(4))
         if cmd == "-message":
-            # Only a forfeit says anything the battle does not; who forfeited
-            # is whoever did not win.
-            if line.endswith(" forfeited."):
-                out.append("|-message|forfeit")
+            # Only how a player lost says anything the battle does not: a
+            # forfeit, or the timer running out (LOSSES).
+            reason = next((r for end, r in LOSSES.items() if line.endswith(end)), None)
+            if reason:
+                out.append("|-message|" + reason)
             continue
         if cmd == "win":
             out.append("|win|" + players.get(fields[1] if len(fields) > 1 else "", "?"))
