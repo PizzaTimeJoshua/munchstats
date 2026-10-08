@@ -152,6 +152,13 @@
     {{ _('Found a bug? Have a feature idea? Spotted a translation mistake? Let me know here — every message goes straight to my inbox. Leave your email if you would like a reply.') }}
   </p>
 
+  {# Not on the app's own "Report a bug" links: those come from testers. #}
+  {% if form.category != 'app' and not sent %}
+  <p class="intro">
+    {{ _('Want to try the Android app early?') }} <a href="{{ url_for('app_page') }}" style="color: var(--accent);">{{ _('Apply to be a tester') }}</a>
+  </p>
+  {% endif %}
+
   {% if sent %}
   <div class="notice notice-success">
     {{ _('Thanks! Your message has been sent.') }}

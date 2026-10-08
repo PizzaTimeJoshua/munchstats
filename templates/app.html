@@ -1,0 +1,398 @@
+{% extends "base.html" %}
+{% set og_description = "MunchStats for Android: competitive Pokémon usage stats, teams, replays and a damage calc that work offline. Apply to test the app before it reaches the Play Store." %}
+{% set og_image = "https://www.munchstats.com" ~ asset_url('app/feature-graphic.png') %}
+{% set og_card = "summary_large_image" %}
+{% block title %}{{ _('MunchStats for Android') }} | MunchStats{% endblock %}
+
+{% block head %}
+<style>
+  body {
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px;
+  }
+  .container {
+    max-width: 920px;
+    width: 100%;
+  }
+  .narrow {
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  .hero {
+    text-align: center;
+    margin-bottom: 32px;
+  }
+  .hero-icon {
+    width: 72px;
+    height: 72px;
+    image-rendering: pixelated;
+  }
+  .badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: bold;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    border-radius: 999px;
+    padding: 4px 10px;
+    margin: 12px 0 10px;
+  }
+  h1 {
+    font-size: 36px;
+    color: var(--text-strong);
+    margin: 0 0 12px;
+  }
+  .tagline {
+    font-size: 17px;
+    color: var(--text-soft);
+    line-height: 1.6;
+    margin: 0 0 22px;
+  }
+  .cta {
+    display: inline-block;
+    background-color: var(--accent);
+    color: var(--on-accent);
+    font-size: 16px;
+    font-weight: bold;
+    text-decoration: none;
+    padding: 12px 28px;
+    border-radius: 999px;
+  }
+  .cta:hover {
+    filter: brightness(1.08);
+  }
+  /* A swipeable strip on phones, all eight at once on wide screens. */
+  .shots {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    scroll-snap-type: x mandatory;
+    margin: 0 -20px 36px;
+    padding: 4px 20px 12px;
+  }
+  .shot {
+    flex: 0 0 200px;
+    margin: 0;
+    scroll-snap-align: center;
+  }
+  .shot a {
+    display: block;
+  }
+  .shot img {
+    display: block;
+    width: 100%;
+    height: auto;
+    border-radius: 14px;
+    border: 1px solid var(--border-2);
+    background-color: #1e1e1e;
+  }
+  .shot figcaption {
+    font-size: 13px;
+    color: var(--text-soft);
+    line-height: 1.4;
+    text-align: center;
+    margin-top: 8px;
+  }
+  @media (min-width: 900px) {
+    .shots {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px 18px;
+      overflow: visible;
+      margin: 0 0 40px;
+      padding: 0;
+    }
+  }
+  h2 {
+    font-size: 24px;
+    color: var(--text-strong);
+    border-bottom: 1px solid var(--border-soft);
+    padding-bottom: 8px;
+    margin: 0 0 16px;
+  }
+  .how {
+    margin: 0 0 36px;
+    padding-left: 20px;
+  }
+  .how li {
+    font-size: 15px;
+    color: var(--text-faint);
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+  .apply-form {
+    background-color: var(--surface);
+    border-radius: 4px;
+    padding: 24px;
+    margin-bottom: 28px;
+  }
+  .form-row {
+    margin-bottom: 20px;
+    border: 0;
+    padding: 0;
+    min-width: 0;
+  }
+  .form-row label.field,
+  .form-row legend {
+    display: block;
+    font-size: 14px;
+    color: var(--text-strong);
+    margin-bottom: 6px;
+    padding: 0;
+  }
+  .form-row .hint {
+    font-size: 12px;
+    color: var(--text-faint);
+    line-height: 1.5;
+    margin-top: 4px;
+  }
+  .form-row input[type="email"],
+  .form-row input[type="text"],
+  .form-row textarea {
+    width: 100%;
+    padding: 10px;
+    font-size: 15px;
+    font-family: Arial, sans-serif;
+    color: var(--text);
+    background-color: var(--bg);
+    border: 1px solid var(--border-2);
+    border-radius: 4px;
+    box-sizing: border-box;
+  }
+  .form-row textarea {
+    min-height: 110px;
+    resize: vertical;
+  }
+  .choices {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .choice {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 14px;
+    color: var(--text);
+    background-color: var(--bg);
+    border: 1px solid var(--border-2);
+    border-radius: 999px;
+    padding: 7px 12px;
+    cursor: pointer;
+  }
+  .choice input {
+    margin: 0;
+    accent-color: var(--accent);
+  }
+  .choice:has(input:checked) {
+    border-color: var(--accent);
+    color: var(--text-strong);
+  }
+  .submit-btn {
+    background-color: var(--accent);
+    color: var(--on-accent);
+    border: 0;
+    border-radius: 999px;
+    padding: 12px 28px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  .submit-btn:hover {
+    filter: brightness(1.08);
+  }
+  .notice {
+    padding: 12px 16px;
+    border-radius: 4px;
+    margin-bottom: 20px;
+    font-size: 15px;
+    line-height: 1.5;
+    background-color: var(--surface);
+    border: 1px solid var(--border-2);
+    color: var(--text-strong);
+  }
+  .notice-success {
+    border-color: var(--accent);
+  }
+  .hp-field {
+    position: absolute;
+    left: -9999px;
+    top: -9999px;
+  }
+  .turnstile-row {
+    margin-bottom: 18px;
+  }
+  .button-container {
+    text-align: center;
+  }
+  .home-button {
+    background-color: var(--surface);
+    color: var(--text);
+    border: 1px solid var(--border-2);
+    padding: 12px 24px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+    text-decoration: none;
+    display: inline-block;
+    margin: 4px;
+  }
+  .home-button:hover {
+    background-color: var(--raised);
+    color: var(--text-strong);
+  }
+  .footer {
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-disabled);
+    margin-top: auto;
+    padding-top: 20px;
+  }
+</style>
+{% if enabled and not sent %}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{% endif %}
+{% endblock %}
+
+{% block content %}
+{%- set shots = [
+  ('usage', _('Usage for every format, at every rating')),
+  ('pokemon', _('Spreads and stat distributions for each Pokémon')),
+  ('teams', _('Thousands of tournament teams, searchable')),
+  ('team-sets', _('Full sets, replica codes and Pokepastes')),
+  ('teambuilder', _('A teambuilder that starts from the common set')),
+  ('damage-calc', _('A damage calc against usage sets')),
+  ('replays', _('Replays, turn by turn')),
+  ('insights', _('Which Pokémon win tournaments, not just get used')),
+] %}
+{%- set use_labels = {
+  'usage': _('Usage stats'),
+  'teams': _('Teams and teambuilder'),
+  'calc': _('Damage calc'),
+  'replays': _('Replays'),
+  'tournaments': _('Tournaments and insights'),
+} %}
+{%- set frequency_labels = {
+  'daily': _('Every day'),
+  'weekly': _('A few times a week'),
+  'sometimes': _('Now and then'),
+} %}
+<div class="container">
+  <div class="hero">
+    <img class="hero-icon" src="{{ asset_url('favicon.png') }}" width="72" height="72" alt="">
+    <div><span class="badge">{{ _('Testing on Android') }}</span></div>
+    <h1>{{ _('MunchStats for Android') }}</h1>
+    <p class="tagline">{{ _('Competitive Pokémon stats, teams, replays and a damage calc in your pocket. Download the formats you play and it all works offline.') }}</p>
+    {% if not sent %}
+    <a class="cta" href="#apply">{{ _('Apply to test') }}</a>
+    {% endif %}
+  </div>
+
+  <div class="shots" role="list" aria-label="{{ _('Screenshots') }}">
+    {% for file, caption in shots %}
+    <figure class="shot" role="listitem">
+      <a href="{{ asset_url('app/' ~ file ~ '.webp') }}" target="_blank" rel="noopener">
+        <img src="{{ asset_url('app/' ~ file ~ '.webp') }}" width="720" height="1280" alt="{{ caption }}"{% if loop.index > 4 %} loading="lazy"{% endif %}>
+      </a>
+      <figcaption aria-hidden="true">{{ caption }}</figcaption>
+    </figure>
+    {% endfor %}
+  </div>
+
+  <div class="narrow">
+    <h2>{{ _('Testing') }}</h2>
+    <ul class="how">
+      <li>{{ _('Before the app reaches the Play Store, I am looking for players to try it and tell me what breaks.') }}</li>
+      <li>{{ _('You need an Android phone. There is no iPhone version yet.') }}</li>
+      <li>{{ _('If you are picked, I will email you an invite to install the test version.') }}</li>
+      <li>{{ _('Use it the way you normally would, and send bugs and ideas from the app: Settings → Report a bug or send feedback.') }}</li>
+      <li>{{ _('It is free, and the test version collects no data, just like the finished app.') }}</li>
+    </ul>
+
+    <h2 id="apply">{{ _('Apply to test') }}</h2>
+
+    {% if sent %}
+    <div class="notice notice-success" role="status">
+      {{ _('Thanks! Your application is in. If you are picked, your invite will go to %(email)s.', email=form.email) }}
+    </div>
+    {% elif error %}
+    <div class="notice" role="alert">
+      {{ error }}
+    </div>
+    {% endif %}
+
+    {% if not enabled %}
+    <div class="notice">
+      {{ _('Applications are closed for a moment. You can still apply by email:') }}
+      <span style="font-family: monospace;"><tt>cont</tt><tt>act@</tt><tt>munc</tt><tt>hstat</tt><tt>s.com</tt></span>
+    </div>
+    {% elif not sent %}
+    <form class="apply-form" method="post" action="{{ url_for('app_page') }}#apply">
+      <div class="form-row">
+        <label class="field" for="email">{{ _('Your email') }}</label>
+        <input type="email" id="email" name="email" maxlength="200" value="{{ form.email }}" required autocomplete="email">
+        <div class="hint">{{ _('Your invite goes here. For a Google Play test, use the Google account signed in to the Play Store on your phone.') }}</div>
+      </div>
+      <div class="form-row">
+        <label class="field" for="device">{{ _('Your phone and Android version') }}</label>
+        <input type="text" id="device" name="device" maxlength="120" value="{{ form.device }}" required placeholder="{{ _('e.g. Pixel 8, Android 15') }}">
+        <div class="hint">{{ _('Settings → About phone shows both. It helps me cover different devices.') }}</div>
+      </div>
+      <div class="form-row">
+        <label class="field" for="plays">{{ _('What do you play? (optional)') }}</label>
+        <input type="text" id="plays" name="plays" maxlength="200" value="{{ form.plays }}" placeholder="{{ _('e.g. VGC on Showdown, Champions ranked, Smogon OU') }}">
+      </div>
+      <fieldset class="form-row">
+        <legend>{{ _('Which parts would you use most? (optional)') }}</legend>
+        <div class="choices">
+          {% for use in uses %}
+          <label class="choice"><input type="checkbox" name="uses" value="{{ use }}"{% if use in form.uses %} checked{% endif %}> {{ use_labels[use] }}</label>
+          {% endfor %}
+        </div>
+      </fieldset>
+      <fieldset class="form-row">
+        <legend>{{ _('How often would you use it?') }}</legend>
+        <div class="choices">
+          {% for freq in frequencies %}
+          <label class="choice"><input type="radio" name="often" value="{{ freq }}"{% if form.often == freq %} checked{% endif %} required> {{ frequency_labels[freq] }}</label>
+          {% endfor %}
+        </div>
+      </fieldset>
+      <div class="form-row">
+        <label class="field" for="handle">{{ _('Showdown name or social handle (optional)') }}</label>
+        <input type="text" id="handle" name="handle" maxlength="100" value="{{ form.handle }}">
+      </div>
+      <div class="form-row">
+        <label class="field" for="note">{{ _('Anything else? (optional)') }}</label>
+        <textarea id="note" name="note" maxlength="2000" placeholder="{{ _('Why you would like to test, or what you would want the app to do') }}">{{ form.note }}</textarea>
+        <div class="hint">{{ _('Your answers go to my inbox and are only used for testing. See the') }} <a href="{{ url_for('privacy') }}" style="color: var(--text-soft);">{{ _('Privacy Policy') }}</a>.</div>
+      </div>
+      <div class="hp-field" aria-hidden="true">
+        <label for="website">Website</label>
+        <input type="text" id="website" name="website" tabindex="-1" autocomplete="off">
+      </div>
+      <div class="turnstile-row">
+        <div class="cf-turnstile" data-sitekey="{{ site_key }}" data-theme="auto"></div>
+      </div>
+      <button type="submit" class="submit-btn">{{ _('Send application') }}</button>
+    </form>
+    {% endif %}
+
+    <div class="button-container">
+      <a href="{{ url_for('about') }}" class="home-button">{{ _('About page') }}</a>
+      <a href="{{ url_for('index') }}" class="home-button">{{ _('Go back to the homepage') }}</a>
+    </div>
+  </div>
+</div>
+<div class="footer">
+  <p>Pok&eacute;mon and All Respective Names are Trademark &amp; &copy; of Nintendo 1996-2026</p>
+</div>
+{% endblock %}
