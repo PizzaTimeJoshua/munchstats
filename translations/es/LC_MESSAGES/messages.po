@@ -1680,10 +1680,6 @@ msgstr "¿Qué partes usarías más? (opcional)"
 msgid "How often would you use it?"
 msgstr "¿Con qué frecuencia la usarías?"
 
-#: templates/app.html:370
-msgid "Showdown name or social handle (optional)"
-msgstr "Nombre en Showdown o usuario en redes (opcional)"
-
 #: templates/app.html:374
 msgid "Anything else? (optional)"
 msgstr "¿Algo más? (opcional)"

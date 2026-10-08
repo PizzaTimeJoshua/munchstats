@@ -367,10 +367,6 @@
         </div>
       </fieldset>
       <div class="form-row">
-        <label class="field" for="handle">{{ _('Showdown name or social handle (optional)') }}</label>
-        <input type="text" id="handle" name="handle" maxlength="100" value="{{ form.handle }}">
-      </div>
-      <div class="form-row">
         <label class="field" for="note">{{ _('Anything else? (optional)') }}</label>
         <textarea id="note" name="note" maxlength="2000" placeholder="{{ _('Why you would like to test, or what you would want the app to do') }}">{{ form.note }}</textarea>
         <div class="hint">{{ _('Your answers go to my inbox and are only used for testing. See the') }} <a href="{{ url_for('privacy') }}" style="color: var(--text-soft);">{{ _('Privacy Policy') }}</a>.</div>

@@ -6686,7 +6686,7 @@ def app_page():
         "frequencies": list(TESTER_FREQUENCIES),
         "sent": False,
         "error": None,
-        "form": {"email": "", "device": "", "plays": "", "uses": [], "often": "", "handle": "", "note": ""},
+        "form": {"email": "", "device": "", "plays": "", "uses": [], "often": "", "note": ""},
     }
     if request.method == "GET" or not ctx["enabled"]:
         return render_template("app.html", **ctx)
@@ -6703,7 +6703,6 @@ def app_page():
         "plays": one_line("plays", 200),
         "uses": [u for u in TESTER_USES if u in picked],
         "often": request.form.get("often", ""),
-        "handle": one_line("handle", 100),
         "note": request.form.get("note", "").strip()[:TESTER_MAX_NOTE_LEN],
     }
     ctx["form"] = form
@@ -6733,7 +6732,6 @@ def app_page():
                 f"Plays: {form['plays'] or '(not given)'}",
                 f"Would use: {', '.join(TESTER_USES[u] for u in form['uses']) or '(not given)'}",
                 f"How often: {TESTER_FREQUENCIES[form['often']]}",
-                f"Handle: {form['handle'] or '(not given)'}",
                 f"Language: {get_locale()}",
                 "",
                 form["note"] or "(no note)",
