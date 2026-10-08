@@ -152,7 +152,7 @@
       <p class="updated">{{ _('Last updated:') }} {{ privacy_updated }}</p>
 
       <p class="intro">
-        {{ _('The short version: MunchStats has no accounts, no logins, and no passwords, and it runs no analytics and no ads. You can browse every page without telling us who you are and without being counted. The only thing we ever receive is what you choose to type into the contact form. The Android app collects nothing at all. We have never sold data and never will.') }}
+        {{ _('The short version: MunchStats has no accounts, no logins, and no passwords, and it runs no analytics and no ads. You can browse every page without telling us who you are and without being counted. The only things we ever receive are what you choose to type into the contact form or the app tester application. The Android app collects nothing at all. We have never sold data and never will.') }}
       </p>
 
       <div class="faq-section">
@@ -184,8 +184,22 @@
         </div>
 
         <div class="faq-item">
+          <h3>{{ _('The app tester application') }}</h3>
+          <p>{{ _('If you apply to test the Android app on the app page, we receive:') }}</p>
+          <ul>
+            <li>{{ _('Your email address — required, because that is where a test invite goes') }}</li>
+            <li>{{ _('The phone and Android version you would test on') }}</li>
+            <li>{{ _('Your answers about what you play, which parts of the app you would use, and how often') }}</li>
+            <li>{{ _('Your Showdown name or social handle and a note, if you add them') }}</li>
+            <li>{{ _('Your interface language, so we know which language to reply in') }}</li>
+          </ul>
+          <p style="margin-top: 8px;">{{ _('The application is delivered to the same private inbox as contact messages. It is not stored in a database and is only used to choose testers and to talk to you about testing. If you are picked, we email you an invite. When a test runs through Google Play, your email address is also added to the app\'s tester list in the Google Play Console so that your Google account can install the test version; Google handles that under its own privacy policy.') }}</p>
+          <p style="margin-top: 8px;">{{ _('We keep applications for as long as testing runs. You can ask us to delete yours, or to take you off the tester list, at any time. Your IP address is handled exactly as it is for the contact form.') }}</p>
+        </div>
+
+        <div class="faq-item">
           <h3>{{ _('Spam protection') }}</h3>
-          <p>{{ _('The contact form is protected by Cloudflare Turnstile. When you submit it, your IP address and a challenge token are sent to Cloudflare to confirm you are not a bot. We also keep a short-lived, in-memory count of recent submissions per IP address to rate-limit the form — that list holds at most 1,000 addresses for one hour and is erased whenever the server restarts. It is never written to disk.') }}</p>
+          <p>{{ _('The contact form and the app tester application are protected by Cloudflare Turnstile. When you submit either, your IP address and a challenge token are sent to Cloudflare to confirm you are not a bot. We also keep a short-lived, in-memory count of recent submissions per IP address to rate-limit the two forms together — that list holds at most 1,000 addresses for one hour and is erased whenever the server restarts. It is never written to disk.') }}</p>
         </div>
 
         <div class="faq-item">
@@ -219,7 +233,7 @@
           <p>{{ _('Almost none. Every script, stylesheet, font and image a normal MunchStats page needs is served from munchstats.com itself. The JavaScript libraries the site uses (jQuery, Chart.js, Font Awesome) used to load from public CDNs, and the header buttons used to load code from Ko-fi and Twitter; all of that is now hosted here, so browsing the site sends your IP address to nobody but us.') }}</p>
           <p style="margin-top: 8px;">{{ _('Exactly two exceptions remain, and neither happens on an ordinary page view:') }}</p>
           <ul>
-            <li>{{ _('challenges.cloudflare.com — the captcha, loaded only on the contact page') }}</li>
+            <li>{{ _('challenges.cloudflare.com — the captcha, loaded only on the contact page and the app page') }}</li>
             <li>{{ _('replay.pokemonshowdown.com — the battle replay player, loaded only on a replay page you chose to open') }}</li>
           </ul>
           <p style="margin-top: 8px;">{{ _('Links to other sites (Smogon, Limitless, RK9, Ko-fi, Twitter and so on) are ordinary links. Nothing is requested from those companies unless you click through, at which point their own privacy policies apply.') }}</p>
@@ -237,6 +251,7 @@
           <p>{{ _('The app collects no personal data. It contains no analytics SDK, no crash-reporting SDK, no advertising SDK, and no tracking of any kind. It does not ask for your location, contacts, camera, files, or any other sensitive permission.') }}</p>
           <p style="margin-top: 8px;">{{ _('The only permission it needs is network access, used solely to download Pokémon statistics from munchstats.com. Those statistics are stored on your device so the app keeps working offline. That cached data stays on your phone, is never transmitted anywhere, and is deleted when you clear the app data or uninstall the app.') }}</p>
           <p style="margin-top: 8px;">{{ _('Our servers see the same thing any web server sees when the app requests data — an IP address and which statistics were asked for. We do not link those requests to an identity, because the app never sends one.') }}</p>
+          <p style="margin-top: 8px;">{{ _('Test versions given to testers are the same app and collect nothing either. Testers send feedback through the contact form, which is covered above.') }}</p>
         </div>
       </div>
 
@@ -252,14 +267,14 @@
         <h2>{{ _('Your rights') }}</h2>
         <div class="faq-item">
           <p>{{ _('Depending on where you live — for example under the GDPR in the EU/UK, or the CCPA in California — you may have the right to request access to the personal data we hold about you, to have it corrected or deleted, to object to how we process it, or to receive a copy of it.') }}</p>
-          <p style="margin-top: 8px;">{{ _('In practice we hold very little: unless you have emailed us or used the contact form, we almost certainly hold nothing that identifies you. Where we do process data, the legal basis is our legitimate interest in keeping the site running, secure, and useful. Email us to exercise any of these rights and we will respond as quickly as we reasonably can. We do not sell personal information, and we never have.') }}</p>
+          <p style="margin-top: 8px;">{{ _('In practice we hold very little: unless you have emailed us, used the contact form or applied to test the app, we almost certainly hold nothing that identifies you. Where we do process data, the legal basis is our legitimate interest in keeping the site running, secure, and useful. Email us to exercise any of these rights and we will respond as quickly as we reasonably can. We do not sell personal information, and we never have.') }}</p>
         </div>
       </div>
 
       <div class="faq-section">
         <h2>{{ _('Children') }}</h2>
         <div class="faq-item">
-          <p>{{ _('MunchStats is a competitive statistics tool intended for a general audience aged 13 and over. It is not directed at children under 13, and we do not knowingly collect personal information from them. If you believe a child has sent us personal information through the contact form, email us and we will delete it.') }}</p>
+          <p>{{ _('MunchStats is a competitive statistics tool intended for a general audience aged 13 and over. It is not directed at children under 13, and we do not knowingly collect personal information from them. If you believe a child has sent us personal information through the contact form or the app tester application, email us and we will delete it.') }}</p>
         </div>
       </div>
 

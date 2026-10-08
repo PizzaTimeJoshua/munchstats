@@ -2167,7 +2167,7 @@ def about():
 # Bumped by hand whenever the policy text below materially changes -- Play
 # Console and the app both link here, and the date is what tells a reader
 # (and a reviewer) which version they're looking at.
-PRIVACY_LAST_UPDATED = "September 22, 2026"
+PRIVACY_LAST_UPDATED = "October 7, 2026"
 
 
 @app.route("/privacy/")
@@ -6546,26 +6546,50 @@ def _verify_turnstile(token, ip):
         return False
 
 
-def _send_contact_email(category, message, reply_email, page, lang="en"):
+def _email_looks_valid(address):
+    return len(address) <= 200 and re.match(r"[^@\s]+@[^@\s]+\.[^@\s]+$", address) is not None
+
+
+def _inbox_form_error():
+    """Rate limit, then captcha -- the gate the contact and tester forms
+    share. Returns the error to show, or None when the submission may go
+    out. Run it after a form's own checks, so a typo doesn't use up one of
+    the hour's sends."""
+    ip = _contact_client_ip()
+    if _contact_rate_limited(ip):
+        return gettext("Too many messages from this connection. Please try again later.")
+    if not _verify_turnstile(request.form.get("cf-turnstile-response", ""), ip):
+        return gettext("Captcha verification failed. Please try again.")
+    return None
+
+
+def _send_to_inbox(subject, body_lines, reply_email):
     msg = EmailMessage()
     msg["From"] = CONTACT_EMAIL_ADDRESS
     msg["To"] = CONTACT_EMAIL_ADDRESS
-    msg["Subject"] = f"[MunchStats] {category.capitalize()} report"
+    msg["Subject"] = subject
     if reply_email:
         msg["Reply-To"] = reply_email
-    body_lines = [
-        f"Category: {category}",
-        f"Reply email: {reply_email or '(none)'}",
-        f"Page: {page or '(not given)'}",
-        f"Language: {lang}",
-        "",
-        message,
-    ]
     msg.set_content("\n".join(body_lines))
     with smtplib.SMTP("smtp.gmail.com", 587, timeout=15) as smtp:
         smtp.starttls()
         smtp.login(CONTACT_EMAIL_ADDRESS, CONTACT_EMAIL_APP_PASSWORD)
         smtp.send_message(msg)
+
+
+def _send_contact_email(category, message, reply_email, page, lang="en"):
+    _send_to_inbox(
+        f"[MunchStats] {category.capitalize()} report",
+        [
+            f"Category: {category}",
+            f"Reply email: {reply_email or '(none)'}",
+            f"Page: {page or '(not given)'}",
+            f"Language: {lang}",
+            "",
+            message,
+        ],
+        reply_email,
+    )
 
 
 @app.route("/contact/", methods=["GET", "POST"])
@@ -6607,19 +6631,12 @@ def contact_page():
     if len(form["message"]) < CONTACT_MIN_MESSAGE_LEN:
         ctx["error"] = gettext("Please write a few more details in the message.")
         return render_template("contact.html", **ctx)
-    if form["email"] and (
-        len(form["email"]) > 200 or not re.match(r"[^@\s]+@[^@\s]+\.[^@\s]+$", form["email"])
-    ):
+    if form["email"] and not _email_looks_valid(form["email"]):
         ctx["error"] = gettext("That email address doesn't look valid.")
         return render_template("contact.html", **ctx)
 
-    ip = _contact_client_ip()
-    if _contact_rate_limited(ip):
-        ctx["error"] = gettext("Too many messages from this connection. Please try again later.")
-        return render_template("contact.html", **ctx)
-
-    if not _verify_turnstile(request.form.get("cf-turnstile-response", ""), ip):
-        ctx["error"] = gettext("Captcha verification failed. Please try again.")
+    ctx["error"] = _inbox_form_error()
+    if ctx["error"]:
         return render_template("contact.html", **ctx)
 
     try:
@@ -6637,6 +6654,98 @@ def contact_page():
     ctx["sent"] = True
     ctx["form"] = {"category": "bug", "message": "", "email": "", "page": ""}
     return render_template("contact.html", **ctx)
+
+
+# ─── App Tester Sign-up ──────────────────────────────────────────────────
+# The Android app's page: screenshots, and an application to test it that
+# goes out like a contact message -- same captcha, rate limit and inbox.
+
+# The answers an applicant can pick, in English for the email; the page
+# labels them through gettext.
+TESTER_USES = {
+    "usage": "Usage stats",
+    "teams": "Teams and teambuilder",
+    "calc": "Damage calc",
+    "replays": "Replays",
+    "tournaments": "Tournaments and insights",
+}
+TESTER_FREQUENCIES = {
+    "daily": "Every day",
+    "weekly": "A few times a week",
+    "sometimes": "Now and then",
+}
+TESTER_MAX_NOTE_LEN = 2000
+
+
+@app.route("/app/", methods=["GET", "POST"])
+def app_page():
+    ctx = {
+        "enabled": contact_form_enabled(),
+        "site_key": TURNSTILE_SITE_KEY,
+        "uses": list(TESTER_USES),
+        "frequencies": list(TESTER_FREQUENCIES),
+        "sent": False,
+        "error": None,
+        "form": {"email": "", "device": "", "plays": "", "uses": [], "often": "", "handle": "", "note": ""},
+    }
+    if request.method == "GET" or not ctx["enabled"]:
+        return render_template("app.html", **ctx)
+
+    def one_line(name, cap):
+        # Whitespace collapsed: the device goes in the subject, where a
+        # line break would be a header injection.
+        return " ".join(request.form.get(name, "").split())[:cap]
+
+    picked = request.form.getlist("uses")
+    form = {
+        "email": one_line("email", 200),
+        "device": one_line("device", 120),
+        "plays": one_line("plays", 200),
+        "uses": [u for u in TESTER_USES if u in picked],
+        "often": request.form.get("often", ""),
+        "handle": one_line("handle", 100),
+        "note": request.form.get("note", "").strip()[:TESTER_MAX_NOTE_LEN],
+    }
+    ctx["form"] = form
+
+    # Honeypot: bots fill the hidden field; pretend it worked.
+    if request.form.get("website", ""):
+        ctx["sent"] = True
+        return render_template("app.html", **ctx)
+
+    if not _email_looks_valid(form["email"]):
+        ctx["error"] = gettext("Please enter a valid email address for your invite.")
+    elif not form["device"]:
+        ctx["error"] = gettext("Please say which phone you would test on.")
+    elif form["often"] not in TESTER_FREQUENCIES:
+        ctx["error"] = gettext("Please pick how often you would use the app.")
+    else:
+        ctx["error"] = _inbox_form_error()
+    if ctx["error"]:
+        return render_template("app.html", **ctx)
+
+    try:
+        _send_to_inbox(
+            f"[MunchStats] Tester application: {form['device']}",
+            [
+                f"Email: {form['email']}",
+                f"Phone: {form['device']}",
+                f"Plays: {form['plays'] or '(not given)'}",
+                f"Would use: {', '.join(TESTER_USES[u] for u in form['uses']) or '(not given)'}",
+                f"How often: {TESTER_FREQUENCIES[form['often']]}",
+                f"Handle: {form['handle'] or '(not given)'}",
+                f"Language: {get_locale()}",
+                "",
+                form["note"] or "(no note)",
+            ],
+            form["email"],
+        )
+    except Exception:
+        ctx["error"] = gettext("Something went wrong sending your application. Please try again later.")
+        return render_template("app.html", **ctx)
+
+    ctx["sent"] = True
+    return render_template("app.html", **ctx)
 
 
 # ─── Error Handlers & Index ──────────────────────────────────────────────

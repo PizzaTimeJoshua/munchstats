@@ -1480,6 +1480,275 @@ msgstr "No se encontraron torneos."
 msgid "Tournament data from"
 msgstr "Datos de torneos de"
 
+#: app.py:6560
+msgid "Too many messages from this connection. Please try again later."
+msgstr "Demasiados mensajes desde esta conexión. Inténtalo de nuevo más tarde."
+
+#: app.py:6562
+msgid "Captcha verification failed. Please try again."
+msgstr "La verificación del captcha ha fallado. Inténtalo de nuevo."
+
+#: app.py:6632
+msgid "Please write a few more details in the message."
+msgstr "Por favor, escribe algunos detalles más en el mensaje."
+
+#: app.py:6635
+msgid "That email address doesn't look valid."
+msgstr "Esa dirección de correo no parece válida."
+
+#: app.py:6651
+msgid "Something went wrong sending your message. Please try again later."
+msgstr "Algo salió mal al enviar tu mensaje. Inténtalo de nuevo más tarde."
+
+#: templates/app.html:5 templates/app.html:292
+msgid "MunchStats for Android"
+msgstr "MunchStats para Android"
+
+#: templates/app.html:267
+msgid "Usage for every format, at every rating"
+msgstr "Uso de cada formato, en cada Elo"
+
+#: templates/app.html:268
+msgid "Spreads and stat distributions for each Pokémon"
+msgstr "Distribuciones y estadísticas de cada Pokémon"
+
+#: templates/app.html:269
+msgid "Thousands of tournament teams, searchable"
+msgstr "Miles de equipos de torneo, con búsqueda"
+
+#: templates/app.html:270
+msgid "Full sets, replica codes and Pokepastes"
+msgstr "Sets completos, códigos de réplica y Pokepastes"
+
+#: templates/app.html:271
+msgid "A teambuilder that starts from the common set"
+msgstr "Un teambuilder que parte del set más común"
+
+#: templates/app.html:272
+msgid "A damage calc against usage sets"
+msgstr "Calculadora de daño contra los sets de uso"
+
+#: templates/app.html:273
+msgid "Replays, turn by turn"
+msgstr "Replays, turno a turno"
+
+#: templates/app.html:274
+msgid "Which Pokémon win tournaments, not just get used"
+msgstr "Qué Pokémon ganan torneos, no solo cuáles se usan"
+
+#: app.py:6666 templates/app.html:277
+msgid "Usage stats"
+msgstr "Estadísticas de uso"
+
+#: app.py:6667 templates/app.html:278
+msgid "Teams and teambuilder"
+msgstr "Equipos y teambuilder"
+
+#: app.py:6668 templates/app.html:279
+msgid "Damage calc"
+msgstr "Calculadora de daño"
+
+#: app.py:6670 templates/app.html:281
+msgid "Tournaments and insights"
+msgstr "Torneos y análisis"
+
+#: app.py:6673 templates/app.html:284
+msgid "Every day"
+msgstr "Todos los días"
+
+#: app.py:6674 templates/app.html:285
+msgid "A few times a week"
+msgstr "Algunas veces por semana"
+
+#: app.py:6675 templates/app.html:286
+msgid "Now and then"
+msgstr "De vez en cuando"
+
+#: templates/app.html:291
+msgid "Testing on Android"
+msgstr "En pruebas en Android"
+
+#: templates/app.html:293
+msgid ""
+"Competitive Pokémon stats, teams, replays and a damage calc in your "
+"pocket. Download the formats you play and it all works offline."
+msgstr ""
+"Estadísticas de Pokémon competitivo, equipos, replays y una calculadora "
+"de daño en tu bolsillo. Descarga los formatos que juegas y todo funciona "
+"sin conexión."
+
+#: templates/app.html:295 templates/app.html:320
+msgid "Apply to test"
+msgstr "Postúlate para probarla"
+
+#: templates/app.html:299
+msgid "Screenshots"
+msgstr "Capturas de pantalla"
+
+#: templates/app.html:311
+msgid "Testing"
+msgstr "Pruebas"
+
+#: templates/app.html:313
+msgid ""
+"Before the app reaches the Play Store, I am looking for players to try it"
+" and tell me what breaks."
+msgstr ""
+"Antes de que la app llegue a Play Store, busco jugadores que la prueben y"
+" me cuenten qué falla."
+
+#: templates/app.html:314
+msgid "You need an Android phone. There is no iPhone version yet."
+msgstr "Necesitas un teléfono Android. Todavía no hay versión para iPhone."
+
+#: templates/app.html:315
+msgid "If you are picked, I will email you an invite to install the test version."
+msgstr ""
+"Si te elijo, te enviaré por correo una invitación para instalar la "
+"versión de prueba."
+
+#: templates/app.html:316
+msgid ""
+"Use it the way you normally would, and send bugs and ideas from the app: "
+"Settings → Report a bug or send feedback."
+msgstr ""
+"Úsala como lo harías normalmente y envía errores e ideas desde la app: "
+"Settings → Report a bug or send feedback."
+
+#: templates/app.html:317
+msgid ""
+"It is free, and the test version collects no data, just like the finished"
+" app."
+msgstr ""
+"Es gratis, y la versión de prueba no recopila ningún dato, igual que la "
+"app final."
+
+#: templates/app.html:324
+#, python-format
+msgid ""
+"Thanks! Your application is in. If you are picked, your invite will go to"
+" %(email)s."
+msgstr ""
+"¡Gracias! Recibí tu solicitud. Si te elijo, la invitación llegará a "
+"%(email)s."
+
+#: templates/app.html:334
+msgid "Applications are closed for a moment. You can still apply by email:"
+msgstr ""
+"Las solicitudes están cerradas por el momento. Aún puedes postularte por "
+"correo:"
+
+#: templates/app.html:340
+msgid "Your email"
+msgstr "Tu correo electrónico"
+
+#: templates/app.html:342
+msgid ""
+"Your invite goes here. For a Google Play test, use the Google account "
+"signed in to the Play Store on your phone."
+msgstr ""
+"Aquí llegará tu invitación. Para una prueba en Google Play, usa la cuenta"
+" de Google con la que iniciaste sesión en Play Store en tu teléfono."
+
+#: templates/app.html:345
+msgid "Your phone and Android version"
+msgstr "Tu teléfono y versión de Android"
+
+#: templates/app.html:346
+msgid "e.g. Pixel 8, Android 15"
+msgstr "p. ej., Pixel 8, Android 15"
+
+#: templates/app.html:347
+msgid "Settings → About phone shows both. It helps me cover different devices."
+msgstr ""
+"Ajustes → Información del teléfono muestra ambos. Me ayuda a cubrir "
+"distintos dispositivos."
+
+#: templates/app.html:350
+msgid "What do you play? (optional)"
+msgstr "¿Qué juegas? (opcional)"
+
+#: templates/app.html:351
+msgid "e.g. VGC on Showdown, Champions ranked, Smogon OU"
+msgstr "p. ej., VGC en Showdown, ranked de Champions, Smogon OU"
+
+#: templates/app.html:354
+msgid "Which parts would you use most? (optional)"
+msgstr "¿Qué partes usarías más? (opcional)"
+
+#: templates/app.html:362
+msgid "How often would you use it?"
+msgstr "¿Con qué frecuencia la usarías?"
+
+#: templates/app.html:370
+msgid "Showdown name or social handle (optional)"
+msgstr "Nombre en Showdown o usuario en redes (opcional)"
+
+#: templates/app.html:374
+msgid "Anything else? (optional)"
+msgstr "¿Algo más? (opcional)"
+
+#: templates/app.html:375
+msgid "Why you would like to test, or what you would want the app to do"
+msgstr "Por qué te gustaría probarla, o qué te gustaría que hiciera la app"
+
+#: templates/app.html:376
+msgid "Your answers go to my inbox and are only used for testing. See the"
+msgstr ""
+"Tus respuestas llegan a mi bandeja de entrada y solo se usan para las "
+"pruebas. Consulta la"
+
+#: templates/about.html:220 templates/app.html:376
+msgid "Privacy Policy"
+msgstr "Política de privacidad"
+
+#: templates/app.html:385
+msgid "Send application"
+msgstr "Enviar solicitud"
+
+#: templates/contact.html:158
+msgid "Want to try the Android app early?"
+msgstr "¿Quieres probar la app de Android antes que nadie?"
+
+#: templates/contact.html:158
+msgid "Apply to be a tester"
+msgstr "Postúlate como tester"
+
+#: templates/about.html:142
+msgid "Is there a MunchStats app?"
+msgstr "¿Hay una app de MunchStats?"
+
+#: templates/about.html:143
+msgid ""
+"Yes, for Android, and it is being tested now. The app page has "
+"screenshots and a form to apply as a tester. Applying sends me your email"
+" and a few answers; the Privacy Policy says how they are handled."
+msgstr ""
+"Sí, para Android, y ahora mismo está en pruebas. La página de la app "
+"tiene capturas de pantalla y un formulario para postularte como tester. "
+"Al postularte me envías tu correo y algunas respuestas; la Política de "
+"privacidad explica cómo se manejan."
+
+#: templates/about.html:143
+msgid "See the app"
+msgstr "Ver la app"
+
+#: app.py:6717
+msgid "Please enter a valid email address for your invite."
+msgstr "Escribe un correo electrónico válido para tu invitación."
+
+#: app.py:6719
+msgid "Please say which phone you would test on."
+msgstr "Indica en qué teléfono la probarías."
+
+#: app.py:6721
+msgid "Please pick how often you would use the app."
+msgstr "Elige con qué frecuencia usarías la app."
+
+#: app.py:6744
+msgid "Something went wrong sending your application. Please try again later."
+msgstr "Algo salió mal al enviar tu solicitud. Inténtalo de nuevo más tarde."
+
 #~ msgid ""
 #~ "The in-game usage data (the "
 #~ "\"[Champions] In-Game\" formats) is not"
@@ -1751,21 +2020,6 @@ msgstr "Datos de torneos de"
 
 #~ msgid "players"
 #~ msgstr "jugadores"
-
-#~ msgid "Please write a few more details in the message."
-#~ msgstr "Por favor, escribe algunos detalles más en el mensaje."
-
-#~ msgid "That email address doesn't look valid."
-#~ msgstr "Esa dirección de correo no parece válida."
-
-#~ msgid "Too many messages from this connection. Please try again later."
-#~ msgstr "Demasiados mensajes desde esta conexión. Inténtalo de nuevo más tarde."
-
-#~ msgid "Captcha verification failed. Please try again."
-#~ msgstr "La verificación del captcha ha fallado. Inténtalo de nuevo."
-
-#~ msgid "Something went wrong sending your message. Please try again later."
-#~ msgstr "Algo salió mal al enviar tu mensaje. Inténtalo de nuevo más tarde."
 
 #~ msgid "team"
 #~ msgstr "equipo"
