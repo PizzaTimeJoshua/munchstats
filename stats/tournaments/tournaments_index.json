@@ -1,5 +1,31 @@
 [
   {
+    "id": "LO002-drfp6esCSpyU3s",
+    "name": "2027 Louisville Pokémon VGC Regional Championships",
+    "date": "2026-10-09",
+    "location": "",
+    "type": "Regional",
+    "total_players": 1013,
+    "day2_count": 142,
+    "day2_source": "pairings",
+    "teams_scraped": 1013,
+    "scraped_at": "2026-10-12T07:12:18.695654Z",
+    "format": "gen9championsvgc2026regmc"
+  },
+  {
+    "id": "RE002-wN97aUf4Psz0ZJ",
+    "name": "2027 Recife Pokémon VGC Regional Championships",
+    "date": "2026-10-03",
+    "location": "",
+    "type": "Regional",
+    "total_players": 222,
+    "day2_count": 31,
+    "day2_source": "pairings",
+    "teams_scraped": 222,
+    "scraped_at": "2026-10-12T06:43:23.080512Z",
+    "format": "gen9championsvgc2026regmc"
+  },
+  {
     "id": "FR002-fiunEHp9wx4mh4",
     "name": "2027 Frankfurt Pokémon VGC Regional Championships",
     "date": "2026-09-26",

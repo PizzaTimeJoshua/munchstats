@@ -1,0 +1,13 @@
+{
+  "id": "RE002-wN97aUf4Psz0ZJ",
+  "name": "2027 Recife Pokémon VGC Regional Championships",
+  "date": "2026-10-03",
+  "location": "",
+  "type": "Regional",
+  "total_players": 222,
+  "day2_count": 31,
+  "day2_source": "pairings",
+  "teams_scraped": 222,
+  "scraped_at": "2026-10-12T06:43:23.080512Z",
+  "format": "gen9championsvgc2026regmc"
+}
