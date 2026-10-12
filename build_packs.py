@@ -12,6 +12,7 @@ file that is already gzipped -- the response body is the bytes on disk.
 
 Layout:
     stats/<month>/_packs/<format>__<rating>.json.gz
+    stats/<month>/_packs/<format>__<rating>.c.json.gz    the same, compact
     stats/<month>/_packs/_manifest.json
 
 Each pack:
@@ -19,8 +20,10 @@ Each pack:
      "revision": <same as /sync/manifest>, "species_count": N,
      "pokemon": {"<Name>": {<the /api/v1/pokemon payload>}, ...}}
 
-graph_data is deliberately excluded -- it is 47% of a species payload and the
-histogram is drawn on a screen that can ask for it per-Pokemon. See mobile_api.
+graph_data, the stat histogram, is included (see _build_one), so the detail
+screen works offline. Beside each pack is the same data compact
+(compact_packs.py, under half the bytes), named in its manifest row as
+"compact"; apps that know it download that one, older ones the pack.
 
 Usage:
     python build_packs.py                  # latest month, every format
@@ -47,6 +50,7 @@ from mobile_api import (  # noqa: E402  (after the env var above)
     PACK_MANIFEST_NAME as MANIFEST_NAME,
     pack_filename,
 )
+import compact_packs  # noqa: E402
 
 
 def _build_one(job):
@@ -129,7 +133,7 @@ def _build_one(job):
             gz.write(blob)
     os.replace(tmp, path)
 
-    return {
+    row = {
         "format": format_code,
         "format_name": body["format_name"],
         "rating": rating,
@@ -140,6 +144,23 @@ def _build_one(job):
         "file": pack_filename(format_code, rating),
         "skipped": skipped,
     }
+    # The same pack, compact (compact_packs.py): under half the bytes, and
+    # expanded on the phone back to exactly this. Beside it, not instead: an
+    # app from before reads only the pack above. Made from the JSON as the app
+    # will parse it, and only if it comes back exactly.
+    try:
+        compact = compact_packs.encode(json.loads(blob))
+        compact_raw, compact_gz = compact_packs.gzipped(compact)
+        cpath = os.path.join(out_dir, compact_packs.compact_filename(row["file"]))
+        ctmp = "%s.%d.tmp" % (cpath, os.getpid())
+        with open(ctmp, "wb") as fh:
+            fh.write(compact_gz)
+        os.replace(ctmp, cpath)
+        row["compact"] = {"file": os.path.basename(cpath), "bytes": len(compact_gz),
+                          "raw_bytes": len(compact_raw), "layout": compact_packs.LAYOUT}
+    except Exception as exc:
+        print("  %s/%s: no compact pack (%r)" % (format_code, rating, exc), flush=True)
+    return row
 
 
 def discover(month, data_dir, only_formats=None):
@@ -215,12 +236,16 @@ def main():
 
     rows.sort(key=lambda r: (r["format"], int(r["rating"])))
     total = sum(r["bytes"] for r in rows)
+    # What an app that takes the compact packs downloads: each one's, or the
+    # pack's own where it has none.
+    compact_total = sum((r.get("compact") or r)["bytes"] for r in rows)
     manifest = {
         "api_version": 1,
         "month": month,
         "generated_at": int(time.time()),
         "pack_count": len(rows),
         "total_bytes": total,
+        "compact_total_bytes": compact_total,
         "packs": rows,
     }
     with open(os.path.join(out_dir, MANIFEST_NAME), "w", encoding="utf8") as fh:
@@ -229,6 +254,8 @@ def main():
     elapsed = time.time() - started
     print("\nbuilt %d packs in %.1f min" % (len(rows), elapsed / 60))
     print("  on disk (gzipped): %.1f MB" % (total / 1048576))
+    print("  compact          : %.1f MB (%d of %d packs)"
+          % (compact_total / 1048576, sum("compact" in r for r in rows), len(rows)))
     print("  species total    : %d" % sum(r["species_count"] for r in rows))
     if rows:
         big = max(rows, key=lambda r: r["bytes"])
