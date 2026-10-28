@@ -166,7 +166,7 @@ CURRENT_VGC_FORMAT = "gen9championsvgc2026regmc"
 # regulation from day one, so it is the only current-reg usage data there is
 # until Smogon publishes the month. Point this back at DEFAULT_META once the
 # new reg's ladder stats land (Reg M-C: 2026-10-01).
-LANDING_FORMAT = "championsdoubles"
+LANDING_FORMAT = CURRENT_VGC_FORMAT
 
 SMOGON_STATS_URL = "https://www.smogon.com/stats/"
 
