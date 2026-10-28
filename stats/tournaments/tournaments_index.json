@@ -1,5 +1,31 @@
 [
   {
+    "id": "PB002-r871Zfmc4WQbIO",
+    "name": "2027 Puebla Pokémon VGC Regional Championships",
+    "date": "2026-10-24",
+    "location": "",
+    "type": "Regional",
+    "total_players": 333,
+    "day2_count": 48,
+    "day2_source": "pairings",
+    "teams_scraped": 333,
+    "scraped_at": "2026-10-28T03:30:51.012154Z",
+    "format": "gen9championsvgc2026regmc"
+  },
+  {
+    "id": "NC002-zBMwK69ABS7RRV",
+    "name": "2027 Nice Pokémon VGC Regional Championships",
+    "date": "2026-10-17",
+    "location": "",
+    "type": "Regional",
+    "total_players": 862,
+    "day2_count": 125,
+    "day2_source": "pairings",
+    "teams_scraped": 862,
+    "scraped_at": "2026-10-28T03:20:05.109271Z",
+    "format": "gen9championsvgc2026regmc"
+  },
+  {
     "id": "LO002-drfp6esCSpyU3s",
     "name": "2027 Louisville Pokémon VGC Regional Championships",
     "date": "2026-10-09",

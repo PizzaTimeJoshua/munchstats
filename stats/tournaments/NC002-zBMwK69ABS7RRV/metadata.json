@@ -1,0 +1,13 @@
+{
+  "id": "NC002-zBMwK69ABS7RRV",
+  "name": "2027 Nice Pokémon VGC Regional Championships",
+  "date": "2026-10-17",
+  "location": "",
+  "type": "Regional",
+  "total_players": 862,
+  "day2_count": 125,
+  "day2_source": "pairings",
+  "teams_scraped": 862,
+  "scraped_at": "2026-10-28T03:20:05.109271Z",
+  "format": "gen9championsvgc2026regmc"
+}
