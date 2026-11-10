@@ -1,5 +1,18 @@
 [
   {
+    "id": "GD002-0AEzTp3tRJXkux",
+    "name": "2027 Gdansk Pokémon VGC Regional Championships",
+    "date": "2026-10-31",
+    "location": "2027 Gdansk Pokémon Regional Championships",
+    "type": "Regional",
+    "total_players": 758,
+    "day2_count": 110,
+    "day2_source": "pairings",
+    "teams_scraped": 758,
+    "scraped_at": "2026-11-09T04:31:29.112980Z",
+    "format": "gen9championsvgc2026regmc"
+  },
+  {
     "id": "PB002-r871Zfmc4WQbIO",
     "name": "2027 Puebla Pokémon VGC Regional Championships",
     "date": "2026-10-24",
