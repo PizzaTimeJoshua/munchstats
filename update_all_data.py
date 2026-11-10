@@ -105,24 +105,98 @@ def extract_battle_icon_indexes_from_url(mjs_url, output_json_path):
         pyjson5.dump(icon_indexes_dict, json_file, indent=4)
 
 
+# Showdown's client build stopped putting desc/shortDesc in data/items.js,
+# abilities.js and moves.json (Sept 2026, the translation support work): all
+# text now lives in one file per language, data/text/<lang>.js. Without merging
+# it back, every hover tooltip on the site and in the app reads "No info.".
+SHOWDOWN_TEXT_URL = "https://play.pokemonshowdown.com/data/text/en.js"
+_showdown_text = None
+
+
+def fetch_showdown_text():
+    """BattleText["en"] from Showdown: {"Moves": {id: {desc, shortDesc, ...}}, ...}.
+
+    Fetched once per run; updateData and updateChampionsMods both need it.
+    """
+    global _showdown_text
+    if _showdown_text is None:
+        resp = requests.get(SHOWDOWN_TEXT_URL, timeout=60)
+        resp.raise_for_status()
+        # Served with no charset, so requests would guess Latin-1 and turn
+        # every "×" into mojibake. The file is UTF-8.
+        js = resp.content.decode("utf-8")
+        marker = 'exports.BattleText["en"] = '
+        if marker not in js:
+            raise RuntimeError(f"{SHOWDOWN_TEXT_URL} no longer has {marker!r}; its layout changed")
+        body = js.split(marker, 1)[1].strip().rstrip(";")
+        _showdown_text = pyjson5.loads(body)
+        for section in ("Moves", "Abilities", "Items"):
+            if not _showdown_text.get(section):
+                raise RuntimeError(f"{SHOWDOWN_TEXT_URL} has no {section} text")
+    return _showdown_text
+
+
+def merge_descs(entries, text, mod=None):
+    """Copy desc/shortDesc from a Showdown text table onto data entries, in place.
+
+    With mod (e.g. "champions"), the mod's sub-entry overrides field by field,
+    the same way Showdown's own Dex.getDescs resolves a mod's text.
+    Returns how many entries ended up with a description.
+    """
+    filled = 0
+    for entry_id, entry in entries.items():
+        if not isinstance(entry, dict):
+            continue
+        t = text.get(entry_id)
+        if not (isinstance(t, dict) and (t.get("desc") or t.get("shortDesc"))):
+            # "Hidden Power Bug" etc. have blank text and point at the real move.
+            t = text.get(_to_id(entry.get("placeholderFor") or "")) or t
+        if not isinstance(t, dict):
+            continue
+        desc, short = t.get("desc"), t.get("shortDesc")
+        sub = t.get(mod) if mod else None
+        if isinstance(sub, dict):
+            desc = sub.get("desc") or desc
+            short = sub.get("shortDesc") or short
+        # Matches what the old data files carried: either field stands in for
+        # a missing other (most items only have a shortDesc).
+        desc, short = desc or short, short or desc
+        if desc:
+            entry["desc"], entry["shortDesc"] = desc, short
+            filled += 1
+    return filled
+
+
+def _fetch_js_table(url):
+    """Parse a Showdown `exports.BattleX = {...};` data file into a dict."""
+    js = requests.get(url, timeout=60).text
+    return pyjson5.loads("{" + js.split("{", 1)[1].strip().rstrip(";"))
+
+
+def _write_compact_json(path, data):
+    with open(path, "w", encoding="utf-8") as file:
+        json.dump(data, file, ensure_ascii=False, separators=(",", ":"))
+
+
 def updateData():
-    print("Getting item data.")
-    url = "https://play.pokemonshowdown.com/data/items.js"
-    itemJS = requests.get(url).text
-    itemRaw = "{" + itemJS.split("{", 1)[1][:-1]
-    with open("stats/items.json", "w", encoding="utf-8") as file:
-        file.write(itemRaw)
-    print("Getting ability data.")
-    url = "https://play.pokemonshowdown.com/data/abilities.js"
-    abilitiesJS = requests.get(url).text
-    abilitiesRaw = "{" + abilitiesJS.split("{", 1)[1][:-1]
-    with open("stats/abilities.json", "w", encoding="utf-8") as file:
-        file.write(abilitiesRaw)
-    print("Getting move data.")
-    url = "https://play.pokemonshowdown.com/data/moves.json"
-    movesRaw = requests.get(url).text
-    with open("stats/moves.json", "w", encoding="utf-8") as file:
-        file.write(movesRaw)
+    text = fetch_showdown_text()
+    for label, url, path, section in (
+        ("item", "https://play.pokemonshowdown.com/data/items.js", "stats/items.json", "Items"),
+        ("ability", "https://play.pokemonshowdown.com/data/abilities.js", "stats/abilities.json", "Abilities"),
+        ("move", "https://play.pokemonshowdown.com/data/moves.json", "stats/moves.json", "Moves"),
+    ):
+        print(f"Getting {label} data.")
+        if url.endswith(".json"):
+            data = requests.get(url, timeout=60).json()
+        else:
+            data = _fetch_js_table(url)
+        filled = merge_descs(data, text[section])
+        print(f"  {filled}/{len(data)} {section.lower()} have descriptions.")
+        # A real run fills well over 90%; this guards a silent repeat of the
+        # Showdown split, which shipped a month of "No info." tooltips.
+        if filled < len(data) // 2:
+            raise RuntimeError(f"Only {filled}/{len(data)} {section.lower()} got descriptions; Showdown's text layout changed")
+        _write_compact_json(path, data)
     print("Getting pokedex data.")
     url = "https://play.pokemonshowdown.com/data/pokedex.json"
     pokedexRaw = requests.get(url).text
@@ -499,6 +573,10 @@ def updateChampionsMods():
     for entry_id, fields in move_overrides.items():
         if entry_id in base_moves:
             base_moves[entry_id].update(fields)
+    # The mod .ts files no longer carry text; Champions descs are the
+    # "champions" sub-entries in Showdown's text file.
+    text = fetch_showdown_text()
+    merge_descs(base_moves, text["Moves"], mod="champions")
     with open("stats/champions_moves.json", "w", encoding="utf-8") as f:
         pyjson5.dump(base_moves, f, separators=(",", ":"))
     print(f"  Applied {len(move_overrides)} move overrides.")
@@ -511,6 +589,7 @@ def updateChampionsMods():
     for entry_id, fields in ability_overrides.items():
         if entry_id in base_abilities:
             base_abilities[entry_id].update(fields)
+    merge_descs(base_abilities, text["Abilities"], mod="champions")
     with open("stats/champions_abilities.json", "w", encoding="utf-8") as f:
         pyjson5.dump(base_abilities, f, separators=(",", ":"))
     print(f"  Applied {len(ability_overrides)} ability overrides.")
